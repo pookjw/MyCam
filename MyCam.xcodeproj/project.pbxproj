@@ -9,12 +9,62 @@
 /* Begin PBXBuildFile section */
 		4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D62C95ABC30010F295 /* AVFoundation.framework */; };
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
+		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
+		4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5F2C97152500F17348 /* SwiftUI.framework */; };
+		4FA73E6D2C97152600F17348 /* MyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4FA73E502C97132400F17348 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F69053C2C949D4D00CD2C22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA73E482C97132400F17348;
+			remoteInfo = "MyCaptureExtension-Swift";
+		};
+		4FA73E6B2C97152600F17348 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F69053C2C949D4D00CD2C22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4FA73E5B2C97152500F17348;
+			remoteInfo = MyWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4FA73E532C97132400F17348 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA73E722C97152600F17348 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4FA73E6D2C97152600F17348 /* MyWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4F32A2D62C95ABC30010F295 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		4F32A2D72C95ABC30010F295 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = "MyCaptureExtension-Swift.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4FA73E5D2C97152500F17348 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4FA73E5F2C97152500F17348 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -25,6 +75,20 @@
 				Info.plist,
 			);
 			target = 4F6905432C949D4D00CD2C22 /* MyCam */;
+		};
+		4FA73E572C97132400F17348 /* Exceptions for "MyCaptureExtension-Swift" folder in "MyCaptureExtension-Swift" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
+		};
+		4FA73E712C97152600F17348 /* Exceptions for "MyWidget" folder in "MyWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4FA73E5B2C97152500F17348 /* MyWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -48,6 +112,22 @@
 			path = MyCam;
 			sourceTree = "<group>";
 		};
+		4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4FA73E572C97132400F17348 /* Exceptions for "MyCaptureExtension-Swift" folder in "MyCaptureExtension-Swift" target */,
+			);
+			path = "MyCaptureExtension-Swift";
+			sourceTree = "<group>";
+		};
+		4FA73E612C97152500F17348 /* MyWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4FA73E712C97152600F17348 /* Exceptions for "MyWidget" folder in "MyWidgetExtension" target */,
+			);
+			path = MyWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +140,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4FA73E462C97132400F17348 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA73E592C97152500F17348 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */,
+				4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -68,6 +164,8 @@
 			children = (
 				4F32A2D62C95ABC30010F295 /* AVFoundation.framework */,
 				4F32A2D72C95ABC30010F295 /* AVKit.framework */,
+				4FA73E5D2C97152500F17348 /* WidgetKit.framework */,
+				4FA73E5F2C97152500F17348 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -76,6 +174,8 @@
 			isa = PBXGroup;
 			children = (
 				4F6905462C949D4D00CD2C22 /* MyCam */,
+				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
+				4FA73E612C97152500F17348 /* MyWidget */,
 				4F32A2D52C95ABC20010F295 /* Frameworks */,
 				4F6905452C949D4D00CD2C22 /* Products */,
 			);
@@ -85,6 +185,8 @@
 			isa = PBXGroup;
 			children = (
 				4F6905442C949D4D00CD2C22 /* MyCam.app */,
+				4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */,
+				4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -99,10 +201,14 @@
 				4F6905402C949D4D00CD2C22 /* Sources */,
 				4F6905412C949D4D00CD2C22 /* Frameworks */,
 				4F6905422C949D4D00CD2C22 /* Resources */,
+				4FA73E532C97132400F17348 /* Embed ExtensionKit Extensions */,
+				4FA73E722C97152600F17348 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4FA73E512C97132400F17348 /* PBXTargetDependency */,
+				4FA73E6C2C97152600F17348 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4F6905462C949D4D00CD2C22 /* MyCam */,
@@ -114,6 +220,50 @@
 			productReference = 4F6905442C949D4D00CD2C22 /* MyCam.app */;
 			productType = "com.apple.product-type.application";
 		};
+		4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA73E562C97132400F17348 /* Build configuration list for PBXNativeTarget "MyCaptureExtension-Swift" */;
+			buildPhases = (
+				4FA73E452C97132400F17348 /* Sources */,
+				4FA73E462C97132400F17348 /* Frameworks */,
+				4FA73E472C97132400F17348 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
+			);
+			name = "MyCaptureExtension-Swift";
+			packageProductDependencies = (
+			);
+			productName = "MyCaptureExtension-Swift";
+			productReference = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		4FA73E5B2C97152500F17348 /* MyWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4FA73E6E2C97152600F17348 /* Build configuration list for PBXNativeTarget "MyWidgetExtension" */;
+			buildPhases = (
+				4FA73E582C97152500F17348 /* Sources */,
+				4FA73E592C97152500F17348 /* Frameworks */,
+				4FA73E5A2C97152500F17348 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4FA73E612C97152500F17348 /* MyWidget */,
+			);
+			name = MyWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MyWidgetExtension;
+			productReference = 4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -121,9 +271,16 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
 					4F6905432C949D4D00CD2C22 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					4FA73E482C97132400F17348 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					4FA73E5B2C97152500F17348 = {
 						CreatedOnToolsVersion = 16.1;
 					};
 				};
@@ -143,12 +300,28 @@
 			projectRoot = "";
 			targets = (
 				4F6905432C949D4D00CD2C22 /* MyCam */,
+				4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */,
+				4FA73E5B2C97152500F17348 /* MyWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		4F6905422C949D4D00CD2C22 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA73E472C97132400F17348 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA73E5A2C97152500F17348 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -165,7 +338,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4FA73E452C97132400F17348 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA73E582C97152500F17348 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4FA73E512C97132400F17348 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
+			targetProxy = 4FA73E502C97132400F17348 /* PBXContainerItemProxy */;
+		};
+		4FA73E6C2C97152600F17348 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4FA73E5B2C97152500F17348 /* MyWidgetExtension */;
+			targetProxy = 4FA73E6B2C97152600F17348 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4F69055D2C949D4E00CD2C22 /* Debug */ = {
@@ -338,6 +538,120 @@
 			};
 			name = Release;
 		};
+		4FA73E542C97132400F17348 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pookjw.MyCam.MyCaptureExtension-Swift";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4FA73E552C97132400F17348 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pookjw.MyCam.MyCaptureExtension-Swift";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4FA73E6F2C97152600F17348 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.MyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4FA73E702C97152600F17348 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.MyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -355,6 +669,24 @@
 			buildConfigurations = (
 				4F69055D2C949D4E00CD2C22 /* Debug */,
 				4F69055E2C949D4E00CD2C22 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA73E562C97132400F17348 /* Build configuration list for PBXNativeTarget "MyCaptureExtension-Swift" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA73E542C97132400F17348 /* Debug */,
+				4FA73E552C97132400F17348 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4FA73E6E2C97152600F17348 /* Build configuration list for PBXNativeTarget "MyWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4FA73E6F2C97152600F17348 /* Debug */,
+				4FA73E702C97152600F17348 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
