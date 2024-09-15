@@ -12,7 +12,6 @@
 @interface CaptureService ()
 @property (class, nonatomic, readonly) void *devicesContext;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
-@property (retain, nonatomic, readonly) NSKeyValueSharedObservers *rotationCoordinatorObservers;
 @end
 
 @implementation CaptureService
@@ -50,9 +49,6 @@
         _captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _queue_rotationCoordinatorsByPreviewLayer = [rotationCoordinatorsByPreviewLayer retain];
-        _rotationCoordinatorObservers = rotationCoordinatorObservers;
-        
-        [self setSharedObservers:<#(NSKeyValueSharedObserversSnapshot * _Nullable)#>]
         
         //
         
