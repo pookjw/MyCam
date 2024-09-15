@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, nullable, setter=queue_setSelectedCaptureDevice:) AVCaptureDevice *queue_selectedCaptureDevice;
-- (void)queue_start;
+- (void)queue_selectDefaultCaptureDevice;
 - (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 - (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 @end

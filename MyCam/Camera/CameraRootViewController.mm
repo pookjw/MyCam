@@ -55,8 +55,9 @@
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = self.captureVideoPreviewView.captureVideoPreviewLayer;
     
     dispatch_async(self.captureService.captureSessionQueue, ^{
+        [self.captureService queue_selectDefaultCaptureDevice];
         [self.captureService queue_registerCaptureVideoPreviewLayer:captureVideoPreviewLayer];
-        [self.captureService queue_start];
+        [self.captureService.captureSession startRunning];
     });
 }
 
