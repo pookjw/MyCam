@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; };
 		4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D62C95ABC30010F295 /* AVFoundation.framework */; };
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -58,6 +59,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LockedCameraCapture.framework; path = System/Library/Frameworks/LockedCameraCapture.framework; sourceTree = SDKROOT; };
 		4F32A2D62C95ABC30010F295 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		4F32A2D72C95ABC30010F295 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -68,6 +70,20 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4F2A41892C97572500726F2F /* Exceptions for "MyWidget" folder in "MyCam" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MyCamCaptureIntent.swift,
+			);
+			target = 4F6905432C949D4D00CD2C22 /* MyCam */;
+		};
+		4F2A418A2C97572500726F2F /* Exceptions for "MyWidget" folder in "MyCaptureExtension-Swift" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MyCamCaptureIntent.swift,
+			);
+			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
+		};
 		4F69055B2C949D4E00CD2C22 /* Exceptions for "MyCam" folder in "MyCam" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -123,6 +139,8 @@
 		4FA73E612C97152500F17348 /* MyWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				4F2A41892C97572500726F2F /* Exceptions for "MyWidget" folder in "MyCam" target */,
+				4F2A418A2C97572500726F2F /* Exceptions for "MyWidget" folder in "MyCaptureExtension-Swift" target */,
 				4FA73E712C97152600F17348 /* Exceptions for "MyWidget" folder in "MyWidgetExtension" target */,
 			);
 			path = MyWidget;
@@ -153,6 +171,7 @@
 			files = (
 				4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */,
 				4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */,
+				4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,6 +181,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */,
 				4F32A2D62C95ABC30010F295 /* AVFoundation.framework */,
 				4F32A2D72C95ABC30010F295 /* AVKit.framework */,
 				4FA73E5D2C97152500F17348 /* WidgetKit.framework */,
@@ -379,10 +399,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyCam/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -391,6 +413,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -406,10 +429,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyCam/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -418,6 +443,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -549,6 +575,7 @@
 				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -577,6 +604,7 @@
 				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -606,6 +634,7 @@
 				INFOPLIST_FILE = MyWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -636,6 +665,7 @@
 				INFOPLIST_FILE = MyWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
