@@ -71,6 +71,8 @@
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == CaptureService.devicesContext) {
         [self.delegate didChangeCaptureDeviceStatus:self];
+    } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
+        
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
@@ -107,6 +109,8 @@
     
     for (AVCaptureVideoPreviewLayer *previewLayer in previewLayers) {
         AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
+        [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+        
         [rotationCoordinatorsByPreviewLayer setObject:rotationCoodinator forKey:previewLayer];
         [rotationCoodinator release];
     }
@@ -149,6 +153,8 @@
     assert(self.captureSessionQueue);
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:self.queue_selectedCaptureDevice previewLayer:captureVideoPreviewLayer];
+    [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+    
     [self.queue_rotationCoordinatorsByPreviewLayer setObject:rotationCoodinator forKey:captureVideoPreviewLayer];
     [rotationCoodinator release];
 }
