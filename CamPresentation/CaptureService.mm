@@ -201,10 +201,35 @@
     captureVideoPreviewLayer.session = nil;
 }
 
-- (void)queue_startPhotoCapture {
-    assert(self.capturePhotoOutput.isAppleProRAWSupported);
-    NSLog(@"%@", self.capturePhotoOutput.availableRawPhotoPixelFormatTypes);
-//    AVCapturePhotoSettings *settings = [AVCapturePhotoSettings new];
+- (void)queue_startPhotoCaptureWithPhotoModel:(CameraRootPhotoModel *)photoModel {
+    assert(self.captureSessionQueue);
+    
+    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
+    
+    NSMutableDictionary<NSString *, id> *format = [NSMutableDictionary new];
+    if (NSNumber *photoPixelFormatType = photoModel.photoPixelFormatType) {
+        format[(id)kCVPixelBufferPixelFormatTypeKey] = photoModel.photoPixelFormatType;
+    } else if (AVVideoCodecType codecType = photoModel.codecType) {
+        format[AVVideoCodecKey] = photoModel.codecType;
+        format[AVVideoCompressionPropertiesKey] = @{
+            AVVideoQualityKey: @(photoModel.quality)
+        };
+    }
+    
+    if (photoModel.isRAWEnabled) {
+        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                               rawFileType:photoModel.rawFileType
+                                                                           processedFormat:format
+                                                                         processedFileType:photoModel.processedFileType];
+    } else {
+        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithFormat:format];
+    }
+    
+    [format release];
+    
+    //
+    
+    [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
 }
 
 - (void)queue_startVideoRecording {
@@ -226,5 +251,10 @@
 
 
 #pragma mark - AVCapturePhotoCaptureDelegate
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
+    assert(error == nil);
+    NSLog(@"%@", photo);
+}
 
 @end

@@ -8,6 +8,7 @@
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
+#import <CamPresentation/CameraRootPhotoModel.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -24,6 +25,7 @@
 @property (retain, nonatomic, readonly) UIDeferredMenuElement *captureDevicesMenuElement;
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
+@property (retain, nonatomic, readonly) CameraRootPhotoModel *photoModel;
 @end
 
 @implementation CameraRootViewController
@@ -33,6 +35,7 @@
 @synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize captureService = _captureService;
+@synthesize photoModel = _photoModel;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -51,6 +54,7 @@
     [_captureDevicesMenuElement release];
     [_formatBarButtonItem release];
     [_captureService release];
+    [_photoModel release];
     [super dealloc];
 }
 
@@ -77,11 +81,26 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    CaptureService *captureService = self.captureService;
+    __weak auto weakSelf = self;
+    
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
-        NSLog(@"Primary");
+        if (event.phase == AVCaptureEventPhaseBegan) {
+            CameraRootPhotoModel *photoModel = weakSelf.photoModel;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_startPhotoCaptureWithPhotoModel:photoModel];
+            });
+        }
     }
                                                                                                   secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
-        NSLog(@"Secondary");
+        if (event.phase == AVCaptureEventPhaseBegan) {
+            CameraRootPhotoModel *photoModel = weakSelf.photoModel;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_startPhotoCaptureWithPhotoModel:photoModel];
+            });
+        }
     }];
     
     [self.view addInteraction:captureEventInteraction];
@@ -219,78 +238,22 @@
     if (auto formatBarButtonItem = _formatBarButtonItem) return formatBarButtonItem;
     
     CaptureService *captureService = self.captureService;
+    CameraRootPhotoModel *photoModel = self.photoModel;
+    __weak auto weakSelf = self;
+    
+    //
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            NSArray<NSNumber *> *availablePhotoPixelFormatTypes = captureService.capturePhotoOutput.availablePhotoPixelFormatTypes;
-            NSMutableArray<UIAction *> *photoPixelFormatActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoPixelFormatTypes.count];
-            
-            for (NSNumber *formatNumber in availablePhotoPixelFormatTypes) {
-                CMVideoFormatDescriptionRef description;
-                OSStatus status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
-                                                                 formatNumber.unsignedIntValue,
-                                                                 0,
-                                                                 0,
-                                                                 nullptr,
-                                                                 &description);
-                assert(status == 0);
-                
-                FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
-                
-                NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
-                
-                UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    
-                }];
-                
-                [photoPixelFormatActions addObject:action];
-            }
-            
-            //
-            
-            NSArray<NSNumber *> *availableRawPhotoPixelFormatTypes = captureService.capturePhotoOutput.availableRawPhotoPixelFormatTypes;
-            NSMutableArray<UIAction *> *rawPhotoPixelFormatActions = [[NSMutableArray alloc] initWithCapacity:availableRawPhotoPixelFormatTypes.count];
-            
-            for (NSNumber *formatNumber in availableRawPhotoPixelFormatTypes) {
-                CMVideoFormatDescriptionRef description;
-                OSStatus status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
-                                                                 formatNumber.unsignedIntValue,
-                                                                 0,
-                                                                 0,
-                                                                 nullptr,
-                                                                 &description);
-                assert(status == 0);
-                
-                FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
-                
-                NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
-                
-                UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    
-                }];
-                
-                [rawPhotoPixelFormatActions addObject:action];
-            }
-            
-            //
-            
-            UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
-                [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:photoPixelFormatActions],
-                [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:rawPhotoPixelFormatActions]
-            ]];
-            
-            [photoPixelFormatActions release];
-            [rawPhotoPixelFormatActions release];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[menu]);
-            });
-        });
+        completion([photoModel configurationMenuElementsWithSelectionHandler:^{
+            reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
+        }]);
     }];
     
-    UIMenu *memu = [UIMenu menuWithChildren:@[element]];
+    //
     
-    UIBarButtonItem *formatBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Format" menu:memu];
+    UIMenu *menu = [UIMenu menuWithChildren:@[element]];
+    
+    UIBarButtonItem *formatBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Format" menu:menu];
     
     _formatBarButtonItem = [formatBarButtonItem retain];
     return [formatBarButtonItem autorelease];
@@ -306,6 +269,16 @@
     return [captureService autorelease];
 }
 
+- (CameraRootPhotoModel *)photoModel {
+    if (auto photoModel = _photoModel) return photoModel;
+    
+    CameraRootPhotoModel *photoModel = [CameraRootPhotoModel new];
+    photoModel.captureService = self.captureService;
+    
+    _photoModel = [photoModel retain];
+    return [photoModel autorelease];
+}
+
 - (void)didChangeCaptureDeviceStatus:(CaptureService *)captureService {
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -318,7 +291,7 @@
 
 - (void)didTriggerCaptureBarButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
-        [self.captureService queue_startPhotoCapture];
+        [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoModel];
     });
 }
 
