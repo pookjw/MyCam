@@ -17,6 +17,7 @@
 		4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41D42C981A6400726F2F /* AVFoundation.framework */; };
 		4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D62C95ABC30010F295 /* AVFoundation.framework */; };
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
+		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
 		4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5F2C97152500F17348 /* SwiftUI.framework */; };
@@ -109,6 +110,7 @@
 		4F2A41D42C981A6400726F2F /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
 		4F32A2D62C95ABC30010F295 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		4F32A2D72C95ABC30010F295 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
+		4F47801A2C98388800813671 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreMedia.framework; sourceTree = DEVELOPER_DIR; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = "MyCaptureExtension-Swift.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -220,6 +222,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
 				4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */,
 				4F2A41D22C981A6000726F2F /* UIKit.framework in Frameworks */,
 				4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */,
@@ -260,6 +263,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F47801A2C98388800813671 /* CoreMedia.framework */,
 				4F2A41D42C981A6400726F2F /* AVFoundation.framework */,
 				4F2A41D32C981A6400726F2F /* AVKit.framework */,
 				4F2A41D12C981A6000726F2F /* UIKit.framework */,

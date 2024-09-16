@@ -43,6 +43,8 @@
     }
     [cameraRootViewController release];
     
+    //
+    
     [navigationController setToolbarHidden:NO animated:NO];
     
     UIToolbarAppearance *toolbarAppearance = [UIToolbarAppearance new];
@@ -52,6 +54,16 @@
     toolbar.standardAppearance = toolbarAppearance;
     toolbar.scrollEdgeAppearance = toolbarAppearance;
     [toolbarAppearance release];
+    
+    //
+    
+    UINavigationBar *navigationBar = navigationController.navigationBar;
+    UINavigationBarAppearance *navigationBarAppearance = [UINavigationBarAppearance new];
+    navigationBarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
+    navigationBar.compactAppearance = navigationBarAppearance;
+    navigationBar.standardAppearance = navigationBarAppearance;
+    navigationBar.scrollEdgeAppearance = navigationBarAppearance;
+    [navigationBarAppearance release];
     
     window.rootViewController = navigationController;
     [navigationController release];

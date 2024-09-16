@@ -9,7 +9,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface CaptureService ()
+@interface CaptureService () <AVCapturePhotoCaptureDelegate>
 @property (class, nonatomic, readonly) void *devicesContext;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
 @end
@@ -24,6 +24,7 @@
 - (instancetype)init {
     if (self = [super init]) {
         AVCaptureSession *captureSession = [AVCaptureSession new];
+        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         
@@ -40,14 +41,29 @@
                                                                                                                                 mediaType:AVMediaTypeVideo
                                                                                                                                  position:AVCaptureDevicePositionUnspecified];
         
+        [captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:CaptureService.devicesContext];
+        
         NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByPreviewLayer = [NSMapTable weakToStrongObjectsMapTable];
         
-        [captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:CaptureService.devicesContext];
+        //
+        
+        AVCapturePhotoOutput *capturePhotoOutput = [AVCapturePhotoOutput new];
+        [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionNew context:NULL];
+        
+        [captureSession beginConfiguration];
+        
+        assert([captureSession canAddOutput:capturePhotoOutput]);
+        [captureSession addOutput:capturePhotoOutput];
+        
+        [captureSession commitConfiguration];
+        
+        //
         
         _captureSession = captureSession;
         _captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _queue_rotationCoordinatorsByPreviewLayer = [rotationCoordinatorsByPreviewLayer retain];
+        _capturePhotoOutput = capturePhotoOutput;
         
         //
         
@@ -67,8 +83,9 @@
     for (AVCaptureVideoPreviewLayer *previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
         [[_queue_rotationCoordinatorsByPreviewLayer objectForKey:previewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     }
-    
     [_queue_rotationCoordinatorsByPreviewLayer release];
+    
+    [_capturePhotoOutput release];
     [super dealloc];
 }
 
@@ -78,6 +95,9 @@
     } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
+    } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
+        auto casted = static_cast<AVCapturePhotoOutput *>(object);
+        casted.appleProRAWEnabled = casted.appleProRAWSupported;
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
@@ -125,6 +145,8 @@
     }
     
     [captureSession commitConfiguration];
+    
+    AVCaptureDevice.userPreferredCamera = captureDevice;
     
     //
     
@@ -179,6 +201,20 @@
     captureVideoPreviewLayer.session = nil;
 }
 
+- (void)queue_startPhotoCapture {
+    assert(self.capturePhotoOutput.isAppleProRAWSupported);
+    NSLog(@"%@", self.capturePhotoOutput.availableRawPhotoPixelFormatTypes);
+//    AVCapturePhotoSettings *settings = [AVCapturePhotoSettings new];
+}
+
+- (void)queue_startVideoRecording {
+    abort();
+}
+
+- (void)queue_stopVideoRecording {
+    abort();
+}
+
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
     dispatch_async(self.captureSessionQueue, ^{
         if (![self.queue_selectedCaptureDevice isEqual:notification.object]) return;
@@ -187,5 +223,8 @@
         [self.delegate didChangeCaptureDeviceStatus:self];
     });
 }
+
+
+#pragma mark - AVCapturePhotoCaptureDelegate
 
 @end
