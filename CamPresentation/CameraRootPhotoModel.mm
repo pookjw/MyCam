@@ -26,13 +26,13 @@
 
 - (instancetype)initWithCoder:(NSCoder *)coder {
     if (self = [super init]) {
-        _photoPixelFormatType = [[coder decodeObjectForKey:@"photoPixelFormatType"] copy];
-        _codecType = [[coder decodeObjectForKey:@"codecType"] copy];
+        _photoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"photoPixelFormatType"] copy];
+        _codecType = [[coder decodeObjectOfClass:NSString.class forKey:@"codecType"] copy];
         _quality = [coder decodeFloatForKey:@"quality"];
         _isRAWEnabled = [coder decodeBoolForKey:@"isRAWEnabled"];
-        _rawPhotoPixelFormatType = [[coder decodeObjectForKey:@"rawPhotoPixelFormatType"] copy];
-        _rawFileType = [[coder decodeObjectForKey:@"rawFileType"] copy];
-        _processedFileType = [[coder decodeObjectForKey:@"processedFileType"] copy];
+        _rawPhotoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"rawPhotoPixelFormatType"] copy];
+        _rawFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"rawFileType"] copy];
+        _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
     }
     
     return self;
@@ -171,6 +171,7 @@
     
     if (copy) {
         auto casted = static_cast<CameraRootPhotoModel *>(copy);
+        casted->_captureService = [_captureService retain];
         casted->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
         casted->_codecType = [_codecType copyWithZone:zone];
         casted->_quality = _quality;

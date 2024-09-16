@@ -1,5 +1,5 @@
 //
-//  SceneDelegate.m
+//  SceneDelegate.mm
 //  MyCam
 //
 //  Created by Jinwoo Kim on 9/14/24.
@@ -22,6 +22,10 @@
     
     UINavigationController *navigationController = [UINavigationController new];
     CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
+    
+    if (NSUserActivity * _Nullable stateRestorationActivity = session.stateRestorationActivity) {
+        [cameraRootViewController restoreStateWithUserActivity:stateRestorationActivity];
+    }
     
     switch ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]) {
         case AVAuthorizationStatusAuthorized: {
@@ -70,6 +74,16 @@
     self.window = window;
     [window makeKeyAndVisible];
     [window release];
+}
+
+- (NSUserActivity *)stateRestorationActivityForScene:(UIScene *)scene {
+    auto navigationController = static_cast<UINavigationController *>(self.window.rootViewController);
+    if (![navigationController isKindOfClass:UINavigationController.class]) return nil;
+    
+    auto cameraRootViewController = static_cast<CameraRootViewController *>(navigationController.topViewController);
+    if (![cameraRootViewController isKindOfClass:CameraRootViewController.class]) return nil;
+    
+    return cameraRootViewController.stateRestorationActivity;
 }
 
 @end

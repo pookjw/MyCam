@@ -48,7 +48,7 @@
         //
         
         AVCapturePhotoOutput *capturePhotoOutput = [AVCapturePhotoOutput new];
-        [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionNew context:NULL];
+        [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
         
         [captureSession beginConfiguration];
         
@@ -97,7 +97,7 @@
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
         auto casted = static_cast<AVCapturePhotoOutput *>(object);
-        casted.appleProRAWEnabled = casted.appleProRAWSupported;
+        casted.appleProRAWEnabled = casted.isAppleProRAWSupported;
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }

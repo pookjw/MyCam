@@ -25,7 +25,7 @@
 @property (retain, nonatomic, readonly) UIDeferredMenuElement *captureDevicesMenuElement;
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (retain, nonatomic, readonly) CameraRootPhotoModel *photoModel;
+@property (retain, nonatomic, nullable) CameraRootPhotoModel *photoModel;
 @end
 
 @implementation CameraRootViewController
@@ -132,7 +132,64 @@
         [self.captureService queue_selectDefaultCaptureDevice];
         [self.captureService queue_registerCaptureVideoPreviewLayer:captureVideoPreviewLayer];
         [self.captureService.captureSession startRunning];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (CameraRootPhotoModel *photoModel = self.photoModel) {
+                photoModel.captureService = self.captureService;
+                return;
+            }
+            
+            CameraRootPhotoModel *photoModel = [CameraRootPhotoModel new];
+            photoModel.captureService = self.captureService;
+            self.photoModel = photoModel;
+            [photoModel release];
+        });
     });
+}
+
+- (NSUserActivity *)stateRestorationActivity {
+    auto userActivityTypes = static_cast<NSArray<NSString *> *>(NSBundle.mainBundle.infoDictionary[@"NSUserActivityTypes"]);
+    if (userActivityTypes == nil) return nil;
+    if (![userActivityTypes containsObject:@"com.pookjw.MyCam.CameraRootViewController"]) return nil;
+    
+    CameraRootPhotoModel * _Nullable photoModel = _photoModel;
+    
+    if (photoModel == nil) return nil;
+    
+    NSUserActivity *userActivity = [[NSUserActivity alloc] initWithActivityType:@"com.pookjw.MyCam.CameraRootViewController"];
+    
+    NSKeyedArchiver *keyedArchiver = [[NSKeyedArchiver alloc] initRequiringSecureCoding:YES];
+    keyedArchiver.outputFormat = NSPropertyListBinaryFormat_v1_0;
+    [photoModel encodeWithCoder:keyedArchiver];
+    
+    [keyedArchiver finishEncoding];
+    
+    [userActivity addUserInfoEntriesFromDictionary:@{
+        @"photoModelData": keyedArchiver.encodedData
+    }];
+    
+    [keyedArchiver release];
+    
+    return [userActivity autorelease];
+}
+
+- (void)restoreStateWithUserActivity:(NSUserActivity *)userActivity {
+    if (self.photoModel != nil) return;
+    
+    if (![userActivity.activityType isEqualToString:@"com.pookjw.MyCam.CameraRootViewController"]) return;
+    
+    NSData * _Nullable photoModelData = userActivity.userInfo[@"photoModelData"];
+    if (photoModelData == nil) return;
+    
+    NSError * _Nullable error = nil;
+    NSKeyedUnarchiver *keyedUnarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:photoModelData error:&error];
+    assert(error == nil);
+    
+    CameraRootPhotoModel *restorationPhotoModel = [[CameraRootPhotoModel alloc] initWithCoder:keyedUnarchiver];
+    [keyedUnarchiver release];
+    
+    self.photoModel = restorationPhotoModel;
+    [restorationPhotoModel release];
 }
 
 - (CaptureVideoPreviewView *)captureVideoPreviewView {
@@ -237,15 +294,21 @@
 - (UIBarButtonItem *)formatBarButtonItem {
     if (auto formatBarButtonItem = _formatBarButtonItem) return formatBarButtonItem;
     
-    CaptureService *captureService = self.captureService;
-    CameraRootPhotoModel *photoModel = self.photoModel;
     __weak auto weakSelf = self;
     
     //
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        completion([photoModel configurationMenuElementsWithSelectionHandler:^{
+        completion([weakSelf.photoModel configurationMenuElementsWithSelectionHandler:^{
             reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
+            
+            __kindof UIScene * _Nullable scene = weakSelf.view.window.windowScene;
+            if (scene != nil) {
+                NSDictionary<NSString *, id> *_registeredComponents;
+                assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
+                id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
+                reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
+            }
         }]);
     }];
     
@@ -267,16 +330,6 @@
     
     _captureService = [captureService retain];
     return [captureService autorelease];
-}
-
-- (CameraRootPhotoModel *)photoModel {
-    if (auto photoModel = _photoModel) return photoModel;
-    
-    CameraRootPhotoModel *photoModel = [CameraRootPhotoModel new];
-    photoModel.captureService = self.captureService;
-    
-    _photoModel = [photoModel retain];
-    return [photoModel autorelease];
 }
 
 - (void)didChangeCaptureDeviceStatus:(CaptureService *)captureService {
