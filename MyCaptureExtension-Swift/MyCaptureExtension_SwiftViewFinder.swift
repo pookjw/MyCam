@@ -9,24 +9,31 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import LockedCameraCapture
+import CamPresentation
 
 struct MyCaptureExtension_SwiftViewFinder: UIViewControllerRepresentable {
     let session: LockedCameraCaptureSession
-    var sourceType: UIImagePickerController.SourceType = .camera
 
     init(session: LockedCameraCaptureSession) {
         self.session = session
     }
  
-    func makeUIViewController(context: Self.Context) -> UIImagePickerController {
-        let imagePicker = UIImagePickerController()
-        imagePicker.sourceType = sourceType
-        imagePicker.mediaTypes = [UTType.image.identifier, UTType.movie.identifier]
-        imagePicker.cameraDevice = .rear
- 
-        return imagePicker
+    func makeUIViewController(context: Self.Context) -> UINavigationController {
+        let navigationController = UINavigationController(rootViewController: CameraRootViewController())
+        
+        navigationController.setToolbarHidden(false, animated: false)
+        let toolbar = navigationController.toolbar!
+        
+        let toolbarAppearance = UIToolbarAppearance()
+        toolbarAppearance.backgroundEffect = UIBlurEffect(style: .systemChromeMaterialDark)
+        
+        toolbar.compactAppearance = toolbarAppearance
+        toolbar.standardAppearance = toolbarAppearance
+        toolbar.scrollEdgeAppearance = toolbarAppearance
+        
+        return navigationController
     }
  
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Self.Context) {
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Self.Context) {
     }
 }

@@ -5,7 +5,7 @@
 //  Created by Jinwoo Kim on 9/15/24.
 //
 
-#import "CaptureService.h"
+#import <CamPresentation/CaptureService.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -155,6 +155,8 @@
 - (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
     assert(self.captureSessionQueue);
     
+    captureVideoPreviewLayer.session = self.captureSession;
+    
     AVCaptureDevice *selectedCaptureDevice = self.queue_selectedCaptureDevice;
     if (selectedCaptureDevice == nil) {
         abort();
@@ -174,6 +176,7 @@
     
     [[self.queue_rotationCoordinatorsByPreviewLayer objectForKey:captureVideoPreviewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     [self.queue_rotationCoordinatorsByPreviewLayer removeObjectForKey:captureVideoPreviewLayer];
+    captureVideoPreviewLayer.session = nil;
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {

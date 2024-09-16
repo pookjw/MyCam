@@ -8,6 +8,7 @@
 #import "SceneDelegate.h"
 #import "CameraRootViewController.h"
 #import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/CameraRootViewController.h>
 
 @implementation SceneDelegate
 

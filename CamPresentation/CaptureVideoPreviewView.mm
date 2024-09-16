@@ -5,7 +5,7 @@
 //  Created by Jinwoo Kim on 9/15/24.
 //
 
-#import "CaptureVideoPreviewView.h"
+#import <CamPresentation/CaptureVideoPreviewView.h>
 
 @implementation CaptureVideoPreviewView
 

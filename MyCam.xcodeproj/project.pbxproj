@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; };
+		4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
+		4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4F2A41A32C9815C500726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
+		4F2A41A42C9815C500726F2F /* CamPresentation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4F2A41D22C981A6000726F2F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41D12C981A6000726F2F /* UIKit.framework */; };
+		4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41D32C981A6400726F2F /* AVKit.framework */; };
+		4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41D42C981A6400726F2F /* AVFoundation.framework */; };
 		4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D62C95ABC30010F295 /* AVFoundation.framework */; };
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -17,6 +24,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		4F2A41962C98148000726F2F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F69053C2C949D4D00CD2C22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F2A41912C98148000726F2F;
+			remoteInfo = CamPresentation;
+		};
+		4F2A41A52C9815C500726F2F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F69053C2C949D4D00CD2C22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F2A41912C98148000726F2F;
+			remoteInfo = CamPresentation;
+		};
 		4FA73E502C97132400F17348 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4F69053C2C949D4D00CD2C22 /* Project object */;
@@ -34,6 +55,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		4F2A419E2C98148000726F2F /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4F2A41A72C9815C500726F2F /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				4F2A41A42C9815C500726F2F /* CamPresentation.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4FA73E532C97132400F17348 /* Embed ExtensionKit Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -60,6 +103,10 @@
 
 /* Begin PBXFileReference section */
 		4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LockedCameraCapture.framework; path = System/Library/Frameworks/LockedCameraCapture.framework; sourceTree = SDKROOT; };
+		4F2A41922C98148000726F2F /* CamPresentation.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CamPresentation.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F2A41D12C981A6000726F2F /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		4F2A41D32C981A6400726F2F /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/AVKit.framework; sourceTree = DEVELOPER_DIR; };
+		4F2A41D42C981A6400726F2F /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
 		4F32A2D62C95ABC30010F295 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		4F32A2D72C95ABC30010F295 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,6 +130,18 @@
 				MyCamCaptureIntent.swift,
 			);
 			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
+		};
+		4F2A419D2C98148000726F2F /* Exceptions for "CamPresentation" folder in "CamPresentation" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			privateHeaders = (
+				CaptureService.h,
+				CaptureVideoPreviewView.h,
+			);
+			publicHeaders = (
+				CameraRootViewController.h,
+				CamPresentation.h,
+			);
+			target = 4F2A41912C98148000726F2F /* CamPresentation */;
 		};
 		4F69055B2C949D4E00CD2C22 /* Exceptions for "MyCam" folder in "MyCam" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -119,6 +178,14 @@
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4F2A41932C98148000726F2F /* CamPresentation */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4F2A419D2C98148000726F2F /* Exceptions for "CamPresentation" folder in "CamPresentation" target */,
+			);
+			path = CamPresentation;
+			sourceTree = "<group>";
+		};
 		4F6905462C949D4D00CD2C22 /* MyCam */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -149,12 +216,23 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4F2A418F2C98148000726F2F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */,
+				4F2A41D22C981A6000726F2F /* UIKit.framework in Frameworks */,
+				4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F6905412C949D4D00CD2C22 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */,
+				4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -162,6 +240,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F2A41A32C9815C500726F2F /* CamPresentation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,6 +260,9 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F2A41D42C981A6400726F2F /* AVFoundation.framework */,
+				4F2A41D32C981A6400726F2F /* AVKit.framework */,
+				4F2A41D12C981A6000726F2F /* UIKit.framework */,
 				4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */,
 				4F32A2D62C95ABC30010F295 /* AVFoundation.framework */,
 				4F32A2D72C95ABC30010F295 /* AVKit.framework */,
@@ -196,6 +278,7 @@
 				4F6905462C949D4D00CD2C22 /* MyCam */,
 				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
 				4FA73E612C97152500F17348 /* MyWidget */,
+				4F2A41932C98148000726F2F /* CamPresentation */,
 				4F32A2D52C95ABC20010F295 /* Frameworks */,
 				4F6905452C949D4D00CD2C22 /* Products */,
 			);
@@ -207,13 +290,47 @@
 				4F6905442C949D4D00CD2C22 /* MyCam.app */,
 				4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */,
 				4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */,
+				4F2A41922C98148000726F2F /* CamPresentation.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		4F2A418D2C98148000726F2F /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
+		4F2A41912C98148000726F2F /* CamPresentation */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4F2A419A2C98148000726F2F /* Build configuration list for PBXNativeTarget "CamPresentation" */;
+			buildPhases = (
+				4F2A418D2C98148000726F2F /* Headers */,
+				4F2A418E2C98148000726F2F /* Sources */,
+				4F2A418F2C98148000726F2F /* Frameworks */,
+				4F2A41902C98148000726F2F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4F2A41932C98148000726F2F /* CamPresentation */,
+			);
+			name = CamPresentation;
+			packageProductDependencies = (
+			);
+			productName = CamPresentation;
+			productReference = 4F2A41922C98148000726F2F /* CamPresentation.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		4F6905432C949D4D00CD2C22 /* MyCam */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4F69055C2C949D4E00CD2C22 /* Build configuration list for PBXNativeTarget "MyCam" */;
@@ -223,12 +340,14 @@
 				4F6905422C949D4D00CD2C22 /* Resources */,
 				4FA73E532C97132400F17348 /* Embed ExtensionKit Extensions */,
 				4FA73E722C97152600F17348 /* Embed Foundation Extensions */,
+				4F2A419E2C98148000726F2F /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				4FA73E512C97132400F17348 /* PBXTargetDependency */,
 				4FA73E6C2C97152600F17348 /* PBXTargetDependency */,
+				4F2A41972C98148000726F2F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4F6905462C949D4D00CD2C22 /* MyCam */,
@@ -247,10 +366,12 @@
 				4FA73E452C97132400F17348 /* Sources */,
 				4FA73E462C97132400F17348 /* Frameworks */,
 				4FA73E472C97132400F17348 /* Resources */,
+				4F2A41A72C9815C500726F2F /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4F2A41A62C9815C500726F2F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
@@ -294,6 +415,9 @@
 				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1610;
 				TargetAttributes = {
+					4F2A41912C98148000726F2F = {
+						CreatedOnToolsVersion = 16.1;
+					};
 					4F6905432C949D4D00CD2C22 = {
 						CreatedOnToolsVersion = 16.1;
 					};
@@ -322,11 +446,19 @@
 				4F6905432C949D4D00CD2C22 /* MyCam */,
 				4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */,
 				4FA73E5B2C97152500F17348 /* MyWidgetExtension */,
+				4F2A41912C98148000726F2F /* CamPresentation */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4F2A41902C98148000726F2F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F6905422C949D4D00CD2C22 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -351,6 +483,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4F2A418E2C98148000726F2F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F6905402C949D4D00CD2C22 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -375,6 +514,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		4F2A41972C98148000726F2F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F2A41912C98148000726F2F /* CamPresentation */;
+			targetProxy = 4F2A41962C98148000726F2F /* PBXContainerItemProxy */;
+		};
+		4F2A41A62C9815C500726F2F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F2A41912C98148000726F2F /* CamPresentation */;
+			targetProxy = 4F2A41A52C9815C500726F2F /* PBXContainerItemProxy */;
+		};
 		4FA73E512C97132400F17348 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
@@ -388,6 +537,74 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		4F2A419B2C98148000726F2F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULEMAP_FILE = CamPresentation/module.modulemap;
+				MODULEMAP_PRIVATE_FILE = CamPresentation/module.private.modulemap;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.CamPresentation;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		4F2A419C2C98148000726F2F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = P53D29U9LJ;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULEMAP_FILE = CamPresentation/module.modulemap;
+				MODULEMAP_PRIVATE_FILE = CamPresentation/module.private.modulemap;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.CamPresentation;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
 		4F69055D2C949D4E00CD2C22 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -574,7 +791,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
+				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -603,7 +822,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "MyCaptureExtension-Swift/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "MyCaptureExtension-Swift";
+				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -633,7 +854,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
+				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -664,7 +887,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyWidget;
+				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -685,6 +910,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4F2A419A2C98148000726F2F /* Build configuration list for PBXNativeTarget "CamPresentation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F2A419B2C98148000726F2F /* Debug */,
+				4F2A419C2C98148000726F2F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		4F69053F2C949D4D00CD2C22 /* Build configuration list for PBXProject "MyCam" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

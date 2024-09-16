@@ -5,10 +5,11 @@
 //  Created by Jinwoo Kim on 9/14/24.
 //
 
-#import "CameraRootViewController.h"
-#import "CaptureService.h"
-#import "CaptureVideoPreviewView.h"
+#import <CamPresentation/CameraRootViewController.h>
+#import <CamPresentation/CaptureService.h>
+#import <CamPresentation/CaptureVideoPreviewView.h>
 #import <AVFoundation/AVFoundation.h>
+#import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -43,7 +44,15 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.captureVideoPreviewView.captureVideoPreviewLayer.session = self.captureService.captureSession;
+    AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
+        NSLog(@"Primary");
+    }
+                                                                                                  secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
+        NSLog(@"Secondary");
+    }];
+    
+    [self.view addInteraction:captureEventInteraction];
+    [captureEventInteraction release];
     
     [self setToolbarItems:@[
         [UIBarButtonItem flexibleSpaceItem],
