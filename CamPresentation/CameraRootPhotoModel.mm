@@ -509,7 +509,15 @@
             //
             
             NSArray<AVFileType> *availablePhotoFileTypes = captureService.capturePhotoOutput.availablePhotoFileTypes;
-            NSMutableArray<UIAction *> *availablePhotoFileTypeActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoFileTypes.count];
+            NSMutableArray<UIAction *> *availablePhotoFileTypeActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoFileTypes.count + 1];
+            
+            UIAction *nullAction = [UIAction actionWithTitle:@"(null)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                weakSelf.processedFileType = nil;
+                if (selectionHandler) selectionHandler();
+            }];
+            nullAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+            nullAction.state = (self.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            [availablePhotoFileTypeActions addObject:nullAction];
             
             for (AVFileType fileType in availablePhotoFileTypes) {
                 UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
