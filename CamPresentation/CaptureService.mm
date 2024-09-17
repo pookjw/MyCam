@@ -175,7 +175,6 @@
     }
     
     // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
-    // TODO: 고를 수 있게
     self.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
     
     //
@@ -258,6 +257,7 @@
     [format release];
     
     // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
+    // TODO: 고를 수 있게
     capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
     
     //
