@@ -305,6 +305,8 @@
 }
 
 - (void)photoFormatMenuElementsDidChange:(PhotoFormatMenuService *)photoFormatMenu {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
     
     __kindof UIScene * _Nullable scene = self.view.window.windowScene;
