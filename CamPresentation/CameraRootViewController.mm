@@ -5,18 +5,21 @@
 //  Created by Jinwoo Kim on 9/14/24.
 //
 
+// TODO: Memory Leak Test
+
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/PhotoFormatMenuService.h>
+#import <CamPresentation/CaptureDevicesMenuService.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface CameraRootViewController () <PhotoFormatMenuDelegate>
+@interface CameraRootViewController () <PhotoFormatMenuDelegate, CaptureDevicesMenuServiceDelegate>
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
 @property (nonatomic, readonly) CaptureVideoPreviewView *captureVideoPreviewView;
@@ -28,6 +31,7 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
 @property (retain, nonatomic, nullable) PhotoFormatMenuService *photoFormatMenuService;
+@property (retain ,nonatomic, nullable) CaptureDevicesMenuService *captureDevicesMenuService;
 @end
 
 @implementation CameraRootViewController
@@ -37,6 +41,7 @@
 @synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize captureService = _captureService;
+@synthesize captureDevicesMenuService = _captureDevicesMenuService;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -49,7 +54,6 @@
 }
 
 - (void)dealloc {
-    [NSNotificationCenter.defaultCenter removeObserver:self name:CaptureServiceDidChangeDeviceStatusNotificationName object:_captureService];
     [_photosBarButtonItem release];
     [_captureBarButtonItem release];
     [_captureDevicesBarButtonItem release];
@@ -58,21 +62,8 @@
     [_captureService release];
     [_restorationPhotoFormatModel release];
     [_photoFormatMenuService release];
+    [_captureDevicesMenuService release];
     [super dealloc];
-}
-
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if (context == CameraRootViewController.availablePhotoPixelFormatTypesKey) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-        });
-    } else if (context == CameraRootViewController.availableRawPhotoPixelFormatTypesKey) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-        });
-    } else {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-    }
 }
 
 - (void)loadView {
@@ -127,9 +118,6 @@
     //
     
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = self.captureVideoPreviewView.captureVideoPreviewLayer;
-    
-    [self.captureService.capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionNew context:CameraRootViewController.availablePhotoPixelFormatTypesKey];
-    [self.captureService.capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes" options:NSKeyValueObservingOptionNew context:CameraRootViewController.availableRawPhotoPixelFormatTypesKey];
     
     dispatch_async(self.captureService.captureSessionQueue, ^{
         [self.captureService queue_selectDefaultCaptureDevice];
@@ -249,44 +237,14 @@
 - (UIDeferredMenuElement *)captureDevicesMenuElement {
     if (auto captureDevicesMenuElement = _captureDevicesMenuElement) return captureDevicesMenuElement;
     
-    CaptureService *captureService = self.captureService;
+    __weak auto weakSelf = self;
     
     UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice;
-            NSArray<AVCaptureDevice *> *devices = captureService.captureDeviceDiscoverySession.devices;
-            NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
-            
-            for (AVCaptureDevice *captureDevice in devices) {
-                UIImage *image;
-                if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
-                    image = [UIImage systemImageNamed:@"web.camera"];
-                } else {
-                    image = [UIImage systemImageNamed:@"camera"];
-                }
-                
-                UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
-                                                       image:image
-                                                  identifier:captureDevice.uniqueID
-                                                     handler:^(__kindof UIAction * _Nonnull action) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        captureService.queue_selectedCaptureDevice = captureDevice;
-                    });
-                }];
-                
-                action.state = ([captureDevice isEqual:selectedCaptureDevice] ? UIMenuElementStateOn : UIMenuElementStateOff);
-                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.subtitle = captureDevice.manufacturer;
-                
-                [actions addObject:action];
-            }
-            
+        [weakSelf.captureDevicesMenuService menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(actions);
+                completion(menuElements);
             });
-            
-            [actions release];
-        });
+        }];
     }];
     
     _captureDevicesMenuElement = [captureDevicesMenuElement retain];
@@ -323,16 +281,17 @@
     
     CaptureService *captureService = [CaptureService new];
     
-    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeDeviceStatusNotificationName object:captureService];
-    
     _captureService = [captureService retain];
     return [captureService autorelease];
 }
 
-- (void)didReceiveDidChangeDeviceStatusNotification:(NSNotification *)notification {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
-    });
+- (CaptureDevicesMenuService *)captureDevicesMenuService {
+    if (auto captureDevicesMenuService = _captureDevicesMenuService) return captureDevicesMenuService;
+    
+    CaptureDevicesMenuService *captureDevicesMenuService = [[CaptureDevicesMenuService alloc] initWithCaptureService:self.captureService delegate:self];
+    
+    _captureDevicesMenuService = [captureDevicesMenuService retain];
+    return [captureDevicesMenuService autorelease];
 }
 
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
@@ -355,6 +314,12 @@
         id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
     }
+}
+
+- (void)captureDevicesMenuServiceElementsDidChange:(CaptureDevicesMenuService *)captureDevicesMenuService {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+    });
 }
 
 @end

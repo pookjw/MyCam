@@ -163,6 +163,8 @@
 				CameraRootViewController.h,
 				CameraRootViewController.mm,
 				CamPresentation.h,
+				CaptureDevicesMenuService.h,
+				CaptureDevicesMenuService.mm,
 				CaptureService.h,
 				CaptureService.mm,
 				CaptureVideoPreviewView.h,
@@ -173,6 +175,7 @@
 				PhotoFormat/PhotoFormatModel.mm,
 			);
 			privateHeaders = (
+				CaptureDevicesMenuService.h,
 				CaptureService.h,
 				CaptureVideoPreviewView.h,
 				PhotoFormat/PhotoFormatMenuService.h,

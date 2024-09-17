@@ -27,7 +27,7 @@
         _captureService = [captureService retain];
         _photoFormatModel = [photoFormatModel copy];
         
-        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeDeviceStatusNotificationName object:captureService];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeSelectedDeviceNotificationName object:captureService];
     }
     
     return self;

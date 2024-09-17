@@ -15,7 +15,15 @@ extern "C"
 #else
 extern
 #endif
-NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName;
+NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName;
+
+
+//#if defined(__cplusplus)
+//extern "C"
+//#else
+//extern
+//#endif
+//NSString * const CaptureServiceOld
 
 @interface CaptureService : NSObject
 @property (retain, nonatomic, readonly) AVCaptureSession *captureSession;

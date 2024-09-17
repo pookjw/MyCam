@@ -12,20 +12,14 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CoreLocation/CoreLocation.h>
 
-NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @"CaptureServiceDidChangeDeviceStatusNotificationName";
+NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName = @"CaptureServiceDidChangeSelectedDeviceNotificationName";
 
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
-@property (class, nonatomic, readonly) void *devicesContext;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
 @implementation CaptureService
-
-+ (void *)devicesContext {
-    static void *devicesContext = &devicesContext;
-    return devicesContext;
-}
 
 - (instancetype)init {
     if (self = [super init]) {
@@ -46,8 +40,6 @@ NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @
         ]
                                                                                                                                 mediaType:AVMediaTypeVideo
                                                                                                                                  position:AVCaptureDevicePositionUnspecified];
-        
-        [captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:CaptureService.devicesContext];
         
         NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByPreviewLayer = [NSMapTable weakToStrongObjectsMapTable];
         
@@ -91,7 +83,6 @@ NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_captureSession release];
     [_captureSessionQueue release];
-    [_captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices" context:CaptureService.devicesContext];
     [_captureDeviceDiscoverySession release];
     
     for (AVCaptureVideoPreviewLayer *previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
@@ -106,9 +97,7 @@ NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if (context == CaptureService.devicesContext) {
-        [self postDidChangeDeviceStatusNotification];
-    } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
+    if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
@@ -192,7 +181,7 @@ NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @
     
     [previewLayers release];
     
-    [self postDidChangeDeviceStatusNotification];
+    [self postDidChangeSelectedDeviceNotification];
 }
 
 - (void)queue_selectDefaultCaptureDevice {
@@ -280,13 +269,11 @@ NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @
     dispatch_async(self.captureSessionQueue, ^{
         if (![self.queue_selectedCaptureDevice isEqual:notification.object]) return;
         [self queue_selectDefaultCaptureDevice];
-        
-        [self postDidChangeDeviceStatusNotification];
     });
 }
 
-- (void)postDidChangeDeviceStatusNotification {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeDeviceStatusNotificationName object:self];
+- (void)postDidChangeSelectedDeviceNotification {
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeSelectedDeviceNotificationName object:self];
 }
 
 
