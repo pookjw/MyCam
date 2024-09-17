@@ -12,6 +12,8 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CoreLocation/CoreLocation.h>
 
+NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName = @"CaptureServiceDidChangeDeviceStatusNotificationName";
+
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
 @property (class, nonatomic, readonly) void *devicesContext;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
@@ -105,7 +107,7 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if (context == CaptureService.devicesContext) {
-        [self.delegate didChangeCaptureDeviceStatus:self];
+        [self postDidChangeDeviceStatusNotification];
     } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
@@ -164,18 +166,18 @@
     
     //
     
-    CMVideoDimensions maxPhotoDimensions = {0, 0};
-    for (AVCaptureDeviceFormat *format in captureDevice.formats) {
-        for (NSValue *value in format.supportedMaxPhotoDimensions) {
-            CMVideoDimensions _maxPhotoDimensions = value.CMVideoDimensionsValue;
-            if ((maxPhotoDimensions.width < _maxPhotoDimensions.width) || (maxPhotoDimensions.height < _maxPhotoDimensions.height)) {
-                maxPhotoDimensions = _maxPhotoDimensions;
-            }
-        }
-    }
-    
-    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
-    self.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
+//    CMVideoDimensions maxPhotoDimensions = {0, 0};
+//    for (AVCaptureDeviceFormat *format in captureDevice.formats) {
+//        for (NSValue *value in format.supportedMaxPhotoDimensions) {
+//            CMVideoDimensions _maxPhotoDimensions = value.CMVideoDimensionsValue;
+//            if ((maxPhotoDimensions.width < _maxPhotoDimensions.width) || (maxPhotoDimensions.height < _maxPhotoDimensions.height)) {
+//                maxPhotoDimensions = _maxPhotoDimensions;
+//            }
+//        }
+//    }
+//    
+//    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
+//    self.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
     
     //
     
@@ -190,7 +192,7 @@
     
     [previewLayers release];
     
-    [self.delegate didChangeCaptureDeviceStatus:self];
+    [self postDidChangeDeviceStatusNotification];
 }
 
 - (void)queue_selectDefaultCaptureDevice {
@@ -259,8 +261,7 @@
     [format release];
     
     // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
-    // TODO: 고를 수 있게
-    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
+//    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
     
     //
     
@@ -280,8 +281,12 @@
         if (![self.queue_selectedCaptureDevice isEqual:notification.object]) return;
         [self queue_selectDefaultCaptureDevice];
         
-        [self.delegate didChangeCaptureDeviceStatus:self];
+        [self postDidChangeDeviceStatusNotification];
     });
+}
+
+- (void)postDidChangeDeviceStatusNotification {
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeDeviceStatusNotificationName object:self];
 }
 
 

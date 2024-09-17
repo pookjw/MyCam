@@ -10,13 +10,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class CaptureService;
-@protocol CaptureServiceDelegate <NSObject>
-- (void)didChangeCaptureDeviceStatus:(CaptureService *)captureService;
-@end
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+NSNotificationName const CaptureServiceDidChangeDeviceStatusNotificationName;
 
 @interface CaptureService : NSObject
-@property (weak) id<CaptureServiceDelegate> delegate;
 @property (retain, nonatomic, readonly) AVCaptureSession *captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;

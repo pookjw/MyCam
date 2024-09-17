@@ -26,6 +26,8 @@
         _delegate = delegate;
         _captureService = [captureService retain];
         _photoFormatModel = [photoFormatModel copy];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeDeviceStatusNotificationName object:captureService];
     }
     
     return self;
@@ -482,6 +484,10 @@
     //
     
     return [children autorelease];
+}
+
+- (void)didReceiveDidChangeDeviceStatusNotification:(NSNotification *)notification {
+    
 }
 
 @end

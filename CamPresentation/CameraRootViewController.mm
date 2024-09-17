@@ -16,7 +16,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface CameraRootViewController () <CaptureServiceDelegate, PhotoFormatMenuDelegate>
+@interface CameraRootViewController () <PhotoFormatMenuDelegate>
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
 @property (nonatomic, readonly) CaptureVideoPreviewView *captureVideoPreviewView;
@@ -49,6 +49,7 @@
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self name:CaptureServiceDidChangeDeviceStatusNotificationName object:_captureService];
     [_photosBarButtonItem release];
     [_captureBarButtonItem release];
     [_captureDevicesBarButtonItem release];
@@ -317,13 +318,14 @@
     if (auto captureService = _captureService) return captureService;
     
     CaptureService *captureService = [CaptureService new];
-    captureService.delegate = self;
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeDeviceStatusNotificationName object:captureService];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
 }
 
-- (void)didChangeCaptureDeviceStatus:(CaptureService *)captureService {
+- (void)didReceiveDidChangeDeviceStatusNotification:(NSNotification *)notification {
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
     });
