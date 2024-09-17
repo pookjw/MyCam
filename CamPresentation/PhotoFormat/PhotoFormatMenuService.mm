@@ -1,60 +1,46 @@
 //
-//  CameraRootPhotoModel.mm
+//  PhotoFormatMenuService.m
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 9/16/24.
+//  Created by Jinwoo Kim on 9/18/24.
 //
 
-#import <CamPresentation/CameraRootPhotoModel.h>
-#import <CamPresentation/CaptureService.h>
-#import <objc/message.h>
-#import <objc/runtime.h>
+#import <CamPresentation/PhotoFormatMenuService.h>
 
-@implementation CameraRootPhotoModel
+@interface PhotoFormatMenuService ()
+@property (weak, nonatomic, readonly) id<PhotoFormatMenuDelegate> delegate;
+@property (retain, nonatomic, readonly) CaptureService *captureService;
+@end
 
-+ (BOOL)supportsSecureCoding {
-    return YES;
-}
+@implementation PhotoFormatMenuService
 
-- (instancetype)init {
+- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuDelegate>)delegate {
     if (self = [super init]) {
-        _quality = 1.f;
-    }
-    
-    return self;
-}
-
-- (instancetype)initWithCoder:(NSCoder *)coder {
-    if (self = [super init]) {
-        _photoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"photoPixelFormatType"] copy];
-        _codecType = [[coder decodeObjectOfClass:NSString.class forKey:@"codecType"] copy];
-        _quality = [coder decodeFloatForKey:@"quality"];
-        _isRAWEnabled = [coder decodeBoolForKey:@"isRAWEnabled"];
-        _rawPhotoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"rawPhotoPixelFormatType"] copy];
-        _rawFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"rawFileType"] copy];
-        _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
+        AVCapturePhotoOutput *capturePhotoOutput = captureService.capturePhotoOutput;
+        [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoCodecTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        
+        _delegate = delegate;
+        _captureService = [captureService retain];
+        _photoFormatModel = [photoFormatModel copy];
     }
     
     return self;
 }
 
 - (void)dealloc {
-    if (auto captureService = _captureService) {
-        AVCapturePhotoOutput *capturePhotoOutput = captureService.capturePhotoOutput;
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoPixelFormatTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoCodecTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoFileTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
-        
-        [captureService release];
-    }
+    AVCapturePhotoOutput *capturePhotoOutput = _captureService.capturePhotoOutput;
+    [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoPixelFormatTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoCodecTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoFileTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
     
-    [_photoPixelFormatType release];
-    [_codecType release];
-    [_rawPhotoPixelFormatType release];
-    [_rawFileType release];
-    [_processedFileType release];
+    [_captureService release];
+    [_photoFormatModel release];
     [super dealloc];
 }
 
@@ -64,101 +50,101 @@
         
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
             NSArray<NSNumber *> *photoPixelFormatTypes;
-            if (self.processedFileType == nil) {
+            if (self.photoFormatModel.processedFileType == nil) {
                 photoPixelFormatTypes = capturePhotoOutput.availablePhotoPixelFormatTypes;
             } else {
-                photoPixelFormatTypes = [capturePhotoOutput supportedPhotoPixelFormatTypesForFileType:self.processedFileType];
+                photoPixelFormatTypes = [capturePhotoOutput supportedPhotoPixelFormatTypesForFileType:self.photoFormatModel.processedFileType];
             }
             
             BOOL shouldUpdate;
-            if (self.photoPixelFormatType == nil) {
-                if (self.codecType == nil) {
+            if (self.photoFormatModel.photoPixelFormatType == nil) {
+                if (self.photoFormatModel.codecType == nil) {
                     shouldUpdate = YES;
                 } else {
                     shouldUpdate = NO;
                 }
-            } else if (![photoPixelFormatTypes containsObject:self.photoPixelFormatType]) {
+            } else if (![photoPixelFormatTypes containsObject:self.photoFormatModel.photoPixelFormatType]) {
                 shouldUpdate = YES;
             } else {
                 shouldUpdate = NO;
             }
             
             if (shouldUpdate) {
-                self.photoPixelFormatType = photoPixelFormatTypes.lastObject;
+                self.photoFormatModel.photoPixelFormatType = photoPixelFormatTypes.lastObject;
             }
         } else if ([keyPath isEqualToString:@"availablePhotoCodecTypes"]) {
             NSArray<AVVideoCodecType> *photoCodecTypes;
-            if (self.processedFileType == nil) {
+            if (self.photoFormatModel.processedFileType == nil) {
                 photoCodecTypes = capturePhotoOutput.availablePhotoCodecTypes;
             } else {
-                photoCodecTypes = [capturePhotoOutput supportedPhotoCodecTypesForFileType:self.processedFileType];
+                photoCodecTypes = [capturePhotoOutput supportedPhotoCodecTypesForFileType:self.photoFormatModel.processedFileType];
             }
             
             BOOL shouldUpdate;
-            if (self.codecType == nil) {
-                if (self.photoPixelFormatType == nil) {
+            if (self.photoFormatModel.codecType == nil) {
+                if (self.photoFormatModel.photoPixelFormatType == nil) {
                     shouldUpdate = YES;
                 } else {
                     shouldUpdate = NO;
                 }
-            } else if (![photoCodecTypes containsObject:self.codecType]) {
+            } else if (![photoCodecTypes containsObject:self.photoFormatModel.codecType]) {
                 shouldUpdate = YES;
             } else {
                 shouldUpdate = NO;
             }
             
             if (shouldUpdate) {
-                self.codecType = photoCodecTypes.lastObject;
+                self.photoFormatModel.codecType = photoCodecTypes.lastObject;
             }
         } else if ([keyPath isEqualToString:@"availableRawPhotoPixelFormatTypes"]) {
             NSArray<NSNumber *> *rawPhotoPixelFormatTypes;
-            if (self.processedFileType == nil) {
+            if (self.photoFormatModel.processedFileType == nil) {
                 rawPhotoPixelFormatTypes = capturePhotoOutput.availableRawPhotoPixelFormatTypes;
             } else {
-                rawPhotoPixelFormatTypes = [capturePhotoOutput supportedRawPhotoPixelFormatTypesForFileType:self.processedFileType];
+                rawPhotoPixelFormatTypes = [capturePhotoOutput supportedRawPhotoPixelFormatTypesForFileType:self.photoFormatModel.processedFileType];
             }
             
             BOOL shouldUpdate;
-            if (self.rawPhotoPixelFormatType == nil) {
+            if (self.photoFormatModel.rawPhotoPixelFormatType == nil) {
                 shouldUpdate = YES;
-            } else if (![rawPhotoPixelFormatTypes containsObject:self.rawPhotoPixelFormatType]) {
+            } else if (![rawPhotoPixelFormatTypes containsObject:self.photoFormatModel.rawPhotoPixelFormatType]) {
                 shouldUpdate = YES;
             } else {
                 shouldUpdate = NO;
             }
             
             if (shouldUpdate) {
-                self.rawPhotoPixelFormatType = rawPhotoPixelFormatTypes.lastObject;
+                self.photoFormatModel.rawPhotoPixelFormatType = rawPhotoPixelFormatTypes.lastObject;
             }
         } else if ([keyPath isEqualToString:@"availableRawPhotoFileTypes"]) {
             NSArray<AVFileType> *availableRawPhotoFileTypes = capturePhotoOutput.availableRawPhotoFileTypes;
             
             BOOL shouldUpdate;
-            if (self.rawFileType == nil) {
+            if (self.photoFormatModel.rawFileType == nil) {
                 shouldUpdate = YES;
-            } else if (![availableRawPhotoFileTypes containsObject:self.rawFileType]) {
+            } else if (![availableRawPhotoFileTypes containsObject:self.photoFormatModel.rawFileType]) {
                 shouldUpdate = YES;
             } else {
                 shouldUpdate = NO;
             }
             
             if (shouldUpdate) {
-                self.rawFileType = availableRawPhotoFileTypes.lastObject;
+                self.photoFormatModel.rawFileType = availableRawPhotoFileTypes.lastObject;
             }
         } else if ([keyPath isEqualToString:@"availablePhotoFileTypes"]) {
             NSArray<AVFileType> *availablePhotoFileTypes = capturePhotoOutput.availablePhotoFileTypes;
             
             BOOL shouldUpdate;
-            if (self.processedFileType == nil) {
+            if (self.photoFormatModel.processedFileType == nil) {
                 shouldUpdate = YES;
-            } else if (![availablePhotoFileTypes containsObject:self.processedFileType]) {
+            } else if (![availablePhotoFileTypes containsObject:self.photoFormatModel.processedFileType]) {
                 shouldUpdate = YES;
             } else {
                 shouldUpdate = NO;
             }
             
             if (shouldUpdate) {
-                self.processedFileType = nil;
+                self.photoFormatModel.processedFileType = nil;
             }
         }
     } else {
@@ -166,96 +152,20 @@
     }
 }
 
-- (id)copyWithZone:(struct _NSZone *)zone {
-    id copy = [[[self class] allocWithZone:zone] init];
-    
-    if (copy) {
-        auto casted = static_cast<CameraRootPhotoModel *>(copy);
-        casted->_captureService = [_captureService retain];
-        casted->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
-        casted->_codecType = [_codecType copyWithZone:zone];
-        casted->_quality = _quality;
-        casted->_isRAWEnabled = _isRAWEnabled;
-        casted->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
-        casted->_rawFileType = [_rawFileType copyWithZone:zone];
-        casted->_processedFileType = [_processedFileType copyWithZone:zone];
-    }
-    
-    return copy;
-}
-
-- (void)encodeWithCoder:(NSCoder *)coder {
-    [coder encodeObject:_photoPixelFormatType forKey:@"photoPixelFormatType"];
-    [coder encodeObject:_codecType forKey:@"codecType"];
-    [coder encodeFloat:_quality forKey:@"quality"];
-    [coder encodeBool:_isRAWEnabled forKey:@"isRAWEnabled"];
-    [coder encodeObject:_rawPhotoPixelFormatType forKey:@"rawPhotoPixelFormatType"];
-    [coder encodeObject:_rawFileType forKey:@"rawFileType"];
-    [coder encodeObject:_processedFileType forKey:@"processedFileType"];
-}
-
-- (BOOL)isEqual:(id)other {
-    if (other == self) {
-        return YES;
-    } else {
-        auto casted = static_cast<CameraRootPhotoModel *>(other);
-        return [_photoPixelFormatType isEqualToNumber:casted->_photoPixelFormatType] &&
-        [_codecType isEqualToString:casted->_codecType] &&
-        (_quality == casted->_quality) &&
-        (_isRAWEnabled == casted->_isRAWEnabled) &&
-        [_rawPhotoPixelFormatType isEqualToNumber:casted->_rawPhotoPixelFormatType] &&
-        [_rawFileType isEqualToString:casted->_rawFileType] &&
-        [_processedFileType isEqualToString:casted->_processedFileType];
-    }
-}
-
-- (NSUInteger)hash {
-    return _photoPixelFormatType.hash ^
-    _codecType.hash ^
-    static_cast<NSUInteger>(_quality) ^
-    _isRAWEnabled ^
-    _rawPhotoPixelFormatType.hash ^
-    _rawFileType.hash ^
-    _processedFileType.hash;
-}
-
-- (void)setCaptureService:(CaptureService *)captureService {
-    if (auto oldCaptureService = _captureService) {
-        AVCapturePhotoOutput *capturePhotoOutput = oldCaptureService.capturePhotoOutput;
-        
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoPixelFormatTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoCodecTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoFileTypes"];
-        [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
-        
-        [oldCaptureService release];
-    }
-    
-    _captureService = [captureService retain];
-    
-    AVCapturePhotoOutput *capturePhotoOutput = captureService.capturePhotoOutput;
-    [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-    [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoCodecTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-    [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-    [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-    [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-}
-
-- (NSArray<UIMenuElement *> *)configurationMenuElementsWithSelectionHandler:(void (^ _Nullable)())selectionHandler {
+- (NSArray<__kindof UIMenuElement *> *)menuElements {
     __weak auto weakSelf = self;
     CaptureService *captureService = self.captureService;
     
-    NSMutableArray<UIMenuElement *> *children = [NSMutableArray new];
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     //
     
     {
         NSArray<NSNumber *> *photoPixelFormatTypes;
-        if (self.processedFileType == nil) {
+        if (self.photoFormatModel.processedFileType == nil) {
             photoPixelFormatTypes = captureService.capturePhotoOutput.availablePhotoPixelFormatTypes;
         } else {
-            photoPixelFormatTypes = [captureService.capturePhotoOutput supportedPhotoPixelFormatTypesForFileType:self.processedFileType];
+            photoPixelFormatTypes = [captureService.capturePhotoOutput supportedPhotoPixelFormatTypesForFileType:self.photoFormatModel.processedFileType];
         }
         
         NSMutableArray<UIAction *> *photoPixelFormatTypeActions = [[NSMutableArray alloc] initWithCapacity:photoPixelFormatTypes.count];
@@ -275,15 +185,15 @@
             NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
             
             UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.photoPixelFormatType = formatNumber;
-                weakSelf.codecType = nil;
-                if (selectionHandler) selectionHandler();
+                weakSelf.photoFormatModel.photoPixelFormatType = formatNumber;
+                weakSelf.photoFormatModel.codecType = nil;
+                [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
             }];
             
             [string release];
             
             action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            action.state = [self.photoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
+            action.state = [self.photoFormatModel.photoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
             
             [photoPixelFormatTypeActions addObject:action];
         }
@@ -295,7 +205,7 @@
                                                          children:photoPixelFormatTypeActions];
         [photoPixelFormatTypeActions release];
         
-        if (NSNumber *photoPixelFormatType = self.photoPixelFormatType) {
+        if (NSNumber *photoPixelFormatType = self.photoFormatModel.photoPixelFormatType) {
             CMVideoFormatDescriptionRef description;
             OSStatus status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
                                                              photoPixelFormatType.unsignedIntValue,
@@ -319,22 +229,22 @@
     
     {
         NSArray<AVVideoCodecType> *availablePhotoCodecTypes;
-        if (self.processedFileType == nil) {
+        if (self.photoFormatModel.processedFileType == nil) {
             availablePhotoCodecTypes = captureService.capturePhotoOutput.availablePhotoCodecTypes;
         } else {
-            availablePhotoCodecTypes = [captureService.capturePhotoOutput supportedPhotoCodecTypesForFileType:self.processedFileType];
+            availablePhotoCodecTypes = [captureService.capturePhotoOutput supportedPhotoCodecTypesForFileType:self.photoFormatModel.processedFileType];
         }
         
         NSMutableArray<UIAction *> *photoCodecTypeActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoCodecTypes.count];
         
         for (AVVideoCodecType photoCodecType in availablePhotoCodecTypes) {
             UIAction *action = [UIAction actionWithTitle:photoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.photoPixelFormatType = nil;
-                weakSelf.codecType = photoCodecType;
-                if (selectionHandler) selectionHandler();
+                weakSelf.photoFormatModel.photoPixelFormatType = nil;
+                weakSelf.photoFormatModel.codecType = photoCodecType;
+                [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
             }];
             
-            action.state = [self.codecType isEqualToString:photoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
+            action.state = [self.photoFormatModel.codecType isEqualToString:photoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
             action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             
             [photoCodecTypeActions addObject:action];
@@ -346,25 +256,25 @@
                                                     options:0
                                                    children:photoCodecTypeActions];
         [photoCodecTypeActions release];
-        photoCodecTypesMenu.subtitle = self.codecType;
+        photoCodecTypesMenu.subtitle = self.photoFormatModel.codecType;
         [children addObject:photoCodecTypesMenu];
     }
     
     //
     
     {
-        if (self.photoPixelFormatType == nil) {
+        if (self.photoFormatModel.photoPixelFormatType == nil) {
             NSMutableArray<UIAction *> *qualityActions = [[NSMutableArray alloc] initWithCapacity:10];
             
             for (NSUInteger count = 1; count <= 10; count++) {
                 float quality = static_cast<float>(count) / 10.f;
                 
                 UIAction *action = [UIAction actionWithTitle:@(quality).stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.quality = quality;
-                    if (selectionHandler) selectionHandler();
+                    weakSelf.photoFormatModel.quality = quality;
+                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
                 }];
                 
-                action.state = (self.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                action.state = (self.photoFormatModel.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 [qualityActions addObject:action];
             }
@@ -375,7 +285,7 @@
                                                 options:0
                                                children:qualityActions];
             [qualityActions release];
-            qualityMenu.subtitle = @(self.quality).stringValue;
+            qualityMenu.subtitle = @(self.photoFormatModel.quality).stringValue;
             
             [children addObject:qualityMenu];
         }
@@ -384,39 +294,40 @@
     //
     
     
-    NSMutableArray<UIMenuElement *> *rawMenuElements = [[NSMutableArray alloc] initWithCapacity:self.isRAWEnabled ? 4 : 1];
+    NSMutableArray<UIMenuElement *> *rawMenuElements = [[NSMutableArray alloc] initWithCapacity:self.photoFormatModel.isRAWEnabled ? 4 : 1];
     
     {
         UIAction *rawEnabledAction = [UIAction actionWithTitle:@"Enable RAW"
                                                          image:[UIImage systemImageNamed:@"compass.drawing"]
                                                     identifier:nil
                                                        handler:^(__kindof UIAction * _Nonnull action) {
-            weakSelf.isRAWEnabled = !weakSelf.isRAWEnabled;
-            if (weakSelf.isRAWEnabled) {
-                weakSelf.rawPhotoPixelFormatType = captureService.capturePhotoOutput.availableRawPhotoPixelFormatTypes.lastObject;
-                weakSelf.rawFileType = captureService.capturePhotoOutput.availableRawPhotoFileTypes.lastObject;
-                weakSelf.processedFileType = nil;
+            weakSelf.photoFormatModel.isRAWEnabled = !weakSelf.photoFormatModel.isRAWEnabled;
+            if (weakSelf.photoFormatModel.isRAWEnabled) {
+                weakSelf.photoFormatModel.rawPhotoPixelFormatType = captureService.capturePhotoOutput.availableRawPhotoPixelFormatTypes.lastObject;
+                weakSelf.photoFormatModel.rawFileType = captureService.capturePhotoOutput.availableRawPhotoFileTypes.lastObject;
+                weakSelf.photoFormatModel.processedFileType = nil;
             } else {
-                weakSelf.rawPhotoPixelFormatType = nil;
-                weakSelf.rawFileType = nil;
-                weakSelf.processedFileType = nil;
+                weakSelf.photoFormatModel.rawPhotoPixelFormatType = nil;
+                weakSelf.photoFormatModel.rawFileType = nil;
+                weakSelf.photoFormatModel.processedFileType = nil;
             }
-            if (selectionHandler) selectionHandler();
+            
+            [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
         }];
         
-        rawEnabledAction.state = self.isRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+        rawEnabledAction.state = self.photoFormatModel.isRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
         rawEnabledAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
         
         [rawMenuElements addObject:rawEnabledAction];
     }
     
-    if (self.isRAWEnabled) {
+    if (self.photoFormatModel.isRAWEnabled) {
         {
             NSArray<NSNumber *> *availableRawPhotoPixelFormatTypes;
-            if (self.processedFileType == nil) {
+            if (self.photoFormatModel.processedFileType == nil) {
                 availableRawPhotoPixelFormatTypes = captureService.capturePhotoOutput.availableRawPhotoPixelFormatTypes;
             } else {
-                availableRawPhotoPixelFormatTypes = [captureService.capturePhotoOutput supportedRawPhotoPixelFormatTypesForFileType:self.processedFileType];
+                availableRawPhotoPixelFormatTypes = [captureService.capturePhotoOutput supportedRawPhotoPixelFormatTypesForFileType:self.photoFormatModel.processedFileType];
             }
             
             NSMutableArray<UIAction *> *rawPhotoPixelFormatTypeActions = [[NSMutableArray alloc] initWithCapacity:availableRawPhotoPixelFormatTypes.count];
@@ -436,14 +347,14 @@
                 NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
                 
                 UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.rawPhotoPixelFormatType = formatNumber;
-                    if (selectionHandler) selectionHandler();
+                    weakSelf.photoFormatModel.rawPhotoPixelFormatType = formatNumber;
+                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
                 }];
                 
                 [string release];
                 
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = [self.rawPhotoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
+                action.state = [self.photoFormatModel.rawPhotoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
                 
                 [rawPhotoPixelFormatTypeActions addObject:action];
             }
@@ -454,7 +365,7 @@
                                                                  options:0
                                                                 children:rawPhotoPixelFormatTypeActions];
             
-            if (NSNumber *rawPhotoPixelFormatType = self.rawPhotoPixelFormatType) {
+            if (NSNumber *rawPhotoPixelFormatType = self.photoFormatModel.rawPhotoPixelFormatType) {
                 CMVideoFormatDescriptionRef description;
                 OSStatus status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
                                                                  rawPhotoPixelFormatType.unsignedIntValue,
@@ -483,12 +394,12 @@
             
             for (AVFileType fileType in availableRawPhotoFileTypes) {
                 UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.rawFileType = fileType;
-                    if (selectionHandler) selectionHandler();
+                    weakSelf.photoFormatModel.rawFileType = fileType;
+                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
                 }];
                 
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = [self.rawFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
+                action.state = [self.photoFormatModel.rawFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
                 
                 [rawFileTypeActions addObject:action];
             }
@@ -500,7 +411,7 @@
                                                     children:rawFileTypeActions];
             [rawFileTypeActions release];
             
-            if (AVFileType rawFileType = self.rawFileType) {
+            if (AVFileType rawFileType = self.photoFormatModel.rawFileType) {
                 rawFileTypesMenu.subtitle = rawFileType;
             }
             
@@ -512,36 +423,36 @@
             NSMutableArray<UIAction *> *availablePhotoFileTypeActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoFileTypes.count + 1];
             
             UIAction *nullAction = [UIAction actionWithTitle:@"(null)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.processedFileType = nil;
-                if (selectionHandler) selectionHandler();
+                weakSelf.photoFormatModel.processedFileType = nil;
+                [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
             }];
             nullAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            nullAction.state = (self.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            nullAction.state = (self.photoFormatModel.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
             [availablePhotoFileTypeActions addObject:nullAction];
             
             for (AVFileType fileType in availablePhotoFileTypes) {
                 UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.processedFileType = fileType;
+                    weakSelf.photoFormatModel.processedFileType = fileType;
                     
                     NSArray<NSNumber *> *supportedPhotoPixelFormatTypes = [captureService.capturePhotoOutput supportedPhotoPixelFormatTypesForFileType:fileType];
-                    if (![supportedPhotoPixelFormatTypes containsObject:weakSelf.photoPixelFormatType]) {
-                        weakSelf.photoPixelFormatType = supportedPhotoPixelFormatTypes.lastObject;
+                    if (![supportedPhotoPixelFormatTypes containsObject:weakSelf.photoFormatModel.photoPixelFormatType]) {
+                        weakSelf.photoFormatModel.photoPixelFormatType = supportedPhotoPixelFormatTypes.lastObject;
                     }
                     
                     NSArray<AVFileType> *supportedPhotoCodecTypesForFileType = [captureService.capturePhotoOutput supportedPhotoCodecTypesForFileType:fileType];
-                    if (![supportedPhotoCodecTypesForFileType containsObject:weakSelf.codecType]) {
-                        weakSelf.codecType = supportedPhotoCodecTypesForFileType.lastObject;
+                    if (![supportedPhotoCodecTypesForFileType containsObject:weakSelf.photoFormatModel.codecType]) {
+                        weakSelf.photoFormatModel.codecType = supportedPhotoCodecTypesForFileType.lastObject;
                     }
                     
                     NSArray<NSNumber *> *supportedRawPhotoPixelFormatTypesForFileType = [captureService.capturePhotoOutput supportedRawPhotoPixelFormatTypesForFileType:fileType];
-                    if (![supportedRawPhotoPixelFormatTypesForFileType containsObject:weakSelf.rawPhotoPixelFormatType]) {
-                        weakSelf.rawPhotoPixelFormatType = supportedRawPhotoPixelFormatTypesForFileType.lastObject;
+                    if (![supportedRawPhotoPixelFormatTypesForFileType containsObject:weakSelf.photoFormatModel.rawPhotoPixelFormatType]) {
+                        weakSelf.photoFormatModel.rawPhotoPixelFormatType = supportedRawPhotoPixelFormatTypesForFileType.lastObject;
                     }
                     
-                    if (selectionHandler) selectionHandler();
+                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
                 }];
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = [self.processedFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
+                action.state = [self.photoFormatModel.processedFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
                 [availablePhotoFileTypeActions addObject:action];
             }
             
@@ -552,7 +463,7 @@
                                                           children:availablePhotoFileTypeActions];
             [availablePhotoFileTypeActions release];
             
-            if (AVFileType processedFileType = self.processedFileType) {
+            if (AVFileType processedFileType = self.photoFormatModel.processedFileType) {
                 processedFileTypesMenu.subtitle = processedFileType;
             }
             

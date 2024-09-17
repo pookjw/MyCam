@@ -6,7 +6,7 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
-#import <CamPresentation/CameraRootPhotoModel.h>
+#import <CamPresentation/PhotoFormatModel.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)queue_selectDefaultCaptureDevice;
 - (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 - (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
-- (void)queue_startPhotoCaptureWithPhotoModel:(CameraRootPhotoModel *)photoModel;
+- (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
 - (void)queue_startVideoRecording;
 - (void)queue_stopVideoRecording;
 @end

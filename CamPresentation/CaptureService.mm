@@ -189,6 +189,8 @@
     }
     
     [previewLayers release];
+    
+    [self.delegate didChangeCaptureDeviceStatus:self];
 }
 
 - (void)queue_selectDefaultCaptureDevice {
@@ -230,7 +232,7 @@
     captureVideoPreviewLayer.session = nil;
 }
 
-- (void)queue_startPhotoCaptureWithPhotoModel:(CameraRootPhotoModel *)photoModel {
+- (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel {
     assert(self.captureSessionQueue);
     
     AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;

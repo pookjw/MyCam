@@ -157,12 +157,26 @@
 			);
 			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
 		};
-		4F2A419D2C98148000726F2F /* Exceptions for "CamPresentation" folder in "CamPresentation" target */ = {
+		4F4780A62C99DB0500813671 /* Exceptions for "CamPresentation" folder in "CamPresentation" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CameraRootViewController.h,
+				CameraRootViewController.mm,
+				CamPresentation.h,
+				CaptureService.h,
+				CaptureService.mm,
+				CaptureVideoPreviewView.h,
+				CaptureVideoPreviewView.mm,
+				PhotoFormat/PhotoFormatMenuService.h,
+				PhotoFormat/PhotoFormatMenuService.mm,
+				PhotoFormat/PhotoFormatModel.h,
+				PhotoFormat/PhotoFormatModel.mm,
+			);
 			privateHeaders = (
-				CameraRootPhotoModel.h,
 				CaptureService.h,
 				CaptureVideoPreviewView.h,
+				PhotoFormat/PhotoFormatMenuService.h,
+				PhotoFormat/PhotoFormatModel.h,
 			);
 			publicHeaders = (
 				CameraRootViewController.h,
@@ -205,10 +219,10 @@
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		4F2A41932C98148000726F2F /* CamPresentation */ = {
+		4F47809A2C99DB0500813671 /* CamPresentation */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				4F2A419D2C98148000726F2F /* Exceptions for "CamPresentation" folder in "CamPresentation" target */,
+				4F4780A62C99DB0500813671 /* Exceptions for "CamPresentation" folder in "CamPresentation" target */,
 			);
 			path = CamPresentation;
 			sourceTree = "<group>";
@@ -331,7 +345,7 @@
 				4F6905462C949D4D00CD2C22 /* MyCam */,
 				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
 				4FA73E612C97152500F17348 /* MyWidget */,
-				4F2A41932C98148000726F2F /* CamPresentation */,
+				4F47809A2C99DB0500813671 /* CamPresentation */,
 				4F32A2D52C95ABC20010F295 /* Frameworks */,
 				4F6905452C949D4D00CD2C22 /* Products */,
 			);
@@ -373,9 +387,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				4F2A41932C98148000726F2F /* CamPresentation */,
 			);
 			name = CamPresentation;
 			packageProductDependencies = (
