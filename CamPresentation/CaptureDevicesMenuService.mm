@@ -61,8 +61,10 @@
                                               identifier:captureDevice.uniqueID
                                                  handler:^(__kindof UIAction * _Nonnull action) {
                 dispatch_async(captureService.captureSessionQueue, ^{
-                    captureService.queue_selectedCaptureDevice = captureDevice;
-                    [weakSelf.delegate captureDevicesMenuServiceElementsDidChange:weakSelf];
+                    if (![captureService.queue_selectedCaptureDevice isEqual:captureDevice]) {
+                        captureService.queue_selectedCaptureDevice = captureDevice;
+                        [weakSelf.delegate captureDevicesMenuServiceElementsDidChange:weakSelf];
+                    }
                 });
             }];
             

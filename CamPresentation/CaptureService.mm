@@ -13,6 +13,8 @@
 #import <CoreLocation/CoreLocation.h>
 
 NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName = @"CaptureServiceDidChangeSelectedDeviceNotificationName";
+NSString * const CaptureServiceOldCaptureDeviceKey = @"CaptureServiceOldCaptureDeviceKey";
+NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureDeviceKey";
 
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
@@ -138,7 +140,13 @@ NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName =
     
     [captureSession beginConfiguration];
     
+    AVCaptureDevice * _Nullable oldCaptureDevice = nil;
+    
     for (__kindof AVCaptureInput *input in captureSession.inputs) {
+        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+            oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+        }
+        
         [captureSession removeInput:input];
     }
     
@@ -181,7 +189,7 @@ NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName =
     
     [previewLayers release];
     
-    [self postDidChangeSelectedDeviceNotification];
+    [self postDidChangeSelectedDeviceNotificationWithOldCaptureDevice:oldCaptureDevice newCaptureDevice:captureDevice];
 }
 
 - (void)queue_selectDefaultCaptureDevice {
@@ -272,8 +280,19 @@ NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName =
     });
 }
 
-- (void)postDidChangeSelectedDeviceNotification {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeSelectedDeviceNotificationName object:self];
+- (void)postDidChangeSelectedDeviceNotificationWithOldCaptureDevice:(AVCaptureDevice * _Nullable)oldCaptureDevice newCaptureDevice:(AVCaptureDevice * _Nullable)newCaptureDevice {
+    NSMutableDictionary *userInfo = [NSMutableDictionary new];
+    if (oldCaptureDevice) {
+        userInfo[CaptureServiceOldCaptureDeviceKey] = oldCaptureDevice;
+    }
+    if (newCaptureDevice) {
+        userInfo[CaptureServiceNewCaptureDeviceKey] = newCaptureDevice;
+    }
+    
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeSelectedDeviceNotificationName
+                                                      object:self
+                                                    userInfo:userInfo];
+    [userInfo release];
 }
 
 

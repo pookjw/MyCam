@@ -531,6 +531,7 @@
     // Old + New Observing
     // Old - removeObserver
     // New - observe activeFormat and photoFormatMenuElementsDidChange
+    NSLog(@"%@ - %@", static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceOldCaptureDeviceKey]).localizedName, static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceNewCaptureDeviceKey]).localizedName);
 }
 
 @end
