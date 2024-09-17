@@ -301,7 +301,11 @@
     //
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        completion(weakSelf.photoFormatMenuService.menuElements);
+        [weakSelf.photoFormatMenuService menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(menuElements);
+            });
+        }];
     }];
     
     //

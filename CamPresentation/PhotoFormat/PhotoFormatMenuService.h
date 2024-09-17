@@ -17,11 +17,11 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface PhotoFormatMenuService : NSObject
-@property (nonatomic, readonly) NSArray<__kindof UIMenuElement *> *menuElements;
 @property (copy, nonatomic, readonly) PhotoFormatModel *photoFormatModel;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuDelegate>)delegate;
+- (void)menuElementsWithCompletionHandler:(void (^ _Nullable)(NSArray<__kindof UIMenuElement *> *menuElements))completionHandler;
 @end
 
 NS_ASSUME_NONNULL_END
