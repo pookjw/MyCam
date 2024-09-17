@@ -8,10 +8,14 @@
 #import <CamPresentation/CaptureService.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <Photos/Photos.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <CoreLocation/CoreLocation.h>
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
 @property (class, nonatomic, readonly) void *devicesContext;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
+@property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
 @implementation CaptureService
@@ -59,11 +63,19 @@
         
         //
         
+        CLLocationManager *locationManager = [CLLocationManager new];
+        locationManager.delegate = self;
+        locationManager.pausesLocationUpdatesAutomatically = YES;
+        [locationManager startUpdatingLocation];
+        
+        //
+        
         _captureSession = captureSession;
         _captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _queue_rotationCoordinatorsByPreviewLayer = [rotationCoordinatorsByPreviewLayer retain];
         _capturePhotoOutput = capturePhotoOutput;
+        _locationManager = locationManager;
         
         //
         
@@ -86,6 +98,8 @@
     [_queue_rotationCoordinatorsByPreviewLayer release];
     
     [_capturePhotoOutput release];
+    [_locationManager stopUpdatingLocation];
+    [_locationManager release];
     [super dealloc];
 }
 
@@ -147,6 +161,21 @@
     [captureSession commitConfiguration];
     
     AVCaptureDevice.userPreferredCamera = captureDevice;
+    
+    //
+    
+    CMVideoDimensions maxPhotoDimensions = {0, 0};
+    for (AVCaptureDeviceFormat *format in captureDevice.formats) {
+        for (NSValue *value in format.supportedMaxPhotoDimensions) {
+            CMVideoDimensions _maxPhotoDimensions = value.CMVideoDimensionsValue;
+            if ((maxPhotoDimensions.width < _maxPhotoDimensions.width) || (maxPhotoDimensions.height < _maxPhotoDimensions.height)) {
+                maxPhotoDimensions = _maxPhotoDimensions;
+            }
+        }
+    }
+    
+    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
+    self.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
     
     //
     
@@ -227,6 +256,10 @@
     
     [format release];
     
+    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
+    // TODO: 고를 수 있게
+    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
+    
     //
     
     [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
@@ -254,7 +287,54 @@
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
-    NSLog(@"%@", photo);
+    
+    __block NSURL *_url = nil;
+    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
+        NSURL *baseURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"MyCam"];
+        [NSFileManager.defaultManager createDirectoryAtURL:baseURL withIntermediateDirectories:YES attributes:nil error:nil];
+        
+        UTType *uti;
+        if (photo.isRawPhoto) {
+            uti = UTTypeDNG;
+        } else {
+            NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
+            uti = [UTType typeWithIdentifier:processedFileType];
+        }
+        
+        NSURL *url = [[baseURL URLByAppendingPathComponent:@(NSDate.now.timeIntervalSince1970).stringValue] URLByAppendingPathExtensionForType:uti];
+        _url = [url retain];
+        
+        assert([photo.fileDataRepresentation writeToURL:url atomically:YES]);
+        
+        PHAssetChangeRequest *request = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
+        request.location = self.locationManager.location;
+    } completionHandler:^(BOOL success, NSError * _Nullable error) {
+        if (_url) {
+            NSError * _Nullable error = nil;
+            [NSFileManager.defaultManager removeItemAtURL:_url error:&error];
+            assert(error == nil);
+            [_url release];
+        }
+        NSLog(@"%d %@", success, error);
+    }];
+}
+
+
+#pragma mark - CLLocationManagerDelegate
+
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    
+}
+
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
+    switch (error.code) {
+        case kCLErrorLocationUnknown:
+        case kCLErrorDenied:
+            break;
+        default:
+            abort();
+            break;
+    }
 }
 
 @end
