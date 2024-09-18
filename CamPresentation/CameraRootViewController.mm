@@ -16,6 +16,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
+#import <Symbols/Symbols.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -24,7 +25,10 @@
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
 @property (nonatomic, readonly) CaptureVideoPreviewView *captureVideoPreviewView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *photosBarButtonItem;
+@property (retain, nonatomic, readonly) UIButton *captureButton;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureBarButtonItem;
+@property (retain, nonatomic, readonly) UIButton *recordButton;
+@property (retain, nonatomic, readonly) UIBarButtonItem *recordBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureDevicesBarButtonItem;
 @property (retain, nonatomic, readonly) UIDeferredMenuElement *captureDevicesMenuElement;
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
@@ -36,7 +40,10 @@
 
 @implementation CameraRootViewController
 @synthesize photosBarButtonItem = _photosBarButtonItem;
+@synthesize captureButton = _captureButton;
 @synthesize captureBarButtonItem = _captureBarButtonItem;
+@synthesize recordButton = _recordButton;
+@synthesize recordBarButtonItem = _recordBarButtonItem;
 @synthesize captureDevicesBarButtonItem = _captureDevicesBarButtonItem;
 @synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
 @synthesize formatBarButtonItem = _formatBarButtonItem;
@@ -54,8 +61,12 @@
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self name:CaptureServiceDidChangeRecordingStatusNotificationName object:_captureService];
     [_photosBarButtonItem release];
+    [_captureButton release];
     [_captureBarButtonItem release];
+    [_recordButton release];
+    [_recordBarButtonItem release];
     [_captureDevicesBarButtonItem release];
     [_captureDevicesMenuElement release];
     [_formatBarButtonItem release];
@@ -104,6 +115,7 @@
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
         self.captureBarButtonItem,
+        self.recordBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
         self.captureDevicesBarButtonItem
     ]];
@@ -124,6 +136,8 @@
         [self.captureService queue_registerCaptureVideoPreviewLayer:captureVideoPreviewLayer];
         [self.captureService.captureSession startRunning];
         
+        BOOL isRecording = self.captureService.queue_isRecording;
+        
         dispatch_async(dispatch_get_main_queue(), ^{
             PhotoFormatModel *photoFormatModel;
             if (PhotoFormatModel *restorationPhotoFormatModel = self.restorationPhotoFormatModel) {
@@ -138,6 +152,18 @@
             
             self.photoFormatMenuBuilder = photoFormatMenuService;
             [photoFormatMenuService release];
+            
+            //
+            
+            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+            configuration.image = [UIImage systemImageNamed:@"circle.inset.filled"];
+            self.captureButton.configuration = configuration;
+            self.captureBarButtonItem.enabled = YES;
+            
+            //
+            
+            self.recordBarButtonItem.enabled = YES;
+            [self updateRecordButtonWithRecording:isRecording];
         });
     });
     
@@ -205,21 +231,51 @@
     return [photosBarButtonItem autorelease];
 }
 
-- (UIBarButtonItem *)captureBarButtonItem {
-    if (auto captureBarButtonItem = _captureBarButtonItem) return captureBarButtonItem;
+- (UIButton *)captureButton {
+    if (auto captureButton = _captureButton) return captureButton;
     
     UIButton *captureButton = [UIButton new];
     UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-    configuration.image = [UIImage systemImageNamed:@"circle.inset.filled"];
+    configuration.showsActivityIndicator = YES;
+    
     captureButton.configuration = configuration;
+    [captureButton addTarget:self action:@selector(didTriggerCaptureButton:) forControlEvents:UIControlEventTouchDown];
     
-    [captureButton addTarget:self action:@selector(didTriggerCaptureBarButton:) forControlEvents:UIControlEventTouchDown];
+    _captureButton = [captureButton retain];
+    return [captureButton autorelease];
+}
+
+- (UIBarButtonItem *)captureBarButtonItem {
+    if (auto captureBarButtonItem = _captureBarButtonItem) return captureBarButtonItem;
     
-    UIBarButtonItem *captureBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:captureButton];
-    [captureButton release];
+    UIBarButtonItem *captureBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.captureButton];
+    captureBarButtonItem.enabled = NO;
     
     _captureBarButtonItem = [captureBarButtonItem retain];
     return [captureBarButtonItem autorelease];
+}
+
+- (UIButton *)recordButton {
+    if (auto recordButton = _recordButton) return recordButton;
+    
+    UIButton *recordButton = [UIButton new];
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    configuration.showsActivityIndicator = YES;
+    
+    recordButton.configuration = configuration;
+    
+    _recordButton = [recordButton retain];
+    return [recordButton autorelease];
+}
+
+- (UIBarButtonItem *)recordBarButtonItem {
+    if (auto recordBarButtonItem = _recordBarButtonItem) return recordBarButtonItem;
+    
+    UIBarButtonItem *recordBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.recordButton];
+    recordBarButtonItem.enabled = NO;
+    
+    _recordBarButtonItem = [recordBarButtonItem retain];
+    return [recordBarButtonItem autorelease];
 }
 
 - (UIBarButtonItem *)captureDevicesBarButtonItem {
@@ -284,6 +340,11 @@
     
     CaptureService *captureService = [CaptureService new];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didReceiveRecordingStatusNotification:)
+                                               name:CaptureServiceDidChangeRecordingStatusNotificationName
+                                             object:captureService];
+    
     _captureService = [captureService retain];
     return [captureService autorelease];
 }
@@ -297,13 +358,53 @@
     return [captureDevicesMenuBuilder autorelease];
 }
 
+- (void)updateRecordButtonWithRecording:(BOOL)recording {
+    UIImage *image;
+    if (recording) {
+        image = nil;
+    } else {
+        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPaletteColors:@[
+            UIColor.systemRedColor,
+            UIColor.tintColor
+        ]];
+        
+        image = [UIImage systemImageNamed:@"circle.inset.filled" withConfiguration:configuration];
+    }
+    
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    configuration.image = image;
+    self.recordButton.configuration = configuration;
+}
+
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
     
 }
 
-- (void)didTriggerCaptureBarButton:(UIButton *)sender {
+- (void)didTriggerCaptureButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
         [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
+    });
+}
+
+- (void)didTriggerRecordButton:(UIButton *)sender {
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        if (captureService.queue_isRecording) {
+            [captureService queue_startVideoRecording];
+        } else {
+            [captureService queue_stopVideoRecording];
+        }
+    });
+}
+
+- (void)didReceiveRecordingStatusNotification:(NSNotification *)notification {
+    NSNumber *isRecordingNumber = notification.userInfo[CaptureServiceRecordingKey];
+    if (isRecordingNumber == nil) return;
+    BOOL isRecording = isRecordingNumber.boolValue;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateRecordButtonWithRecording:isRecording];
     });
 }
 

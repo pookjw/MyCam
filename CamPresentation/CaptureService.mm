@@ -16,6 +16,9 @@ NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName =
 NSString * const CaptureServiceOldCaptureDeviceKey = @"CaptureServiceOldCaptureDeviceKey";
 NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureDeviceKey";
 
+NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName = @"CaptureServiceDidChangeRecordingStatusNotificationName";
+NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
+
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
