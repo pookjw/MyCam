@@ -254,10 +254,26 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [format release];
     
     capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
+    capturePhotoSettings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialOverCaptureEnabled:"), YES);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialPhotoCaptureEnabled:"), YES);
     
     //
     
+//    [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
+    
+    self.capturePhotoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setSpatialPhotoCaptureEnabled:"), YES);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setMovieRecordingEnabled:"), YES);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setAutoDeferredPhotoDeliveryEnabled:"), YES);
+    
     [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
+    
+//    id momentCaptureSettings = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("AVMomentCaptureSettings"), sel_registerName("settingsWithPhotoSettings:"), capturePhotoSettings);
+    
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(momentCaptureSettings, sel_registerName("setAutoDeferredPhotoDeliveryEnabled:"), NO);
+    
+//    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("beginMomentCaptureWithSettings:delegate:"), momentCaptureSettings, self);
 }
 
 - (void)queue_startVideoRecording {
@@ -296,6 +312,10 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
     
+    BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
+//    assert(isSpatialPhotoCaptureEnabled);
+    NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
+    
     __block NSURL *_url = nil;
     [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
         NSURL *baseURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"MyCam"];
@@ -325,6 +345,20 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         }
         NSLog(@"%d %@", success, error);
     }];
+}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
+    [self captureOutput:output didFinishProcessingPhoto:deferredPhotoProxy error:error];
+}
+
+- (BOOL)respondsToSelector:(SEL)aSelector {
+    BOOL responds = [super respondsToSelector:aSelector];
+    
+    if (!responds) {
+        NSLog(@"%s", sel_getName(aSelector));
+    }
+    
+    return responds;
 }
 
 
