@@ -1,20 +1,20 @@
 //
-//  CaptureDevicesMenuService.mm
+//  CaptureDevicesMenuBuilder.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 9/18/24.
 //
 
-#import <CamPresentation/CaptureDevicesMenuService.h>
+#import <CamPresentation/CaptureDevicesMenuBuilder.h>
 
-@interface CaptureDevicesMenuService ()
+@interface CaptureDevicesMenuBuilder ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (weak, nonatomic, readonly) id<CaptureDevicesMenuServiceDelegate> delegate;
+@property (weak, nonatomic, readonly) id<CaptureDevicesMenuBuilderDelegate> delegate;
 @end
 
-@implementation CaptureDevicesMenuService
+@implementation CaptureDevicesMenuBuilder
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService delegate:(id<CaptureDevicesMenuServiceDelegate>)delegate {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService delegate:(id<CaptureDevicesMenuBuilderDelegate>)delegate {
     if (self = [super init]) {
         [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
         
@@ -33,7 +33,7 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([keyPath isEqualToString:@"devices"]) {
-        [self.delegate captureDevicesMenuServiceElementsDidChange:self];
+        [self.delegate captureDevicesMenuBuilderElementsDidChange:self];
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
@@ -63,7 +63,7 @@
                 dispatch_async(captureService.captureSessionQueue, ^{
                     if (![captureService.queue_selectedCaptureDevice isEqual:captureDevice]) {
                         captureService.queue_selectedCaptureDevice = captureDevice;
-                        [weakSelf.delegate captureDevicesMenuServiceElementsDidChange:weakSelf];
+                        [weakSelf.delegate captureDevicesMenuBuilderElementsDidChange:weakSelf];
                     }
                 });
             }];

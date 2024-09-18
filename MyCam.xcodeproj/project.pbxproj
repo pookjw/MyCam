@@ -163,22 +163,22 @@
 				CameraRootViewController.h,
 				CameraRootViewController.mm,
 				CamPresentation.h,
-				CaptureDevicesMenuService.h,
-				CaptureDevicesMenuService.mm,
+				CaptureDevicesMenuBuilder.h,
+				CaptureDevicesMenuBuilder.mm,
 				CaptureService.h,
 				CaptureService.mm,
 				CaptureVideoPreviewView.h,
 				CaptureVideoPreviewView.mm,
-				PhotoFormat/PhotoFormatMenuService.h,
-				PhotoFormat/PhotoFormatMenuService.mm,
+				PhotoFormat/PhotoFormatMenuBuilder.h,
+				PhotoFormat/PhotoFormatMenuBuilder.mm,
 				PhotoFormat/PhotoFormatModel.h,
 				PhotoFormat/PhotoFormatModel.mm,
 			);
 			privateHeaders = (
-				CaptureDevicesMenuService.h,
+				CaptureDevicesMenuBuilder.h,
 				CaptureService.h,
 				CaptureVideoPreviewView.h,
-				PhotoFormat/PhotoFormatMenuService.h,
+				PhotoFormat/PhotoFormatMenuBuilder.h,
 				PhotoFormat/PhotoFormatModel.h,
 			);
 			publicHeaders = (

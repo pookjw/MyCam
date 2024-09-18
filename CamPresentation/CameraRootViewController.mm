@@ -11,15 +11,15 @@
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
-#import <CamPresentation/PhotoFormatMenuService.h>
-#import <CamPresentation/CaptureDevicesMenuService.h>
+#import <CamPresentation/PhotoFormatMenuBuilder.h>
+#import <CamPresentation/CaptureDevicesMenuBuilder.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface CameraRootViewController () <PhotoFormatMenuDelegate, CaptureDevicesMenuServiceDelegate>
+@interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate>
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
 @property (nonatomic, readonly) CaptureVideoPreviewView *captureVideoPreviewView;
@@ -30,8 +30,8 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
-@property (retain, nonatomic, nullable) PhotoFormatMenuService *photoFormatMenuService;
-@property (retain ,nonatomic, nullable) CaptureDevicesMenuService *captureDevicesMenuService;
+@property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
+@property (retain ,nonatomic, nullable) CaptureDevicesMenuBuilder *captureDevicesMenuBuilder;
 @end
 
 @implementation CameraRootViewController
@@ -41,7 +41,7 @@
 @synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize captureService = _captureService;
-@synthesize captureDevicesMenuService = _captureDevicesMenuService;
+@synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -61,8 +61,8 @@
     [_formatBarButtonItem release];
     [_captureService release];
     [_restorationPhotoFormatModel release];
-    [_photoFormatMenuService release];
-    [_captureDevicesMenuService release];
+    [_photoFormatMenuBuilder release];
+    [_captureDevicesMenuBuilder release];
     [super dealloc];
 }
 
@@ -80,7 +80,7 @@
     
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuService.photoFormatModel;
+            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuBuilder.photoFormatModel;
             
             dispatch_async(captureService.captureSessionQueue, ^{
                 [captureService queue_startPhotoCaptureWithPhotoModel:photoFormatModel];
@@ -89,7 +89,7 @@
     }
                                                                                                   secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuService.photoFormatModel;
+            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuBuilder.photoFormatModel;
             
             dispatch_async(captureService.captureSessionQueue, ^{
                 [captureService queue_startPhotoCaptureWithPhotoModel:photoFormatModel];
@@ -133,10 +133,10 @@
                 photoFormatModel = [PhotoFormatModel new];
             }
             
-            PhotoFormatMenuService *photoFormatMenuService = [[PhotoFormatMenuService alloc] initWithPhotoFormatModel:photoFormatModel captureService:self.captureService delegate:self];
+            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:photoFormatModel captureService:self.captureService delegate:self];
             [photoFormatModel release];
             
-            self.photoFormatMenuService = photoFormatMenuService;
+            self.photoFormatMenuBuilder = photoFormatMenuService;
             [photoFormatMenuService release];
         });
     });
@@ -147,7 +147,7 @@
     if (userActivityTypes == nil) return nil;
     if (![userActivityTypes containsObject:@"com.pookjw.MyCam.CameraRootViewController"]) return nil;
     
-    PhotoFormatModel * _Nullable photoFormatModel = self.photoFormatMenuService.photoFormatModel;
+    PhotoFormatModel * _Nullable photoFormatModel = self.photoFormatMenuBuilder.photoFormatModel;
     
     if (photoFormatModel == nil) return nil;
     
@@ -240,7 +240,7 @@
     __weak auto weakSelf = self;
     
     UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        [weakSelf.captureDevicesMenuService menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
+        [weakSelf.captureDevicesMenuBuilder menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(menuElements);
             });
@@ -259,7 +259,7 @@
     //
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        [weakSelf.photoFormatMenuService menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
+        [weakSelf.photoFormatMenuBuilder menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(menuElements);
             });
@@ -285,13 +285,13 @@
     return [captureService autorelease];
 }
 
-- (CaptureDevicesMenuService *)captureDevicesMenuService {
-    if (auto captureDevicesMenuService = _captureDevicesMenuService) return captureDevicesMenuService;
+- (CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
+    if (auto captureDevicesMenuBuilder = _captureDevicesMenuBuilder) return captureDevicesMenuBuilder;
     
-    CaptureDevicesMenuService *captureDevicesMenuService = [[CaptureDevicesMenuService alloc] initWithCaptureService:self.captureService delegate:self];
+    CaptureDevicesMenuBuilder *captureDevicesMenuBuilder = [[CaptureDevicesMenuBuilder alloc] initWithCaptureService:self.captureService delegate:self];
     
-    _captureDevicesMenuService = [captureDevicesMenuService retain];
-    return [captureDevicesMenuService autorelease];
+    _captureDevicesMenuBuilder = [captureDevicesMenuBuilder retain];
+    return [captureDevicesMenuBuilder autorelease];
 }
 
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
@@ -300,11 +300,11 @@
 
 - (void)didTriggerCaptureBarButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
-        [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuService.photoFormatModel];
+        [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
     });
 }
 
-- (void)photoFormatMenuElementsDidChange:(PhotoFormatMenuService *)photoFormatMenu {
+- (void)photoFormatMenuBuilderElementsDidChange:(PhotoFormatMenuBuilder *)photoFormatMenuBuilder {
     dispatch_assert_queue(dispatch_get_main_queue());
     
     reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -318,7 +318,7 @@
     }
 }
 
-- (void)captureDevicesMenuServiceElementsDidChange:(CaptureDevicesMenuService *)captureDevicesMenuService {
+- (void)captureDevicesMenuBuilderElementsDidChange:(CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
     });

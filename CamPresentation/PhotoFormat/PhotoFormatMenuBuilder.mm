@@ -1,20 +1,20 @@
 //
-//  PhotoFormatMenuService.m
+//  PhotoFormatMenuBuilder.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 9/18/24.
 //
 
-#import <CamPresentation/PhotoFormatMenuService.h>
+#import <CamPresentation/PhotoFormatMenuBuilder.h>
 
-@interface PhotoFormatMenuService ()
-@property (weak, nonatomic, readonly) id<PhotoFormatMenuDelegate> delegate;
+@interface PhotoFormatMenuBuilder ()
+@property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @end
 
-@implementation PhotoFormatMenuService
+@implementation PhotoFormatMenuBuilder
 
-- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuDelegate>)delegate {
+- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuBuilderDelegate>)delegate {
     if (self = [super init]) {
         AVCapturePhotoOutput *capturePhotoOutput = captureService.capturePhotoOutput;
         [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
@@ -178,7 +178,7 @@
                         selectedCaptureDevice.activeFormat = format;
                         [selectedCaptureDevice unlockForConfiguration];
                         
-                        [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     });
                 }];
                 
@@ -227,7 +227,7 @@
                 UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.photoPixelFormatType = formatNumber;
                     weakSelf.photoFormatModel.codecType = nil;
-                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                 }];
                 
                 [string release];
@@ -281,7 +281,7 @@
                 UIAction *action = [UIAction actionWithTitle:photoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.photoPixelFormatType = nil;
                     weakSelf.photoFormatModel.codecType = photoCodecType;
-                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                 }];
                 
                 action.state = [self.photoFormatModel.codecType isEqualToString:photoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -311,7 +311,7 @@
                     
                     UIAction *action = [UIAction actionWithTitle:@(quality).stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.quality = quality;
-                        [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     }];
                     
                     action.state = (self.photoFormatModel.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -352,7 +352,7 @@
                     weakSelf.photoFormatModel.processedFileType = nil;
                 }
                 
-                [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
             }];
             
             rawEnabledAction.state = self.photoFormatModel.isRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -388,7 +388,7 @@
                     
                     UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.rawPhotoPixelFormatType = formatNumber;
-                        [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     }];
                     
                     [string release];
@@ -435,7 +435,7 @@
                 for (AVFileType fileType in availableRawPhotoFileTypes) {
                     UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.rawFileType = fileType;
-                        [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     }];
                     
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
@@ -464,7 +464,7 @@
                 
                 UIAction *nullAction = [UIAction actionWithTitle:@"(null)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.processedFileType = nil;
-                    [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                 }];
                 nullAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 nullAction.state = (self.photoFormatModel.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -489,7 +489,7 @@
                             weakSelf.photoFormatModel.rawPhotoPixelFormatType = supportedRawPhotoPixelFormatTypesForFileType.lastObject;
                         }
                         
-                        [weakSelf.delegate photoFormatMenuElementsDidChange:weakSelf];
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     }];
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                     action.state = [self.photoFormatModel.processedFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
