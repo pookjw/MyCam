@@ -163,21 +163,6 @@ NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureD
     
     //
     
-//    CMVideoDimensions maxPhotoDimensions = {0, 0};
-//    for (AVCaptureDeviceFormat *format in captureDevice.formats) {
-//        for (NSValue *value in format.supportedMaxPhotoDimensions) {
-//            CMVideoDimensions _maxPhotoDimensions = value.CMVideoDimensionsValue;
-//            if ((maxPhotoDimensions.width < _maxPhotoDimensions.width) || (maxPhotoDimensions.height < _maxPhotoDimensions.height)) {
-//                maxPhotoDimensions = _maxPhotoDimensions;
-//            }
-//        }
-//    }
-//    
-//    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
-//    self.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
-    
-    //
-    
     for (AVCaptureVideoPreviewLayer *previewLayer in previewLayers) {
         AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
         previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
@@ -257,8 +242,7 @@ NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureD
     
     [format release];
     
-    // https://forums.developer.apple.com/forums/thread/715452?answerId=729419022#729419022
-//    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
+    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
     
     //
     

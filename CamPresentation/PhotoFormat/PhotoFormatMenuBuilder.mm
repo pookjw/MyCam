@@ -7,13 +7,10 @@
 
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-
-NSString * NSStringFromCMVideoDimensions(CMVideoDimensions videoDimensions) {
-    return [NSString stringWithFormat:@"{%d, %d}", videoDimensions.width, videoDimensions.height];
-}
 
 @interface PhotoFormatMenuBuilder ()
 @property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
