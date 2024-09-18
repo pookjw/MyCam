@@ -27,6 +27,7 @@
         [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         
         _delegate = delegate;
         _captureService = [captureService retain];
@@ -159,6 +160,8 @@
             if (shouldUpdate) {
                 self.photoFormatModel.processedFileType = nil;
             }
+        } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
         } else {
             [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
         }
@@ -576,6 +579,29 @@
                                        children:rawMenuElements];
         [rawMenuElements release];
         [children addObject:rawMenu];
+        
+        //
+        
+        {
+            if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("isSpatialPhotoCaptureSupported"))) {
+                BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("isSpatialPhotoCaptureEnabled"));
+                
+                UIAction *action = [UIAction actionWithTitle:@"Spatial (Not Working)"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("setSpatialPhotoCaptureEnabled:"), !isSpatialPhotoCaptureEnabled);
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = isSpatialPhotoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [children addObject:action];
+            }
+        }
         
         //
         
