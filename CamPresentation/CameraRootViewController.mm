@@ -305,17 +305,17 @@
 }
 
 - (void)photoFormatMenuBuilderElementsDidChange:(PhotoFormatMenuBuilder *)photoFormatMenuBuilder {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    
-    reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-    
-    __kindof UIScene * _Nullable scene = self.view.window.windowScene;
-    if (scene != nil) {
-        NSDictionary<NSString *, id> *_registeredComponents;
-        assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
-        id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
-        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
+        
+        __kindof UIScene * _Nullable scene = self.view.window.windowScene;
+        if (scene != nil) {
+            NSDictionary<NSString *, id> *_registeredComponents;
+            assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
+            id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
+            reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
+        }
+    });
 }
 
 - (void)captureDevicesMenuBuilderElementsDidChange:(CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {

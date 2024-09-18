@@ -27,7 +27,13 @@
         _captureService = [captureService retain];
         _photoFormatModel = [photoFormatModel copy];
         
-        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveDidChangeDeviceStatusNotification:) name:CaptureServiceDidChangeSelectedDeviceNotificationName object:captureService];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didChangeSelectedDeviceNotification:) name:CaptureServiceDidChangeSelectedDeviceNotificationName object:captureService];
+        
+        dispatch_async(captureService.captureSessionQueue, ^{
+            if (AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice) {
+                [self registerCaptureDeviceObservatoins:selectedCaptureDevice];
+            }
+        });
     }
     
     return self;
@@ -149,6 +155,9 @@
                 self.photoFormatModel.processedFileType = nil;
             }
         }
+    } else if ([object isKindOfClass:AVCaptureDevice.class]) {
+        assert([self.captureService.queue_selectedCaptureDevice isEqual:object]);
+        [self.delegate photoFormatMenuBuilderElementsDidChange:self];
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
@@ -171,14 +180,12 @@
             
             for (AVCaptureDeviceFormat *format in formats) {
                 UIAction *action = [UIAction actionWithTitle:format.description image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                    dispatch_async(dispatch_get_main_queue(), ^{
+                    dispatch_async(captureService.captureSessionQueue, ^{
                         NSError * _Nullable error = nil;
                         [selectedCaptureDevice lockForConfiguration:&error];
                         assert(error == nil);
                         selectedCaptureDevice.activeFormat = format;
                         [selectedCaptureDevice unlockForConfiguration];
-                        
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     });
                 }];
                 
@@ -526,12 +533,28 @@
     });
 }
 
-- (void)didReceiveDidChangeDeviceStatusNotification:(NSNotification *)notification {
-    // TODO:
-    // Old + New Observing
-    // Old - removeObserver
-    // New - observe activeFormat and photoFormatMenuElementsDidChange
-    NSLog(@"%@ - %@", static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceOldCaptureDeviceKey]).localizedName, static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceNewCaptureDeviceKey]).localizedName);
+- (void)didChangeSelectedDeviceNotification:(NSNotification *)notification {
+    NSDictionary *userInfo = notification.userInfo;
+    
+    if (AVCaptureDevice *oldCaptureDevice = userInfo[CaptureServiceOldCaptureDeviceKey]) {
+        [self unregisterCaptureDeviceObservatoins:oldCaptureDevice];
+    }
+    
+    if (AVCaptureDevice *newCaptureDevice = userInfo[CaptureServiceNewCaptureDeviceKey]) {
+        [self registerCaptureDeviceObservatoins:newCaptureDevice];
+    }
+    
+    [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+}
+
+- (void)registerCaptureDeviceObservatoins:(AVCaptureDevice *)captureDevice {
+    [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
+}
+
+- (void)unregisterCaptureDeviceObservatoins:(AVCaptureDevice *)captureDevice {
+    [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
+    [captureDevice removeObserver:self forKeyPath:@"formats"];
 }
 
 @end
