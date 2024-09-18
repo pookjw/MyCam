@@ -52,6 +52,7 @@
     [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoFileTypes"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported"];
     
     [_captureService release];
     [_photoFormatModel release];
@@ -596,14 +597,6 @@
                                                   identifier:nil
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
-//                        NSError * _Nullable error = nil;
-//                        NSLog(@"%@", captureService.queue_selectedCaptureDevice);
-//                        [captureService.queue_selectedCaptureDevice lockForConfiguration:&error];
-//                        assert(error == nil);
-//                        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.queue_selectedCaptureDevice, sel_registerName("setSpatialOverCaptureEnabled:"), YES);
-//                        [captureService.queue_selectedCaptureDevice unlockForConfiguration];
-//                        
-//                        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("setSpatialOverCaptureEnabled:"), !isSpatialPhotoCaptureEnabled);
                         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("setSpatialPhotoCaptureEnabled:"), !isSpatialPhotoCaptureEnabled);
                         [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     });

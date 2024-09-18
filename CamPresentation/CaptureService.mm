@@ -253,27 +253,9 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     [format release];
     
-    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
-    capturePhotoSettings.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
-//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialOverCaptureEnabled:"), YES);
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialPhotoCaptureEnabled:"), YES);
-    
-    //
-    
-//    [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
-    
-    self.capturePhotoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setSpatialPhotoCaptureEnabled:"), YES);
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setMovieRecordingEnabled:"), YES);
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("setAutoDeferredPhotoDeliveryEnabled:"), YES);
+    NSLog(@"%@", self.queue_selectedCaptureDevice.spatialCaptureDiscomfortReasons);
     
     [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
-    
-//    id momentCaptureSettings = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("AVMomentCaptureSettings"), sel_registerName("settingsWithPhotoSettings:"), capturePhotoSettings);
-    
-//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(momentCaptureSettings, sel_registerName("setAutoDeferredPhotoDeliveryEnabled:"), NO);
-    
-//    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("beginMomentCaptureWithSettings:delegate:"), momentCaptureSettings, self);
 }
 
 - (void)queue_startVideoRecording {
@@ -316,38 +298,39 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 //    assert(isSpatialPhotoCaptureEnabled);
     NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
     
-    __block NSURL *_url = nil;
-    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-        NSURL *baseURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"MyCam"];
-        [NSFileManager.defaultManager createDirectoryAtURL:baseURL withIntermediateDirectories:YES attributes:nil error:nil];
-        
-        UTType *uti;
-        if (photo.isRawPhoto) {
-            uti = UTTypeDNG;
-        } else {
-            NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
-            uti = [UTType typeWithIdentifier:processedFileType];
-        }
-        
-        NSURL *url = [[baseURL URLByAppendingPathComponent:@(NSDate.now.timeIntervalSince1970).stringValue] URLByAppendingPathExtensionForType:uti];
-        _url = [url retain];
-        
-        assert([photo.fileDataRepresentation writeToURL:url atomically:YES]);
-        
-        PHAssetChangeRequest *request = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
-        request.location = self.locationManager.location;
-    } completionHandler:^(BOOL success, NSError * _Nullable error) {
-        if (_url) {
-            NSError * _Nullable error = nil;
-            [NSFileManager.defaultManager removeItemAtURL:_url error:&error];
-            assert(error == nil);
-            [_url release];
-        }
-        NSLog(@"%d %@", success, error);
-    }];
+//    __block NSURL *_url = nil;
+//    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
+//        NSURL *baseURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"MyCam"];
+//        [NSFileManager.defaultManager createDirectoryAtURL:baseURL withIntermediateDirectories:YES attributes:nil error:nil];
+//        
+//        UTType *uti;
+//        if (photo.isRawPhoto) {
+//            uti = UTTypeDNG;
+//        } else {
+//            NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
+//            uti = [UTType typeWithIdentifier:processedFileType];
+//        }
+//        
+//        NSURL *url = [[baseURL URLByAppendingPathComponent:@(NSDate.now.timeIntervalSince1970).stringValue] URLByAppendingPathExtensionForType:uti];
+//        _url = [url retain];
+//        
+//        assert([photo.fileDataRepresentation writeToURL:url atomically:YES]);
+//        
+//        PHAssetChangeRequest *request = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
+//        request.location = self.locationManager.location;
+//    } completionHandler:^(BOOL success, NSError * _Nullable error) {
+//        if (_url) {
+//            NSError * _Nullable error = nil;
+//            [NSFileManager.defaultManager removeItemAtURL:_url error:&error];
+//            assert(error == nil);
+//            [_url release];
+//        }
+//        NSLog(@"%d %@", success, error);
+//    }];
 }
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
+    NSLog(@"%@", deferredPhotoProxy);
     [self captureOutput:output didFinishProcessingPhoto:deferredPhotoProxy error:error];
 }
 
