@@ -173,6 +173,8 @@
 				PhotoFormat/PhotoFormatMenuBuilder.mm,
 				PhotoFormat/PhotoFormatModel.h,
 				PhotoFormat/PhotoFormatModel.mm,
+				"UIMenuElement+CP_NumberOfLines.h",
+				"UIMenuElement+CP_NumberOfLines.mm",
 			);
 			privateHeaders = (
 				CaptureDevicesMenuBuilder.h,
@@ -180,6 +182,7 @@
 				CaptureVideoPreviewView.h,
 				PhotoFormat/PhotoFormatMenuBuilder.h,
 				PhotoFormat/PhotoFormatModel.h,
+				"UIMenuElement+CP_NumberOfLines.h",
 			);
 			publicHeaders = (
 				CameraRootViewController.h,

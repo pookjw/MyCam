@@ -6,6 +6,14 @@
 //
 
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
+#import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <CoreMedia/CoreMedia.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
+
+NSString * NSStringFromCMVideoDimensions(CMVideoDimensions videoDimensions) {
+    return [NSString stringWithFormat:@"{%d, %d}", videoDimensions.width, videoDimensions.height];
+}
 
 @interface PhotoFormatMenuBuilder ()
 @property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
@@ -179,7 +187,7 @@
             NSMutableArray<UIAction *> *formatActions = [[NSMutableArray alloc] initWithCapacity:formats.count];
             
             for (AVCaptureDeviceFormat *format in formats) {
-                UIAction *action = [UIAction actionWithTitle:format.description image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         NSError * _Nullable error = nil;
                         [selectedCaptureDevice lockForConfiguration:&error];
@@ -189,6 +197,7 @@
                     });
                 }];
                 
+                action.cp_overrideNumberOfTitleLines = @(0);
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
                 
@@ -196,13 +205,52 @@
             }
             
             UIMenu *formatsMenu = [UIMenu menuWithTitle:@"Format"
-                                                          image:nil
-                                                     identifier:nil
-                                                        options:0
-                                                       children:formatActions];
+                                                  image:nil
+                                             identifier:nil
+                                                options:0
+                                               children:formatActions];
             [formatActions release];
-            formatsMenu.subtitle = activeFormat.description;
+            formatsMenu.subtitle = activeFormat.debugDescription;
             [children addObject:formatsMenu];
+        }
+        
+        //
+        
+        {
+            AVCaptureDeviceFormat *format = captureService.queue_selectedCaptureDevice.activeFormat;
+            NSArray<NSValue *> *supportedMaxPhotoDimensions = format.supportedMaxPhotoDimensions;
+            NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedMaxPhotoDimensions.count];
+            CMVideoDimensions selectedMaxPhotoDimensions = captureService.capturePhotoOutput.maxPhotoDimensions;
+            
+            for (NSValue *maxPhotoDimensionsValue in supportedMaxPhotoDimensions) {
+                CMVideoDimensions maxPhotoDimensions = maxPhotoDimensionsValue.CMVideoDimensionsValue;
+                
+                UIAction *action = [UIAction actionWithTitle:NSStringFromCMVideoDimensions(maxPhotoDimensions)
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = ((selectedMaxPhotoDimensions.width == maxPhotoDimensions.width) && (selectedMaxPhotoDimensions.height == maxPhotoDimensions.height)) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [actions addObject:action];
+            }
+            
+            UIMenu *menu = [UIMenu menuWithTitle:@"Max Photo Dimensions"
+                                           image:nil
+                                      identifier:nil
+                                         options:0
+                                        children:actions];
+            [actions release];
+            
+            menu.subtitle = NSStringFromCMVideoDimensions(selectedMaxPhotoDimensions);
+            
+            [children addObject:menu];
         }
         
         //
