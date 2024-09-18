@@ -6,6 +6,7 @@
 //
 
 // TODO: Memory Leak Test
+// +[AVCaptureDevice cinematicFramingControlMode]
 
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
