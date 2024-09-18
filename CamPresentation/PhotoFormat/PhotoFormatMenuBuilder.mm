@@ -159,10 +159,16 @@
             if (shouldUpdate) {
                 self.photoFormatModel.processedFileType = nil;
             }
+        } else {
+            [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
         }
     } else if ([object isKindOfClass:AVCaptureDevice.class]) {
-        assert([self.captureService.queue_selectedCaptureDevice isEqual:object]);
-        [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+        if ([keyPath isEqualToString:@"activeFormat"] || [keyPath isEqualToString:@"formats"]) {
+            assert([self.captureService.queue_selectedCaptureDevice isEqual:object]);
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+        } else {
+            [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        }
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
