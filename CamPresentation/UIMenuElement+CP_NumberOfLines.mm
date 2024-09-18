@@ -6,7 +6,6 @@
 //
 
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
-#import <UIKit/UIKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
