@@ -156,7 +156,7 @@
             //
             
             UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-            configuration.image = [UIImage systemImageNamed:@"circle.inset.filled"];
+            configuration.image = [UIImage systemImageNamed:@"camera.aperture"];
             self.captureButton.configuration = configuration;
             self.captureBarButtonItem.enabled = YES;
             
@@ -361,7 +361,7 @@
 - (void)updateRecordButtonWithRecording:(BOOL)recording {
     UIImage *image;
     if (recording) {
-        image = nil;
+        image = [UIImage systemImageNamed:@"stop.fill"];
     } else {
         UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPaletteColors:@[
             UIColor.systemRedColor,

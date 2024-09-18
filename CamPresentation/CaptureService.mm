@@ -58,6 +58,12 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         assert([captureSession canAddOutput:capturePhotoOutput]);
         [captureSession addOutput:capturePhotoOutput];
         
+        //
+        
+        AVCaptureMovieFileOutput *captureMovieFileOutput = [AVCaptureMovieFileOutput new];
+        assert([captureSession canAddOutput:captureMovieFileOutput]);
+        [captureMovieFileOutput release];
+        
         [captureSession commitConfiguration];
         
         //
@@ -74,6 +80,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _queue_rotationCoordinatorsByPreviewLayer = [rotationCoordinatorsByPreviewLayer retain];
         _capturePhotoOutput = capturePhotoOutput;
+        _captureMovieFileOutput = captureMovieFileOutput;
         _locationManager = locationManager;
         
         //
@@ -96,6 +103,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [_queue_rotationCoordinatorsByPreviewLayer release];
     
     [_capturePhotoOutput release];
+    [_captureMovieFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [super dealloc];
