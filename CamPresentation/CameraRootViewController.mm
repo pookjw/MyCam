@@ -140,6 +140,8 @@
             [photoFormatMenuService release];
         });
     });
+    
+    self.view.backgroundColor = UIColor.systemOrangeColor;
 }
 
 - (NSUserActivity *)stateRestorationActivity {

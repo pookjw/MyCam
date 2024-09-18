@@ -14,6 +14,7 @@ struct MyCaptureExtension_Swift: LockedCameraCaptureExtension {
     var body: some LockedCameraCaptureExtensionScene {
         LockedCameraCaptureUIScene { session in
             MyCaptureExtension_SwiftViewFinder(session: session)
+                .ignoresSafeArea()
         }
     }
 }
