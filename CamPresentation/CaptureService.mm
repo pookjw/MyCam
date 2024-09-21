@@ -19,7 +19,7 @@ NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureD
 NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName = @"CaptureServiceDidChangeRecordingStatusNotificationName";
 NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, CLLocationManagerDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate>
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
@@ -32,6 +32,9 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
+        dispatch_queue_t captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
+        
+        [captureSession setControlsDelegate:self queue:captureSessionQueue];
         
         AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
             AVCaptureDeviceTypeBuiltInWideAngleCamera,
@@ -76,7 +79,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         //
         
         _captureSession = captureSession;
-        _captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
+        _captureSessionQueue = captureSessionQueue;
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _queue_rotationCoordinatorsByPreviewLayer = [rotationCoordinatorsByPreviewLayer retain];
         _capturePhotoOutput = capturePhotoOutput;
@@ -167,6 +170,63 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         assert(error == nil);
         [captureSession addInput:newInput];
     }
+    
+    //
+    
+    for (__kindof AVCaptureControl *control in captureSession.controls) {
+        [captureSession removeControl:control];
+    }
+    
+    if (captureSession.supportsControls) {
+        dispatch_queue_t captureSessionQueue = self.captureSessionQueue;
+        NSString * _Nullable failureReason = nil;
+        
+        //
+        
+        AVCaptureSystemZoomSlider *captureSystemZoomSlider = [[AVCaptureSystemZoomSlider alloc] initWithDevice:captureDevice];
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureSystemZoomSlider, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:captureSystemZoomSlider];
+        [captureSystemZoomSlider release];
+        
+        //
+        
+        AVCaptureSystemExposureBiasSlider *captureSystemExposureBiasSlider = [[AVCaptureSystemExposureBiasSlider alloc] initWithDevice:captureDevice];
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureSystemExposureBiasSlider, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:captureSystemExposureBiasSlider];
+        [captureSystemExposureBiasSlider release];
+        
+        //
+        
+        AVCaptureSlider *captureSlider = [[AVCaptureSlider alloc] initWithLocalizedTitle:@"Hello Slider!"
+                                                                              symbolName:@"scope"
+                                                                                  values:@[
+            @1, @2, @3, @5, @8, @13, @21, @34, @55
+        ]];
+        [captureSlider setActionQueue:captureSessionQueue action:^(float newValue) {
+            NSLog(@"%lf", newValue);
+        }];
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureSlider, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:captureSlider];
+        [captureSlider release];
+        
+        //
+        
+        AVCaptureIndexPicker *captureIndexPicker = [[AVCaptureIndexPicker alloc] initWithLocalizedTitle:@"Hello Index Picker!" symbolName:@"figure.waterpolo.circle.fill" numberOfIndexes:100 localizedTitleTransform:^NSString * _Nonnull(NSInteger index) {
+            return [NSString stringWithFormat:@"%ld!!!", index];
+        }];
+        [captureIndexPicker setActionQueue:captureSessionQueue action:^(NSInteger selectedIndex) {
+            NSLog(@"%ld", selectedIndex);
+        }];
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureIndexPicker, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:captureIndexPicker];
+        [captureIndexPicker release];
+    }
+    
+    //
     
     [captureSession commitConfiguration];
     
@@ -329,6 +389,26 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         NSLog(@"%d %@", success, error);
     }];
 }
+
+#pragma mark - AVCaptureSessionControlsDelegate
+
+- (void)sessionControlsDidBecomeActive:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
+}
+
+- (void)sessionControlsWillEnterFullscreenAppearance:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
+}
+
+- (void)sessionControlsWillExitFullscreenAppearance:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
+}
+
+- (void)sessionControlsDidBecomeInactive:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
+}
+
+
 
 
 #pragma mark - CLLocationManagerDelegate
