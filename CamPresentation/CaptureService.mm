@@ -36,6 +36,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
         //
         
+        // https://x.com/_silgen_name/status/1837346064808169951
         id _internal;
         assert(object_getInstanceVariable(captureSession, "_internal", reinterpret_cast<void **>(&_internal)) != NULL);
         id controlsOverlay;
