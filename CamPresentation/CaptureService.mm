@@ -34,6 +34,22 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
         
+        //
+        
+        id _internal;
+        assert(object_getInstanceVariable(captureSession, "_internal", reinterpret_cast<void **>(&_internal)) != NULL);
+        id controlsOverlay;
+        assert(object_getInstanceVariable(_internal, "controlsOverlay", reinterpret_cast<void **>(&controlsOverlay)) != NULL);
+        
+        dispatch_queue_t _connectionQueue;
+        assert(object_getInstanceVariable(controlsOverlay, "_connectionQueue", reinterpret_cast<void **>(&_connectionQueue)) != NULL);
+        dispatch_release(_connectionQueue);
+        
+        assert(object_setInstanceVariable(controlsOverlay, "_connectionQueue", reinterpret_cast<void *>(captureSessionQueue)));
+        dispatch_retain(captureSessionQueue);
+        
+        //
+        
         [captureSession setControlsDelegate:self queue:captureSessionQueue];
         
         AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
