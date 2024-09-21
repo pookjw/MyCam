@@ -162,6 +162,8 @@
 		4F4780A62C99DB0500813671 /* Exceptions for "CamPresentation" folder in "CamPresentation" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"AVCaptureSession+CP_Private.h",
+				"AVCaptureSession+CP_Private.mm",
 				CameraRootViewController.h,
 				CameraRootViewController.mm,
 				CamPresentation.h,
@@ -181,6 +183,7 @@
 				"UIMenuElement+CP_NumberOfLines.mm",
 			);
 			privateHeaders = (
+				"AVCaptureSession+CP_Private.h",
 				CaptureDevicesMenuBuilder.h,
 				CaptureService.h,
 				CaptureVideoPreviewView.h,

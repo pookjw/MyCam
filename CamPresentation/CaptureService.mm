@@ -6,6 +6,7 @@
 //
 
 #import <CamPresentation/CaptureService.h>
+#import <CamPresentation/AVCaptureSession+CP_Private.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <Photos/Photos.h>
@@ -37,10 +38,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         //
         
         // https://x.com/_silgen_name/status/1837346064808169951
-        id _internal;
-        assert(object_getInstanceVariable(captureSession, "_internal", reinterpret_cast<void **>(&_internal)) != NULL);
-        id controlsOverlay;
-        assert(object_getInstanceVariable(_internal, "controlsOverlay", reinterpret_cast<void **>(&controlsOverlay)) != NULL);
+        id controlsOverlay = captureSession.cp_controlsOverlay;
         
         dispatch_queue_t _connectionQueue;
         assert(object_getInstanceVariable(controlsOverlay, "_connectionQueue", reinterpret_cast<void **>(&_connectionQueue)) != NULL);
