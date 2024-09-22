@@ -7,6 +7,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PhotoFormatModel.h>
+#import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -50,12 +51,22 @@ NSString * const CaptureServiceRecordingKey;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, nullable, setter=queue_setSelectedCaptureDevice:) AVCaptureDevice *queue_selectedCaptureDevice;
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) id capturePhotoOutput;
+@property (retain, nonatomic, readonly) id captureMovieFileOutput;
+#else
 @property (retain, nonatomic, readonly) AVCapturePhotoOutput *capturePhotoOutput;
 @property (retain, nonatomic, readonly) AVCaptureMovieFileOutput *captureMovieFileOutput;
+#endif
 @property (nonatomic, readonly, getter=queue_recording) BOOL queue_isRecording;
 - (void)queue_selectDefaultCaptureDevice;
+#if TARGET_OS_VISION
+- (void)queue_registerCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer;
+- (void)queue_unregisterCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer;
+#else
 - (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 - (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
+#endif
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
 - (void)queue_startVideoRecording;
 - (void)queue_stopVideoRecording;

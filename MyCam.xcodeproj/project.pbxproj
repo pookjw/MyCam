@@ -19,10 +19,10 @@
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
-		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
 		4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5F2C97152500F17348 /* SwiftUI.framework */; };
-		4FA73E6D2C97152600F17348 /* MyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4FA73E6D2C97152600F17348 /* MyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB12C99741A00F17348 /* PhotosUI.framework */; };
 		4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB22C99741A00F17348 /* Photos.framework */; };
 		4FA73EB72C9975E300F17348 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB52C9975E300F17348 /* Photos.framework */; };
@@ -150,6 +150,9 @@
 			membershipExceptions = (
 				MyCamCaptureIntent.swift,
 			);
+			platformFiltersByRelativePath = {
+				MyCamCaptureIntent.swift = (ios, );
+			};
 			target = 4F6905432C949D4D00CD2C22 /* MyCam */;
 		};
 		4F2A418A2C97572500726F2F /* Exceptions for "MyWidget" folder in "MyCaptureExtension-Swift" target */ = {
@@ -229,6 +232,9 @@
 			membershipExceptions = (
 				Base.lproj/LaunchScreen.storyboard,
 			);
+			platformFiltersByRelativePath = {
+				Base.lproj/LaunchScreen.storyboard = (xros, );
+			};
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
@@ -606,11 +612,13 @@
 		};
 		4FA73E512C97132400F17348 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = 4FA73E482C97132400F17348 /* MyCaptureExtension-Swift */;
 			targetProxy = 4FA73E502C97132400F17348 /* PBXContainerItemProxy */;
 		};
 		4FA73E6C2C97152600F17348 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilter = ios;
 			target = 4FA73E5B2C97152500F17348 /* MyWidgetExtension */;
 			targetProxy = 4FA73E6B2C97152600F17348 /* PBXContainerItemProxy */;
 		};
@@ -644,10 +652,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.CamPresentation;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
 		};
@@ -678,10 +689,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.CamPresentation;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
 		};
@@ -710,9 +724,12 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
 		};
@@ -741,9 +758,12 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
 		};

@@ -12,6 +12,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/CameraRootViewController.h>
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
 
 @interface SceneDelegate () <CLLocationManagerDelegate>
 @property (class, nonatomic, readonly) void *didChangeAuthorizationKey;
@@ -103,12 +104,14 @@
                                          SceneDelegate.didChangeAuthorizationKey,
                                          ^(CLLocationManager *locationManager) {
                     switch (locationManager.authorizationStatus) {
+#if !TARGET_OS_VISION
                         case kCLAuthorizationStatusAuthorizedAlways:
+#endif
                         case kCLAuthorizationStatusAuthorizedWhenInUse:
                             completionHandler(YES);
                             break;
                         default:
-//                            completionHandler(NO);
+                            completionHandler(NO);
                             break;
                     }
                 },
@@ -116,7 +119,9 @@
                 
                 [locationManager requestWhenInUseAuthorization];
                 break;
+#if !TARGET_OS_VISION
             case kCLAuthorizationStatusAuthorizedAlways:
+#endif
             case kCLAuthorizationStatusAuthorizedWhenInUse:
                 completionHandler(YES);
                 break;
@@ -135,7 +140,8 @@
                     switch (status) {
                         case PHAuthorizationStatusAuthorized:
                         case PHAuthorizationStatusLimited:
-                            requestLocationAuthorization();
+//                            requestLocationAuthorization();
+                            completionHandler(YES);
                             break;
                         default:
                             completionHandler(NO);
@@ -145,7 +151,8 @@
                 break;
             case PHAuthorizationStatusAuthorized:
             case PHAuthorizationStatusLimited:
-                requestLocationAuthorization();
+//                requestLocationAuthorization();
+                completionHandler(YES);
                 break;
             default:
                 completionHandler(NO);

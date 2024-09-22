@@ -20,23 +20,45 @@ NSString * const CaptureServiceNewCaptureDeviceKey = @"CaptureServiceNewCaptureD
 NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName = @"CaptureServiceDidChangeRecordingStatusNotificationName";
 NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 
+#if TARGET_OS_VISION
+@interface CaptureService () <CLLocationManagerDelegate>
+#else
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate>
+#endif
+
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) NSMapTable<__kindof CALayer *, id> *queue_rotationCoordinatorsByPreviewLayer;
+#else
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByPreviewLayer;
+#endif
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
 @implementation CaptureService
 
+#if TARGET_OS_VISION
++ (void)load {
+    assert(class_addProtocol(self, NSProtocolFromString(@"AVCapturePhotoCaptureDelegate")));
+    assert(class_addProtocol(self, NSProtocolFromString(@"AVCaptureSessionControlsDelegate")));
+}
+#endif
+
 - (instancetype)init {
     if (self = [super init]) {
         AVCaptureSession *captureSession = [AVCaptureSession new];
+        
+#if TARGET_OS_VISION
+//        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSessionPreset:"), @"AVCaptureSessionPresetPhoto");
+#else
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+#endif
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t captureSessionQueue = dispatch_queue_create("Camera Session Queue", attr);
         
         //
         
+#if !TARGET_OS_VISION
         // https://x.com/_silgen_name/status/1837346064808169951
         id controlsOverlay = captureSession.cp_controlsOverlay;
         
@@ -50,8 +72,10 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         //
         
         [captureSession setControlsDelegate:self queue:captureSessionQueue];
+#endif
         
         AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
+#if !TARGET_OS_VISION
             AVCaptureDeviceTypeBuiltInWideAngleCamera,
             AVCaptureDeviceTypeBuiltInUltraWideCamera,
             AVCaptureDeviceTypeBuiltInTelephotoCamera,
@@ -59,16 +83,27 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
             AVCaptureDeviceTypeBuiltInDualWideCamera,
             AVCaptureDeviceTypeBuiltInTripleCamera,
             AVCaptureDeviceTypeContinuityCamera,
+#endif
+            AVCaptureDeviceTypeBuiltInWideAngleCamera,
+            @"AVCaptureDeviceTypeContinuityCamera",
             AVCaptureDeviceTypeExternal
         ]
                                                                                                                                 mediaType:AVMediaTypeVideo
                                                                                                                                  position:AVCaptureDevicePositionUnspecified];
         
+#if TARGET_OS_VISION
+        NSMapTable *rotationCoordinatorsByPreviewLayer = [NSMapTable weakToStrongObjectsMapTable];
+#else
         NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByPreviewLayer = [NSMapTable weakToStrongObjectsMapTable];
+#endif
         
         //
         
+#if TARGET_OS_VISION
+        id capturePhotoOutput = [objc_lookUpClass("AVCapturePhotoOutput") new];
+#else
         AVCapturePhotoOutput *capturePhotoOutput = [AVCapturePhotoOutput new];
+#endif
         [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
         
         [captureSession beginConfiguration];
@@ -78,7 +113,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
         //
         
+#if TARGET_OS_VISION
+        id captureMovieFileOutput = [objc_lookUpClass("AVCaptureMovieFileOutput") new];
+#else
         AVCaptureMovieFileOutput *captureMovieFileOutput = [AVCaptureMovieFileOutput new];
+#endif
         assert([captureSession canAddOutput:captureMovieFileOutput]);
         [captureMovieFileOutput release];
         
@@ -115,7 +154,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [_captureSessionQueue release];
     [_captureDeviceDiscoverySession release];
     
+#if TARGET_OS_VISION
+    for (id previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
+#else
     for (AVCaptureVideoPreviewLayer *previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
+#endif
         [[_queue_rotationCoordinatorsByPreviewLayer objectForKey:previewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     }
     [_queue_rotationCoordinatorsByPreviewLayer release];
@@ -128,12 +171,28 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+#if TARGET_OS_VISION
+    if ([object isKindOfClass:objc_lookUpClass("AVCaptureDeviceRotationCoordinator")] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
+        __kindof CALayer *previewLayer = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("previewLayer"));
+        AVCaptureConnection *connection = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(previewLayer, sel_registerName("connection"));
+        
+        CGFloat videoRotationAngleForHorizonLevelPreview = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("videoRotationAngleForHorizonLevelPreview"));
+        reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
+#else
     if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
+#endif
+        
+#if TARGET_OS_VISION
+    } else if ([object isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
+        BOOL isAppleProRAWSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("isAppleProRAWSupported"));
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(object, sel_registerName("setAppleProRAWEnabled:"), isAppleProRAWSupported);
+#else
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
         auto casted = static_cast<AVCapturePhotoOutput *>(object);
         casted.appleProRAWEnabled = casted.isAppleProRAWSupported;
+#endif
     } else {
         [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
@@ -154,6 +213,16 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 - (void)queue_setSelectedCaptureDevice:(AVCaptureDevice *)captureDevice {
     assert(self.captureSessionQueue);
     
+#if TARGET_OS_VISION
+    NSMapTable<__kindof CALayer *, id> *rotationCoordinatorsByPreviewLayer = self.queue_rotationCoordinatorsByPreviewLayer;
+    NSMutableArray<__kindof CALayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:rotationCoordinatorsByPreviewLayer.count];
+    for (__kindof CALayer *previewLayer in rotationCoordinatorsByPreviewLayer.keyEnumerator) {
+        [[rotationCoordinatorsByPreviewLayer objectForKey:previewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
+        [previewLayers addObject:previewLayer];
+    }
+    
+    [rotationCoordinatorsByPreviewLayer removeAllObjects];
+#else
     NSMapTable<AVCaptureVideoPreviewLayer *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByPreviewLayer = self.queue_rotationCoordinatorsByPreviewLayer;
     NSMutableArray<AVCaptureVideoPreviewLayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:rotationCoordinatorsByPreviewLayer.count];
     for (AVCaptureVideoPreviewLayer *previewLayer in rotationCoordinatorsByPreviewLayer.keyEnumerator) {
@@ -162,6 +231,8 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     }
     
     [rotationCoordinatorsByPreviewLayer removeAllObjects];
+#endif
+    
     
     //
     
@@ -181,13 +252,15 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     if (captureDevice != nil) {
         NSError * _Nullable error = nil;
-        AVCaptureDeviceInput *newInput = [AVCaptureDeviceInput deviceInputWithDevice:captureDevice error:&error];
+        AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
         assert(error == nil);
         [captureSession addInput:newInput];
+        [newInput release];
     }
     
     //
     
+#if !TARGET_OS_VISION
     for (__kindof AVCaptureControl *control in captureSession.controls) {
         [captureSession removeControl:control];
     }
@@ -252,15 +325,35 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         [captureSession addControl:captureIndexPicker];
         [captureIndexPicker release];
     }
+#endif
     
     //
     
     [captureSession commitConfiguration];
     
+#if TARGET_OS_VISION
+    reinterpret_cast<void (*)(Class, SEL, id)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("setUserPreferredCamera:"), captureDevice);
+#else
     AVCaptureDevice.userPreferredCamera = captureDevice;
+#endif
     
     //
     
+#if TARGET_OS_VISION
+    for (__kindof CALayer *previewLayer in previewLayers) {
+        id rotationCoodinator = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureDeviceRotationCoordinator") alloc], sel_registerName("initWithDevice:previewLayer:"), captureDevice, previewLayer);
+        
+        AVCaptureConnection *connection = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(rotationCoodinator, sel_registerName("connection"));
+        
+        CGFloat videoRotationAngleForHorizonLevelPreview = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(rotationCoodinator, sel_registerName("videoRotationAngleForHorizonLevelPreview"));
+        reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
+        
+        [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+        
+        [rotationCoordinatorsByPreviewLayer setObject:rotationCoodinator forKey:previewLayer];
+        [rotationCoodinator release];
+    }
+#else
     for (AVCaptureVideoPreviewLayer *previewLayer in previewLayers) {
         AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
         previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
@@ -269,6 +362,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         [rotationCoordinatorsByPreviewLayer setObject:rotationCoodinator forKey:previewLayer];
         [rotationCoodinator release];
     }
+#endif
     
     [previewLayers release];
     
@@ -278,7 +372,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 - (void)queue_selectDefaultCaptureDevice {
     assert(self.captureSessionQueue);
     
+#if TARGET_OS_VISION
+    AVCaptureDevice * _Nullable captureDevice = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("userPreferredCamera"));
+#else
     AVCaptureDevice * _Nullable captureDevice = AVCaptureDevice.userPreferredCamera;
+#endif
     
     if (captureDevice == nil) {
         captureDevice = AVCaptureDevice.systemPreferredCamera;
@@ -286,19 +384,36 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     self.queue_selectedCaptureDevice = captureDevice;
 }
-
+    
+#if TARGET_OS_VISION
+    - (void)queue_registerCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer {
+#else
 - (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
+#endif
     assert(self.captureSessionQueue);
     
+#if TARGET_OS_VISION
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureVideoPreviewLayer, sel_registerName("setSession:"), self.captureSession);
+#else
     captureVideoPreviewLayer.session = self.captureSession;
+#endif
     
     AVCaptureDevice *selectedCaptureDevice = self.queue_selectedCaptureDevice;
     if (selectedCaptureDevice == nil) {
         abort();
     }
     
+#if TARGET_OS_VISION
+    id rotationCoodinator = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureDeviceRotationCoordinator") alloc], sel_registerName("initWithDevice:previewLayer:"), selectedCaptureDevice, captureVideoPreviewLayer);
+    
+    AVCaptureConnection *connection = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureVideoPreviewLayer, sel_registerName("connection"));
+    
+    CGFloat videoRotationAngleForHorizonLevelPreview = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(rotationCoodinator, sel_registerName("videoRotationAngleForHorizonLevelPreview"));
+    reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
+#else
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:selectedCaptureDevice previewLayer:captureVideoPreviewLayer];
     captureVideoPreviewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+#endif
     
     [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
     
@@ -306,18 +421,25 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [rotationCoodinator release];
 }
 
+#if TARGET_OS_VISION
+- (void)queue_unregisterCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer {
+#else
 - (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
+#endif
     assert(self.captureSessionQueue);
     
     [[self.queue_rotationCoordinatorsByPreviewLayer objectForKey:captureVideoPreviewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     [self.queue_rotationCoordinatorsByPreviewLayer removeObjectForKey:captureVideoPreviewLayer];
+    
+#if TARGET_OS_VISION
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureVideoPreviewLayer, sel_registerName("setSession:"), nil);
+#else
     captureVideoPreviewLayer.session = nil;
+#endif
 }
 
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel {
     assert(self.captureSessionQueue);
-    
-    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
     
     NSMutableDictionary<NSString *, id> *format = [NSMutableDictionary new];
     if (NSNumber *photoPixelFormatType = photoModel.photoPixelFormatType) {
@@ -328,6 +450,24 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
             AVVideoQualityKey: @(photoModel.quality)
         };
     }
+    
+#if TARGET_OS_VISION
+    id __autoreleasing capturePhotoSettings;
+    
+    if (photoModel.isRAWEnabled) {
+        capturePhotoSettings = reinterpret_cast<id (*)(Class, SEL, OSType, id, id, id)>(objc_msgSend)(objc_lookUpClass("AVCapturePhotoSettings"), sel_registerName("photoSettingsWithRawPixelFormatType:rawFileType:processedFormat:processedFileType:"), photoModel.rawPhotoPixelFormatType.unsignedIntValue, photoModel.rawFileType, format, photoModel.processedFileType);
+    } else {
+        capturePhotoSettings = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("AVCapturePhotoSettings"), sel_registerName("photoSettingsWithFormat:"), format);
+    }
+    
+    [format release];
+    
+    CMVideoDimensions maxPhotoDimensions = reinterpret_cast<CMVideoDimensions (*)(id, SEL)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("maxPhotoDimensions"));
+    reinterpret_cast<void (*)(id, SEL, CMVideoDimensions)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setMaxPhotoDimensions:"), maxPhotoDimensions);
+    
+    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(self.capturePhotoOutput, sel_registerName("capturePhotoWithSettings:delegate:"), capturePhotoSettings, self);
+#else
+    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
     
     if (photoModel.isRAWEnabled) {
         capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
@@ -345,6 +485,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     //
     
     [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
+#endif
 }
 
 - (void)queue_startVideoRecording {
@@ -380,6 +521,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 
 #pragma mark - AVCapturePhotoCaptureDelegate
 
+#if TARGET_OS_VISION
+- (void)captureOutput:(id)output didFinishProcessingPhoto:(id)photo error:(NSError *)error {
+    abort();
+}
+#else
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
     
@@ -416,6 +562,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         NSLog(@"%d %@", success, error);
     }];
 }
+#endif
 
 #pragma mark - AVCaptureSessionControlsDelegate
 
