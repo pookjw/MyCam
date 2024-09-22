@@ -491,4 +491,10 @@
     });
 }
 
+#if TARGET_OS_TV
+- (void)continuityDevicePicker:(AVContinuityDevicePickerViewController *)pickerViewController didConnectDevice:(AVContinuityDevice *)device {
+    NSLog(@"%@", device);
+}
+#endif
+
 @end

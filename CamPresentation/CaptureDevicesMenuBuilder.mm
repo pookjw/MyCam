@@ -6,6 +6,8 @@
 //
 
 #import <CamPresentation/CaptureDevicesMenuBuilder.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface CaptureDevicesMenuBuilder ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -45,7 +47,9 @@
     dispatch_async(captureService.captureSessionQueue, ^{
         __weak auto weakSelf = self;
         AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice;
-        NSArray<AVCaptureDevice *> *devices = captureService.captureDeviceDiscoverySession.devices;
+//        NSArray<AVCaptureDevice *> *devices = captureService.captureDeviceDiscoverySession.devices;
+        NSArray<AVCaptureDevice *> *devices = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDevices"));
+        
         NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
         
         for (AVCaptureDevice *captureDevice in devices) {

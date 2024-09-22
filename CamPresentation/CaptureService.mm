@@ -83,10 +83,13 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
             AVCaptureDeviceTypeBuiltInDualWideCamera,
             AVCaptureDeviceTypeBuiltInTripleCamera,
             AVCaptureDeviceTypeContinuityCamera,
+            AVCaptureDeviceTypeBuiltInTrueDepthCamera,
+            AVCaptureDeviceTypeBuiltInLiDARDepthCamera,
 #endif
             AVCaptureDeviceTypeBuiltInWideAngleCamera,
             @"AVCaptureDeviceTypeContinuityCamera",
-            AVCaptureDeviceTypeExternal
+            AVCaptureDeviceTypeExternal,
+            
         ]
                                                                                                                                 mediaType:AVMediaTypeVideo
                                                                                                                                  position:AVCaptureDevicePositionUnspecified];
