@@ -22,8 +22,8 @@
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
 
-#if TARGET_OS_VISION
-@interface CameraRootViewController () <CaptureDevicesMenuBuilderDelegate>
+#if TARGET_OS_TV
+@interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate, AVContinuityDevicePickerViewControllerDelegate>
 #else
 @interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate>
 #endif
@@ -37,12 +37,13 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *recordBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureDevicesBarButtonItem;
 @property (retain, nonatomic, readonly) UIDeferredMenuElement *captureDevicesMenuElement;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
+#endif
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
-#if !TARGET_OS_VISION
 @property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
-#endif
 @property (retain ,nonatomic, nullable) CaptureDevicesMenuBuilder *captureDevicesMenuBuilder;
 @end
 
@@ -54,6 +55,9 @@
 @synthesize recordBarButtonItem = _recordBarButtonItem;
 @synthesize captureDevicesBarButtonItem = _captureDevicesBarButtonItem;
 @synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
+#if TARGET_OS_TV
+@synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
+#endif
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
@@ -77,12 +81,13 @@
     [_recordBarButtonItem release];
     [_captureDevicesBarButtonItem release];
     [_captureDevicesMenuElement release];
+#if TARGET_OS_TV
+    [_continuityDevicePickerBarButtonItem release];
+#endif
     [_formatBarButtonItem release];
     [_captureService release];
     [_restorationPhotoFormatModel release];
-#if !TARGET_OS_VISION
     [_photoFormatMenuBuilder release];
-#endif
     [_captureDevicesMenuBuilder release];
     [super dealloc];
 }
@@ -99,7 +104,7 @@
     CaptureService *captureService = self.captureService;
     __weak auto weakSelf = self;
     
-#if !TARGET_OS_VISION
+#if TARGET_OS_IOS
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
             PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuBuilder.photoFormatModel;
@@ -123,6 +128,17 @@
     [captureEventInteraction release];
 #endif
     
+#if TARGET_OS_TV
+    UINavigationItem *navigationItem = self.navigationItem;
+    navigationItem.rightBarButtonItems = @[
+        self.photosBarButtonItem,
+        self.captureBarButtonItem,
+        self.recordBarButtonItem,
+        self.formatBarButtonItem,
+        self.continuityDevicePickerBarButtonItem,
+        self.captureDevicesBarButtonItem
+    ];
+#else
     [self setToolbarItems:@[
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
@@ -138,6 +154,7 @@
     navigationItem.rightBarButtonItems = @[
         self.formatBarButtonItem
     ];
+#endif
     
     //
     
@@ -163,13 +180,11 @@
                 photoFormatModel = [PhotoFormatModel new];
             }
             
-#if !TARGET_OS_VISION
             PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:photoFormatModel captureService:self.captureService delegate:self];
             [photoFormatModel release];
             
             self.photoFormatMenuBuilder = photoFormatMenuService;
             [photoFormatMenuService release];
-#endif
             
             //
             
@@ -300,6 +315,17 @@
     return [recordBarButtonItem autorelease];
 }
 
+#if TARGET_OS_TV
+- (UIBarButtonItem *)continuityDevicePickerBarButtonItem {
+    if (auto continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem) return continuityDevicePickerBarButtonItem;
+    
+    UIBarButtonItem *continuityDevicePickerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"iphone"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerContinuityDevicePickerBarButtonItem:)];
+    
+    _continuityDevicePickerBarButtonItem = [continuityDevicePickerBarButtonItem retain];
+    return [continuityDevicePickerBarButtonItem autorelease];
+}
+#endif
+
 - (UIBarButtonItem *)captureDevicesBarButtonItem {
     if (auto captureDevicesBarButtonItem = _captureDevicesBarButtonItem) return captureDevicesBarButtonItem;
     
@@ -338,9 +364,6 @@
     
     //
     
-#if TARGET_OS_VISION
-    UIMenu *menu = nil;
-#else
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         assert(weakSelf.photoFormatMenuBuilder != nil);
         [weakSelf.photoFormatMenuBuilder menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
@@ -353,7 +376,6 @@
     //
     
     UIMenu *menu = [UIMenu menuWithChildren:@[element]];
-#endif
     
     UIBarButtonItem *formatBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Format" menu:menu];
     
@@ -406,13 +428,11 @@
     
 }
 
-#if !TARGET_OS_VISION
 - (void)didTriggerCaptureButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
         [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
     });
 }
-#endif
 
 - (void)didTriggerRecordButton:(UIButton *)sender {
     CaptureService *captureService = self.captureService;
@@ -436,7 +456,21 @@
     });
 }
 
-#if !TARGET_OS_VISION
+#if TARGET_OS_TV
+- (void)didTriggerContinuityDevicePickerBarButtonItem:(UIBarButtonItem *)sender {
+    assert(AVContinuityDevicePickerViewController.isSupported);
+    AVContinuityDevicePickerViewController *viewController = [AVContinuityDevicePickerViewController new];
+    viewController.delegate = self;
+
+//    assert(reinterpret_cast<BOOL (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("AVContinuityDevicePickerViewController"), sel_registerName("supported")));
+//    __kindof UIViewController *viewController = [objc_lookUpClass("AVContinuityDevicePickerViewController") new];
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(viewController, sel_registerName("setDelegate:"), self);
+    
+    [self presentViewController:viewController animated:YES completion:nil];
+    [viewController release];
+}
+#endif
+
 - (void)photoFormatMenuBuilderElementsDidChange:(PhotoFormatMenuBuilder *)photoFormatMenuBuilder {
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -450,7 +484,6 @@
         }
     });
 }
-#endif
 
 - (void)captureDevicesMenuBuilderElementsDidChange:(CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
     dispatch_async(dispatch_get_main_queue(), ^{

@@ -6,9 +6,6 @@
 //
 
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
-
-#if !TARGET_OS_VISION
-
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CoreMedia/CoreMedia.h>
@@ -638,5 +635,3 @@
 }
 
 @end
-
-#endif

@@ -50,7 +50,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 #if TARGET_OS_VISION
 //        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSessionPreset:"), @"AVCaptureSessionPresetPhoto");
 #else
-        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+//        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
 #endif
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
@@ -58,7 +58,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
         //
         
-#if !TARGET_OS_VISION
+#if TARGET_OS_IOS
         // https://x.com/_silgen_name/status/1837346064808169951
         id controlsOverlay = captureSession.cp_controlsOverlay;
         
@@ -127,8 +127,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
         CLLocationManager *locationManager = [CLLocationManager new];
         locationManager.delegate = self;
+        
+#if !TARGET_OS_TV
         locationManager.pausesLocationUpdatesAutomatically = YES;
         [locationManager startUpdatingLocation];
+#endif
         
         //
         
@@ -254,13 +257,15 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         NSError * _Nullable error = nil;
         AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
         assert(error == nil);
+        assert([captureSession canAddInput:newInput]);
+        
         [captureSession addInput:newInput];
         [newInput release];
     }
     
     //
     
-#if !TARGET_OS_VISION
+#if TARGET_OS_IOS
     for (__kindof AVCaptureControl *control in captureSession.controls) {
         [captureSession removeControl:control];
     }
@@ -400,7 +405,8 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     AVCaptureDevice *selectedCaptureDevice = self.queue_selectedCaptureDevice;
     if (selectedCaptureDevice == nil) {
-        abort();
+//        abort();
+        return;
     }
     
 #if TARGET_OS_VISION
