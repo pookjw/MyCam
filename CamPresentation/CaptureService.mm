@@ -161,10 +161,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [_captureDeviceDiscoverySession release];
     
 #if TARGET_OS_VISION
-    for (id previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
+    for (id previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator)
 #else
-    for (AVCaptureVideoPreviewLayer *previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator) {
+    for (AVCaptureVideoPreviewLayer *previewLayer in _queue_rotationCoordinatorsByPreviewLayer.keyEnumerator)
 #endif
+    {
         [[_queue_rotationCoordinatorsByPreviewLayer objectForKey:previewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     }
     [_queue_rotationCoordinatorsByPreviewLayer release];
@@ -184,24 +185,25 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
         CGFloat videoRotationAngleForHorizonLevelPreview = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("videoRotationAngleForHorizonLevelPreview"));
         reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
+        return;
+    } else if ([object isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
+        BOOL isAppleProRAWSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("isAppleProRAWSupported"));
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(object, sel_registerName("setAppleProRAWEnabled:"), isAppleProRAWSupported);
+        return;
+    }
 #else
     if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
-#endif
-        
-#if TARGET_OS_VISION
-    } else if ([object isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
-        BOOL isAppleProRAWSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("isAppleProRAWSupported"));
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(object, sel_registerName("setAppleProRAWEnabled:"), isAppleProRAWSupported);
-#else
+        return;
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
         auto casted = static_cast<AVCapturePhotoOutput *>(object);
         casted.appleProRAWEnabled = casted.isAppleProRAWSupported;
-#endif
-    } else {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
     }
+#endif
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (AVCaptureDevice *)queue_selectedCaptureDevice {
@@ -392,12 +394,13 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     self.queue_selectedCaptureDevice = captureDevice;
 }
-    
+
 #if TARGET_OS_VISION
-    - (void)queue_registerCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer {
+- (void)queue_registerCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer
 #else
-- (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
+- (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer
 #endif
+{
     assert(self.captureSessionQueue);
     
 #if TARGET_OS_VISION
@@ -431,10 +434,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 }
 
 #if TARGET_OS_VISION
-- (void)queue_unregisterCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer {
+- (void)queue_unregisterCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer
 #else
-- (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
+- (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer
 #endif
+{
     assert(self.captureSessionQueue);
     
     [[self.queue_rotationCoordinatorsByPreviewLayer objectForKey:captureVideoPreviewLayer] removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
