@@ -51,7 +51,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 #if TARGET_OS_VISION
 //        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSessionPreset:"), @"AVCaptureSessionPresetPhoto");
 #else
-//        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
 #endif
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
@@ -105,8 +105,10 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         
 #if TARGET_OS_VISION
         id capturePhotoOutput = [objc_lookUpClass("AVCapturePhotoOutput") new];
+        reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(capturePhotoOutput, sel_registerName("setMaxPhotoQualityPrioritization:"), 3);
 #else
         AVCapturePhotoOutput *capturePhotoOutput = [AVCapturePhotoOutput new];
+        capturePhotoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
 #endif
         [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
         
@@ -495,6 +497,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [format release];
     
     capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
+    capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
     
     //
     
@@ -543,27 +546,19 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 {
     assert(error == nil);
     
-#if TARGET_OS_VISION
-    id resolvedSettings = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("resolvedSettings"));
-    CMVideoDimensions deferredPhotoProxyDimensions = reinterpret_cast<CMVideoDimensions (*)(id, SEL)>(objc_msgSend)(resolvedSettings, sel_registerName("deferredPhotoProxyDimensions"));
-#else
-    CMVideoDimensions deferredPhotoProxyDimensions = photo.resolvedSettings.deferredPhotoProxyDimensions;
-#endif
-    if ((deferredPhotoProxyDimensions.width > 0) && (deferredPhotoProxyDimensions.height > 0)) return;
-    
 #if !TARGET_OS_VISION
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
     NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
 #endif
     
-    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-        PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
-        
 #if TARGET_OS_VISION
         NSData * _Nullable fileDataRepresentation = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("fileDataRepresentation"));
 #else
         NSData * _Nullable fileDataRepresentation = photo.fileDataRepresentation;
 #endif
+    
+    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
+        PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
         
         assert(fileDataRepresentation != nil);
         [request addResourceWithType:PHAssetResourceTypePhoto data:fileDataRepresentation options:nil];
@@ -581,9 +576,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 #endif
 {
     assert(error == nil);
+    NSData * _Nullable fileDataRepresentation = deferredPhotoProxy.fileDataRepresentation;
+    assert(fileDataRepresentation != nil); // AVVideoCodecTypeHEVC이 아니라면 nil일 수 있음
     
     [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-        PHAssetCreationRequest *request = [PHAssetCreationRequest new];
+        PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
         
 #if TARGET_OS_VISION
         NSData * _Nullable fileDataRepresentation = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(deferredPhotoProxy, sel_registerName("fileDataRepresentation"));
@@ -591,15 +588,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         assert(fileDataRepresentation != nil);
         [request addResourceWithType:static_cast<PHAssetResourceType>(19) data:fileDataRepresentation options:nil];
 #else
-        NSData * _Nullable fileDataRepresentation = deferredPhotoProxy.fileDataRepresentation;
         
-        assert(fileDataRepresentation != nil);
         [request addResourceWithType:PHAssetResourceTypePhotoProxy data:fileDataRepresentation options:nil];
 #endif
         
         request.location = self.locationManager.location;
-        
-        [request release];
     }
                                     completionHandler:^(BOOL success, NSError * _Nullable error) {
         NSLog(@"%d %@", success, error);

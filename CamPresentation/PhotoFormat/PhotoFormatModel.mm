@@ -30,6 +30,7 @@
         _rawPhotoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"rawPhotoPixelFormatType"] copy];
         _rawFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"rawFileType"] copy];
         _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
+        _photoQualityPrioritization = static_cast<AVCapturePhotoQualityPrioritization>([coder decodeIntegerForKey:@"photoQualityPrioritization"]);
     }
     
     return self;
@@ -56,6 +57,7 @@
         casted->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
         casted->_rawFileType = [_rawFileType copyWithZone:zone];
         casted->_processedFileType = [_processedFileType copyWithZone:zone];
+        casted->_photoQualityPrioritization = _photoQualityPrioritization;
     }
     
     return copy;
@@ -69,6 +71,7 @@
     [coder encodeObject:_rawPhotoPixelFormatType forKey:@"rawPhotoPixelFormatType"];
     [coder encodeObject:_rawFileType forKey:@"rawFileType"];
     [coder encodeObject:_processedFileType forKey:@"processedFileType"];
+    [coder encodeInteger:_photoQualityPrioritization forKey:@"photoQualityPrioritization"];
 }
 
 - (BOOL)isEqual:(id)other {
@@ -82,7 +85,8 @@
         (_isRAWEnabled == casted->_isRAWEnabled) &&
         [_rawPhotoPixelFormatType isEqualToNumber:casted->_rawPhotoPixelFormatType] &&
         [_rawFileType isEqualToString:casted->_rawFileType] &&
-        [_processedFileType isEqualToString:casted->_processedFileType];
+        [_processedFileType isEqualToString:casted->_processedFileType] &&
+        _photoQualityPrioritization == casted->_photoQualityPrioritization;
     }
 }
 
@@ -93,7 +97,8 @@
     _isRAWEnabled ^
     _rawPhotoPixelFormatType.hash ^
     _rawFileType.hash ^
-    _processedFileType.hash;
+    _processedFileType.hash ^
+    _photoQualityPrioritization;
 }
 
 @end

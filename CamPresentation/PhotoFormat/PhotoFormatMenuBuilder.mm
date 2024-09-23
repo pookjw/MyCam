@@ -28,6 +28,7 @@
         [capturePhotoOutput addObserver:self forKeyPath:@"availableRawPhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
         
         _delegate = delegate;
         _captureService = [captureService retain];
@@ -52,6 +53,8 @@
     [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"availableRawPhotoFileTypes"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported"];
     
     [_captureService release];
     [_photoFormatModel release];
@@ -86,6 +89,8 @@
             if (shouldUpdate) {
                 self.photoFormatModel.photoPixelFormatType = photoPixelFormatTypes.lastObject;
             }
+            
+            return;
         } else if ([keyPath isEqualToString:@"availablePhotoCodecTypes"]) {
             NSArray<AVVideoCodecType> *photoCodecTypes;
             if (self.photoFormatModel.processedFileType == nil) {
@@ -110,6 +115,8 @@
             if (shouldUpdate) {
                 self.photoFormatModel.codecType = photoCodecTypes.lastObject;
             }
+            
+            return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoPixelFormatTypes"]) {
             NSArray<NSNumber *> *rawPhotoPixelFormatTypes;
             if (self.photoFormatModel.processedFileType == nil) {
@@ -130,6 +137,8 @@
             if (shouldUpdate) {
                 self.photoFormatModel.rawPhotoPixelFormatType = rawPhotoPixelFormatTypes.lastObject;
             }
+            
+            return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoFileTypes"]) {
             NSArray<AVFileType> *availableRawPhotoFileTypes = capturePhotoOutput.availableRawPhotoFileTypes;
             
@@ -145,6 +154,8 @@
             if (shouldUpdate) {
                 self.photoFormatModel.rawFileType = availableRawPhotoFileTypes.lastObject;
             }
+            
+            return;
         } else if ([keyPath isEqualToString:@"availablePhotoFileTypes"]) {
             NSArray<AVFileType> *availablePhotoFileTypes = capturePhotoOutput.availablePhotoFileTypes;
             
@@ -160,21 +171,24 @@
             if (shouldUpdate) {
                 self.photoFormatModel.processedFileType = nil;
             }
+            
+            return;
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
-        } else {
-            [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+            return;
+        } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
         }
     } else if ([object isKindOfClass:AVCaptureDevice.class]) {
         if ([keyPath isEqualToString:@"activeFormat"] || [keyPath isEqualToString:@"formats"]) {
             assert([self.captureService.queue_selectedCaptureDevice isEqual:object]);
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
-        } else {
-            [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+            return;
         }
-    } else {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
     }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)menuElementsWithCompletionHandler:(void (^)(NSArray<__kindof UIMenuElement *> * _Nonnull))completionHandler {
@@ -394,7 +408,6 @@
         
         //
         
-        
         NSMutableArray<UIMenuElement *> *rawMenuElements = [[NSMutableArray alloc] initWithCapacity:self.photoFormatModel.isRAWEnabled ? 4 : 1];
         
         {
@@ -421,6 +434,8 @@
             
             [rawMenuElements addObject:rawEnabledAction];
         }
+        
+        //
         
         if (self.photoFormatModel.isRAWEnabled) {
             {
@@ -601,6 +616,71 @@
                 
                 [children addObject:action];
             }
+        }
+        
+        //
+        
+        {
+            if (captureService.capturePhotoOutput.isAutoDeferredPhotoDeliverySupported) {
+                BOOL isAutoDeferredPhotoDeliveryEnabled = captureService.capturePhotoOutput.isAutoDeferredPhotoDeliveryEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Deferred Photo"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.autoDeferredPhotoDeliveryEnabled = !isAutoDeferredPhotoDeliveryEnabled;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = isAutoDeferredPhotoDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [children addObject:action];
+            }
+        }
+        
+        //
+        
+        {
+            AVCapturePhotoQualityPrioritization photoQualityPrioritization = self.photoFormatModel.photoQualityPrioritization;
+            
+            UIAction *speedAction = [UIAction actionWithTitle:@"Speed"
+                                                        image:nil
+                                                   identifier:nil
+                                                      handler:^(__kindof UIAction * _Nonnull action) {
+                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationSpeed;
+                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+            }];
+            speedAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+            speedAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationSpeed) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            
+            UIAction *balancedAction = [UIAction actionWithTitle:@"Balanced"
+                                                        image:nil
+                                                   identifier:nil
+                                                      handler:^(__kindof UIAction * _Nonnull action) {
+                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationBalanced;
+                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+            }];
+            balancedAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+            balancedAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationBalanced) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            
+            UIAction *qualityAction = [UIAction actionWithTitle:@"Quality"
+                                                        image:nil
+                                                   identifier:nil
+                                                      handler:^(__kindof UIAction * _Nonnull action) {
+                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+            }];
+            qualityAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+            qualityAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationQuality) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            
+            UIMenu *menu = [UIMenu menuWithTitle:@"Quality Prioritization" children:@[
+                speedAction, balancedAction, qualityAction
+            ]];
+            
+            [children addObject:menu];
         }
         
         //

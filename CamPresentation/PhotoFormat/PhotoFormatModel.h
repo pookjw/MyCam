@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nullable) NSNumber *rawPhotoPixelFormatType;
 @property (copy, nullable) AVFileType rawFileType;
 @property (copy, nullable) AVFileType processedFileType;
+
+@property (assign) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
 @end
 
 NS_ASSUME_NONNULL_END
