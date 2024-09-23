@@ -169,8 +169,6 @@
         [self.captureService queue_registerCaptureVideoPreviewLayer:captureVideoPreviewLayer];
         [self.captureService.captureSession startRunning];
         
-        BOOL isRecording = self.captureService.queue_isRecording;
-        
         dispatch_async(dispatch_get_main_queue(), ^{
             PhotoFormatModel *photoFormatModel;
             if (PhotoFormatModel *restorationPhotoFormatModel = self.restorationPhotoFormatModel) {
