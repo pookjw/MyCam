@@ -8,9 +8,12 @@
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
+#import <CamPresentation/NSStringFromAVCapturePhotoQualityPrioritization.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <vector>
+#include <ranges>
 
 @interface PhotoFormatMenuBuilder ()
 @property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
@@ -29,6 +32,7 @@
         [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoFileTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"supportedFlashModes" options:NSKeyValueObservingOptionNew context:nullptr];
         
         _delegate = delegate;
         _captureService = [captureService retain];
@@ -55,6 +59,7 @@
     [capturePhotoOutput removeObserver:self forKeyPath:@"availablePhotoFileTypes"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"supportedFlashModes"];
     
     [_captureService release];
     [_photoFormatModel release];
@@ -177,6 +182,9 @@
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
             return;
         } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
+        } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
             return;
         }
@@ -646,41 +654,37 @@
         {
             AVCapturePhotoQualityPrioritization photoQualityPrioritization = self.photoFormatModel.photoQualityPrioritization;
             
-            UIAction *speedAction = [UIAction actionWithTitle:@"Speed"
-                                                        image:nil
-                                                   identifier:nil
-                                                      handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationSpeed;
-                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
-            }];
-            speedAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            speedAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationSpeed) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            auto vec = std::vector<AVCapturePhotoQualityPrioritization> {
+                AVCapturePhotoQualityPrioritizationSpeed,
+                AVCapturePhotoQualityPrioritizationBalanced,
+                AVCapturePhotoQualityPrioritizationQuality
+            } | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
+                UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
+                                                            image:nil
+                                                       identifier:nil
+                                                          handler:^(__kindof UIAction * _Nonnull action) {
+                    weakSelf.photoFormatModel.photoQualityPrioritization = prioritization;
+                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                }];
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                return action;
+            }) | std::ranges::to<std::vector>();
             
-            UIAction *balancedAction = [UIAction actionWithTitle:@"Balanced"
-                                                        image:nil
-                                                   identifier:nil
-                                                      handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationBalanced;
-                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
-            }];
-            balancedAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            balancedAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationBalanced) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
             
-            UIAction *qualityAction = [UIAction actionWithTitle:@"Quality"
-                                                        image:nil
-                                                   identifier:nil
-                                                      handler:^(__kindof UIAction * _Nonnull action) {
-                weakSelf.photoFormatModel.photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
-                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
-            }];
-            qualityAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            qualityAction.state = (photoQualityPrioritization == AVCapturePhotoQualityPrioritizationQuality) ? UIMenuElementStateOn : UIMenuElementStateOff;
-            
-            UIMenu *menu = [UIMenu menuWithTitle:@"Quality Prioritization" children:@[
-                speedAction, balancedAction, qualityAction
-            ]];
+            UIMenu *menu = [UIMenu menuWithTitle:@"Quality Prioritization" children:actions];
+            [actions release];
+            menu.subtitle = NSStringFromAVCapturePhotoQualityPrioritization(photoQualityPrioritization);
             
             [children addObject:menu];
+        }
+        
+        //
+        
+        {
+            NSArray<NSNumber *> *supportedFlashModes = captureService.capturePhotoOutput.supportedFlashModes;
+            // TODO
         }
         
         //

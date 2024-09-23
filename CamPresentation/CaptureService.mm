@@ -498,6 +498,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     
     capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
     capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
+    capturePhotoSettings.flashMode = photoModel.flashMode;
     
     //
     

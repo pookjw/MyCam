@@ -20,6 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nullable) AVFileType processedFileType;
 
 @property (assign) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
+@property (assign) AVCaptureFlashMode flashMode;
 @end
 
 NS_ASSUME_NONNULL_END
