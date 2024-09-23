@@ -110,7 +110,6 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         AVCapturePhotoOutput *capturePhotoOutput = [AVCapturePhotoOutput new];
         capturePhotoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
 #endif
-        [capturePhotoOutput addObserver:self forKeyPath:@"appleProRAWSupported" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
         
         [captureSession beginConfiguration];
         
@@ -189,19 +188,11 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
         CGFloat videoRotationAngleForHorizonLevelPreview = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("videoRotationAngleForHorizonLevelPreview"));
         reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
         return;
-    } else if ([object isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
-        BOOL isAppleProRAWSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(object, sel_registerName("isAppleProRAWSupported"));
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(object, sel_registerName("setAppleProRAWEnabled:"), isAppleProRAWSupported);
-        return;
     }
 #else
     if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
         auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
         static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
-        return;
-    } else if ([object isKindOfClass:AVCapturePhotoOutput.class] && [keyPath isEqualToString:@"appleProRAWSupported"]) {
-        auto casted = static_cast<AVCapturePhotoOutput *>(object);
-        casted.appleProRAWEnabled = casted.isAppleProRAWSupported;
         return;
     }
 #endif
@@ -497,7 +488,12 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     [format release];
     
     capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
-    capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
+    
+    // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
+    if (!photoModel.isRAWEnabled) {
+        capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
+    }
+    
     capturePhotoSettings.flashMode = photoModel.flashMode;
     
     //

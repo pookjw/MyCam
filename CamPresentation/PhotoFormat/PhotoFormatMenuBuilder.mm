@@ -36,6 +36,10 @@
         [capturePhotoOutput addObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"supportedFlashModes" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isZeroShutterLagSupported" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isResponsiveCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isAppleProRAWSupported" options:NSKeyValueObservingOptionNew context:nullptr];
+        [capturePhotoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         
         _delegate = delegate;
         _captureService = [captureService retain];
@@ -63,6 +67,10 @@
     [capturePhotoOutput removeObserver:self forKeyPath:@"isSpatialPhotoCaptureSupported"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"isAutoDeferredPhotoDeliverySupported"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"supportedFlashModes"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isZeroShutterLagSupported"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isResponsiveCaptureSupported"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isAppleProRAWSupported"];
+    [capturePhotoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
     
     if (auto currentCaptureDevice = _currentCaptureDevice) {
         [self unregisterCaptureDeviceObservations:currentCaptureDevice];
@@ -192,6 +200,18 @@
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
             return;
         } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
+        } else if ([keyPath isEqualToString:@"isZeroShutterLagSupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
+        } else if ([keyPath isEqualToString:@"isResponsiveCaptureSupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
+        } else if ([keyPath isEqualToString:@"isAppleProRAWSupported"]) {
+            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            return;
+        } else if ([keyPath isEqualToString:@"isFastCapturePrioritizationSupported"]) {
             [self.delegate photoFormatMenuBuilderElementsDidChange:self];
             return;
         }
@@ -432,7 +452,7 @@
         
         //
         
-        NSMutableArray<UIMenuElement *> *rawMenuElements = [[NSMutableArray alloc] initWithCapacity:self.photoFormatModel.isRAWEnabled ? 4 : 1];
+        NSMutableArray<UIMenuElement *> *rawMenuElements = [NSMutableArray new];
         
         {
             UIAction *rawEnabledAction = [UIAction actionWithTitle:@"Enable RAW"
@@ -462,6 +482,27 @@
         //
         
         if (self.photoFormatModel.isRAWEnabled) {
+            {
+                BOOL isAppleProRAWEnabled = captureService.capturePhotoOutput.isAppleProRAWEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Apple Pro RAW"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.appleProRAWEnabled = !isAppleProRAWEnabled;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = isAppleProRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [rawMenuElements addObject:action];
+            }
+            
+            //
+            
             {
                 NSArray<NSNumber *> *availableRawPhotoPixelFormatTypes;
                 if (self.photoFormatModel.processedFileType == nil) {
@@ -533,7 +574,10 @@
                 NSMutableArray<UIAction *> *rawFileTypeActions = [[NSMutableArray alloc] initWithCapacity:availableRawPhotoFileTypes.count];
                 
                 for (AVFileType fileType in availableRawPhotoFileTypes) {
-                    UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    UIAction *action = [UIAction actionWithTitle:fileType
+                                                           image:nil
+                                                      identifier:nil
+                                                         handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.rawFileType = fileType;
                         [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                     }];
@@ -668,34 +712,106 @@
         //
         
         {
-            AVCapturePhotoQualityPrioritization photoQualityPrioritization = self.photoFormatModel.photoQualityPrioritization;
-            
-            auto vec = std::vector<AVCapturePhotoQualityPrioritization> {
-                AVCapturePhotoQualityPrioritizationSpeed,
-                AVCapturePhotoQualityPrioritizationBalanced,
-                AVCapturePhotoQualityPrioritizationQuality
-            }
-            | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
-                UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
-                                                            image:nil
-                                                       identifier:nil
-                                                          handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.photoFormatModel.photoQualityPrioritization = prioritization;
-                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+            if (captureService.capturePhotoOutput.isZeroShutterLagSupported) {
+                BOOL isZeroShutterLagEnabled = captureService.capturePhotoOutput.isZeroShutterLagEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Zero Shutter Lag"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.zeroShutterLagEnabled = !isZeroShutterLagEnabled;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
                 }];
+                
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
-                return action;
-            })
-            | std::ranges::to<std::vector>();
-            
-            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
-            
-            UIMenu *menu = [UIMenu menuWithTitle:@"Quality Prioritization" children:actions];
-            [actions release];
-            menu.subtitle = NSStringFromAVCapturePhotoQualityPrioritization(photoQualityPrioritization);
-            
-            [children addObject:menu];
+                action.state = isZeroShutterLagEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [children addObject:action];
+            }
+        }
+        
+        //
+        
+        {
+            if (captureService.capturePhotoOutput.isResponsiveCaptureSupported) {
+                BOOL isResponsiveCaptureEnabled = captureService.capturePhotoOutput.isResponsiveCaptureEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Responsive Capture"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.responsiveCaptureEnabled = !isResponsiveCaptureEnabled;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = isResponsiveCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [children addObject:action];
+            }
+        }
+        
+        //
+        
+        {
+            if (captureService.capturePhotoOutput.isFastCapturePrioritizationSupported) {
+                BOOL isFastCapturePrioritizationEnabled = captureService.capturePhotoOutput.isFastCapturePrioritizationEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Fast-capture Prioritization"
+                                                       image:nil
+                                                  identifier:nil
+                                                     handler:^(__kindof UIAction * _Nonnull action) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        captureService.capturePhotoOutput.fastCapturePrioritizationEnabled = !isFastCapturePrioritizationEnabled;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    });
+                }];
+                
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = isFastCapturePrioritizationEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [children addObject:action];
+            }
+        }
+        
+        //
+        
+        {
+            // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
+            if (!self.photoFormatModel.isRAWEnabled) {
+                AVCapturePhotoQualityPrioritization photoQualityPrioritization = self.photoFormatModel.photoQualityPrioritization;
+                
+                auto vec = std::vector<AVCapturePhotoQualityPrioritization> {
+                    AVCapturePhotoQualityPrioritizationSpeed,
+                    AVCapturePhotoQualityPrioritizationBalanced,
+                    AVCapturePhotoQualityPrioritizationQuality
+                }
+                | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
+                    UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
+                                                           image:nil
+                                                      identifier:nil
+                                                         handler:^(__kindof UIAction * _Nonnull action) {
+                        weakSelf.photoFormatModel.photoQualityPrioritization = prioritization;
+                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    }];
+                    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                    action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                    return action;
+                })
+                | std::ranges::to<std::vector>();
+                
+                NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
+                
+                UIMenu *menu = [UIMenu menuWithTitle:@"Quality Prioritization" children:actions];
+                [actions release];
+                menu.subtitle = NSStringFromAVCapturePhotoQualityPrioritization(photoQualityPrioritization);
+                
+                [children addObject:menu];
+            }
         }
         
         //
@@ -709,8 +825,24 @@
             for (NSNumber *flashModeNumber in supportedFlashModes) {
                 auto flashMode = static_cast<AVCaptureFlashMode>(flashModeNumber.integerValue);
                 
+                UIImage * _Nullable image;
+                switch (flashMode) {
+                    case AVCaptureFlashModeOff:
+                        image = [UIImage systemImageNamed:@"flashlight.slash"];
+                        break;
+                    case AVCaptureFlashModeOn:
+                        image = [UIImage systemImageNamed:@"flashlight.on.fill"];
+                        break;
+                    case AVCaptureFlashModeAuto:
+                        image = [UIImage systemImageNamed:@"flashlight.on.circle"];
+                        break;
+                    default:
+                        image = nil;
+                        break;
+                }
+                
                 UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureFlashMode(flashMode)
-                                                            image:nil
+                                                            image:image
                                                        identifier:nil
                                                           handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.flashMode = flashMode;
@@ -722,9 +854,14 @@
                 [actions addObject:action];
             }
             
-            UIMenu *menu = [UIMenu menuWithTitle:@"Flash" children:actions];
+            UIMenu *menu = [UIMenu menuWithTitle:@"Flash"
+                                           image:nil
+                                      identifier:nil
+                                         options:UIMenuOptionsDisplayInline
+                                        children:actions];
             [actions release];
             menu.subtitle = NSStringFromAVCaptureFlashMode(selectedCaptureFlashMode);
+            menu.preferredElementSize = UIMenuElementSizeMedium;
             
             [children addObject:menu];
         }
@@ -744,10 +881,26 @@
                     return [selectedCaptureDevice isTorchModeSupported:torchMode];
                 })
                 | std::views::transform([weakSelf, captureService, selectedCaptureDevice](AVCaptureTorchMode torchMode) {
+                    UIImage * _Nullable image;
+                    switch (torchMode) {
+                        case AVCaptureTorchModeOff:
+                            image = [UIImage systemImageNamed:@"flashlight.slash"];
+                            break;
+                        case AVCaptureTorchModeOn:
+                            image = [UIImage systemImageNamed:@"flashlight.on.fill"];
+                            break;
+                        case AVCaptureTorchModeAuto:
+                            image = [UIImage systemImageNamed:@"flashlight.on.circle"];
+                            break;
+                        default:
+                            image = nil;
+                            break;
+                    }
+                    
                     UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureTorchMode(torchMode)
-                                                                image:nil
-                                                           identifier:nil
-                                                              handler:^(__kindof UIAction * _Nonnull action) {
+                                                           image:image
+                                                      identifier:nil
+                                                         handler:^(__kindof UIAction * _Nonnull action) {
                         dispatch_async(captureService.captureSessionQueue, ^{
                             NSError * _Nullable error = nil;
                             [selectedCaptureDevice lockForConfiguration:&error];
@@ -773,10 +926,10 @@
                 UIMenu *submenu = [UIMenu menuWithTitle:@""
                                                   image:nil
                                              identifier:nil
-                                                options:UIMenuOptionsDisplayAsPalette | UIMenuOptionsDisplayInline
+                                                options:UIMenuOptionsDisplayInline
                                                children:actions];
                 [actions release];
-                submenu.preferredElementSize = UIMenuElementSizeLarge;
+                submenu.preferredElementSize = UIMenuElementSizeMedium;
                 
                 //
                 

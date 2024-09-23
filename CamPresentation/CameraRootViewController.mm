@@ -203,6 +203,19 @@
     self.view.backgroundColor = UIColor.systemOrangeColor;
 }
 
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Memory Warning!" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
+    }];
+    [alertController addAction:doneAction];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
+}
+
 - (NSUserActivity *)stateRestorationActivity {
 #if TARGET_OS_VISION
     return nil;
