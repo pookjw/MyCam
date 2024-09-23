@@ -21,6 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (assign) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
 @property (assign) AVCaptureFlashMode flashMode;
+@property (assign) AVCaptureTorchMode torchMode;
 @end
 
 NS_ASSUME_NONNULL_END

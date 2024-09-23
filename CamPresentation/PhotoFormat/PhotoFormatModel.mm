@@ -32,6 +32,7 @@
         _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
         _photoQualityPrioritization = static_cast<AVCapturePhotoQualityPrioritization>([coder decodeIntegerForKey:@"photoQualityPrioritization"]);
         _flashMode = static_cast<AVCaptureFlashMode>([coder decodeIntegerForKey:@"flashMode"]);
+        _torchMode = static_cast<AVCaptureTorchMode>([coder decodeIntegerForKey:@"torchMode"]);
     }
     
     return self;
@@ -60,6 +61,7 @@
         casted->_processedFileType = [_processedFileType copyWithZone:zone];
         casted->_photoQualityPrioritization = _photoQualityPrioritization;
         casted->_flashMode = _flashMode;
+        casted->_torchMode = _torchMode;
     }
     
     return copy;
@@ -75,6 +77,7 @@
     [coder encodeObject:_processedFileType forKey:@"processedFileType"];
     [coder encodeInteger:_photoQualityPrioritization forKey:@"photoQualityPrioritization"];
     [coder encodeInteger:_flashMode forKey:@"flashMode"];
+    [coder encodeInteger:_torchMode forKey:@"torchMode"];
 }
 
 - (BOOL)isEqual:(id)other {
@@ -90,7 +93,8 @@
         [_rawFileType isEqualToString:casted->_rawFileType] &&
         [_processedFileType isEqualToString:casted->_processedFileType] &&
         _photoQualityPrioritization == casted->_photoQualityPrioritization &&
-        _flashMode == casted->_flashMode;
+        _flashMode == casted->_flashMode &&
+        _torchMode == casted->_torchMode;
     }
 }
 
@@ -103,7 +107,8 @@
     _rawFileType.hash ^
     _processedFileType.hash ^
     _photoQualityPrioritization ^
-    _flashMode;
+    _flashMode ^
+    _torchMode;
 }
 
 @end

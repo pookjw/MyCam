@@ -689,26 +689,23 @@
             NSArray<NSNumber *> *supportedFlashModes = captureService.capturePhotoOutput.supportedFlashModes;
             AVCaptureFlashMode selectedCaptureFlashMode = self.photoFormatModel.flashMode;
             
-            auto vec = std::vector<AVCaptureFlashMode> {
-                AVCaptureFlashModeOff,
-                AVCaptureFlashModeOn,
-                AVCaptureFlashModeAuto
-            }
-            | std::views::transform([weakSelf, selectedCaptureFlashMode](AVCaptureFlashMode mode) {
-                UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureFlashMode(mode)
+            NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedFlashModes.count];
+            
+            for (NSNumber *flashModeNumber in supportedFlashModes) {
+                auto flashMode = static_cast<AVCaptureFlashMode>(flashModeNumber.integerValue);
+                
+                UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureFlashMode(flashMode)
                                                             image:nil
                                                        identifier:nil
                                                           handler:^(__kindof UIAction * _Nonnull action) {
-                    weakSelf.photoFormatModel.flashMode = mode;
+                    weakSelf.photoFormatModel.flashMode = flashMode;
                     [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
                 }];
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = (selectedCaptureFlashMode == mode) ? UIMenuElementStateOn : UIMenuElementStateOff;
-                return action;
-            })
-            | std::ranges::to<std::vector>();
-            
-            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
+                action.state = (selectedCaptureFlashMode == flashMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                [actions addObject:action];
+            }
             
             UIMenu *menu = [UIMenu menuWithTitle:@"Flash" children:actions];
             [actions release];
