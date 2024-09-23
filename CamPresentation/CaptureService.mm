@@ -12,6 +12,7 @@
 #import <Photos/Photos.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CoreLocation/CoreLocation.h>
+#import <CamPresentation/NSStringFromCMVideoDimensions.h>
 
 NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName = @"CaptureServiceDidChangeSelectedDeviceNotificationName";
 NSString * const CaptureServiceOldCaptureDeviceKey = @"CaptureServiceOldCaptureDeviceKey";
@@ -535,47 +536,78 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 #pragma mark - AVCapturePhotoCaptureDelegate
 
 #if TARGET_OS_VISION
-- (void)captureOutput:(id)output didFinishProcessingPhoto:(id)photo error:(NSError *)error {
-    abort();
-}
+- (void)captureOutput:(id)output didFinishProcessingPhoto:(id)photo error:(NSError *)error
 #else
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error
+#endif
+{
     assert(error == nil);
     
+#if TARGET_OS_VISION
+    id resolvedSettings = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("resolvedSettings"));
+    CMVideoDimensions deferredPhotoProxyDimensions = reinterpret_cast<CMVideoDimensions (*)(id, SEL)>(objc_msgSend)(resolvedSettings, sel_registerName("deferredPhotoProxyDimensions"));
+#else
+    CMVideoDimensions deferredPhotoProxyDimensions = photo.resolvedSettings.deferredPhotoProxyDimensions;
+#endif
+    if ((deferredPhotoProxyDimensions.width > 0) && (deferredPhotoProxyDimensions.height > 0)) return;
+    
+#if !TARGET_OS_VISION
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
     NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
+#endif
     
-    __block NSURL *_url = nil;
     [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-        NSURL *baseURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:@"MyCam"];
-        [NSFileManager.defaultManager createDirectoryAtURL:baseURL withIntermediateDirectories:YES attributes:nil error:nil];
+        PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
         
-        UTType *uti;
-        if (photo.isRawPhoto) {
-            uti = UTTypeDNG;
-        } else {
-            NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
-            uti = [UTType typeWithIdentifier:processedFileType];
-        }
+#if TARGET_OS_VISION
+        NSData * _Nullable fileDataRepresentation = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("fileDataRepresentation"));
+#else
+        NSData * _Nullable fileDataRepresentation = photo.fileDataRepresentation;
+#endif
         
-        NSURL *url = [[baseURL URLByAppendingPathComponent:@(NSDate.now.timeIntervalSince1970).stringValue] URLByAppendingPathExtensionForType:uti];
-        _url = [url retain];
-        
-        assert([photo.fileDataRepresentation writeToURL:url atomically:YES]);
-        
-        PHAssetChangeRequest *request = [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
+        assert(fileDataRepresentation != nil);
+        [request addResourceWithType:PHAssetResourceTypePhoto data:fileDataRepresentation options:nil];
         request.location = self.locationManager.location;
-    } completionHandler:^(BOOL success, NSError * _Nullable error) {
-        if (_url) {
-            NSError * _Nullable error = nil;
-            [NSFileManager.defaultManager removeItemAtURL:_url error:&error];
-            assert(error == nil);
-            [_url release];
-        }
+    }
+                                    completionHandler:^(BOOL success, NSError * _Nullable error) {
         NSLog(@"%d %@", success, error);
     }];
 }
+
+#if TARGET_OS_VISION
+- (void)captureOutput:(id)output didFinishCapturingDeferredPhotoProxy:(id)deferredPhotoProxy error:(NSError *)error
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error
 #endif
+{
+    assert(error == nil);
+    
+    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
+        PHAssetCreationRequest *request = [PHAssetCreationRequest new];
+        
+#if TARGET_OS_VISION
+        NSData * _Nullable fileDataRepresentation = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(deferredPhotoProxy, sel_registerName("fileDataRepresentation"));
+        
+        assert(fileDataRepresentation != nil);
+        [request addResourceWithType:static_cast<PHAssetResourceType>(19) data:fileDataRepresentation options:nil];
+#else
+        NSData * _Nullable fileDataRepresentation = deferredPhotoProxy.fileDataRepresentation;
+        
+        assert(fileDataRepresentation != nil);
+        [request addResourceWithType:PHAssetResourceTypePhotoProxy data:fileDataRepresentation options:nil];
+#endif
+        
+        request.location = self.locationManager.location;
+        
+        [request release];
+    }
+                                    completionHandler:^(BOOL success, NSError * _Nullable error) {
+        NSLog(@"%d %@", success, error);
+    }];
+}
+
+
+#if TARGET_OS_IOS
 
 #pragma mark - AVCaptureSessionControlsDelegate
 
@@ -595,7 +627,7 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
     NSLog(@"%s", sel_getName(_cmd));
 }
 
-
+#endif
 
 
 #pragma mark - CLLocationManagerDelegate
