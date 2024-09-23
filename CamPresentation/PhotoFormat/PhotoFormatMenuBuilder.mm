@@ -9,6 +9,7 @@
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CamPresentation/NSStringFromAVCapturePhotoQualityPrioritization.h>
+#import <CamPresentation/NSStringFromAVCaptureFlashMode.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -658,7 +659,8 @@
                 AVCapturePhotoQualityPrioritizationSpeed,
                 AVCapturePhotoQualityPrioritizationBalanced,
                 AVCapturePhotoQualityPrioritizationQuality
-            } | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
+            }
+            | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
                 UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
                                                             image:nil
                                                        identifier:nil
@@ -669,7 +671,8 @@
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
                 return action;
-            }) | std::ranges::to<std::vector>();
+            })
+            | std::ranges::to<std::vector>();
             
             NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
             
@@ -684,7 +687,34 @@
         
         {
             NSArray<NSNumber *> *supportedFlashModes = captureService.capturePhotoOutput.supportedFlashModes;
-            // TODO
+            AVCaptureFlashMode selectedCaptureFlashMode = self.photoFormatModel.flashMode;
+            
+            auto vec = std::vector<AVCaptureFlashMode> {
+                AVCaptureFlashModeOff,
+                AVCaptureFlashModeOn,
+                AVCaptureFlashModeAuto
+            }
+            | std::views::transform([weakSelf, selectedCaptureFlashMode](AVCaptureFlashMode mode) {
+                UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureFlashMode(mode)
+                                                            image:nil
+                                                       identifier:nil
+                                                          handler:^(__kindof UIAction * _Nonnull action) {
+                    weakSelf.photoFormatModel.flashMode = mode;
+                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                }];
+                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                action.state = (selectedCaptureFlashMode == mode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                return action;
+            })
+            | std::ranges::to<std::vector>();
+            
+            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:vec.data() count:vec.size()];
+            
+            UIMenu *menu = [UIMenu menuWithTitle:@"Flash" children:actions];
+            [actions release];
+            menu.subtitle = NSStringFromAVCaptureFlashMode(selectedCaptureFlashMode);
+            
+            [children addObject:menu];
         }
         
         //
