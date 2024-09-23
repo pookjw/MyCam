@@ -185,18 +185,6 @@
             
             self.photoFormatMenuBuilder = photoFormatMenuService;
             [photoFormatMenuService release];
-            
-            //
-            
-            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-            configuration.image = [UIImage systemImageNamed:@"camera.aperture"];
-            self.captureButton.configuration = configuration;
-            self.captureBarButtonItem.enabled = YES;
-            
-            //
-            
-            self.recordBarButtonItem.enabled = YES;
-            [self updateRecordButtonWithRecording:isRecording];
         });
     });
     
@@ -402,8 +390,13 @@
     CaptureService *captureService = [CaptureService new];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didReceiveRecordingStatusNotification:)
+                                           selector:@selector(didChangeRecordingStatusNotification:)
                                                name:CaptureServiceDidChangeRecordingStatusNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didChangeCaptureReadinessNotification:)
+                                               name:CaptureServiceDidChangeCaptureReadinessNotificationName
                                              object:captureService];
     
     _captureService = [captureService retain];
@@ -459,7 +452,7 @@
     });
 }
 
-- (void)didReceiveRecordingStatusNotification:(NSNotification *)notification {
+- (void)didChangeRecordingStatusNotification:(NSNotification *)notification {
     NSNumber *isRecordingNumber = notification.userInfo[CaptureServiceRecordingKey];
     if (isRecordingNumber == nil) return;
     BOOL isRecording = isRecordingNumber.boolValue;
@@ -467,6 +460,35 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         [self updateRecordButtonWithRecording:isRecording];
     });
+}
+
+- (void)didChangeCaptureReadinessNotification:(NSNotification *)notification {
+    NSNumber * _Nullable captureReadinessNumber = notification.userInfo[CaptureServiceCaptureReadinessKey];
+    assert(captureReadinessNumber != nil);
+    
+    auto captureReadiness = static_cast<AVCapturePhotoOutputCaptureReadiness>(captureReadinessNumber.integerValue);
+    
+    switch (captureReadiness) {
+        case AVCapturePhotoOutputCaptureReadinessReady: {
+            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+            configuration.image = [UIImage systemImageNamed:@"camera.aperture"];
+            self.captureButton.configuration = configuration;
+            self.captureBarButtonItem.enabled = YES;
+            break;
+        }
+        default: {
+            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+            configuration.showsActivityIndicator = YES;
+            self.captureBarButtonItem.enabled = NO;
+            self.captureButton.configuration = configuration;
+            break;
+        }
+    }
+    
+    //
+    
+//    self.recordBarButtonItem.enabled = YES;
+//    [self updateRecordButtonWithRecording:isRecording];
 }
 
 #if TARGET_OS_TV

@@ -11,6 +11,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+//
+
 #if defined(__cplusplus)
 extern "C"
 #else
@@ -32,6 +34,8 @@ extern
 #endif
 NSString * const CaptureServiceNewCaptureDeviceKey;
 
+//
+
 #if defined(__cplusplus)
 extern "C"
 #else
@@ -45,6 +49,24 @@ extern "C"
 extern
 #endif
 NSString * const CaptureServiceRecordingKey;
+
+//
+
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
+
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+NSString * const CaptureServiceCaptureReadinessKey;
+
+//
 
 @interface CaptureService : NSObject
 @property (retain, nonatomic, readonly) AVCaptureSession *captureSession;
