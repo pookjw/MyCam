@@ -7,78 +7,23 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PhotoFormatModel.h>
+#import <CamPresentation/Extern.h>
 #import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-//
+CP_EXTERN NSNotificationName const CaptureServiceDidAddDeviceNotificationName;
+CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName;
+CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSNotificationName const CaptureServiceDidChangeSelectedDeviceNotificationName;
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName;
+CP_EXTERN NSString * const CaptureServiceRecordingKey;
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * const CaptureServiceOldCaptureDeviceKey;
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
+CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * const CaptureServiceNewCaptureDeviceKey;
-
-//
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName;
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * const CaptureServiceRecordingKey;
-
-//
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * const CaptureServiceCaptureReadinessKey;
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName;
-
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * const CaptureServiceReactionEffectsInProgressKey;
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName;
+CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 
 //
 
@@ -86,7 +31,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey;
 @property (retain, nonatomic, readonly) AVCaptureSession *captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
-@property (retain, nonatomic, nullable, setter=queue_setSelectedCaptureDevice:) AVCaptureDevice *queue_selectedCaptureDevice;
+@property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 #if TARGET_OS_VISION
 @property (retain, nonatomic, readonly) id capturePhotoOutput;
 @property (retain, nonatomic, readonly) id captureMovieFileOutput;
@@ -94,18 +39,12 @@ NSString * const CaptureServiceReactionEffectsInProgressKey;
 @property (retain, nonatomic, readonly) AVCapturePhotoOutput *capturePhotoOutput;
 @property (retain, nonatomic, readonly) AVCaptureMovieFileOutput *captureMovieFileOutput;
 #endif
-@property (nonatomic, readonly, getter=queue_recording) BOOL queue_isRecording;
-- (void)queue_selectDefaultCaptureDevice;
-#if TARGET_OS_VISION
-- (void)queue_registerCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer;
-- (void)queue_unregisterCaptureVideoPreviewLayer:(__kindof CALayer *)captureVideoPreviewLayer;
-#else
-- (void)queue_registerCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
-- (void)queue_unregisterCaptureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
-#endif
+
+- (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice captureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
+- (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCaptureDevice * _Nullable)queue_replaceWithDefaultCaptureDevice:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
+
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
-- (void)queue_startVideoRecording;
-- (void)queue_stopVideoRecording;
 @end
 
 NS_ASSUME_NONNULL_END

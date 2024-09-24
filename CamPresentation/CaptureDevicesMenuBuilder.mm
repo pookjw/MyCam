@@ -46,8 +46,7 @@
     
     dispatch_async(captureService.captureSessionQueue, ^{
         __weak auto weakSelf = self;
-        AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice;
-//        NSArray<AVCaptureDevice *> *devices = captureService.captureDeviceDiscoverySession.devices;
+        NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
         NSArray<AVCaptureDevice *> *devices = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDevices"));
         
         NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
@@ -65,14 +64,19 @@
                                               identifier:captureDevice.uniqueID
                                                  handler:^(__kindof UIAction * _Nonnull action) {
                 dispatch_async(captureService.captureSessionQueue, ^{
-                    if (![captureService.queue_selectedCaptureDevice isEqual:captureDevice]) {
-                        captureService.queue_selectedCaptureDevice = captureDevice;
-                        [weakSelf.delegate captureDevicesMenuBuilderElementsDidChange:weakSelf];
+                    if ([captureService.queue_addedCaptureDevices containsObject:captureDevice]) {
+                        [captureService queue_removeCaptureDevice:captureDevice];
+                    } else {
+                        // TODO
+                        abort();
+//                        [captureService queue_addCapureDevice:captureDevice captureVideoPreviewLayer:nil];
                     }
+                    
+                    [weakSelf.delegate captureDevicesMenuBuilderElementsDidChange:weakSelf];
                 });
             }];
             
-            action.state = ([captureDevice isEqual:selectedCaptureDevice] ? UIMenuElementStateOn : UIMenuElementStateOff);
+            action.state = ([addedCaptureDevices containsObject:captureDevice] ? UIMenuElementStateOn : UIMenuElementStateOff);
             action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             action.subtitle = captureDevice.manufacturer;
             

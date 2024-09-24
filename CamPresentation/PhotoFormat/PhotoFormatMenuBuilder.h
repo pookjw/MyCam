@@ -11,16 +11,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class PhotoFormatMenuBuilder;
-@protocol PhotoFormatMenuBuilderDelegate <NSObject>
-- (void)photoFormatMenuBuilderElementsDidChange:(PhotoFormatMenuBuilder *)photoFormatMenuBuilder;
-@end
-
 @interface PhotoFormatMenuBuilder : NSObject
 @property (copy, nonatomic, readonly) PhotoFormatModel *photoFormatModel;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuBuilderDelegate>)delegate;
+- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice needsReloadHandler:(void (^ _Nullable)())needsReloadHandler;
 - (void)menuElementsWithCompletionHandler:(void (^ _Nullable)(NSArray<__kindof UIMenuElement *> *menuElements))completionHandler;
 @end
 

@@ -20,14 +20,14 @@
 // TODO: Spatial Over Capture
 
 @interface PhotoFormatMenuBuilder ()
-@property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
+@property (copy, nonatomic, readonly, nullable) void (^needsReloadHandler)();
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (weak, nonatomic, nullable) AVCaptureDevice *currentCaptureDevice;
+@property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @end
 
 @implementation PhotoFormatMenuBuilder
 
-- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService delegate:(id<PhotoFormatMenuBuilderDelegate>)delegate {
+- (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice needsReloadHandler:(void (^)())needsReloadHandler {
     if (self = [super init]) {
         AVCapturePhotoOutput *capturePhotoOutput = captureService.capturePhotoOutput;
         [capturePhotoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
@@ -43,17 +43,12 @@
         [capturePhotoOutput addObserver:self forKeyPath:@"isAppleProRAWSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         [capturePhotoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
         
-        _delegate = delegate;
+        _needsReloadHandler = [needsReloadHandler copy];
         _captureService = [captureService retain];
         _photoFormatModel = [photoFormatModel copy];
+        _captureDevice = [captureDevice retain];
         
-        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didChangeSelectedDeviceNotification:) name:CaptureServiceDidChangeSelectedDeviceNotificationName object:captureService];
-        
-        dispatch_async(captureService.captureSessionQueue, ^{
-            if (AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice) {
-                [self registerCaptureDeviceObservations:selectedCaptureDevice];
-            }
-        });
+        [self registerCaptureDeviceObservations:captureDevice];
     }
     
     return self;
@@ -74,9 +69,8 @@
     [capturePhotoOutput removeObserver:self forKeyPath:@"isAppleProRAWSupported"];
     [capturePhotoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
     
-    if (auto currentCaptureDevice = _currentCaptureDevice) {
-        [self unregisterCaptureDeviceObservations:currentCaptureDevice];
-    }
+    [self unregisterCaptureDeviceObservations:_captureDevice];
+    [_captureDevice release];
     
     [_captureService release];
     [_photoFormatModel release];
@@ -196,39 +190,38 @@
             
             return;
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"isZeroShutterLagSupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"isResponsiveCaptureSupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"isAppleProRAWSupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"isFastCapturePrioritizationSupported"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         }
     } else if ([object isKindOfClass:AVCaptureDevice.class]) {
-        assert([self.currentCaptureDevice isEqual:object]);
-        assert([self.captureService.queue_selectedCaptureDevice isEqual:object]);
+        assert([self.captureDevice isEqual:object]);
         
         if ([keyPath isEqualToString:@"activeFormat"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"formats"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         } else if ([keyPath isEqualToString:@"torchAvailable"]) {
-            [self.delegate photoFormatMenuBuilderElementsDidChange:self];
+            if (auto needsReloadHandler = _needsReloadHandler) needsReloadHandler();
             return;
         }
     }
@@ -240,26 +233,26 @@
     dispatch_async(self.captureService.captureSessionQueue, ^{
         __weak auto weakSelf = self;
         CaptureService *captureService = self.captureService;
-        AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice;
+        AVCaptureDevice *captureDevice = self.captureDevice;
+        auto needsReloadHandler = self.needsReloadHandler;
         
         NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
         
         //
         
         {
-            AVCaptureDevice *selectedCaptureDevice = captureService.queue_selectedCaptureDevice;
-            NSArray<AVCaptureDeviceFormat *> *formats = selectedCaptureDevice.formats;
-            AVCaptureDeviceFormat *activeFormat = selectedCaptureDevice.activeFormat;
+            NSArray<AVCaptureDeviceFormat *> *formats = captureDevice.formats;
+            AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
             NSMutableArray<UIAction *> *formatActions = [[NSMutableArray alloc] initWithCapacity:formats.count];
             
             [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
                 UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         NSError * _Nullable error = nil;
-                        [selectedCaptureDevice lockForConfiguration:&error];
+                        [captureDevice lockForConfiguration:&error];
                         assert(error == nil);
-                        selectedCaptureDevice.activeFormat = format;
-                        [selectedCaptureDevice unlockForConfiguration];
+                        captureDevice.activeFormat = format;
+                        [captureDevice unlockForConfiguration];
                     });
                 }];
                 
@@ -283,7 +276,7 @@
         //
         
         {
-            AVCaptureDeviceFormat *format = captureService.queue_selectedCaptureDevice.activeFormat;
+            AVCaptureDeviceFormat *format = captureDevice.activeFormat;
             NSArray<NSValue *> *supportedMaxPhotoDimensions = format.supportedMaxPhotoDimensions;
             NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedMaxPhotoDimensions.count];
             CMVideoDimensions selectedMaxPhotoDimensions = captureService.capturePhotoOutput.maxPhotoDimensions;
@@ -297,7 +290,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         captureService.capturePhotoOutput.maxPhotoDimensions = maxPhotoDimensions;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -348,7 +341,7 @@
                 UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.photoPixelFormatType = formatNumber;
                     weakSelf.photoFormatModel.codecType = nil;
-                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    if (needsReloadHandler) needsReloadHandler();
                 }];
                 
                 [string release];
@@ -402,7 +395,7 @@
                 UIAction *action = [UIAction actionWithTitle:photoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.photoPixelFormatType = nil;
                     weakSelf.photoFormatModel.codecType = photoCodecType;
-                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    if (needsReloadHandler) needsReloadHandler();
                 }];
                 
                 action.state = [self.photoFormatModel.codecType isEqualToString:photoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -432,7 +425,7 @@
                     
                     UIAction *action = [UIAction actionWithTitle:@(quality).stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.quality = quality;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     }];
                     
                     action.state = (self.photoFormatModel.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -472,7 +465,7 @@
                     weakSelf.photoFormatModel.processedFileType = nil;
                 }
                 
-                [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                if (needsReloadHandler) needsReloadHandler();
             }];
             
             rawEnabledAction.state = self.photoFormatModel.isRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -485,22 +478,24 @@
         
         if (self.photoFormatModel.isRAWEnabled) {
             {
-                BOOL isAppleProRAWEnabled = captureService.capturePhotoOutput.isAppleProRAWEnabled;
-                
-                UIAction *action = [UIAction actionWithTitle:@"Apple Pro RAW"
-                                                       image:nil
-                                                  identifier:nil
-                                                     handler:^(__kindof UIAction * _Nonnull action) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        captureService.capturePhotoOutput.appleProRAWEnabled = !isAppleProRAWEnabled;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
-                    });
-                }];
-                
-                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.state = isAppleProRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
-                
-                [rawMenuElements addObject:action];
+                if (captureService.capturePhotoOutput.isAppleProRAWSupported) {
+                    BOOL isAppleProRAWEnabled = captureService.capturePhotoOutput.isAppleProRAWEnabled;
+                    
+                    UIAction *action = [UIAction actionWithTitle:@"Apple Pro RAW"
+                                                           image:nil
+                                                      identifier:nil
+                                                         handler:^(__kindof UIAction * _Nonnull action) {
+                        dispatch_async(captureService.captureSessionQueue, ^{
+                            captureService.capturePhotoOutput.appleProRAWEnabled = !isAppleProRAWEnabled;
+                            if (needsReloadHandler) needsReloadHandler();
+                        });
+                    }];
+                    
+                    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                    action.state = isAppleProRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                    
+                    [rawMenuElements addObject:action];
+                }
             }
             
             //
@@ -531,7 +526,7 @@
                     
                     UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.rawPhotoPixelFormatType = formatNumber;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     }];
                     
                     [string release];
@@ -581,7 +576,7 @@
                                                       identifier:nil
                                                          handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.rawFileType = fileType;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     }];
                     
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
@@ -610,7 +605,7 @@
                 
                 UIAction *nullAction = [UIAction actionWithTitle:@"(null)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.processedFileType = nil;
-                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    if (needsReloadHandler) needsReloadHandler();
                 }];
                 nullAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 nullAction.state = (self.photoFormatModel.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -635,7 +630,7 @@
                             weakSelf.photoFormatModel.rawPhotoPixelFormatType = supportedRawPhotoPixelFormatTypesForFileType.lastObject;
                         }
                         
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     }];
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                     action.state = [self.photoFormatModel.processedFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -677,7 +672,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.capturePhotoOutput, sel_registerName("setSpatialPhotoCaptureEnabled:"), !isSpatialPhotoCaptureEnabled);
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -700,7 +695,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         captureService.capturePhotoOutput.autoDeferredPhotoDeliveryEnabled = !isAutoDeferredPhotoDeliveryEnabled;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -723,7 +718,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         captureService.capturePhotoOutput.zeroShutterLagEnabled = !isZeroShutterLagEnabled;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -746,7 +741,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         captureService.capturePhotoOutput.responsiveCaptureEnabled = !isResponsiveCaptureEnabled;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -769,7 +764,7 @@
                                                      handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         captureService.capturePhotoOutput.fastCapturePrioritizationEnabled = !isFastCapturePrioritizationEnabled;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     });
                 }];
                 
@@ -792,13 +787,13 @@
                     AVCapturePhotoQualityPrioritizationBalanced,
                     AVCapturePhotoQualityPrioritizationQuality
                 }
-                | std::views::transform([weakSelf, photoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
+                | std::views::transform([weakSelf, photoQualityPrioritization, needsReloadHandler](AVCapturePhotoQualityPrioritization prioritization) {
                     UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
                                                            image:nil
                                                       identifier:nil
                                                          handler:^(__kindof UIAction * _Nonnull action) {
                         weakSelf.photoFormatModel.photoQualityPrioritization = prioritization;
-                        [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                        if (needsReloadHandler) needsReloadHandler();
                     }];
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                     action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -848,7 +843,7 @@
                                                        identifier:nil
                                                           handler:^(__kindof UIAction * _Nonnull action) {
                     weakSelf.photoFormatModel.flashMode = flashMode;
-                    [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                    if (needsReloadHandler) needsReloadHandler();
                 }];
                 action.attributes = UIMenuElementAttributesKeepsMenuPresented;
                 action.state = (selectedCaptureFlashMode == flashMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -871,18 +866,16 @@
         //
         
         {
-            assert([self.currentCaptureDevice isEqual:selectedCaptureDevice]);
-            
-            if (selectedCaptureDevice.isTorchAvailable) {
+            if (captureDevice.isTorchAvailable) {
                 auto vec = std::vector<AVCaptureTorchMode> {
                     AVCaptureTorchModeOff,
                     AVCaptureTorchModeOn,
                     AVCaptureTorchModeAuto
                 }
-                | std::views::filter([selectedCaptureDevice](AVCaptureTorchMode torchMode) {
-                    return [selectedCaptureDevice isTorchModeSupported:torchMode];
+                | std::views::filter([captureDevice](AVCaptureTorchMode torchMode) {
+                    return [captureDevice isTorchModeSupported:torchMode];
                 })
-                | std::views::transform([weakSelf, captureService, selectedCaptureDevice](AVCaptureTorchMode torchMode) {
+                | std::views::transform([weakSelf, captureService, captureDevice, needsReloadHandler](AVCaptureTorchMode torchMode) {
                     UIImage * _Nullable image;
                     switch (torchMode) {
                         case AVCaptureTorchModeOff:
@@ -905,19 +898,19 @@
                                                          handler:^(__kindof UIAction * _Nonnull action) {
                         dispatch_async(captureService.captureSessionQueue, ^{
                             NSError * _Nullable error = nil;
-                            [selectedCaptureDevice lockForConfiguration:&error];
+                            [captureDevice lockForConfiguration:&error];
                             assert(error == nil);
                             
-                            selectedCaptureDevice.torchMode = torchMode;
+                            captureDevice.torchMode = torchMode;
                             
-                            [selectedCaptureDevice unlockForConfiguration];
+                            [captureDevice unlockForConfiguration];
                             
-                            [weakSelf.delegate photoFormatMenuBuilderElementsDidChange:weakSelf];
+                            if (needsReloadHandler) needsReloadHandler();
                         });
                     }];
                     
                     action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                    action.state = (selectedCaptureDevice.torchMode == torchMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                    action.state = (captureDevice.torchMode == torchMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
                     
                     return action;
                 })
@@ -939,7 +932,7 @@
                     UISlider *slider = [UISlider new];
                     slider.minimumValue = 0.f;
                     slider.maximumValue = std::fminf(1.f, AVCaptureMaxAvailableTorchLevel);
-                    slider.value = selectedCaptureDevice.torchLevel;
+                    slider.value = captureDevice.torchLevel;
                     
                     [slider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
                         // fcmp   s8, #0.0
@@ -947,13 +940,13 @@
                         
                         dispatch_async(captureService.captureSessionQueue, ^{
                             NSError * _Nullable error = nil;
-                            [selectedCaptureDevice lockForConfiguration:&error];
+                            [captureDevice lockForConfiguration:&error];
                             assert(error == nil);
                             
-                            [selectedCaptureDevice setTorchModeOnWithLevel:value error:&error];
+                            [captureDevice setTorchModeOnWithLevel:value error:&error];
                             assert(error == nil);
                             
-                            [selectedCaptureDevice unlockForConfiguration];
+                            [captureDevice unlockForConfiguration];
                         });
                     }]
                      forControlEvents:UIControlEventValueChanged];
@@ -965,7 +958,7 @@
                     submenu,
                     torchLevelSliderElement
                 ]];
-                menu.subtitle = NSStringFromAVCaptureTorchMode(selectedCaptureDevice.torchMode);
+                menu.subtitle = NSStringFromAVCaptureTorchMode(captureDevice.torchMode);
                 
                 [children addObject:menu];
                 
@@ -982,17 +975,17 @@
                 //
                 
                 NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
-                AVCaptureDeviceFormat *activeFormat = selectedCaptureDevice.activeFormat;
+                AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
                 
-                [selectedCaptureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+                [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
                     if (format.reactionEffectsSupported) {
                         UIAction *formatAction = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                             dispatch_async(captureService.captureSessionQueue, ^{
                                 NSError * _Nullable error = nil;
-                                [selectedCaptureDevice lockForConfiguration:&error];
+                                [captureDevice lockForConfiguration:&error];
                                 assert(error == nil);
-                                selectedCaptureDevice.activeFormat = format;
-                                [selectedCaptureDevice unlockForConfiguration];
+                                captureDevice.activeFormat = format;
+                                [captureDevice unlockForConfiguration];
                             });
                         }];
                         
@@ -1010,8 +1003,8 @@
                 
                 //
                 
-                if (selectedCaptureDevice.activeFormat.reactionEffectsSupported) {
-                    NSSet<AVCaptureReactionType> *availableReactionTypes = selectedCaptureDevice.availableReactionTypes;
+                if (captureDevice.activeFormat.reactionEffectsSupported) {
+                    NSSet<AVCaptureReactionType> *availableReactionTypes = captureDevice.availableReactionTypes;
                     
                     for (AVCaptureReactionType reactionType in availableReactionTypes) {
                         UIAction *action = [UIAction actionWithTitle:reactionType
@@ -1019,7 +1012,7 @@
                                                           identifier:nil
                                                              handler:^(__kindof UIAction * _Nonnull action) {
                             dispatch_async(captureService.captureSessionQueue, ^{
-                                [selectedCaptureDevice performEffectForReaction:reactionType];
+                                [captureDevice performEffectForReaction:reactionType];
                             });
                         }];
                         
@@ -1046,33 +1039,16 @@
     });
 }
 
-- (void)didChangeSelectedDeviceNotification:(NSNotification *)notification {
-    NSDictionary *userInfo = notification.userInfo;
-    
-    if (AVCaptureDevice *oldCaptureDevice = userInfo[CaptureServiceOldCaptureDeviceKey]) {
-        if (self.currentCaptureDevice != nil) assert([self.currentCaptureDevice isEqual:oldCaptureDevice]);
-        [self unregisterCaptureDeviceObservations:oldCaptureDevice];
-    }
-    
-    if (AVCaptureDevice *newCaptureDevice = userInfo[CaptureServiceNewCaptureDeviceKey]) {
-        [self registerCaptureDeviceObservations:newCaptureDevice];
-    }
-    
-    [self.delegate photoFormatMenuBuilderElementsDidChange:self];
-}
-
 - (void)registerCaptureDeviceObservations:(AVCaptureDevice *)captureDevice {
     [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
-    self.currentCaptureDevice = captureDevice;
 }
 
 - (void)unregisterCaptureDeviceObservations:(AVCaptureDevice *)captureDevice {
     [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
     [captureDevice removeObserver:self forKeyPath:@"formats"];
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
-    self.currentCaptureDevice = nil;
 }
 
 @end

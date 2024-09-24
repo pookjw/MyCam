@@ -27,7 +27,7 @@
 #if TARGET_OS_TV
 @interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate, AVContinuityDevicePickerViewControllerDelegate>
 #else
-@interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate>
+@interface CameraRootViewController () <CaptureDevicesMenuBuilderDelegate>
 #endif
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
@@ -45,9 +45,8 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *systemPressureStateBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
+@property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
 @property (retain ,nonatomic, nullable) CaptureDevicesMenuBuilder *captureDevicesMenuBuilder;
 @end
@@ -66,7 +65,6 @@
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
-@synthesize systemPressureStateBarButtonItem = _systemPressureStateBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
 
@@ -78,6 +76,28 @@
 + (void *)availableRawPhotoPixelFormatTypesKey {
     static void *key = &key;
     return key;
+}
+
+- (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
+        [self commonInit_CameraRootViewController];
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder {
+    if (self = [super initWithCoder:coder]) {
+        [self commonInit_CameraRootViewController];
+    }
+    
+    return self;
+}
+
+- (void)commonInit_CameraRootViewController {
+    PhotoFormatModel *photoFormatModel = [PhotoFormatModel new];
+    self.photoFormatModel = photoFormatModel;
+    [photoFormatModel release];
 }
 
 - (void)dealloc {
@@ -95,39 +115,11 @@
     [_formatBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
-    [_systemPressureStateBarButtonItem release];
     [_captureService release];
-    [_restorationPhotoFormatModel release];
+    [_photoFormatModel release];
     [_photoFormatMenuBuilder release];
     [_captureDevicesMenuBuilder release];
     [super dealloc];
-}
-
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isKindOfClass:AVCaptureDevice.class]) {
-        auto captureDevice = static_cast<AVCaptureDevice *>(object);
-        
-        if ([keyPath isEqualToString:@"systemPressureState"]) {
-            AVCaptureSystemPressureState *systemPressureState = captureDevice.systemPressureState;
-            AVCaptureSystemPressureLevel level = systemPressureState.level;
-            
-            if ([level isEqualToString:AVCaptureSystemPressureLevelNominal] || [level isEqualToString:AVCaptureSystemPressureLevelFair]) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    self.systemPressureStateBarButtonItem.hidden = YES;
-                });
-            } else if ([level isEqualToString:AVCaptureSystemPressureLevelSerious] || [level isEqualToString:AVCaptureSystemPressureLevelCritical] || [level isEqualToString:AVCaptureSystemPressureLevelShutdown]) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    self.systemPressureStateBarButtonItem.hidden = NO;
-                });
-            } else {
-                abort();
-            }
-            
-            return;
-        }
-    }
-    
-    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)loadView {
@@ -190,7 +182,6 @@
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
-        self.systemPressureStateBarButtonItem,
         self.reactionProgressBarButtonItem
     ];
     navigationItem.rightBarButtonItems = @[
@@ -207,21 +198,26 @@
 #endif
     
     dispatch_async(self.captureService.captureSessionQueue, ^{
-        [self.captureService queue_selectDefaultCaptureDevice];
-        [self.captureService queue_registerCaptureVideoPreviewLayer:captureVideoPreviewLayer];
+        AVCaptureDevice *captureDevice = [self.captureService queue_replaceWithDefaultCaptureDevice:captureVideoPreviewLayer];
         [self.captureService.captureSession startRunning];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            PhotoFormatModel *photoFormatModel;
-            if (PhotoFormatModel *restorationPhotoFormatModel = self.restorationPhotoFormatModel) {
-                photoFormatModel = [restorationPhotoFormatModel retain];
-                self.restorationPhotoFormatModel = nil;
-            } else {
-                photoFormatModel = [PhotoFormatModel new];
-            }
+            __weak auto weakSelf = self;
             
-            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:photoFormatModel captureService:self.captureService delegate:self];
-            [photoFormatModel release];
+            // TODO: 현재 선택된 Device에 맞게
+            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:self.photoFormatModel captureService:self.captureService captureDevice:captureDevice needsReloadHandler:^{
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
+                    
+                    __kindof UIScene * _Nullable scene = weakSelf.view.window.windowScene;
+                    if (scene != nil) {
+                        NSDictionary<NSString *, id> *_registeredComponents;
+                        assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
+                        id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
+                        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
+                    }
+                });
+            }];
             
             self.photoFormatMenuBuilder = photoFormatMenuService;
             [photoFormatMenuService release];
@@ -275,7 +271,7 @@
 }
 
 - (void)restoreStateWithUserActivity:(NSUserActivity *)userActivity {
-    if (self.restorationPhotoFormatModel != nil) return;
+    if (self.photoFormatModel != nil) return;
     
     if (![userActivity.activityType isEqualToString:@"com.pookjw.MyCam.CameraRootViewController"]) return;
     
@@ -286,11 +282,11 @@
     NSKeyedUnarchiver *keyedUnarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:photoFormatModelData error:&error];
     assert(error == nil);
     
-    PhotoFormatModel *restorationPhotoFormatModel = [[PhotoFormatModel alloc] initWithCoder:keyedUnarchiver];
+    PhotoFormatModel *photoFormatModel = [[PhotoFormatModel alloc] initWithCoder:keyedUnarchiver];
     [keyedUnarchiver release];
     
-    self.restorationPhotoFormatModel = restorationPhotoFormatModel;
-    [restorationPhotoFormatModel release];
+    self.photoFormatModel = photoFormatModel;
+    [photoFormatModel release];
 }
 
 - (CaptureVideoPreviewView *)captureVideoPreviewView {
@@ -446,22 +442,6 @@
     return [reactionProgressBarButtonItem autorelease];
 }
 
-- (UIBarButtonItem *)systemPressureStateBarButtonItem {
-    if (auto systemPressureStateBarButtonItem = _systemPressureStateBarButtonItem) return systemPressureStateBarButtonItem;
-    
-    UIBarButtonItem *systemPressureStateBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"exclamationmark.triangle.fill"]
-                                                                                         style:UIBarButtonItemStylePlain
-                                                                                        target:nil
-                                                                                        action:nil];
-    
-    systemPressureStateBarButtonItem.tintColor = UIColor.systemYellowColor;
-    systemPressureStateBarButtonItem.hidden = YES;
-    systemPressureStateBarButtonItem.enabled = NO;
-    
-    _systemPressureStateBarButtonItem = [systemPressureStateBarButtonItem retain];
-    return [systemPressureStateBarButtonItem autorelease];
-}
-
 - (CaptureService *)captureService {
     if (auto captureService = _captureService) return captureService;
     
@@ -480,11 +460,6 @@
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeReactionEffectsInProgressNotification:)
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeSelectedDeviceNotification:)
-                                               name:CaptureServiceDidChangeSelectedDeviceNotificationName
                                              object:captureService];
     
     _captureService = [captureService retain];
@@ -525,18 +500,6 @@
 - (void)didTriggerCaptureButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
         [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
-    });
-}
-
-- (void)didTriggerRecordButton:(UIButton *)sender {
-    CaptureService *captureService = self.captureService;
-    
-    dispatch_async(captureService.captureSessionQueue, ^{
-        if (captureService.queue_isRecording) {
-            [captureService queue_startVideoRecording];
-        } else {
-            [captureService queue_stopVideoRecording];
-        }
     });
 }
 
@@ -596,16 +559,6 @@
     });
 }
 
-- (void)didChangeSelectedDeviceNotification:(NSNotification *)notification {
-    if (auto oldCaptureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceOldCaptureDeviceKey])) {
-        [oldCaptureDevice removeObserver:self forKeyPath:@"systemPressureState"];
-    }
-    
-    if (auto newCaptureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceNewCaptureDeviceKey])) {
-        [newCaptureDevice addObserver:self forKeyPath:@"systemPressureState" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
-    }
-}
-
 
 #if TARGET_OS_TV
 - (void)didTriggerContinuityDevicePickerBarButtonItem:(UIBarButtonItem *)sender {
@@ -621,20 +574,6 @@
     [viewController release];
 }
 #endif
-
-- (void)photoFormatMenuBuilderElementsDidChange:(PhotoFormatMenuBuilder *)photoFormatMenuBuilder {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-        
-        __kindof UIScene * _Nullable scene = self.view.window.windowScene;
-        if (scene != nil) {
-            NSDictionary<NSString *, id> *_registeredComponents;
-            assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
-            id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
-            reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
-        }
-    });
-}
 
 - (void)captureDevicesMenuBuilderElementsDidChange:(CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
     dispatch_async(dispatch_get_main_queue(), ^{
