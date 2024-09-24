@@ -17,6 +17,8 @@
 #include <vector>
 #include <ranges>
 
+// TODO: Spatial Over Capture
+
 @interface PhotoFormatMenuBuilder ()
 @property (weak, nonatomic, readonly) id<PhotoFormatMenuBuilderDelegate> delegate;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -968,6 +970,65 @@
                 [children addObject:menu];
                 
                 //
+            }
+        }
+        
+        //
+        
+        {
+            if (AVCaptureDevice.reactionEffectsEnabled) {
+                NSMutableArray<UIMenuElement *> *menuElements = [NSMutableArray new];
+                
+                //
+                
+                NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
+                AVCaptureDeviceFormat *activeFormat = selectedCaptureDevice.activeFormat;
+                for (AVCaptureDeviceFormat *format in selectedCaptureDevice.formats) {
+                    if (format.reactionEffectsSupported) {
+                        UIAction *formatAction = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                            dispatch_async(captureService.captureSessionQueue, ^{
+                                NSError * _Nullable error = nil;
+                                [selectedCaptureDevice lockForConfiguration:&error];
+                                assert(error == nil);
+                                selectedCaptureDevice.activeFormat = format;
+                                [selectedCaptureDevice unlockForConfiguration];
+                            });
+                        }];
+                        
+                        formatAction.cp_overrideNumberOfTitleLines = @(0);
+                        formatAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+                        formatAction.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
+                        
+                        [formatActions addObject:formatAction];
+                    }
+                }
+                
+                UIMenu *formatMenu = [UIMenu menuWithTitle:@"Reaction Format" children:formatActions];
+                [formatActions release];
+                [menuElements addObject:formatMenu];
+                
+                //
+                
+                if (selectedCaptureDevice.activeFormat.reactionEffectsSupported) {
+                    NSSet<AVCaptureReactionType> *availableReactionTypes = selectedCaptureDevice.availableReactionTypes;
+                    
+                    for (AVCaptureReactionType reactionType in availableReactionTypes) {
+                        UIAction *action = [UIAction actionWithTitle:reactionType
+                                                               image:[UIImage systemImageNamed:AVCaptureReactionSystemImageNameForType(reactionType)]
+                                                          identifier:nil
+                                                             handler:^(__kindof UIAction * _Nonnull action) {
+                            dispatch_async(captureService.captureSessionQueue, ^{
+                                [selectedCaptureDevice performEffectForReaction:reactionType];
+                            });
+                        }];
+                        
+                        [menuElements addObject:action];
+                    }
+                }
+                
+                UIMenu *menu = [UIMenu menuWithTitle:@"Reaction" image:nil identifier:nil options:UIMenuOptionsDisplayAsPalette | UIMenuOptionsDisplayInline children:menuElements];
+                [menuElements release];
+                [children addObject:menu];
             }
         }
         
