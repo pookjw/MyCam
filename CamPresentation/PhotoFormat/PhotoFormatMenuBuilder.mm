@@ -252,7 +252,7 @@
             AVCaptureDeviceFormat *activeFormat = selectedCaptureDevice.activeFormat;
             NSMutableArray<UIAction *> *formatActions = [[NSMutableArray alloc] initWithCapacity:formats.count];
             
-            for (AVCaptureDeviceFormat *format in formats) {
+            [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
                 UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         NSError * _Nullable error = nil;
@@ -268,7 +268,7 @@
                 action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
                 
                 [formatActions addObject:action];
-            }
+            }];
             
             UIMenu *formatsMenu = [UIMenu menuWithTitle:@"Format"
                                                   image:nil
@@ -983,7 +983,8 @@
                 
                 NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
                 AVCaptureDeviceFormat *activeFormat = selectedCaptureDevice.activeFormat;
-                for (AVCaptureDeviceFormat *format in selectedCaptureDevice.formats) {
+                
+                [selectedCaptureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
                     if (format.reactionEffectsSupported) {
                         UIAction *formatAction = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                             dispatch_async(captureService.captureSessionQueue, ^{
@@ -1001,7 +1002,7 @@
                         
                         [formatActions addObject:formatAction];
                     }
-                }
+                }];
                 
                 UIMenu *formatMenu = [UIMenu menuWithTitle:@"Reaction Format" children:formatActions];
                 [formatActions release];
