@@ -45,6 +45,7 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *systemPressureStateBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
 @property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
@@ -65,6 +66,7 @@
 @synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
+@synthesize systemPressureStateBarButtonItem = _systemPressureStateBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
 
@@ -93,11 +95,39 @@
     [_formatBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
+    [_systemPressureStateBarButtonItem release];
     [_captureService release];
     [_restorationPhotoFormatModel release];
     [_photoFormatMenuBuilder release];
     [_captureDevicesMenuBuilder release];
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isKindOfClass:AVCaptureDevice.class]) {
+        auto captureDevice = static_cast<AVCaptureDevice *>(object);
+        
+        if ([keyPath isEqualToString:@"systemPressureState"]) {
+            AVCaptureSystemPressureState *systemPressureState = captureDevice.systemPressureState;
+            AVCaptureSystemPressureLevel level = systemPressureState.level;
+            
+            if ([level isEqualToString:AVCaptureSystemPressureLevelNominal] || [level isEqualToString:AVCaptureSystemPressureLevelFair]) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.systemPressureStateBarButtonItem.hidden = YES;
+                });
+            } else if ([level isEqualToString:AVCaptureSystemPressureLevelSerious] || [level isEqualToString:AVCaptureSystemPressureLevelCritical] || [level isEqualToString:AVCaptureSystemPressureLevelShutdown]) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.systemPressureStateBarButtonItem.hidden = NO;
+                });
+            } else {
+                abort();
+            }
+            
+            return;
+        }
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)loadView {
@@ -160,6 +190,7 @@
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
+        self.systemPressureStateBarButtonItem,
         self.reactionProgressBarButtonItem
     ];
     navigationItem.rightBarButtonItems = @[
@@ -415,6 +446,22 @@
     return [reactionProgressBarButtonItem autorelease];
 }
 
+- (UIBarButtonItem *)systemPressureStateBarButtonItem {
+    if (auto systemPressureStateBarButtonItem = _systemPressureStateBarButtonItem) return systemPressureStateBarButtonItem;
+    
+    UIBarButtonItem *systemPressureStateBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"exclamationmark.triangle.fill"]
+                                                                                         style:UIBarButtonItemStylePlain
+                                                                                        target:nil
+                                                                                        action:nil];
+    
+    systemPressureStateBarButtonItem.tintColor = UIColor.systemYellowColor;
+    systemPressureStateBarButtonItem.hidden = YES;
+    systemPressureStateBarButtonItem.enabled = NO;
+    
+    _systemPressureStateBarButtonItem = [systemPressureStateBarButtonItem retain];
+    return [systemPressureStateBarButtonItem autorelease];
+}
+
 - (CaptureService *)captureService {
     if (auto captureService = _captureService) return captureService;
     
@@ -433,6 +480,11 @@
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeReactionEffectsInProgressNotification:)
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didChangeSelectedDeviceNotification:)
+                                               name:CaptureServiceDidChangeSelectedDeviceNotificationName
                                              object:captureService];
     
     _captureService = [captureService retain];
@@ -542,6 +594,16 @@
             self.reactionProgressBarButtonItem.hidden = YES;
         }
     });
+}
+
+- (void)didChangeSelectedDeviceNotification:(NSNotification *)notification {
+    if (auto oldCaptureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceOldCaptureDeviceKey])) {
+        [oldCaptureDevice removeObserver:self forKeyPath:@"systemPressureState"];
+    }
+    
+    if (auto newCaptureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceNewCaptureDeviceKey])) {
+        [newCaptureDevice addObserver:self forKeyPath:@"systemPressureState" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+    }
 }
 
 
