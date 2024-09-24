@@ -7,6 +7,8 @@
 
 // TODO: Memory Leak Test
 // +[AVCaptureDevice cinematicFramingControlMode]
+// AVControlCenterModuleState
+// Multi-cam
 
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
@@ -41,6 +43,8 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
 @property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic, nullable) PhotoFormatModel *restorationPhotoFormatModel;
 @property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
@@ -59,6 +63,8 @@
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
 @synthesize formatBarButtonItem = _formatBarButtonItem;
+@synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
+@synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
 
@@ -85,6 +91,8 @@
     [_continuityDevicePickerBarButtonItem release];
 #endif
     [_formatBarButtonItem release];
+    [_reactionProgressActivityIndicatorView release];
+    [_reactionProgressBarButtonItem release];
     [_captureService release];
     [_restorationPhotoFormatModel release];
     [_photoFormatMenuBuilder release];
@@ -151,6 +159,9 @@
     //
     
     UINavigationItem *navigationItem = self.navigationItem;
+    navigationItem.leftBarButtonItems = @[
+        self.reactionProgressBarButtonItem
+    ];
     navigationItem.rightBarButtonItems = @[
         self.formatBarButtonItem
     ];
@@ -382,6 +393,28 @@
     return [formatBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)reactionProgressActivityIndicatorView {
+    if (auto reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView) return reactionProgressActivityIndicatorView;
+    
+    UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    reactionProgressActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _reactionProgressActivityIndicatorView = [reactionProgressActivityIndicatorView retain];
+    return [reactionProgressActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)reactionProgressBarButtonItem {
+    if (auto reactionProgressBarButtonItem = _reactionProgressBarButtonItem) return reactionProgressBarButtonItem;
+    
+    UIActivityIndicatorView *reactionProgressActivityIndicatorView = self.reactionProgressActivityIndicatorView;
+    UIBarButtonItem *reactionProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:reactionProgressActivityIndicatorView];
+    reactionProgressBarButtonItem.hidden = YES;
+    reactionProgressBarButtonItem.enabled = NO;
+    
+    _reactionProgressBarButtonItem = [reactionProgressBarButtonItem retain];
+    return [reactionProgressBarButtonItem autorelease];
+}
+
 - (CaptureService *)captureService {
     if (auto captureService = _captureService) return captureService;
     
@@ -395,6 +428,11 @@
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeCaptureReadinessNotification:)
                                                name:CaptureServiceDidChangeCaptureReadinessNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didChangeReactionEffectsInProgressNotification:)
+                                               name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                              object:captureService];
     
     _captureService = [captureService retain];
@@ -485,9 +523,27 @@
     
     //
     
-//    self.recordBarButtonItem.enabled = YES;
-//    [self updateRecordButtonWithRecording:isRecording];
+    //    self.recordBarButtonItem.enabled = YES;
+    //    [self updateRecordButtonWithRecording:isRecording];
 }
+
+- (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
+    auto reactionEffectsInProgress = static_cast<NSArray<AVCaptureReactionEffectState *> *>(notification.userInfo[CaptureServiceReactionEffectsInProgressKey]);
+    if (reactionEffectsInProgress == nil) return;
+    
+    BOOL hasReaction = reactionEffectsInProgress.count > 0;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (hasReaction) {
+            [self.reactionProgressActivityIndicatorView startAnimating];
+            self.reactionProgressBarButtonItem.hidden = NO;
+        } else {
+            [self.reactionProgressActivityIndicatorView stopAnimating];
+            self.reactionProgressBarButtonItem.hidden = YES;
+        }
+    });
+}
+
 
 #if TARGET_OS_TV
 - (void)didTriggerContinuityDevicePickerBarButtonItem:(UIBarButtonItem *)sender {

@@ -66,6 +66,20 @@ extern
 #endif
 NSString * const CaptureServiceCaptureReadinessKey;
 
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName;
+
+#if defined(__cplusplus)
+extern "C"
+#else
+extern
+#endif
+NSString * const CaptureServiceReactionEffectsInProgressKey;
+
 //
 
 @interface CaptureService : NSObject

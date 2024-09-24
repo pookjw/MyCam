@@ -24,6 +24,9 @@ NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
+NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName = @"CaptureServiceDidChangeReactionEffectsInProgressNotificationName";
+NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceReactionEffectsInProgressKey";
+
 #if TARGET_OS_VISION
 @interface CaptureService () <CLLocationManagerDelegate>
 #else
@@ -174,7 +177,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
+    
+    for (__kindof AVCaptureInput *input in _captureSession.inputs) {
+        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+            auto oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+            [oldCaptureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
+        }
+    }
     [_captureSession release];
+    
     [_captureSessionQueue release];
     [_captureDeviceDiscoverySession release];
     
@@ -206,12 +217,25 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             reinterpret_cast<void (*)(id, SEL, CGFloat)>(objc_msgSend)(connection, sel_registerName("setVideoRotationAngle:"), videoRotationAngleForHorizonLevelPreview);
             return;
         }
+    } else if ([object isKindOfClass:AVCaptureDevice.class]) {
+        if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
+            NSLog(@"Hello!");
+        }
     }
 #else
-    if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class] && [keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
-        auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
-        static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
-        return;
+    if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class]) {
+        if ([keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
+            auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
+            static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
+            return;
+        }
+    } else if ([object isKindOfClass:AVCaptureDevice.class]) {
+        if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
+            [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
+                                                              object:self
+                                                            userInfo:@{CaptureServiceReactionEffectsInProgressKey: change[NSKeyValueChangeNewKey]}];
+            return;
+        }
     }
 #endif
     
@@ -265,12 +289,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     for (__kindof AVCaptureInput *input in captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
             oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+            [oldCaptureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
         }
         
         [captureSession removeInput:input];
     }
     
     if (captureDevice != nil) {
+        [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        
         NSError * _Nullable error = nil;
         AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
         assert(error == nil);
