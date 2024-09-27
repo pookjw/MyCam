@@ -55,13 +55,13 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 - (instancetype)init {
     if (self = [super init]) {
-        AVCaptureSession *captureSession = [AVCaptureSession new];
+        AVCaptureMultiCamSession *captureSession = [AVCaptureMultiCamSession new];
         
 #if TARGET_OS_VISION
         abort();
 #else
-        assert([captureSession canSetSessionPreset:AVCaptureSessionPresetPhoto]);
-        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+//        assert([captureSession canSetSessionPreset:AVCaptureSessionPresetPhoto]);
+//        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
 #endif
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
@@ -258,6 +258,20 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     return [captureDevices autorelease];
 }
 
+- (AVCaptureDevice *)defaultCaptureDevice {
+#if TARGET_OS_VISION
+    AVCaptureDevice * _Nullable captureDevice = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("userPreferredCamera"));
+#else
+    AVCaptureDevice * _Nullable captureDevice = AVCaptureDevice.userPreferredCamera;
+#endif
+    
+    if (captureDevice == nil) {
+        captureDevice = AVCaptureDevice.systemPreferredCamera;
+    }
+    
+    return captureDevice;
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice captureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
@@ -274,6 +288,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     assert(error == nil);
     assert([captureSession canAddInput:newInput]);
     
+#warning -addInputWithNoConnections:
     [captureSession addInput:newInput];
     [newInput release];
     
@@ -416,30 +431,6 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidRemoveDeviceNotificationName
                                                       object:self
                                                     userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
-}
-
-- (AVCaptureDevice * _Nullable)queue_replaceWithDefaultCaptureDevice:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-#if TARGET_OS_VISION
-    AVCaptureDevice * _Nullable captureDevice = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("userPreferredCamera"));
-#else
-    AVCaptureDevice * _Nullable captureDevice = AVCaptureDevice.userPreferredCamera;
-#endif
-    
-    if (captureDevice == nil) {
-        captureDevice = AVCaptureDevice.systemPreferredCamera;
-    }
-    
-    if (captureDevice == nil) return nil;
-    
-    NSArray<AVCaptureDevice *> *addedCaptureDevices = self.queue_addedCaptureDevices;
-    for (AVCaptureDevice *captureDevice in addedCaptureDevices) {
-        [self queue_removeCaptureDevice:captureDevice];
-    }
-    
-    [self queue_addCapureDevice:captureDevice captureVideoPreviewLayer:captureVideoPreviewLayer];
-    return captureDevice;
 }
 
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel {

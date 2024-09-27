@@ -28,10 +28,11 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 //
 
 @interface CaptureService : NSObject
-@property (retain, nonatomic, readonly) AVCaptureSession *captureSession;
+@property (retain, nonatomic, readonly) AVCaptureMultiCamSession *captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
+@property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
 #if TARGET_OS_VISION
 @property (retain, nonatomic, readonly) id capturePhotoOutput;
 @property (retain, nonatomic, readonly) id captureMovieFileOutput;
@@ -42,7 +43,6 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice captureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (AVCaptureDevice * _Nullable)queue_replaceWithDefaultCaptureDevice:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
 
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
 @end

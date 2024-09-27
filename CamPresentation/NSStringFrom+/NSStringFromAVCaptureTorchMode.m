@@ -5,7 +5,7 @@
 //  Created by Jinwoo Kim on 9/23/24.
 //
 
-#import "NSStringFromAVCaptureTorchMode.h"
+#import <CamPresentation/NSStringFromAVCaptureTorchMode.h>
 
 NSString * NSStringFromAVCaptureTorchMode(AVCaptureTorchMode torchMode) {
     switch (torchMode) {

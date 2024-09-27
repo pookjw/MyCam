@@ -15,7 +15,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic, readonly) PhotoFormatModel *photoFormatModel;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice;
 - (instancetype)initWithPhotoFormatModel:(PhotoFormatModel *)photoFormatModel captureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice needsReloadHandler:(void (^ _Nullable)())needsReloadHandler;
 - (void)menuElementsWithCompletionHandler:(void (^ _Nullable)(NSArray<__kindof UIMenuElement *> *menuElements))completionHandler;
 @end

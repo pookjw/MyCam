@@ -15,7 +15,8 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
-#import <CamPresentation/CaptureDevicesMenuBuilder.h>
+#import <CamPresentation/CaptureActionsMenuElement.h>
+#import <CamPresentation/CaptureDevicesMenuElement.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -25,20 +26,15 @@
 #import <TargetConditionals.h>
 
 #if TARGET_OS_TV
-@interface CameraRootViewController () <PhotoFormatMenuBuilderDelegate, CaptureDevicesMenuBuilderDelegate, AVContinuityDevicePickerViewControllerDelegate>
+@interface CameraRootViewController () <UIContextMenuInteractionDelegate, AVContinuityDevicePickerViewControllerDelegate>
 #else
-@interface CameraRootViewController () <CaptureDevicesMenuBuilderDelegate>
+@interface CameraRootViewController () <UIContextMenuInteractionDelegate>
 #endif
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
-@property (nonatomic, readonly) CaptureVideoPreviewView *captureVideoPreviewView;
+@property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *photosBarButtonItem;
-@property (retain, nonatomic, readonly) UIButton *captureButton;
-@property (retain, nonatomic, readonly) UIBarButtonItem *captureBarButtonItem;
-@property (retain, nonatomic, readonly) UIButton *recordButton;
-@property (retain, nonatomic, readonly) UIBarButtonItem *recordBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureDevicesBarButtonItem;
-@property (retain, nonatomic, readonly) UIDeferredMenuElement *captureDevicesMenuElement;
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
@@ -48,17 +44,12 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
-@property (retain ,nonatomic, nullable) CaptureDevicesMenuBuilder *captureDevicesMenuBuilder;
 @end
 
 @implementation CameraRootViewController
+@synthesize stackView = _stackView;
 @synthesize photosBarButtonItem = _photosBarButtonItem;
-@synthesize captureButton = _captureButton;
-@synthesize captureBarButtonItem = _captureBarButtonItem;
-@synthesize recordButton = _recordButton;
-@synthesize recordBarButtonItem = _recordBarButtonItem;
 @synthesize captureDevicesBarButtonItem = _captureDevicesBarButtonItem;
-@synthesize captureDevicesMenuElement = _captureDevicesMenuElement;
 #if TARGET_OS_TV
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
@@ -66,7 +57,6 @@
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
 @synthesize captureService = _captureService;
-@synthesize captureDevicesMenuBuilder = _captureDevicesMenuBuilder;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -101,14 +91,9 @@
 }
 
 - (void)dealloc {
-    [NSNotificationCenter.defaultCenter removeObserver:self name:CaptureServiceDidChangeRecordingStatusNotificationName object:_captureService];
+    [_stackView release];
     [_photosBarButtonItem release];
-    [_captureButton release];
-    [_captureBarButtonItem release];
-    [_recordButton release];
-    [_recordBarButtonItem release];
     [_captureDevicesBarButtonItem release];
-    [_captureDevicesMenuElement release];
 #if TARGET_OS_TV
     [_continuityDevicePickerBarButtonItem release];
 #endif
@@ -118,14 +103,11 @@
     [_captureService release];
     [_photoFormatModel release];
     [_photoFormatMenuBuilder release];
-    [_captureDevicesMenuBuilder release];
     [super dealloc];
 }
 
 - (void)loadView {
-    CaptureVideoPreviewView *captureVideoPreviewView = [CaptureVideoPreviewView new];
-    self.view = captureVideoPreviewView;
-    [captureVideoPreviewView release];
+    self.view = self.stackView;
 }
 
 - (void)viewDidLoad {
@@ -172,9 +154,6 @@
     [self setToolbarItems:@[
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
-        self.captureBarButtonItem,
-        self.recordBarButtonItem,
-        [UIBarButtonItem flexibleSpaceItem],
         self.captureDevicesBarButtonItem
     ]];
     
@@ -191,40 +170,49 @@
     
     //
     
-#if TARGET_OS_VISION
-    __kindof CALayer *captureVideoPreviewLayer = self.captureVideoPreviewView.captureVideoPreviewLayer;
-#else
-    AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = self.captureVideoPreviewView.captureVideoPreviewLayer;
-#endif
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didRemoveDeviceNotification:)
+                                               name:CaptureServiceDidRemoveDeviceNotificationName
+                                             object:captureService];
     
-    dispatch_async(self.captureService.captureSessionQueue, ^{
-        AVCaptureDevice *captureDevice = [self.captureService queue_replaceWithDefaultCaptureDevice:captureVideoPreviewLayer];
+    //
+    
+    AVCaptureDevice * _Nullable defaultCaptureDevice = captureService.defaultCaptureDevice;
+    AVCaptureVideoPreviewLayer * _Nullable previewLayer;
+    if (defaultCaptureDevice != nil) {
+        CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewView];
+        [self.stackView addArrangedSubview:previewView];
+        previewLayer = [previewView.captureVideoPreviewLayer retain];
+        [previewView release];
+    } else {
+        previewLayer = nil;
+    }
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        if (defaultCaptureDevice != nil) {
+            [captureService queue_addCapureDevice:defaultCaptureDevice captureVideoPreviewLayer:previewLayer];
+        }
+        
         [self.captureService.captureSession startRunning];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            __weak auto weakSelf = self;
-            
-            // TODO: 현재 선택된 Device에 맞게
-            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:self.photoFormatModel captureService:self.captureService captureDevice:captureDevice needsReloadHandler:^{
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-                    
-                    __kindof UIScene * _Nullable scene = weakSelf.view.window.windowScene;
-                    if (scene != nil) {
-                        NSDictionary<NSString *, id> *_registeredComponents;
-                        assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
-                        id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
-                        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
-                    }
-                });
-            }];
-            
-            self.photoFormatMenuBuilder = photoFormatMenuService;
-            [photoFormatMenuService release];
+//            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:self.photoFormatModel captureService:self.captureService captureDevice:captureDevice needsReloadHandler:^{
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
+//                    
+//                    __kindof UIScene * _Nullable scene = weakSelf.view.window.windowScene;
+//                    if (scene != nil) {
+//                        NSDictionary<NSString *, id> *_registeredComponents;
+//                        assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
+//                        id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
+//                        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
+//                    }
+//                });
+//            }];
         });
     });
     
-    self.view.backgroundColor = UIColor.systemOrangeColor;
+    [previewLayer release];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -289,8 +277,16 @@
     [photoFormatModel release];
 }
 
-- (CaptureVideoPreviewView *)captureVideoPreviewView {
-    return static_cast<CaptureVideoPreviewView *>(self.view);
+- (UIStackView *)stackView {
+    if (auto stackView = _stackView) return stackView;
+    
+    UIStackView *stackView = [UIStackView new];
+    stackView.axis = UILayoutConstraintAxisVertical;
+    stackView.distribution = UIStackViewDistributionFillEqually;
+    stackView.alignment = UIStackViewAlignmentFill;
+    
+    _stackView = [stackView retain];
+    return [stackView autorelease];
 }
 
 - (UIBarButtonItem *)photosBarButtonItem {
@@ -303,53 +299,6 @@
     
     _photosBarButtonItem = [photosBarButtonItem retain];
     return [photosBarButtonItem autorelease];
-}
-
-- (UIButton *)captureButton {
-    if (auto captureButton = _captureButton) return captureButton;
-    
-    UIButton *captureButton = [UIButton new];
-    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-    configuration.showsActivityIndicator = YES;
-    
-    captureButton.configuration = configuration;
-    [captureButton addTarget:self action:@selector(didTriggerCaptureButton:) forControlEvents:UIControlEventTouchDown];
-    
-    _captureButton = [captureButton retain];
-    return [captureButton autorelease];
-}
-
-- (UIBarButtonItem *)captureBarButtonItem {
-    if (auto captureBarButtonItem = _captureBarButtonItem) return captureBarButtonItem;
-    
-    UIBarButtonItem *captureBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.captureButton];
-    captureBarButtonItem.enabled = NO;
-    
-    _captureBarButtonItem = [captureBarButtonItem retain];
-    return [captureBarButtonItem autorelease];
-}
-
-- (UIButton *)recordButton {
-    if (auto recordButton = _recordButton) return recordButton;
-    
-    UIButton *recordButton = [UIButton new];
-    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-    configuration.showsActivityIndicator = YES;
-    
-    recordButton.configuration = configuration;
-    
-    _recordButton = [recordButton retain];
-    return [recordButton autorelease];
-}
-
-- (UIBarButtonItem *)recordBarButtonItem {
-    if (auto recordBarButtonItem = _recordBarButtonItem) return recordBarButtonItem;
-    
-    UIBarButtonItem *recordBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self.recordButton];
-    recordBarButtonItem.enabled = NO;
-    
-    _recordBarButtonItem = [recordBarButtonItem retain];
-    return [recordBarButtonItem autorelease];
 }
 
 #if TARGET_OS_TV
@@ -366,8 +315,39 @@
 - (UIBarButtonItem *)captureDevicesBarButtonItem {
     if (auto captureDevicesBarButtonItem = _captureDevicesBarButtonItem) return captureDevicesBarButtonItem;
     
+    __weak auto weakSelf = self;
+    
+    CaptureDevicesMenuElement *captureDevicesMenuElement = [CaptureDevicesMenuElement elementWithCaptureDevice:self.captureService
+                                                                                              selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            auto loaded = weakSelf;
+            if (loaded == nil) return;
+            
+            CaptureService *captureService = loaded.captureService;
+            CaptureVideoPreviewView *captureVideoPreviewView = [loaded newCaptureVideoPreviewView];
+            [loaded.stackView addArrangedSubview:captureVideoPreviewView];
+            AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [captureVideoPreviewView.captureVideoPreviewLayer retain];
+            [captureVideoPreviewView release];
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_addCapureDevice:captureDevice captureVideoPreviewLayer:captureVideoPreviewLayer];
+            });
+            
+            [captureVideoPreviewLayer release];
+        });
+    }
+                                                                                            deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+        abort();
+    }
+                                                                                                 reloadHandler:^{
+        auto loaded = weakSelf;
+        if (loaded == nil) return;
+        
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(loaded->_captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+    }];
+    
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        self.captureDevicesMenuElement
+        captureDevicesMenuElement
     ]];
     
     UIBarButtonItem *captureDevicesBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"arrow.triangle.2.circlepath"] menu:menu];
@@ -375,23 +355,6 @@
     
     _captureDevicesBarButtonItem = [captureDevicesBarButtonItem retain];
     return [captureDevicesBarButtonItem autorelease];
-}
-
-- (UIDeferredMenuElement *)captureDevicesMenuElement {
-    if (auto captureDevicesMenuElement = _captureDevicesMenuElement) return captureDevicesMenuElement;
-    
-    __weak auto weakSelf = self;
-    
-    UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        [weakSelf.captureDevicesMenuBuilder menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(menuElements);
-            });
-        }];
-    }];
-    
-    _captureDevicesMenuElement = [captureDevicesMenuElement retain];
-    return captureDevicesMenuElement;
 }
 
 - (UIBarButtonItem *)formatBarButtonItem {
@@ -448,49 +411,12 @@
     CaptureService *captureService = [CaptureService new];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeRecordingStatusNotification:)
-                                               name:CaptureServiceDidChangeRecordingStatusNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeCaptureReadinessNotification:)
-                                               name:CaptureServiceDidChangeCaptureReadinessNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeReactionEffectsInProgressNotification:)
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                              object:captureService];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
-}
-
-- (CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
-    if (auto captureDevicesMenuBuilder = _captureDevicesMenuBuilder) return captureDevicesMenuBuilder;
-    
-    CaptureDevicesMenuBuilder *captureDevicesMenuBuilder = [[CaptureDevicesMenuBuilder alloc] initWithCaptureService:self.captureService delegate:self];
-    
-    _captureDevicesMenuBuilder = [captureDevicesMenuBuilder retain];
-    return [captureDevicesMenuBuilder autorelease];
-}
-
-- (void)updateRecordButtonWithRecording:(BOOL)recording {
-    UIImage *image;
-    if (recording) {
-        image = [UIImage systemImageNamed:@"stop.fill"];
-    } else {
-        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPaletteColors:@[
-            UIColor.systemRedColor,
-            UIColor.tintColor
-        ]];
-        
-        image = [UIImage systemImageNamed:@"circle.inset.filled" withConfiguration:configuration];
-    }
-    
-    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-    configuration.image = image;
-    self.recordButton.configuration = configuration;
 }
 
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
@@ -501,45 +427,6 @@
     dispatch_async(self.captureService.captureSessionQueue, ^{
         [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
     });
-}
-
-- (void)didChangeRecordingStatusNotification:(NSNotification *)notification {
-    NSNumber *isRecordingNumber = notification.userInfo[CaptureServiceRecordingKey];
-    if (isRecordingNumber == nil) return;
-    BOOL isRecording = isRecordingNumber.boolValue;
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self updateRecordButtonWithRecording:isRecording];
-    });
-}
-
-- (void)didChangeCaptureReadinessNotification:(NSNotification *)notification {
-    NSNumber * _Nullable captureReadinessNumber = notification.userInfo[CaptureServiceCaptureReadinessKey];
-    assert(captureReadinessNumber != nil);
-    
-    auto captureReadiness = static_cast<AVCapturePhotoOutputCaptureReadiness>(captureReadinessNumber.integerValue);
-    
-    switch (captureReadiness) {
-        case AVCapturePhotoOutputCaptureReadinessReady: {
-            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-            configuration.image = [UIImage systemImageNamed:@"camera.aperture"];
-            self.captureButton.configuration = configuration;
-            self.captureBarButtonItem.enabled = YES;
-            break;
-        }
-        default: {
-            UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
-            configuration.showsActivityIndicator = YES;
-            self.captureBarButtonItem.enabled = NO;
-            self.captureButton.configuration = configuration;
-            break;
-        }
-    }
-    
-    //
-    
-    //    self.recordBarButtonItem.enabled = YES;
-    //    [self updateRecordButtonWithRecording:isRecording];
 }
 
 - (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
@@ -559,6 +446,73 @@
     });
 }
 
+- (void)didRemoveDeviceNotification:(NSNotification *)notification {
+    
+}
+
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewView {
+    CaptureVideoPreviewView *captureVideoPreviewView = [CaptureVideoPreviewView new];
+
+    UIContextMenuInteraction *contextMenuInteraction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
+    [captureVideoPreviewView addInteraction:contextMenuInteraction];
+    [contextMenuInteraction release];
+    
+    UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
+    [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];
+    [tapGestureRecogninzer release];
+    
+    AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = captureVideoPreviewView.captureVideoPreviewLayer;
+    captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    
+    return captureVideoPreviewView;
+}
+
+- (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
+    auto captureVideoPreviewView = static_cast<CaptureVideoPreviewView *>(sender.view);
+    
+    for (UIContextMenuInteraction *contextMenuInteraction in captureVideoPreviewView.interactions) {
+        if (![contextMenuInteraction isKindOfClass:UIContextMenuInteraction.class]) continue;
+        
+        CGPoint location = [sender locationInView:captureVideoPreviewView];
+        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(contextMenuInteraction, sel_registerName("_presentMenuAtLocation:"), location);
+        break;
+    }
+}
+
+- (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
+    __weak auto weakSelf = self;
+    
+    UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
+                                                                                        previewProvider:^UIViewController * _Nullable{
+        return nil;
+    }
+                                                                                         actionProvider:^UIMenu * _Nullable(NSArray<UIMenuElement *> * _Nonnull suggestedActions) {
+        auto loaded = weakSelf;
+        if (loaded == nil) return nil;
+        
+        CaptureActionsMenuElement *element = [CaptureActionsMenuElement elementWithCaptureService:loaded.captureService
+                                                                                 photoFormatModel:loaded.photoFormatModel
+                                                                                    reloadHandler:^(PhotoFormatModel * _Nonnull photoFormatModel) {
+            
+        }];
+        
+        UIMenu *menu = [UIMenu menuWithChildren:@[element]];
+        return menu;
+    }];
+    
+    return configuration;
+}
+
+- (UITargetedPreview *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configuration:(UIContextMenuConfiguration *)configuration highlightPreviewForItemWithIdentifier:(id<NSCopying>)identifier {
+    UIPreviewParameters *parameters = [UIPreviewParameters new];
+    parameters.backgroundColor = UIColor.clearColor;
+    
+    UITargetedPreview *preview = [[UITargetedPreview alloc] initWithView:interaction.view parameters:parameters];
+    [parameters release];
+    
+    return [preview autorelease];
+}
+
 
 #if TARGET_OS_TV
 - (void)didTriggerContinuityDevicePickerBarButtonItem:(UIBarButtonItem *)sender {
@@ -573,15 +527,7 @@
     [self presentViewController:viewController animated:YES completion:nil];
     [viewController release];
 }
-#endif
 
-- (void)captureDevicesMenuBuilderElementsDidChange:(CaptureDevicesMenuBuilder *)captureDevicesMenuBuilder {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
-    });
-}
-
-#if TARGET_OS_TV
 - (void)continuityDevicePicker:(AVContinuityDevicePickerViewController *)pickerViewController didConnectDevice:(AVContinuityDevice *)device {
     NSLog(@"%@", device);
 }
