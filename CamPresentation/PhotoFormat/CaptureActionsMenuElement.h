@@ -14,7 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface CaptureActionsMenuElement : UIDeferredMenuElement
 + (instancetype)elementWithProvider:(void(^)(void(^completion)(NSArray<UIMenuElement *> *elements)))elementProvider NS_UNAVAILABLE;
 + (instancetype)elementWithUncachedProvider:(void(^)(void(^completion)(NSArray<UIMenuElement *> *elements)))elementProvider NS_UNAVAILABLE;
-+ (instancetype)elementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel completionHandler:(void (^ _Nullable)(PhotoFormatModel *photoFormatModel))completionHandler;
++ (instancetype)elementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel dismissalHandler:(void (^ _Nullable)())dismissalHandler completionHandler:(void (^ _Nullable)(PhotoFormatModel *photoFormatModel))completionHandler;
 @end
 
 NS_ASSUME_NONNULL_END

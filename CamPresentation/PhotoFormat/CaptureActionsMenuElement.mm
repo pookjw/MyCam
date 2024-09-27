@@ -24,10 +24,11 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (copy, nonatomic, readonly) PhotoFormatModel *photoFormatModel;
+@property (copy, nonatomic, readonly, nullable) void (^dismissalHandler)();
 @property (copy, nonatomic, readonly, nullable) void (^completionHandler)(PhotoFormatModel * _Nonnull);
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel completionHandler:(void (^ _Nullable)(PhotoFormatModel *photoFormatModel))completionHandler;
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel dismissalHandler:(void (^ _Nullable)())dismissalHandler completionHandler:(void (^ _Nullable)(PhotoFormatModel *photoFormatModel))completionHandler;
 @end
 
 @implementation _CaptureActionsMenuElementInternal
@@ -37,11 +38,12 @@
     return key;
 }
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel completionHandler:(void (^)(PhotoFormatModel * _Nonnull))completionHandler {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel dismissalHandler:(void (^ _Nullable)())dismissalHandler completionHandler:(void (^)(PhotoFormatModel * _Nonnull))completionHandler {
     if (self = [super init]) {
         _captureService = [captureService retain];
         _captureDevice = [captureDevice retain];
         _photoFormatModel = [photoFormatModel copy];
+        _dismissalHandler = [dismissalHandler copy];
         _completionHandler = [completionHandler copy];
         
         //
@@ -98,7 +100,9 @@
     [_captureService release];
     [_captureDevice release];
     [_photoFormatModel release];
+    [_dismissalHandler release];
     [_completionHandler release];
+    
     [super dealloc];
 }
 
@@ -215,36 +219,36 @@
             
             return;
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"isZeroShutterLagSupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"isResponsiveCaptureSupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"isAppleProRAWSupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"isFastCapturePrioritizationSupported"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         }
     } else if ([object isEqual:self.captureDevice]) {
         if ([keyPath isEqualToString:@"activeFormat"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"formats"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         } else if ([keyPath isEqualToString:@"torchAvailable"]) {
-            if (auto completionHandler = self.completionHandler) completionHandler(self.photoFormatModel);
+            if (auto dismissalHandler = self.dismissalHandler) dismissalHandler();
             return;
         }
     }
@@ -343,8 +347,8 @@
 
 @implementation CaptureActionsMenuElement
 
-+ (instancetype)elementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel completionHandler:(void (^)(PhotoFormatModel * _Nonnull))completionHandler {
-    _CaptureActionsMenuElementInternal *internal = [[_CaptureActionsMenuElementInternal alloc] initWithCaptureService:captureService captureDevice:captureDevice photoFormatModel:photoFormatModel completionHandler:completionHandler];
++ (instancetype)elementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel dismissalHandler:(void (^ _Nullable)())dismissalHandler completionHandler:(void (^)(PhotoFormatModel * _Nonnull))completionHandler {
+    _CaptureActionsMenuElementInternal *internal = [[_CaptureActionsMenuElementInternal alloc] initWithCaptureService:captureService captureDevice:captureDevice photoFormatModel:photoFormatModel dismissalHandler:dismissalHandler completionHandler:completionHandler];
     
     CaptureActionsMenuElement *result = static_cast<CaptureActionsMenuElement *>([UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         [internal menuElementsWithcompletionHandler:completion];

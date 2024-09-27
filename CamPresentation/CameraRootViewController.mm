@@ -339,7 +339,7 @@
                                                                                             deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
         abort();
     }
-                                                                                                 reloadHandler:^{
+                                                                                              reloadHandler:^{
         auto loaded = weakSelf;
         if (loaded == nil) return;
         
@@ -516,6 +516,9 @@
         CaptureActionsMenuElement *element = [CaptureActionsMenuElement elementWithCaptureService:self.captureService
                                                                                     captureDevice:captureDevice
                                                                                  photoFormatModel:loaded.photoFormatModel
+                                                                                 dismissalHandler:^{
+            [interaction dismissMenu];
+        } 
                                                                                 completionHandler:^(PhotoFormatModel * _Nonnull photoFormatModel) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 auto loaded = weakSelf;
