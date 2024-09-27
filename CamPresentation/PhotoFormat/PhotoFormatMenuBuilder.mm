@@ -74,6 +74,8 @@
     
     [_captureService release];
     [_photoFormatModel release];
+    [_needsReloadHandler release];
+    
     [super dealloc];
 }
 

@@ -480,7 +480,30 @@
 }
 
 - (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
+    auto previewLayer = static_cast<AVCaptureVideoPreviewLayer *>(interaction.view.layer);
+    
+    if (![previewLayer isKindOfClass:AVCaptureVideoPreviewLayer.class]) return nil;
+    
+    AVCaptureVideoPreviewLayerInternal *_internal;
+    assert(object_getInstanceVariable(previewLayer, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+    
+    AVCaptureConnection *connection;
+    assert(object_getInstanceVariable(_internal, "connection", reinterpret_cast<void **>(&connection)));
+    
+    AVCaptureDeviceInput * _Nullable deviceInput = nil;;
+    for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+        if ([inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) {
+            deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            break;
+        }
+    }
+    
+    if (deviceInput == nil) return nil;
+    
+    AVCaptureDevice *captureDevice = deviceInput.device;
     __weak auto weakSelf = self;
+    
+    //
     
     UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
                                                                                         previewProvider:^UIViewController * _Nullable{
@@ -490,10 +513,22 @@
         auto loaded = weakSelf;
         if (loaded == nil) return nil;
         
-        CaptureActionsMenuElement *element = [CaptureActionsMenuElement elementWithCaptureService:loaded.captureService
+        CaptureActionsMenuElement *element = [CaptureActionsMenuElement elementWithCaptureService:self.captureService
+                                                                                    captureDevice:captureDevice
                                                                                  photoFormatModel:loaded.photoFormatModel
-                                                                                    reloadHandler:^(PhotoFormatModel * _Nonnull photoFormatModel) {
-            
+                                                                                completionHandler:^(PhotoFormatModel * _Nonnull photoFormatModel) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                auto loaded = weakSelf;
+                if (loaded == nil) return;
+                
+                __kindof UIScene * _Nullable scene = loaded.view.window.windowScene;
+                if (scene != nil) {
+                    NSDictionary<NSString *, id> *_registeredComponents;
+                    assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
+                    id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
+                    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
+                }
+            });
         }];
         
         UIMenu *menu = [UIMenu menuWithChildren:@[element]];
