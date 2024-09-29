@@ -13,14 +13,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 CP_EXTERN NSNotificationName const CaptureServiceDidAddDeviceNotificationName;
 CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName;
+CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;
 
-CP_EXTERN NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName;
-CP_EXTERN NSString * const CaptureServiceRecordingKey;
-
+#warning Device 분기
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 
+#warning Device 분기
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName;
 CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 

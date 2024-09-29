@@ -108,7 +108,6 @@
         }];
         
         action.cp_overrideNumberOfTitleLines = @(0);
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [formatActions addObject:action];
@@ -147,7 +146,6 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = ((selectedMaxPhotoDimensions.width == maxPhotoDimensions.width) && (selectedMaxPhotoDimensions.height == maxPhotoDimensions.height)) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [actions addObject:action];
@@ -203,7 +201,6 @@
         
         [string release];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [photoFormatModel.photoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [photoPixelFormatTypeActions addObject:action];
@@ -260,7 +257,6 @@
         }];
         
         action.state = [photoFormatModel.codecType isEqualToString:photoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         
         [photoCodecTypeActions addObject:action];
     }
@@ -298,7 +294,6 @@
         }];
         
         action.state = (photoFormatModel.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         [qualityActions addObject:action];
     }
     
@@ -367,7 +362,6 @@
     }];
     
     action.state = photoFormatModel.isRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     
     return action;
 }
@@ -388,7 +382,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isAppleProRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -433,7 +426,6 @@
         
         [string release];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [photoFormatModel.rawPhotoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [rawPhotoPixelFormatTypeActions addObject:action];
@@ -487,7 +479,6 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [photoFormatModel.rawFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [rawFileTypeActions addObject:action];
@@ -521,7 +512,6 @@
             if (didChangeHandler) didChangeHandler();
         });
     }];
-    nullAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
     nullAction.state = (photoFormatModel.processedFileType == nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
     [availablePhotoFileTypeActions addObject:nullAction];
     
@@ -558,7 +548,6 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [photoFormatModel.processedFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
         [availablePhotoFileTypeActions addObject:action];
     }
@@ -594,7 +583,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isSpatialPhotoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -617,7 +605,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isAutoDeferredPhotoDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -640,7 +627,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isZeroShutterLagEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -663,7 +649,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isResponsiveCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -684,7 +669,6 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     action.state = isFastCapturePrioritizationEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
@@ -717,7 +701,6 @@
                 if (didChangeHandler) didChangeHandler();
             });
         }];
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
         return action;
     })
@@ -770,7 +753,6 @@
                 if (didChangeHandler) didChangeHandler();
             });
         }];
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = (selectedCaptureFlashMode == flashMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [actions addObject:action];
@@ -833,7 +815,6 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = (captureDevice.torchMode == torchMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         return action;
@@ -912,7 +893,6 @@
             }];
             
             formatAction.cp_overrideNumberOfTitleLines = @(0);
-            formatAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
             formatAction.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
             
             [formatActions addObject:formatAction];

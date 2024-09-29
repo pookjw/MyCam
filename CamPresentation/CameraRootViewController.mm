@@ -434,6 +434,11 @@
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                              object:captureService];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didReceiveReloadingPhotoFormatMenuNeededNotification:)
+                                               name:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName
+                                             object:captureService];
+    
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
@@ -467,8 +472,41 @@
     });
 }
 
-- (void)didRemoveDeviceNotification:(NSNotification *)notification {
+- (void)didReceiveReloadingPhotoFormatMenuNeededNotification:(NSNotification *)notification {
+    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+    if (captureDevice == nil) return;
     
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        NSArray<AVCaptureVideoPreviewLayer *> *captureVideoPreviewLayers = [captureService queue_captureVideoPreviewLayersWithCaptureDevice:captureDevice];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            for (AVCaptureVideoPreviewLayer *captureVideoPreviewLayer in captureVideoPreviewLayers) {
+                for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
+                    if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) {
+                        continue;
+                    }
+                    
+                    if (![captureVideoPreviewView.captureVideoPreviewLayer isEqual:captureVideoPreviewLayer]) {
+                        continue;
+                    }
+                    
+                    for (UIContextMenuInteraction *interaction in captureVideoPreviewView.interactions) {
+                        if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
+                            continue;
+                        }
+                        
+                        [interaction dismissMenu];
+                    }
+                }
+            }
+        });
+    });
+}
+
+- (void)didRemoveDeviceNotification:(NSNotification *)notification {
+#warning TODO
 }
 
 - (CaptureVideoPreviewView *)newCaptureVideoPreviewView {
