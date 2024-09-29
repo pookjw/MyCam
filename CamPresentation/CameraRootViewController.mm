@@ -405,7 +405,10 @@
                             continue;
                         }
                         
-                        [interaction dismissMenu];
+                        if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
+                            [interaction dismissMenu];
+                            reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
+                        }
                     }
                 }
             }
@@ -481,7 +484,10 @@
         if (loaded == nil) return nil;
         
         UIDeferredMenuElement *element = [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:loaded.captureService captureDevice:captureDevice didChangeHandler:^{
-            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [interaction dismissMenu];
+                reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
+            });
         }];
         
         UIMenu *menu = [UIMenu menuWithChildren:@[element]];
