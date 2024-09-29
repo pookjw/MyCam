@@ -17,7 +17,6 @@
 #include <ranges>
 
 // TODO: Spatial Over Capture
-// TODO: Reload with KVO
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 

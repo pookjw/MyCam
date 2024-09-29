@@ -641,6 +641,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
+#warning TODO
     NSLog(@"Disconnected!");
 }
 

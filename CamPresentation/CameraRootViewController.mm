@@ -14,7 +14,6 @@
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
-#import <CamPresentation/PhotoFormatMenuBuilder.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <AVFoundation/AVFoundation.h>
@@ -38,12 +37,10 @@
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
-@property (retain, nonatomic, readonly) UIBarButtonItem *formatBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
-@property (retain, nonatomic, nullable) PhotoFormatMenuBuilder *photoFormatMenuBuilder;
 @end
 
 @implementation CameraRootViewController
@@ -53,7 +50,6 @@
 #if TARGET_OS_TV
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
-@synthesize formatBarButtonItem = _formatBarButtonItem;
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
 @synthesize captureService = _captureService;
@@ -97,7 +93,6 @@
 #if TARGET_OS_TV
     [_continuityDevicePickerBarButtonItem release];
 #endif
-    [_formatBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
     
@@ -106,7 +101,6 @@
         [captureService release];
     }
     [_photoFormatModel release];
-    [_photoFormatMenuBuilder release];
     [super dealloc];
 }
 
@@ -136,20 +130,14 @@
 #if TARGET_OS_IOS
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuBuilder.photoFormatModel;
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                [captureService queue_startPhotoCaptureWithPhotoModel:photoFormatModel];
-            });
+#warning TODO
+            abort();
         }
     }
                                                                                                   secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-            PhotoFormatModel *photoFormatModel = weakSelf.photoFormatMenuBuilder.photoFormatModel;
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                [captureService queue_startPhotoCaptureWithPhotoModel:photoFormatModel];
-            });
+#warning TODO
+            abort();
         }
     }];
     
@@ -179,9 +167,6 @@
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
         self.reactionProgressBarButtonItem
-    ];
-    navigationItem.rightBarButtonItems = @[
-        self.formatBarButtonItem
     ];
 #endif
     
@@ -227,51 +212,6 @@
     [alertController addAction:doneAction];
     
     [self presentViewController:alertController animated:YES completion:nil];
-}
-
-- (NSUserActivity *)stateRestorationActivity {
-    auto userActivityTypes = static_cast<NSArray<NSString *> *>(NSBundle.mainBundle.infoDictionary[@"NSUserActivityTypes"]);
-    if (userActivityTypes == nil) return nil;
-    if (![userActivityTypes containsObject:@"com.pookjw.MyCam.CameraRootViewController"]) return nil;
-    
-    PhotoFormatModel * _Nullable photoFormatModel = self.photoFormatMenuBuilder.photoFormatModel;
-    
-    if (photoFormatModel == nil) return nil;
-    
-    NSUserActivity *userActivity = [[NSUserActivity alloc] initWithActivityType:@"com.pookjw.MyCam.CameraRootViewController"];
-    
-    NSKeyedArchiver *keyedArchiver = [[NSKeyedArchiver alloc] initRequiringSecureCoding:YES];
-    keyedArchiver.outputFormat = NSPropertyListBinaryFormat_v1_0;
-    [photoFormatModel encodeWithCoder:keyedArchiver];
-    
-    [keyedArchiver finishEncoding];
-    
-    [userActivity addUserInfoEntriesFromDictionary:@{
-        @"photoFormatModelData": keyedArchiver.encodedData
-    }];
-    
-    [keyedArchiver release];
-    
-    return [userActivity autorelease];
-}
-
-- (void)restoreStateWithUserActivity:(NSUserActivity *)userActivity {
-    if (self.photoFormatModel != nil) return;
-    
-    if (![userActivity.activityType isEqualToString:@"com.pookjw.MyCam.CameraRootViewController"]) return;
-    
-    NSData * _Nullable photoFormatModelData = userActivity.userInfo[@"photoFormatModelData"];
-    if (photoFormatModelData == nil) return;
-    
-    NSError * _Nullable error = nil;
-    NSKeyedUnarchiver *keyedUnarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:photoFormatModelData error:&error];
-    assert(error == nil);
-    
-    PhotoFormatModel *photoFormatModel = [[PhotoFormatModel alloc] initWithCoder:keyedUnarchiver];
-    [keyedUnarchiver release];
-    
-    self.photoFormatModel = photoFormatModel;
-    [photoFormatModel release];
 }
 
 - (UIStackView *)stackView {
@@ -376,32 +316,6 @@
     return [captureDevicesBarButtonItem autorelease];
 }
 
-- (UIBarButtonItem *)formatBarButtonItem {
-    if (auto formatBarButtonItem = _formatBarButtonItem) return formatBarButtonItem;
-    
-    __weak auto weakSelf = self;
-    
-    //
-    
-    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        assert(weakSelf.photoFormatMenuBuilder != nil);
-        [weakSelf.photoFormatMenuBuilder menuElementsWithCompletionHandler:^(NSArray<__kindof UIMenuElement *> * _Nonnull menuElements) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(menuElements);
-            });
-        }];
-    }];
-    
-    //
-    
-    UIMenu *menu = [UIMenu menuWithChildren:@[element]];
-    
-    UIBarButtonItem *formatBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Format" menu:menu];
-    
-    _formatBarButtonItem = [formatBarButtonItem retain];
-    return [formatBarButtonItem autorelease];
-}
-
 - (UIActivityIndicatorView *)reactionProgressActivityIndicatorView {
     if (auto reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView) return reactionProgressActivityIndicatorView;
     
@@ -447,12 +361,6 @@
 
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
     
-}
-
-- (void)didTriggerCaptureButton:(UIButton *)sender {
-    dispatch_async(self.captureService.captureSessionQueue, ^{
-        [self.captureService queue_startPhotoCaptureWithPhotoModel:self.photoFormatMenuBuilder.photoFormatModel];
-    });
 }
 
 - (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {

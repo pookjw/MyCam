@@ -36,10 +36,6 @@
     UINavigationController *navigationController = [UINavigationController new];
     CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
     
-    if (NSUserActivity * _Nullable stateRestorationActivity = session.stateRestorationActivity) {
-        [cameraRootViewController restoreStateWithUserActivity:stateRestorationActivity];
-    }
-    
     [self requestAuthorizationsWithCompletionHandler:^(BOOL granted) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (granted) {
@@ -82,16 +78,6 @@
     self.window = window;
     [window makeKeyAndVisible];
     [window release];
-}
-
-- (NSUserActivity *)stateRestorationActivityForScene:(UIScene *)scene {
-    auto navigationController = static_cast<UINavigationController *>(self.window.rootViewController);
-    if (![navigationController isKindOfClass:UINavigationController.class]) return nil;
-    
-    auto cameraRootViewController = static_cast<CameraRootViewController *>(navigationController.topViewController);
-    if (![cameraRootViewController isKindOfClass:CameraRootViewController.class]) return nil;
-    
-    return cameraRootViewController.stateRestorationActivity;
 }
 
 - (void)requestAuthorizationsWithCompletionHandler:(void (^ _Nullable)(BOOL granted))completionHandler {
