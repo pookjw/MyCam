@@ -15,8 +15,8 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/PhotoFormatMenuBuilder.h>
-#import <CamPresentation/CaptureActionsMenuElement.h>
-#import <CamPresentation/CaptureDevicesMenuElement.h>
+#import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
+#import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -100,10 +100,27 @@
     [_formatBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
-    [_captureService release];
+    
+    if (auto captureService = _captureService) {
+        [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
+        [captureService release];
+    }
     [_photoFormatModel release];
     [_photoFormatMenuBuilder release];
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
+        if ([keyPath isEqualToString:@"devices"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+            });
+            return;
+        }
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)loadView {
@@ -194,22 +211,6 @@
         }
         
         [self.captureService.captureSession startRunning];
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-//            PhotoFormatMenuBuilder *photoFormatMenuService = [[PhotoFormatMenuBuilder alloc] initWithPhotoFormatModel:self.photoFormatModel captureService:self.captureService captureDevice:captureDevice needsReloadHandler:^{
-//                dispatch_async(dispatch_get_main_queue(), ^{
-//                    reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(weakSelf.formatBarButtonItem, sel_registerName("_updateMenuInPlace"));
-//                    
-//                    __kindof UIScene * _Nullable scene = weakSelf.view.window.windowScene;
-//                    if (scene != nil) {
-//                        NSDictionary<NSString *, id> *_registeredComponents;
-//                        assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
-//                        id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
-//                        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
-//                    }
-//                });
-//            }];
-        });
     });
     
     [previewLayer release];
@@ -229,9 +230,6 @@
 }
 
 - (NSUserActivity *)stateRestorationActivity {
-#if TARGET_OS_VISION
-    return nil;
-#else
     auto userActivityTypes = static_cast<NSArray<NSString *> *>(NSBundle.mainBundle.infoDictionary[@"NSUserActivityTypes"]);
     if (userActivityTypes == nil) return nil;
     if (![userActivityTypes containsObject:@"com.pookjw.MyCam.CameraRootViewController"]) return nil;
@@ -255,7 +253,6 @@
     [keyedArchiver release];
     
     return [userActivity autorelease];
-#endif
 }
 
 - (void)restoreStateWithUserActivity:(NSUserActivity *)userActivity {
@@ -317,7 +314,7 @@
     
     __weak auto weakSelf = self;
     
-    CaptureDevicesMenuElement *captureDevicesMenuElement = [CaptureDevicesMenuElement elementWithCaptureDevice:self.captureService
+    UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
                                                                                               selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
         dispatch_async(dispatch_get_main_queue(), ^{
             auto loaded = weakSelf;
@@ -337,13 +334,35 @@
         });
     }
                                                                                             deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        abort();
-    }
-                                                                                              reloadHandler:^{
         auto loaded = weakSelf;
         if (loaded == nil) return;
         
-        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(loaded->_captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+        CaptureService *captureService = loaded.captureService;
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSArray<AVCaptureVideoPreviewLayer *> *captureVideoPreviewLayers = [captureService queue_captureVideoPreviewLayersWithCaptureDevice:captureDevice];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSMutableArray<CaptureVideoPreviewView *> *removingViews = [NSMutableArray new];
+                
+                for (CaptureVideoPreviewView *previewView in loaded.stackView.arrangedSubviews) {
+                    if (![previewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
+                    if ([captureVideoPreviewLayers containsObject:previewView.captureVideoPreviewLayer]) {
+                        [removingViews addObject:previewView];
+                    }
+                }
+                
+                for (CaptureVideoPreviewView *previewView in removingViews) {
+                    [previewView removeFromSuperview];
+                }
+                
+                [removingViews release];
+                [loaded.stackView updateConstraintsIfNeeded];
+                
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    [captureService queue_removeCaptureDevice:captureDevice];
+                });
+            });
+        });
     }];
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
@@ -414,6 +433,8 @@
                                            selector:@selector(didChangeReactionEffectsInProgressNotification:)
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                              object:captureService];
+    
+    [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
@@ -513,25 +534,8 @@
         auto loaded = weakSelf;
         if (loaded == nil) return nil;
         
-        CaptureActionsMenuElement *element = [CaptureActionsMenuElement elementWithCaptureService:self.captureService
-                                                                                    captureDevice:captureDevice
-                                                                                 photoFormatModel:loaded.photoFormatModel
-                                                                                 dismissalHandler:^{
-            [interaction dismissMenu];
-        } 
-                                                                                completionHandler:^(PhotoFormatModel * _Nonnull photoFormatModel) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                auto loaded = weakSelf;
-                if (loaded == nil) return;
-                
-                __kindof UIScene * _Nullable scene = loaded.view.window.windowScene;
-                if (scene != nil) {
-                    NSDictionary<NSString *, id> *_registeredComponents;
-                    assert(object_getInstanceVariable(scene, "_registeredComponents", reinterpret_cast<void **>(&_registeredComponents)) != nullptr);
-                    id userActivitySceneComponentKey = _registeredComponents[@"UIUserActivitySceneComponentKey"];
-                    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(userActivitySceneComponentKey, sel_registerName("_saveSceneRestorationState"));
-                }
-            });
+        UIDeferredMenuElement *element = [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:loaded.captureService captureDevice:captureDevice didChangeHandler:^{
+            
         }];
         
         UIMenu *menu = [UIMenu menuWithChildren:@[element]];

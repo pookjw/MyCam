@@ -16,6 +16,7 @@
 - (instancetype)init {
     if (self = [super init]) {
         _quality = 1.f;
+        _photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
     }
     
     return self;
@@ -104,6 +105,124 @@
     _processedFileType.hash ^
     _photoQualityPrioritization ^
     _flashMode;
+}
+
+- (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<NSNumber *> *photoPixelFormatTypes;
+    if (self.processedFileType == nil) {
+        photoPixelFormatTypes = photoOutput.availablePhotoPixelFormatTypes;
+    } else {
+        photoPixelFormatTypes = [photoOutput supportedPhotoPixelFormatTypesForFileType:self.processedFileType];
+    }
+    
+    BOOL shouldUpdate;
+    if (self.photoPixelFormatType == nil) {
+        if (self.codecType == nil) {
+            shouldUpdate = YES;
+        } else {
+            shouldUpdate = NO;
+        }
+    } else if (![photoPixelFormatTypes containsObject:self.photoPixelFormatType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.photoPixelFormatType = photoPixelFormatTypes.lastObject;
+    }
+    
+    return shouldUpdate;
+}
+
+- (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<AVVideoCodecType> *photoCodecTypes;
+    if (self.processedFileType == nil) {
+        photoCodecTypes = photoOutput.availablePhotoCodecTypes;
+    } else {
+        photoCodecTypes = [photoOutput supportedPhotoCodecTypesForFileType:self.processedFileType];
+    }
+    
+    BOOL shouldUpdate;
+    if (self.codecType == nil) {
+        if (self.photoPixelFormatType == nil) {
+            shouldUpdate = YES;
+        } else {
+            shouldUpdate = NO;
+        }
+    } else if (![photoCodecTypes containsObject:self.codecType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.codecType = photoCodecTypes.lastObject;
+    }
+    
+    return shouldUpdate;
+}
+
+- (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<NSNumber *> *rawPhotoPixelFormatTypes;
+    if (self.processedFileType == nil) {
+        rawPhotoPixelFormatTypes = photoOutput.availableRawPhotoPixelFormatTypes;
+    } else {
+        rawPhotoPixelFormatTypes = [photoOutput supportedRawPhotoPixelFormatTypesForFileType:self.processedFileType];
+    }
+    
+    BOOL shouldUpdate;
+    if (self.rawPhotoPixelFormatType == nil) {
+        shouldUpdate = YES;
+    } else if (![rawPhotoPixelFormatTypes containsObject:self.rawPhotoPixelFormatType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.rawPhotoPixelFormatType = rawPhotoPixelFormatTypes.lastObject;
+    }
+    
+    return shouldUpdate;
+}
+
+- (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<AVFileType> *availableRawPhotoFileTypes = photoOutput.availableRawPhotoFileTypes;
+    
+    BOOL shouldUpdate;
+    if (self.rawFileType == nil) {
+        shouldUpdate = YES;
+    } else if (![availableRawPhotoFileTypes containsObject:self.rawFileType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.rawFileType = availableRawPhotoFileTypes.lastObject;
+    }
+    
+    return shouldUpdate;
+}
+
+- (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<AVFileType> *availablePhotoFileTypes = photoOutput.availablePhotoFileTypes;
+    
+    BOOL shouldUpdate;
+    if (self.processedFileType == nil) {
+        shouldUpdate = YES;
+    } else if (![availablePhotoFileTypes containsObject:self.processedFileType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.processedFileType = nil;
+    }
+    
+    return shouldUpdate;
 }
 
 @end

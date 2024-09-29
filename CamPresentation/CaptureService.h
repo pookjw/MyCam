@@ -8,7 +8,6 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/Extern.h>
-#import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -33,16 +32,15 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
-#if TARGET_OS_VISION
-@property (retain, nonatomic, readonly) id capturePhotoOutput;
-@property (retain, nonatomic, readonly) id captureMovieFileOutput;
-#else
-@property (retain, nonatomic, readonly) AVCapturePhotoOutput *capturePhotoOutput;
-@property (retain, nonatomic, readonly) AVCaptureMovieFileOutput *captureMovieFileOutput;
-#endif
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice captureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
+- (NSArray<AVCaptureVideoPreviewLayer *> *)queue_captureVideoPreviewLayersWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
+
+- (PhotoFormatModel * _Nullable)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_setPhotoFormatModel:(PhotoFormatModel * _Nullable)photoFormatModel forCaptureDevice:(AVCaptureDevice *)captureDevice;
+
+- (AVCapturePhotoOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
 @end

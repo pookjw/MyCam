@@ -106,9 +106,7 @@
                                          SceneDelegate.didChangeAuthorizationKey,
                                          ^(CLLocationManager *locationManager) {
                     switch (locationManager.authorizationStatus) {
-#if !TARGET_OS_VISION
                         case kCLAuthorizationStatusAuthorizedAlways:
-#endif
                         case kCLAuthorizationStatusAuthorizedWhenInUse:
                             completionHandler(YES);
                             break;
@@ -121,9 +119,7 @@
                 
                 [locationManager requestWhenInUseAuthorization];
                 break;
-#if !TARGET_OS_VISION
             case kCLAuthorizationStatusAuthorizedAlways:
-#endif
             case kCLAuthorizationStatusAuthorizedWhenInUse:
                 completionHandler(YES);
                 break;
@@ -142,8 +138,7 @@
                     switch (status) {
                         case PHAuthorizationStatusAuthorized:
                         case PHAuthorizationStatusLimited:
-//                            requestLocationAuthorization();
-                            completionHandler(YES);
+                            requestLocationAuthorization();
                             break;
                         default:
                             completionHandler(NO);

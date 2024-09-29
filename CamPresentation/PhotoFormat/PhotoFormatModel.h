@@ -21,6 +21,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (assign) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
 @property (assign) AVCaptureFlashMode flashMode;
+
+- (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+- (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+- (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+- (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+- (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 @end
 
 NS_ASSUME_NONNULL_END
