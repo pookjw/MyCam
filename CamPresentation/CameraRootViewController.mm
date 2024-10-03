@@ -97,6 +97,7 @@
     [_reactionProgressBarButtonItem release];
     
     if (auto captureService = _captureService) {
+        [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
         [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
         [captureService release];
     }
@@ -105,7 +106,16 @@
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
+    if ([object isEqual:self.captureService]) {
+        __kindof AVCaptureSession *captureSession = change[NSKeyValueChangeNewKey];
+        NSString *string = NSStringFromClass(captureSession.class);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.title = string;
+        });
+        
+        return;
+    } else if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"devices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -169,13 +179,6 @@
         self.reactionProgressBarButtonItem
     ];
 #endif
-    
-    //
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didRemoveDeviceNotification:)
-                                               name:CaptureServiceDidRemoveDeviceNotificationName
-                                             object:captureService];
     
     //
     
@@ -292,6 +295,16 @@
     CaptureService *captureService = [CaptureService new];
     
     [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didAddDeviceNotification:)
+                                               name:CaptureServiceDidAddDeviceNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didRemoveDeviceNotification:)
+                                               name:CaptureServiceDidRemoveDeviceNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeReactionEffectsInProgressNotification:)
                                                name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                              object:captureService];
@@ -306,6 +319,7 @@
                                                name:CaptureServiceDidUpdatePreviewLayersNotificationName
                                              object:captureService];
     
+    [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
@@ -313,7 +327,19 @@
 }
 
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
-    
+    NSLog(@"TODO");
+}
+
+- (void)didAddDeviceNotification:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+    });
+}
+
+- (void)didRemoveDeviceNotification:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
+    });
 }
 
 - (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
@@ -365,10 +391,6 @@
             }
         });
     });
-}
-
-- (void)didRemoveDeviceNotification:(NSNotification *)notification {
-#warning TODO
 }
 
 - (void)didUpdatePreviewLayersNotification:(NSNotification *)notification {
