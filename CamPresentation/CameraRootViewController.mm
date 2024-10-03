@@ -179,26 +179,18 @@
     
     //
     
-    AVCaptureDevice * _Nullable defaultCaptureDevice = captureService.defaultCaptureDevice;
-    AVCaptureVideoPreviewLayer * _Nullable previewLayer;
-    if (defaultCaptureDevice != nil) {
+    if (AVCaptureDevice *defaultCaptureDevice = captureService.defaultCaptureDevice) {
         CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewView];
         [self.stackView addArrangedSubview:previewView];
-        previewLayer = [previewView.captureVideoPreviewLayer retain];
-        [previewView release];
-    } else {
-        previewLayer = nil;
-    }
-    
-    dispatch_async(captureService.captureSessionQueue, ^{
-        if (defaultCaptureDevice != nil) {
-            [captureService queue_addCapureDevice:defaultCaptureDevice captureVideoPreviewLayer:previewLayer];
-        }
+        AVCaptureVideoPreviewLayer *previewLayer = previewView.captureVideoPreviewLayer;
         
-        [self.captureService.captureSession startRunning];
-    });
-    
-    [previewLayer release];
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_addCapureDevice:defaultCaptureDevice captureVideoPreviewLayer:previewLayer];
+            [self.captureService.queue_captureSession startRunning];
+        });
+        
+        [previewView release];
+    }
 }
 
 - (void)didReceiveMemoryWarning {
