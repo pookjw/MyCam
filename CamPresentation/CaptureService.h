@@ -16,6 +16,8 @@ CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName
 CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;
 
+CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName;
+
 #warning Device 분기
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
@@ -30,11 +32,13 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
+
+#warning setter/getter로 따로 만들어야함
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
 
-- (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice captureVideoPreviewLayer:(AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer;
-- (NSArray<AVCaptureVideoPreviewLayer *> *)queue_captureVideoPreviewLayersWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (PhotoFormatModel * _Nullable)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice;

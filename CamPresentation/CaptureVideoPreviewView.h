@@ -11,7 +11,12 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface CaptureVideoPreviewView : UIView
-@property (nonatomic, readonly) AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
+@property (retain, nonatomic, readonly) AVCaptureVideoPreviewLayer *previewLayer;
++ (instancetype)new NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
 @end
 
 NS_ASSUME_NONNULL_END

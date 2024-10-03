@@ -179,18 +179,13 @@
     
     //
     
-    if (AVCaptureDevice *defaultCaptureDevice = captureService.defaultCaptureDevice) {
-        CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewView];
-        [self.stackView addArrangedSubview:previewView];
-        AVCaptureVideoPreviewLayer *previewLayer = previewView.captureVideoPreviewLayer;
-        
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_addCapureDevice:defaultCaptureDevice captureVideoPreviewLayer:previewLayer];
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        if (AVCaptureDevice *defaultCaptureDevice = captureService.defaultCaptureDevice) {
+            [captureService queue_addCapureDevice:defaultCaptureDevice];
             [self.captureService.queue_captureSession startRunning];
-        });
-        
-        [previewView release];
-    }
+        }
+    });
 }
 
 - (void)didReceiveMemoryWarning {
@@ -244,56 +239,17 @@
 - (UIBarButtonItem *)captureDevicesBarButtonItem {
     if (auto captureDevicesBarButtonItem = _captureDevicesBarButtonItem) return captureDevicesBarButtonItem;
     
-    __weak auto weakSelf = self;
+    CaptureService *captureService = self.captureService;
     
     UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
-                                                                                              selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            auto loaded = weakSelf;
-            if (loaded == nil) return;
-            
-            CaptureService *captureService = loaded.captureService;
-            CaptureVideoPreviewView *captureVideoPreviewView = [loaded newCaptureVideoPreviewView];
-            [loaded.stackView addArrangedSubview:captureVideoPreviewView];
-            AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [captureVideoPreviewView.captureVideoPreviewLayer retain];
-            [captureVideoPreviewView release];
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                [captureService queue_addCapureDevice:captureDevice captureVideoPreviewLayer:captureVideoPreviewLayer];
-            });
-            
-            [captureVideoPreviewLayer release];
+                                                                                                        selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_addCapureDevice:captureDevice];
         });
     }
                                                                                             deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        auto loaded = weakSelf;
-        if (loaded == nil) return;
-        
-        CaptureService *captureService = loaded.captureService;
         dispatch_async(captureService.captureSessionQueue, ^{
-            NSArray<AVCaptureVideoPreviewLayer *> *captureVideoPreviewLayers = [captureService queue_captureVideoPreviewLayersWithCaptureDevice:captureDevice];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSMutableArray<CaptureVideoPreviewView *> *removingViews = [NSMutableArray new];
-                
-                for (CaptureVideoPreviewView *previewView in loaded.stackView.arrangedSubviews) {
-                    if (![previewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
-                    if ([captureVideoPreviewLayers containsObject:previewView.captureVideoPreviewLayer]) {
-                        [removingViews addObject:previewView];
-                    }
-                }
-                
-                for (CaptureVideoPreviewView *previewView in removingViews) {
-                    [previewView removeFromSuperview];
-                }
-                
-                [removingViews release];
-                [loaded.stackView updateConstraintsIfNeeded];
-                
-                dispatch_async(captureService.captureSessionQueue, ^{
-                    [captureService queue_removeCaptureDevice:captureDevice];
-                });
-            });
+            [captureService queue_removeCaptureDevice:captureDevice];
         });
     }];
     
@@ -345,6 +301,11 @@
                                                name:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName
                                              object:captureService];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didUpdatePreviewLayersNotification:)
+                                               name:CaptureServiceDidUpdatePreviewLayersNotificationName
+                                             object:captureService];
+    
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
@@ -379,28 +340,26 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        NSArray<AVCaptureVideoPreviewLayer *> *captureVideoPreviewLayers = [captureService queue_captureVideoPreviewLayersWithCaptureDevice:captureDevice];
+        AVCaptureVideoPreviewLayer *previewLayer = [captureService.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            for (AVCaptureVideoPreviewLayer *captureVideoPreviewLayer in captureVideoPreviewLayers) {
-                for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
-                    if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) {
+            for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
+                if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) {
+                    continue;
+                }
+                
+                if (![captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
+                    continue;
+                }
+                
+                for (UIContextMenuInteraction *interaction in captureVideoPreviewView.interactions) {
+                    if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
                         continue;
                     }
                     
-                    if (![captureVideoPreviewView.captureVideoPreviewLayer isEqual:captureVideoPreviewLayer]) {
-                        continue;
-                    }
-                    
-                    for (UIContextMenuInteraction *interaction in captureVideoPreviewView.interactions) {
-                        if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
-                            continue;
-                        }
-                        
-                        if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
-                            [interaction dismissMenu];
-                            reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
-                        }
+                    if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
+                        [interaction dismissMenu];
+                        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
                     }
                 }
             }
@@ -412,8 +371,48 @@
 #warning TODO
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewView {
-    CaptureVideoPreviewView *captureVideoPreviewView = [CaptureVideoPreviewView new];
+- (void)didUpdatePreviewLayersNotification:(NSNotification *)notification {
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        NSMutableArray<AVCaptureVideoPreviewLayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:captureService.queue_previewLayersByCaptureDevice.count];
+        
+        for (AVCaptureVideoPreviewLayer *previewLayer in captureService.queue_previewLayersByCaptureDevice.objectEnumerator) {
+            [previewLayers addObject:previewLayer];
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIStackView *stackView = self.stackView;
+            
+            for (CaptureVideoPreviewView *captureVideoPreviewView in stackView.arrangedSubviews) {
+                if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
+                
+                NSInteger index = [previewLayers indexOfObject:captureVideoPreviewView.previewLayer];
+                
+                if (index == NSNotFound) {
+                    // 삭제된 Layer - View 제거
+                    [captureVideoPreviewView removeFromSuperview];
+                } else {
+                    // 이미 존재하는 Layer
+                    [previewLayers removeObjectAtIndex:index];
+                }
+            }
+            
+            for (AVCaptureVideoPreviewLayer *previewLayer in previewLayers) {
+                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer];
+                [stackView addArrangedSubview:previewView];
+                [previewView release];
+            }
+            
+            [stackView updateConstraintsIfNeeded];
+        });
+        
+        [previewLayers release];
+    });
+}
+
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer];
 
     UIContextMenuInteraction *contextMenuInteraction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
     [captureVideoPreviewView addInteraction:contextMenuInteraction];
@@ -423,7 +422,7 @@
     [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];
     [tapGestureRecogninzer release];
     
-    AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = captureVideoPreviewView.captureVideoPreviewLayer;
+    AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = captureVideoPreviewView.previewLayer;
     captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
     
     return captureVideoPreviewView;
@@ -442,9 +441,10 @@
 }
 
 - (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
-    auto previewLayer = static_cast<AVCaptureVideoPreviewLayer *>(interaction.view.layer);
+    auto previewView = static_cast<CaptureVideoPreviewView *>(interaction.view);
+    assert([previewView isKindOfClass:CaptureVideoPreviewView.class]);
     
-    if (![previewLayer isKindOfClass:AVCaptureVideoPreviewLayer.class]) return nil;
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     
     AVCaptureVideoPreviewLayerInternal *_internal;
     assert(object_getInstanceVariable(previewLayer, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);

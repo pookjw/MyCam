@@ -9,17 +9,28 @@
 #import <objc/runtime.h>
 
 @implementation CaptureVideoPreviewView
+@synthesize previewLayer = _previewLayer;
 
-+ (Class)layerClass {
-    return AVCaptureVideoPreviewLayer.class;
+- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+    if (self = [super init]) {
+        _previewLayer = [previewLayer retain];
+        
+        CALayer *layer = self.layer;
+        previewLayer.frame = layer.bounds;
+        [layer addSublayer:previewLayer];
+    }
+    
+    return self;
 }
 
 - (void)dealloc {
+    [_previewLayer release];
     [super dealloc];
 }
 
-- (AVCaptureVideoPreviewLayer *)captureVideoPreviewLayer {
-    return static_cast<AVCaptureVideoPreviewLayer *>(self.layer);
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.previewLayer.frame = self.layer.bounds;
 }
 
 @end
