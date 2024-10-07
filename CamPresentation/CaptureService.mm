@@ -135,6 +135,26 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [super dealloc];
 }
 
+- (BOOL)respondsToSelector:(SEL)aSelector {
+    BOOL responds = [super respondsToSelector:aSelector];
+    
+    if (!responds) {
+        NSLog(@"%@: %s", NSStringFromClass(self.class), sel_getName(aSelector));
+    }
+    
+    return responds;
+}
+
++ (BOOL)conformsToProtocol:(Protocol *)protocol {
+    BOOL confroms = [super conformsToProtocol:protocol];
+    
+    if (!confroms) {
+        NSLog(@"%@: %@", NSStringFromClass(self), NSStringFromProtocol(protocol));
+    }
+    
+    return confroms;
+}
+
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
         if ([keyPath isEqualToString:@"hardwareCost"]) {
@@ -406,12 +426,15 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [captureSession addInputWithNoConnections:newInput];
     
     AVCaptureInputPort *videoPort = nil;
+    AVCaptureInputPort *depthPort = nil;
     for (AVCaptureInputPort *inputPort in newInput.ports) {
-        if (inputPort.mediaType == AVMediaTypeVideo) {
+        if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
             videoPort = inputPort;
-            break;
+        } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
+            depthPort = inputPort;
         }
     }
+    assert(videoPort != nil);
     assert(videoPort != nil);
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoPort videoPreviewLayer:captureVideoPreviewLayer];
@@ -425,7 +448,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [self registerObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
-    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort] output:photoOutput];
+    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort, depthPort] output:photoOutput];
     [captureSession addConnection:photoOutputConnection];
     [photoOutputConnection release];
     
@@ -783,7 +806,14 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     if (isSpatialOverCaptureEnabled) {
         id momentCaptureSettings = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("AVMomentCaptureSettings"), sel_registerName("settingsWithPhotoSettings:"), capturePhotoSettings);
         
+        NSInteger uniqueID = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(momentCaptureSettings, sel_registerName("uniqueID"));
+        
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(capturePhotoOutput, sel_registerName("beginMomentCaptureWithSettings:delegate:"), momentCaptureSettings, self);
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(capturePhotoOutput, sel_registerName("commitMomentCaptureToPhotoWithUniqueID:"), uniqueID);
+            reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(capturePhotoOutput, sel_registerName("endMomentCaptureWithUniqueID:"), uniqueID);
+        });
     } else {
         [capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
     }
@@ -1035,13 +1065,16 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             assert(addedInput != nil);
             
             AVCaptureInputPort *videoPort = nil;
+            AVCaptureInputPort *depthPort = nil;
             for (AVCaptureInputPort *inputPort in addedInput.ports) {
-                if (inputPort.mediaType == AVMediaTypeVideo) {
+                if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
                     videoPort = inputPort;
-                    break;
+                } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
+                    depthPort = inputPort;
                 }
             }
             assert(videoPort != nil);
+            assert(depthPort != nil);
             
             AVCaptureConnection *newConnection;
             if (connection.videoPreviewLayer != nil) {
@@ -1065,7 +1098,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                 AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
                 assert(addedOutput != nil);
                 
-                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort] output:addedOutput];
+                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort, depthPort] output:addedOutput];
                 
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
                     auto addedPhotoOutput = static_cast<AVCapturePhotoOutput *>(addedOutput);
