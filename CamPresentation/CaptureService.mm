@@ -801,11 +801,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionWithClass:(Class)captureSessionClass postNotification:(BOOL)postNotification {
     dispatch_assert_queue(self.captureSessionQueue);
-#warning TODO
-//    assert(captureSessionClass == AVCaptureSession);
-    
-    //
-    
+    assert(captureSessionClass == AVCaptureSession.class || [captureSessionClass isSubclassOfClass:AVCaptureSession.class]);
     assert(self.queue_captureSession.class != captureSessionClass);
     
     //
