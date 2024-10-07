@@ -70,7 +70,8 @@
             NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
             NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.captureDeviceDiscoverySession.supportedMultiCamDeviceSets;
             
-            NSMutableArray<UIMenu *> *menuArray = [[NSMutableArray alloc] initWithCapacity:multiCamDeviceSets.count];
+            NSMutableArray<UIMenu *> *enabledMenuArray = [NSMutableArray new];
+            NSMutableArray<UIMenu *> *disabledMenuArray = [NSMutableArray new];
             
             for (NSSet<AVCaptureDevice *> *captureDevices in multiCamDeviceSets) {
                 BOOL isSubset = [[NSSet setWithArray:addedCaptureDevices] isSubsetOfSet:captureDevices];
@@ -117,14 +118,24 @@
                 
                 UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
                 [actions release];
-                [menuArray addObject:menu];
+                
+                if (isSubset) {
+                    [enabledMenuArray addObject:menu];
+                } else {
+                    [disabledMenuArray addObject:menu];
+                }
             }
             
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(menuArray);
-            });
+            assert(enabledMenuArray.count + disabledMenuArray.count == multiCamDeviceSets.count);
             
-            [menuArray release];
+            NSArray<UIMenu *> *allMenuArray = [enabledMenuArray arrayByAddingObjectsFromArray:disabledMenuArray];
+            
+            [enabledMenuArray release];
+            [disabledMenuArray release];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(allMenuArray);
+            });
         });
     }];
 }
