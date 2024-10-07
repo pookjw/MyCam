@@ -16,7 +16,7 @@
 #include <vector>
 #include <ranges>
 
-// TODO: Spatial Over Capture
+#warning Spatial Over Capture
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -280,7 +280,11 @@
     if (photoFormatModel.processedFileType == nil) {
         availablePhotoCodecTypes = photoOutput.availablePhotoCodecTypes;
     } else {
-        availablePhotoCodecTypes = [photoOutput supportedPhotoCodecTypesForFileType:photoFormatModel.processedFileType];
+        if (photoFormatModel.isRAWEnabled) {
+            availablePhotoCodecTypes = [photoOutput supportedRawPhotoCodecTypesForRawPhotoPixelFormatType:photoFormatModel.rawPhotoPixelFormatType.unsignedIntValue fileType:photoFormatModel.processedFileType];
+        } else {
+            availablePhotoCodecTypes = [photoOutput supportedPhotoCodecTypesForFileType:photoFormatModel.processedFileType];
+        }
     }
     
     NSMutableArray<UIAction *> *photoCodecTypeActions = [[NSMutableArray alloc] initWithCapacity:availablePhotoCodecTypes.count];
