@@ -7,6 +7,8 @@
 
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 
+#warning +[AVExternalStorageDevice requestAccessWithCompletionHandler:]
+
 @implementation UIDeferredMenuElement (FileOutputs)
 
 + (instancetype)cp_fileOutputsElementWithSelectionHandler:(void (^ _Nullable)(__kindof BaseFileOutput *fileOutput))selectionHandler {
