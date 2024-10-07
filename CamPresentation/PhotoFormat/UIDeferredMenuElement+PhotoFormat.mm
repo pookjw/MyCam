@@ -16,7 +16,7 @@
 #include <vector>
 #include <ranges>
 
-#warning Spatial Over Capture
+#warning Spatial Over Capture, AVSpatialOverCaptureVideoPreviewLayer
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -43,6 +43,12 @@
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoFileTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_rawMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_spatialOverCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+            
+            if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialOverCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
+                [elements addObject:action];
+            }
             
             if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
                 [elements addObject:action];
@@ -620,6 +626,59 @@
     return menu;
 }
 
++ (UIMenu *)_cp_queue_spatialOverCaptureSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    NSMutableArray<UIAction *> *actions = [NSMutableArray new];
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    
+    [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+        if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSpatialOverCaptureSupported"))) return;
+        
+        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.activeFormat = format;
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        action.cp_overrideNumberOfTitleLines = @(0);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Spatial Over Capture Formats" image:nil identifier:nil options:0 children:actions];
+    [actions release];
+    
+    return menu;
+}
+
++ (UIAction * _Nullable)_cp_queue_toggleSpatialOverCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureSupported"))) {
+        return nil;
+    }
+    
+    BOOL isSpatialOverCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Spatial Over Capture"
+                                           image:nil
+                                      identifier:nil
+                                         handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(photoOutput, sel_registerName("setSpatialOverCaptureEnabled:"), !isSpatialOverCaptureEnabled);
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.state = isSpatialOverCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
 + (UIAction * _Nullable)_cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialPhotoCaptureSupported"))) {
         return nil;
@@ -627,7 +686,7 @@
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialPhotoCaptureEnabled"));
     
-    UIAction *action = [UIAction actionWithTitle:@"Spatial (Not Working)"
+    UIAction *action = [UIAction actionWithTitle:@"Spatial Photo Capture"
                                            image:nil
                                       identifier:nil
                                          handler:^(__kindof UIAction * _Nonnull action) {
