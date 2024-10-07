@@ -37,6 +37,8 @@
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *captureProgressActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *captureProgressBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -50,6 +52,8 @@
 #if TARGET_OS_TV
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
+@synthesize captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView;
+@synthesize captureProgressBarButtonItem = _captureProgressBarButtonItem;
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
 @synthesize captureService = _captureService;
@@ -93,6 +97,8 @@
 #if TARGET_OS_TV
     [_continuityDevicePickerBarButtonItem release];
 #endif
+    [_captureProgressActivityIndicatorView release];
+    [_captureProgressBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
     
@@ -176,6 +182,7 @@
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
+        self.captureProgressBarButtonItem,
         self.reactionProgressBarButtonItem
     ];
 #endif
@@ -294,10 +301,32 @@
     return [captureDevicesBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)captureProgressActivityIndicatorView {
+    if (auto captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView) return captureProgressActivityIndicatorView;
+    
+    UIActivityIndicatorView *captureProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    captureProgressActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _captureProgressActivityIndicatorView = [captureProgressActivityIndicatorView retain];
+    return [captureProgressActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)captureProgressBarButtonItem {
+    if (auto captureProgressBarButtonItem = _captureProgressBarButtonItem) return captureProgressBarButtonItem;
+    
+    UIActivityIndicatorView *captureProgressActivityIndicatorView = self.captureProgressActivityIndicatorView;
+    UIBarButtonItem *captureProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:captureProgressActivityIndicatorView];
+    captureProgressBarButtonItem.hidden = YES;
+    captureProgressBarButtonItem.enabled = NO;
+    
+    _captureProgressBarButtonItem = [captureProgressBarButtonItem retain];
+    return [captureProgressBarButtonItem autorelease];
+}
+
 - (UIActivityIndicatorView *)reactionProgressActivityIndicatorView {
     if (auto reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView) return reactionProgressActivityIndicatorView;
     
-    UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     reactionProgressActivityIndicatorView.hidesWhenStopped = YES;
     
     _reactionProgressActivityIndicatorView = [reactionProgressActivityIndicatorView retain];
@@ -346,6 +375,11 @@
                                                name:CaptureServiceDidUpdatePreviewLayersNotificationName
                                              object:captureService];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didChangeCaptureReadinessNotification:)
+                                               name:CaptureServiceDidChangeCaptureReadinessNotificationName
+                                             object:captureService];
+    
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
@@ -370,19 +404,26 @@
 }
 
 - (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
-    auto reactionEffectsInProgress = static_cast<NSArray<AVCaptureReactionEffectState *> *>(notification.userInfo[CaptureServiceReactionEffectsInProgressKey]);
-    if (reactionEffectsInProgress == nil) return;
+    CaptureService *captureService = self.captureService;
     
-    BOOL hasReaction = reactionEffectsInProgress.count > 0;
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (hasReaction) {
-            [self.reactionProgressActivityIndicatorView startAnimating];
-            self.reactionProgressBarButtonItem.hidden = NO;
-        } else {
-            [self.reactionProgressActivityIndicatorView stopAnimating];
-            self.reactionProgressBarButtonItem.hidden = YES;
+    dispatch_async(captureService.captureSessionQueue, ^{
+        BOOL hasReaction = NO;
+        for (AVCaptureDevice *captureDevice in captureService.queue_addedCaptureDevices) {
+            if (captureDevice.reactionEffectsInProgress.count > 0) {
+                hasReaction = YES;
+                break;
+            }
         }
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (hasReaction) {
+                [self.reactionProgressActivityIndicatorView startAnimating];
+                self.reactionProgressBarButtonItem.hidden = NO;
+            } else {
+                [self.reactionProgressActivityIndicatorView stopAnimating];
+                self.reactionProgressBarButtonItem.hidden = YES;
+            }
+        });
     });
 }
 
@@ -457,6 +498,51 @@
         });
         
         [previewLayers release];
+    });
+}
+
+- (void)didChangeCaptureReadinessNotification:(NSNotification *)notification {
+    CaptureService *captureService = self.captureService;
+    dispatch_assert_queue(captureService.captureSessionQueue);
+    
+    BOOL isLoading = NO;
+    for (AVCaptureDevice *captureDevice in captureService.queue_addedCaptureDevices) {
+        AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
+        
+        if (readinessCoordinator.captureReadiness != AVCapturePhotoOutputCaptureReadinessReady) {
+            isLoading = YES;
+            break;
+        }
+    }
+    
+    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+    AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (isLoading) {
+            [self.captureProgressActivityIndicatorView startAnimating];
+            self.captureProgressBarButtonItem.hidden = NO;
+        } else {
+            [self.captureProgressActivityIndicatorView stopAnimating];
+            self.captureProgressBarButtonItem.hidden = YES;
+        }
+        
+        for (CaptureVideoPreviewView *videoPreviewView in self.stackView.arrangedSubviews) {
+            if (![videoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
+            
+            if ([videoPreviewView.previewLayer isEqual:previewLayer]) {
+                for (UIContextMenuInteraction *interaction in videoPreviewView.interactions) {
+                    if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
+                        continue;
+                    }
+                    
+                    if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
+                        [interaction dismissMenu];
+                        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
+                    }
+                }
+            }
+        }
     });
 }
 

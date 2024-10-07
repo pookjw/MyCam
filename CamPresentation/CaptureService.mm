@@ -159,7 +159,10 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
             [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                                               object:self
-                                                            userInfo:@{CaptureServiceReactionEffectsInProgressKey: change[NSKeyValueChangeNewKey]}];
+                                                            userInfo:@{
+                CaptureServiceCaptureDeviceKey: captureDevice,
+                CaptureServiceReactionEffectsInProgressKey: change[NSKeyValueChangeNewKey]
+            }];
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
@@ -667,6 +670,15 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
 }
 
+- (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromCaptureDevice:captureDevice];
+    assert(photoOutput != nil);
+    
+    return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
+}
+
 - (AVCaptureDevice *)queue_captureDeviceFromPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
     dispatch_assert_queue(self.captureSessionQueue);
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -685,6 +697,20 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
                 return deviceInput.device;
             }
+        }
+    }
+    
+    return nil;
+}
+
+- (AVCapturePhotoOutput *)queue_photoOutputFromReadinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)readinessCoordinator {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = self.queue_readinessCoordinatorByCapturePhotoOutput;
+    
+    for (AVCapturePhotoOutput *photoOutput in readinessCoordinatorByCapturePhotoOutput.keyEnumerator) {
+        if ([[readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput] isEqual:readinessCoordinator]) {
+            return photoOutput;
         }
     }
     
@@ -1148,9 +1174,18 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 #pragma mark - AVCapturePhotoOutputReadinessCoordinatorDelegate
 
 - (void)readinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)coordinator captureReadinessDidChange:(AVCapturePhotoOutputCaptureReadiness)captureReadiness {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeCaptureReadinessNotificationName
-                                                      object:self
-                                                    userInfo:@{CaptureServiceCaptureReadinessKey: @(captureReadiness)}];
+    dispatch_async(self.captureSessionQueue, ^{
+        AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromReadinessCoordinator:coordinator];
+        AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+        assert(captureDevice != nil);
+        
+        [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeCaptureReadinessNotificationName
+                                                          object:self
+                                                        userInfo:@{
+            CaptureServiceCaptureDeviceKey: captureDevice,
+            CaptureServiceCaptureReadinessKey: @(captureReadiness)
+        }];
+    });
 }
 
 @end

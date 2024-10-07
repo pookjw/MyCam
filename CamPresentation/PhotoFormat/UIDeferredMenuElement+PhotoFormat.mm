@@ -92,17 +92,34 @@
 }
 
 + (UIMenu * _Nonnull)_cp_queue_capturePhotoWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel {
-    UIAction *captureAction = [UIAction actionWithTitle:@"Take Photo"
-                                                  image:nil
-                                             identifier:nil
-                                                handler:^(__kindof UIAction * _Nonnull action) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+    AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
+    
+    __kindof UIMenuElement *element;
+    
+    if (readinessCoordinator.captureReadiness == AVCapturePhotoOutputCaptureReadinessReady) {
+        UIAction *captureAction = [UIAction actionWithTitle:@"Take Photo"
+                                                      image:nil
+                                                 identifier:nil
+                                                    handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+            });
+        }];
+        
+        element = captureAction;
+    } else {
+        __kindof UIMenuElement *activityIndicatorElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+            [activityIndicatorView startAnimating];
+            
+            return [activityIndicatorView autorelease];
         });
-    }];
+        
+        element = activityIndicatorElement;
+    }
     
     UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
-        captureAction
+        element
     ]];
     
     return menu;

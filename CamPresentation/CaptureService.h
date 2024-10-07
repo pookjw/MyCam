@@ -11,20 +11,19 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-CP_EXTERN NSNotificationName const CaptureServiceDidAddDeviceNotificationName;
-CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName;
-CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;
+
+CP_EXTERN NSNotificationName const CaptureServiceDidAddDeviceNotificationName /* CaptureServiceCaptureDeviceKey */;
+CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName /* CaptureServiceCaptureDeviceKey */;
+CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName /* CaptureServiceCaptureDeviceKey */;
 
 CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName;
 
-#warning Device 분기
-CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName;
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
 
-#warning Device 분기
-CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName;
 CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceReactionEffectsInProgressKey */;
 
 //
 
@@ -43,6 +42,7 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 
 - (AVCapturePhotoOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 @end

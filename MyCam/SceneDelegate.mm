@@ -55,7 +55,7 @@
     [navigationController setToolbarHidden:NO animated:NO];
     
     UIToolbarAppearance *toolbarAppearance = [UIToolbarAppearance new];
-    toolbarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
+//    toolbarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
     UIToolbar *toolbar = navigationController.toolbar;
     toolbar.compactAppearance = toolbarAppearance;
     toolbar.standardAppearance = toolbarAppearance;
@@ -66,7 +66,7 @@
     
     UINavigationBar *navigationBar = navigationController.navigationBar;
     UINavigationBarAppearance *navigationBarAppearance = [UINavigationBarAppearance new];
-    navigationBarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
+//    navigationBarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
     navigationBar.compactAppearance = navigationBarAppearance;
     navigationBar.standardAppearance = navigationBarAppearance;
     navigationBar.scrollEdgeAppearance = navigationBarAppearance;
