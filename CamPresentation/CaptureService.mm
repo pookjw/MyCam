@@ -27,7 +27,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName = @"CaptureServiceDidChangeReactionEffectsInProgressNotificationName";
 NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceReactionEffectsInProgressKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
@@ -457,7 +457,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     //
     
     AVCaptureMovieFileOutput *movieFileOutput = [AVCaptureMovieFileOutput new];
-    movieFileOutput.delgate = self;
+    assert([captureSession canAddOutput:movieFileOutput]);
     [captureSession addOutputWithNoConnections:movieFileOutput];
     
     AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
@@ -597,17 +597,24 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     NSMutableArray<AVCaptureConnection *> *removingConnections = [NSMutableArray new];
     AVCapturePhotoOutput *photoOutput = nil;
+    AVCaptureMovieFileOutput *movieFileOutput = nil;
     for (__kindof AVCaptureConnection *connection in captureSession.connections) {
-        if ([connection.inputPorts.firstObject.input isEqual:deviceInput]) {
-            [removingConnections addObject:connection];
-            
-            if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
-                assert(photoOutput == nil);
-                photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if ([inputPort.input isEqual:deviceInput]) {
+                [removingConnections addObject:connection];
+                
+                if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
+                    assert(photoOutput == nil);
+                    photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
+                } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                    assert(movieFileOutput == nil);
+                    movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
+                }
             }
         }
     }
     assert(photoOutput != nil);
+    assert(movieFileOutput != nil);
     
     [self removeObserversForPhotoOutput:photoOutput];
     
@@ -635,6 +642,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [removingConnections release];
     
     [captureSession removeOutput:photoOutput];
+    [captureSession removeOutput:movieFileOutput];
     [captureSession removeInput:deviceInput];
     
     [captureSession commitConfiguration];
@@ -857,6 +865,22 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [readinessCoordinator stopTrackingCaptureRequestUsingPhotoSettingsUniqueID:capturePhotoSettings.uniqueID];
 }
 
+- (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCaptureMovieFileOutput *movieFileOutput = [self queue_movieFileOutputFromCaptureDevice:captureDevice];
+    assert(movieFileOutput != nil);
+    assert(!movieFileOutput.isRecording);
+    assert(!movieFileOutput.isRecordingPaused);
+    
+    NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
+    NSString *processName = NSProcessInfo.processInfo.processName;
+    NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
+    NSURL *outputURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+    
+    [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+}
+
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
 #warning TODO
     NSLog(@"Disconnected!");
@@ -1032,6 +1056,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                     } else {
                         abort();
                     }
+                } else if ([output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                    
                 } else {
                     abort();
                 }
@@ -1088,6 +1114,14 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                 //
                 
                 [newPhotoOutput release];
+            } else if ([output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                AVCaptureMovieFileOutput *newMovieFileOutput = [AVCaptureMovieFileOutput new];
+                
+                assert([captureSession canAddOutput:newMovieFileOutput]);
+                [captureSession addOutputWithNoConnections:newMovieFileOutput];
+                
+                [addedOutputsByOutputs setObject:newMovieFileOutput forKey:output];
+                [newMovieFileOutput release];
             } else {
                 abort();
             }
@@ -1163,6 +1197,10 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                     } else {
                         abort();
                     }
+                } else if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                    
+                } else {
+                    abort();
                 }
             }
             
@@ -1291,6 +1329,25 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             CaptureServiceCaptureReadinessKey: @(captureReadiness)
         }];
     });
+}
+
+
+#pragma mark - AVCaptureFileOutputRecordingDelegate
+
+- (void)captureOutput:(AVCaptureFileOutput *)output didStartRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+    
+}
+
+- (void)captureOutput:(AVCaptureFileOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error {
+    
+}
+
+- (void)captureOutput:(AVCaptureFileOutput *)output didPauseRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+    
+}
+
+- (void)captureOutput:(AVCaptureFileOutput *)output didResumeRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+    
 }
 
 @end
