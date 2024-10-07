@@ -817,7 +817,31 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             [currentCaptureSession stopRunning];
         }
         
-        if ([currentCaptureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+        if (currentCaptureSession.class == AVCaptureSession.class) {
+            for (__kindof AVCaptureInput *input in currentCaptureSession.inputs) {
+                if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+                    auto deviceInput = static_cast<AVCaptureDeviceInput *>(input);
+                    AVCaptureDevice *device = deviceInput.device;
+                    
+                    // MultiCam으로 전환하기 위해서는 현재 추가된 Device의 Format을 MultiCam이 지원되는 것으로 바꿔야함
+                    if (!device.activeFormat.isMultiCamSupported) {
+                        [device.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+                            if (format.isMultiCamSupported) {
+                                NSError * _Nullable error = nil;
+                                [device lockForConfiguration:&error];
+                                assert(error == nil);
+                                device.activeFormat = format;
+                                [device unlockForConfiguration];
+                                *stop = YES;
+                            }
+                        }];
+                        
+                        // Input을 지워야 할 수도 있음
+                        assert(device.activeFormat.isMultiCamSupported);
+                    }
+                }
+            }
+        } else if (currentCaptureSession.class == AVCaptureMultiCamSession.class) {
             [currentCaptureSession removeObserver:self forKeyPath:@"hardwareCost"];
             [currentCaptureSession removeObserver:self forKeyPath:@"systemPressureCost"];
         }
@@ -832,8 +856,6 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     if (captureSessionClass == AVCaptureSession.class) {
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
     } else if (captureSessionClass == AVCaptureMultiCamSession.class) {
-        _queue_captureSession.sessionPreset = AVCaptureSessionPresetHigh;
-        captureSession.sessionPreset = AVCaptureSessionPresetInputPriority;
         [captureSession addObserver:self forKeyPath:@"hardwareCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureSession addObserver:self forKeyPath:@"systemPressureCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     }
