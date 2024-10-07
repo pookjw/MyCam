@@ -507,14 +507,15 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     //
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:captureVideoPreviewLayer];
+    [captureVideoPreviewLayer release];
     captureVideoPreviewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
     [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:nullptr];
     [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
     [rotationCoodinator release];
     
     AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [[AVCapturePhotoOutputReadinessCoordinator alloc] initWithPhotoOutput:photoOutput];
-    readinessCoordinator.delegate = self;
     [self.queue_readinessCoordinatorByCapturePhotoOutput setObject:readinessCoordinator forKey:photoOutput];
+    readinessCoordinator.delegate = self;
     [readinessCoordinator release];
     
     PhotoFormatModel *photoFormatModel = [PhotoFormatModel new];
@@ -706,7 +707,10 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = self.queue_readinessCoordinatorByCapturePhotoOutput;
     
     for (AVCapturePhotoOutput *photoOutput in readinessCoordinatorByCapturePhotoOutput.keyEnumerator) {
-        if ([[readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput] isEqual:readinessCoordinator]) {
+        AVCapturePhotoOutputReadinessCoordinator *other = [readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
+        assert(other != nil);
+        
+        if ([other isEqual:readinessCoordinator]) {
             return photoOutput;
         }
     }
@@ -922,8 +926,12 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                             } else {
                                 abort();
                             }
+                            
+                            [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
                         }
                     }
+                    
+                    assert(self.queue_previewLayersByCaptureDevice.count == 0);
                     
                     //
                     
@@ -1040,8 +1048,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                     //
                     
                     AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [[AVCapturePhotoOutputReadinessCoordinator alloc] initWithPhotoOutput:addedPhotoOutput];
-                    readinessCoordinator.delegate = self;
                     [self.queue_readinessCoordinatorByCapturePhotoOutput setObject:readinessCoordinator forKey:addedPhotoOutput];
+                    readinessCoordinator.delegate = self;
                     [readinessCoordinator release];
                     
                     //
@@ -1173,8 +1181,10 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 - (void)readinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)coordinator captureReadinessDidChange:(AVCapturePhotoOutputCaptureReadiness)captureReadiness {
     dispatch_async(self.captureSessionQueue, ^{
         AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromReadinessCoordinator:coordinator];
+        if (photoOutput == nil) return;
+        
         AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
-        assert(captureDevice != nil);
+        if (captureDevice == nil) return;
         
         [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeCaptureReadinessNotificationName
                                                           object:self
