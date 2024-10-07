@@ -14,7 +14,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 
-#warning LOG Video, AVExternalStorageDevice
+#warning LOG Video (-[AVCaptureDevice activeColorSpace]), AVExternalStorageDevice
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
@@ -89,6 +89,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
+        _queue_fileOutput = [[PhotoLibraryFileOutput output] retain];
         
         //
         
@@ -374,6 +375,16 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     }
     
     return captureDevice;
+}
+
+- (void)queue_setFileOutput:(__kindof BaseFileOutput *)queue_fileOutput {
+    [_queue_fileOutput release];
+    
+    if (queue_fileOutput == nil) {
+        _queue_fileOutput = [[PhotoLibraryFileOutput output] retain];
+    } else {
+        _queue_fileOutput = [queue_fileOutput retain];
+    }
 }
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {

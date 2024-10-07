@@ -8,6 +8,8 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/Extern.h>
+#import <CamPresentation/ExternalStorageDeviceFileOutput.h>
+#import <CamPresentation/PhotoLibraryFileOutput.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -33,6 +35,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgr
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
+@property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;

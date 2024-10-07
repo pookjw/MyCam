@@ -16,6 +16,7 @@
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
+#import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -34,6 +35,7 @@
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *photosBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureDevicesBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *fileOutputsBarButtonItem;
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
@@ -49,6 +51,7 @@
 @synthesize stackView = _stackView;
 @synthesize photosBarButtonItem = _photosBarButtonItem;
 @synthesize captureDevicesBarButtonItem = _captureDevicesBarButtonItem;
+@synthesize fileOutputsBarButtonItem = _fileOutputsBarButtonItem;
 #if TARGET_OS_TV
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
@@ -94,6 +97,7 @@
     [_stackView release];
     [_photosBarButtonItem release];
     [_captureDevicesBarButtonItem release];
+    [_fileOutputsBarButtonItem release];
 #if TARGET_OS_TV
     [_continuityDevicePickerBarButtonItem release];
 #endif
@@ -184,6 +188,7 @@
     [self setToolbarItems:@[
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
+        self.fileOutputsBarButtonItem,
         self.captureDevicesBarButtonItem
     ]];
     
@@ -308,6 +313,19 @@
     
     _captureDevicesBarButtonItem = [captureDevicesBarButtonItem retain];
     return [captureDevicesBarButtonItem autorelease];
+}
+
+- (UIBarButtonItem *)fileOutputsBarButtonItem {
+    if (auto fileOutputsBarButtonItem = _fileOutputsBarButtonItem) return fileOutputsBarButtonItem;
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_fileOutputsElementWithSelectionHandler:^(__kindof BaseFileOutput * _Nonnull fileOutput) { NSLog(@"TODO"); }]
+    ]];
+    
+    UIBarButtonItem *fileOutputsBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"externaldrive"] menu:menu];
+    
+    _fileOutputsBarButtonItem = [fileOutputsBarButtonItem retain];
+    return [fileOutputsBarButtonItem autorelease];
 }
 
 - (UIActivityIndicatorView *)captureProgressActivityIndicatorView {
