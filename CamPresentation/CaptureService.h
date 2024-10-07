@@ -32,9 +32,6 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
-
-#warning setter/getter로 따로 만들어야함
-@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
 
@@ -45,8 +42,9 @@ CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 - (void)queue_setPhotoFormatModel:(PhotoFormatModel * _Nullable)photoFormatModel forCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (AVCapturePhotoOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
-- (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel;
+- (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 @end
 
 NS_ASSUME_NONNULL_END

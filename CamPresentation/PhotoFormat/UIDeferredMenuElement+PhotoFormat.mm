@@ -96,8 +96,9 @@
                                                   image:nil
                                              identifier:nil
                                                 handler:^(__kindof UIAction * _Nonnull action) {
-#warning TODO
-        abort();
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+        });
     }];
     
     UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
@@ -724,6 +725,9 @@
         AVCapturePhotoQualityPrioritizationBalanced,
         AVCapturePhotoQualityPrioritizationQuality
     }
+    | std::views::filter([max = photoOutput.maxPhotoQualityPrioritization] (AVCapturePhotoQualityPrioritization prioritization) -> bool {
+        return prioritization <= max;
+    })
     | std::views::transform([captureService, captureDevice, photoFormatModel, photoQualityPrioritization, didChangeHandler](AVCapturePhotoQualityPrioritization prioritization) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
                                                image:nil

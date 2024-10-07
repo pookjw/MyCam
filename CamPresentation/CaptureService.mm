@@ -32,6 +32,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -420,6 +421,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     //
     
     AVCapturePhotoOutput *photoOutput = [AVCapturePhotoOutput new];
+    photoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
     [self registerObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
@@ -660,6 +662,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     return nil;
 }
 
+- (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+}
+
 - (AVCaptureDevice *)queue_captureDeviceFromPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
     dispatch_assert_queue(self.captureSessionQueue);
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -684,47 +691,52 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     return nil;
 }
 
-- (void)queue_startPhotoCaptureWithPhotoModel:(PhotoFormatModel *)photoModel {
-    abort();
-    //    assert(self.captureSessionQueue);
-    //    
-    //    NSMutableDictionary<NSString *, id> *format = [NSMutableDictionary new];
-    //    if (NSNumber *photoPixelFormatType = photoModel.photoPixelFormatType) {
-    //        format[(id)kCVPixelBufferPixelFormatTypeKey] = photoModel.photoPixelFormatType;
-    //    } else if (AVVideoCodecType codecType = photoModel.codecType) {
-    //        format[AVVideoCodecKey] = photoModel.codecType;
-    //        format[AVVideoCompressionPropertiesKey] = @{
-    //            AVVideoQualityKey: @(photoModel.quality)
-    //        };
-    //    }
-    //    
-    //    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
-    //    
-    //    if (photoModel.isRAWEnabled) {
-    //        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
-    //                                                                               rawFileType:photoModel.rawFileType
-    //                                                                           processedFormat:format
-    //                                                                         processedFileType:photoModel.processedFileType];
-    //    } else {
-    //        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithFormat:format];
-    //    }
-    //    
-    //    [format release];
-    //    
-    //    capturePhotoSettings.maxPhotoDimensions = self.capturePhotoOutput.maxPhotoDimensions;
-    //    
-    //    // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
-    //    if (!photoModel.isRAWEnabled) {
-    //        capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
-    //    }
-    //    
-    //    capturePhotoSettings.flashMode = photoModel.flashMode;
-    //    
-    //    //
-    //    
-    //    [self.capturePhotoOutputReadinessCoordinator startTrackingCaptureRequestUsingPhotoSettings:capturePhotoSettings];
-    //    [self.capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
-    //    [self.capturePhotoOutputReadinessCoordinator stopTrackingCaptureRequestUsingPhotoSettingsUniqueID:capturePhotoSettings.uniqueID];
+- (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    assert(self.captureSessionQueue);
+    
+    PhotoFormatModel *photoModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *capturePhotoOutput = [self queue_photoOutputFromCaptureDevice:captureDevice];
+    
+    NSMutableDictionary<NSString *, id> *format = [NSMutableDictionary new];
+    if (NSNumber *photoPixelFormatType = photoModel.photoPixelFormatType) {
+        format[(id)kCVPixelBufferPixelFormatTypeKey] = photoModel.photoPixelFormatType;
+    } else if (AVVideoCodecType codecType = photoModel.codecType) {
+        format[AVVideoCodecKey] = photoModel.codecType;
+        format[AVVideoCompressionPropertiesKey] = @{
+            AVVideoQualityKey: @(photoModel.quality)
+        };
+    }
+    
+    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
+    
+    if (photoModel.isRAWEnabled) {
+        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                               rawFileType:photoModel.rawFileType
+                                                                           processedFormat:format
+                                                                         processedFileType:photoModel.processedFileType];
+    } else {
+        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithFormat:format];
+    }
+    
+    [format release];
+    
+    capturePhotoSettings.maxPhotoDimensions = capturePhotoOutput.maxPhotoDimensions;
+    
+    // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
+    if (!photoModel.isRAWEnabled) {
+        capturePhotoSettings.photoQualityPrioritization = photoModel.photoQualityPrioritization;
+    }
+    
+    capturePhotoSettings.flashMode = photoModel.flashMode;
+    
+    //
+    
+    AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:capturePhotoOutput]; 
+    assert(readinessCoordinator != nullptr);
+    
+    [readinessCoordinator startTrackingCaptureRequestUsingPhotoSettings:capturePhotoSettings];
+    [capturePhotoOutput capturePhotoWithSettings:capturePhotoSettings delegate:self];
+    [readinessCoordinator stopTrackingCaptureRequestUsingPhotoSettingsUniqueID:capturePhotoSettings.uniqueID];
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
@@ -817,7 +829,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
-    if ([captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+    if (captureSessionClass == AVCaptureSession.class) {
+        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+    } else if (captureSessionClass == AVCaptureMultiCamSession.class) {
+        _queue_captureSession.sessionPreset = AVCaptureSessionPresetHigh;
+        captureSession.sessionPreset = AVCaptureSessionPresetInputPriority;
         [captureSession addObserver:self forKeyPath:@"hardwareCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureSession addObserver:self forKeyPath:@"systemPressureCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     }
@@ -920,6 +936,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         for (__kindof AVCaptureOutput *output in outputs) {
             if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
                 AVCapturePhotoOutput *newPhotoOutput = [AVCapturePhotoOutput new];
+                newPhotoOutput.maxPhotoQualityPrioritization = static_cast<AVCapturePhotoOutput *>(output).maxPhotoQualityPrioritization;
                 assert([captureSession canAddOutput:newPhotoOutput]);
                 [captureSession addOutputWithNoConnections:newPhotoOutput];
                 

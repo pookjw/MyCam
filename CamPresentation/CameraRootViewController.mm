@@ -393,7 +393,7 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        AVCaptureVideoPreviewLayer *previewLayer = [captureService.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+        AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
         
         dispatch_async(dispatch_get_main_queue(), ^{
             for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
@@ -424,10 +424,10 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        NSMutableArray<AVCaptureVideoPreviewLayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:captureService.queue_previewLayersByCaptureDevice.count];
+        NSMutableArray<AVCaptureVideoPreviewLayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:captureService.queue_addedCaptureDevices.count];
         
-        for (AVCaptureVideoPreviewLayer *previewLayer in captureService.queue_previewLayersByCaptureDevice.objectEnumerator) {
-            [previewLayers addObject:previewLayer];
+        for (AVCaptureDevice *captureDeivce in captureService.queue_addedCaptureDevices) {
+            [previewLayers addObject:[captureService queue_previewLayerFromCaptureDevice:captureDeivce]];
         }
         
         dispatch_async(dispatch_get_main_queue(), ^{
