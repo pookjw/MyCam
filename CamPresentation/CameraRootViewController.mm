@@ -141,19 +141,28 @@
     [super viewDidLoad];
     
     CaptureService *captureService = self.captureService;
-    __weak auto weakSelf = self;
     
 #if TARGET_OS_IOS
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-#warning TODO
-            abort();
+            dispatch_async(captureService.captureSessionQueue, ^{
+                AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedCaptureDevices.lastObject;
+                if (captureDevice == nil) return;
+                
+                [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+            });
         }
     }
                                                                                                   secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
-#warning TODO
-            abort();
+            if (event.phase == AVCaptureEventPhaseBegan) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedCaptureDevices.lastObject;
+                    if (captureDevice == nil) return;
+                    
+                    [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+                });
+            }
         }
     }];
     

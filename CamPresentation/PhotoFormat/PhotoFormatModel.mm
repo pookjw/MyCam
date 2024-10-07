@@ -7,8 +7,6 @@
 
 #import <CamPresentation/PhotoFormatModel.h>
 
-#warning supportedRawPhotoCodecTypesForRawPhotoPixelFormatType
-
 @implementation PhotoFormatModel
 
 + (BOOL)supportsSecureCoding {

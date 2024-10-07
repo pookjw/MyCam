@@ -21,9 +21,6 @@ NSString * const CaptureServiceCaptureDeviceKey = @"CaptureServiceCaptureDeviceK
 
 NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName = @"CaptureServiceDidUpdatePreviewLayersNotificationName";
 
-NSNotificationName const CaptureServiceDidChangeRecordingStatusNotificationName = @"CaptureServiceDidChangeRecordingStatusNotificationName";
-NSString * const CaptureServiceRecordingKey = @"CaptureServiceRecordingKey";
-
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
