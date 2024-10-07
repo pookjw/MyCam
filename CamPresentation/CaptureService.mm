@@ -425,19 +425,19 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     assert([captureSession canAddInput:newInput]);
     [captureSession addInputWithNoConnections:newInput];
     
-    AVCaptureInputPort *videoPort = nil;
-    AVCaptureInputPort *depthPort = nil;
+    NSMutableArray<AVCaptureInputPort *> *inputPorts = [NSMutableArray new];
+    AVCaptureInputPort *videoInputPort = nil;
     for (AVCaptureInputPort *inputPort in newInput.ports) {
         if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
-            videoPort = inputPort;
+            [inputPorts addObject:inputPort];
+            videoInputPort = inputPort;
         } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
-            depthPort = inputPort;
+            [inputPorts addObject:inputPort];
         }
     }
-    assert(videoPort != nil);
-    assert(videoPort != nil);
+    assert(videoInputPort != nil);
     
-    AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoPort videoPreviewLayer:captureVideoPreviewLayer];
+    AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:captureVideoPreviewLayer];
     [captureSession addConnection:previewLayerConnection];
     [previewLayerConnection release];
     
@@ -448,7 +448,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [self registerObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
-    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort, depthPort] output:photoOutput];
+    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:photoOutput];
+    [inputPorts release];
     [captureSession addConnection:photoOutputConnection];
     [photoOutputConnection release];
     
@@ -788,13 +789,13 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialOverCaptureEnabled:"), isSpatialOverCaptureEnabled);
     if (isSpatialOverCaptureEnabled) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoOutput, sel_registerName("setMovieRecordingEnabled:"), YES);
+        
+        NSError * _Nullable error = nil;
+        [captureDevice lockForConfiguration:&error];
+        assert(error == nil);
+        captureDevice.videoZoomFactor = captureDevice.virtualDeviceSwitchOverVideoZoomFactors.firstObject.doubleValue;
+        [captureDevice unlockForConfiguration];
     }
-    
-    NSError * _Nullable error = nil;
-    [captureDevice lockForConfiguration:&error];
-    assert(error == nil);
-    captureDevice.videoZoomFactor = captureDevice.virtualDeviceSwitchOverVideoZoomFactors.firstObject.doubleValue;
-    [captureDevice unlockForConfiguration];
     
     //
     
@@ -1064,17 +1065,17 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             AVCaptureInput *addedInput = [addedInputsByOldInput objectForKey:oldInput];
             assert(addedInput != nil);
             
-            AVCaptureInputPort *videoPort = nil;
-            AVCaptureInputPort *depthPort = nil;
+            NSMutableArray<AVCaptureInputPort *> *inputPorts = [NSMutableArray new];
+            AVCaptureInputPort *videoInputPort = nil;
             for (AVCaptureInputPort *inputPort in addedInput.ports) {
                 if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
-                    videoPort = inputPort;
+                    [inputPorts addObject:inputPort];
+                    videoInputPort = inputPort;
                 } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
-                    depthPort = inputPort;
+                    [inputPorts addObject:inputPort];
                 }
             }
-            assert(videoPort != nil);
-            assert(depthPort != nil);
+            assert(videoInputPort != nil);
             
             AVCaptureConnection *newConnection;
             if (connection.videoPreviewLayer != nil) {
@@ -1085,7 +1086,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                 AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
                 [self.queue_previewLayersByCaptureDevice setObject:previewLayer forKey:captureDevice];
                 
-                newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoPort videoPreviewLayer:previewLayer];
+                newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
                 
                 AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
                 previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
@@ -1098,7 +1099,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                 AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
                 assert(addedOutput != nil);
                 
-                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoPort, depthPort] output:addedOutput];
+                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:addedOutput];
                 
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
                     auto addedPhotoOutput = static_cast<AVCapturePhotoOutput *>(addedOutput);
@@ -1127,6 +1128,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                     }
                 }
             }
+            
+            [inputPorts release];
             
             [captureSession addConnection:newConnection];
             
