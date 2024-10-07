@@ -115,6 +115,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         }
     }
     
+    if ([_queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+        [_queue_captureSession removeObserver:self forKeyPath:@"hardwareCost"];
+        [_queue_captureSession removeObserver:self forKeyPath:@"systemPressureCost"];
+    }
+    
     [_queue_captureSession release];
     
     [_captureSessionQueue release];
@@ -133,7 +138,15 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class]) {
+    if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
+        if ([keyPath isEqualToString:@"hardwareCost"]) {
+            NSLog(@"hardwareCost: %@", change[NSKeyValueChangeNewKey]);
+            return;
+        } else if ([keyPath isEqualToString:@"systemPressureCost"]) {
+            NSLog(@"systemPressureCost: %@", change[NSKeyValueChangeNewKey]);
+            return;
+        }
+    } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class]) {
         if ([keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
             auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
             static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
@@ -787,13 +800,14 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     BOOL wasRunning;
     if (__kindof AVCaptureSession *currentCaptureSession = _queue_captureSession) {
-        if (currentCaptureSession.class == captureSessionClass) {
-            return currentCaptureSession;
-        } else {
-            wasRunning = currentCaptureSession.isRunning;
-            if (wasRunning) {
-                [currentCaptureSession stopRunning];
-            }
+        wasRunning = currentCaptureSession.isRunning;
+        if (wasRunning) {
+            [currentCaptureSession stopRunning];
+        }
+        
+        if ([currentCaptureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+            [currentCaptureSession removeObserver:self forKeyPath:@"hardwareCost"];
+            [currentCaptureSession removeObserver:self forKeyPath:@"systemPressureCost"];
         }
     } else {
         wasRunning = NO;
@@ -802,6 +816,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     //
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
+    
+    if ([captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+        [captureSession addObserver:self forKeyPath:@"hardwareCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [captureSession addObserver:self forKeyPath:@"systemPressureCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+    }
     
 #if TARGET_OS_IOS
     // https://x.com/_silgen_name/status/1837346064808169951

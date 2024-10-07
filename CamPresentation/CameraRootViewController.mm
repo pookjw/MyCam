@@ -244,20 +244,47 @@
     
     CaptureService *captureService = self.captureService;
     
-    UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
-                                                                                                        selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_addCapureDevice:captureDevice];
-        });
-    }
-                                                                                            deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_removeCaptureDevice:captureDevice];
+            if (captureService.queue_addedCaptureDevices.count > 0) {
+                UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_multiCamDevicesElementWithCaptureService:self.captureService
+                                                                                                                     selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        [captureService queue_addCapureDevice:captureDevice];
+                    });
+                }
+                                                                                                                   deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        [captureService queue_removeCaptureDevice:captureDevice];
+                    });
+                }];
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    completion(@[captureDevicesMenuElement]);
+                });
+            } else {
+                UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
+                                                                                                                    selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        [captureService queue_addCapureDevice:captureDevice];
+                    });
+                }
+                                                                                                        deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        [captureService queue_removeCaptureDevice:captureDevice];
+                    });
+                }];
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    completion(@[captureDevicesMenuElement]);
+                });
+            }
         });
     }];
     
+    
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        captureDevicesMenuElement
+        element
     ]];
     
     UIBarButtonItem *captureDevicesBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"arrow.triangle.2.circlepath"] menu:menu];
