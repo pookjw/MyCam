@@ -43,6 +43,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgr
 - (AVCapturePhotoOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCaptureMovieFileOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 @end
