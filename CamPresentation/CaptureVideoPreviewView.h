@@ -12,11 +12,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CaptureVideoPreviewView : UIView
 @property (retain, nonatomic, readonly) AVCaptureVideoPreviewLayer *previewLayer;
+@property (retain, nonatomic, readonly) UILabel *spatialCaptureDiscomfortReasonLabel;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 - (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
+- (void)updateSpatialCaptureDiscomfortReasonLabelWithReasons:(NSSet<AVSpatialCaptureDiscomfortReason> *)reasons;
 @end
 
 NS_ASSUME_NONNULL_END

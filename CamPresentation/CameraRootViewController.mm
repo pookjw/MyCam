@@ -160,6 +160,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    //
+    
     CaptureService *captureService = self.captureService;
     
 #if TARGET_OS_IOS
@@ -423,6 +425,11 @@
                                                name:CaptureServiceDidChangeCaptureReadinessNotificationName
                                              object:captureService];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didChangeSpatialCaptureDiscomfortReasonNotification:)
+                                               name:CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName
+                                             object:captureService];
+    
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -510,11 +517,7 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        NSMutableArray<AVCaptureVideoPreviewLayer *> *previewLayers = [[NSMutableArray alloc] initWithCapacity:captureService.queue_addedCaptureDevices.count];
-        
-        for (AVCaptureDevice *captureDeivce in captureService.queue_addedCaptureDevices) {
-            [previewLayers addObject:[captureService queue_previewLayerFromCaptureDevice:captureDeivce]];
-        }
+        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
@@ -522,27 +525,35 @@
             for (CaptureVideoPreviewView *captureVideoPreviewView in stackView.arrangedSubviews) {
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
-                NSInteger index = [previewLayers indexOfObject:captureVideoPreviewView.previewLayer];
+                AVCaptureDevice * _Nullable captureDevice = nil;
+                for (AVCaptureDevice * _captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+                    AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:_captureDevice];
+                    
+                    if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
+                        captureDevice = _captureDevice;
+                        break;
+                    }
+                }
                 
-                if (index == NSNotFound) {
+                if (captureDevice != nil) {
+                    // 이미 존재하는 Layer
+                    [previewLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureDevice];;
+                } else {
                     // 삭제된 Layer - View 제거
                     [captureVideoPreviewView removeFromSuperview];
-                } else {
-                    // 이미 존재하는 Layer
-                    [previewLayers removeObjectAtIndex:index];
                 }
             }
             
-            for (AVCaptureVideoPreviewLayer *previewLayer in previewLayers) {
+            for (AVCaptureDevice * captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+                AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer];
+                [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
             }
             
             [stackView updateConstraintsIfNeeded];
         });
-        
-        [previewLayers release];
     });
 }
 
@@ -591,6 +602,21 @@
     });
 }
 
+- (void)didChangeSpatialCaptureDiscomfortReasonNotification:(NSNotification *)notification {
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+        assert(captureDevice != nil);
+        AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
+        assert(previewLayer != nil);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self updateSpatialCaptureDiscomfortReasonLabelWithCaptureDevice:captureDevice previewLayer:previewLayer];
+        });
+    });
+}
+
 - (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
     CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer];
 
@@ -606,6 +632,17 @@
     captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
     
     return captureVideoPreviewView;
+}
+
+- (void)updateSpatialCaptureDiscomfortReasonLabelWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+    NSSet<AVSpatialCaptureDiscomfortReason> *reasons = captureDevice.spatialCaptureDiscomfortReasons;
+    
+    for (CaptureVideoPreviewView *previewView in self.stackView.arrangedSubviews) {
+        if (![previewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
+        if (![previewView.previewLayer isEqual:previewLayer]) continue;
+        
+        [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:reasons];
+    }
 }
 
 - (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {

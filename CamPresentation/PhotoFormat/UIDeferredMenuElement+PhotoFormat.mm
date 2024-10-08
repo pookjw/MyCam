@@ -1272,21 +1272,7 @@
     
     UIAction *action = [UIAction actionWithTitle:@"Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
-            
-            BOOL wasRunning = captureSession.isRunning;
-            
-            if (wasRunning) {
-                [captureSession stopRunning];
-            }
-            
-            [captureSession beginConfiguration];
             movieFileOutput.spatialVideoCaptureEnabled = !isSpatialVideoCaptureEnabled;
-            [captureSession commitConfiguration];
-            
-            if (wasRunning) {
-                [captureSession startRunning];
-            }
         });
     }];
     

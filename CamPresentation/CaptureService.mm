@@ -29,6 +29,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName = @"CaptureServiceDidChangeReactionEffectsInProgressNotificationName";
 NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceReactionEffectsInProgressKey";
 
+NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName = @"CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName";
+
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
@@ -115,15 +117,15 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     for (__kindof AVCaptureInput *input in _queue_captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
-            auto oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
-            [oldCaptureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
+            auto captureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+            [self unregisterObserversForCaptureDevice:captureDevice];
         }
     }
     
     for (__kindof AVCaptureOutput *output in _queue_captureSession.outputs) {
         if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
             auto photoOutput = static_cast<AVCapturePhotoOutput *>(output);
-            [self removeObserversForPhotoOutput:photoOutput];
+            [self unregisterObserversForPhotoOutput:photoOutput];
         }
     }
     
@@ -206,12 +208,16 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         auto captureDevice = static_cast<AVCaptureDevice *>(object);
         
         if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
+#warning TODO
             [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                                               object:self
                                                             userInfo:@{
                 CaptureServiceCaptureDeviceKey: captureDevice,
                 CaptureServiceReactionEffectsInProgressKey: change[NSKeyValueChangeNewKey]
             }];
+            return;
+        } else if ([keyPath isEqualToString:@"spatialCaptureDiscomfortReasons"]) {
+            [self postDidChangeSpatialCaptureDiscomfortReasonNotificationWithCaptureDevice:captureDevice];
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
@@ -416,6 +422,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     }
 }
 
+- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_previewLayersByCaptureDevice copy] autorelease];
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
@@ -453,13 +464,13 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         captureSession = [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:NO];
     }
     
+    [self registerObserversForCaptureDevice:captureDevice];
+    
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
     [self.queue_previewLayersByCaptureDevice setObject:captureVideoPreviewLayer forKey:captureDevice];
     
     [captureSession beginConfiguration];
-    
-    [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     
     NSError * _Nullable error = nil;
     AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
@@ -616,7 +627,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     assert(captureDevice != nil);
     assert([self.queue_addedCaptureDevices containsObject:captureDevice]);
     
-    [captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
+    [self unregisterObserversForCaptureDevice:captureDevice];
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     assert(captureSession != nil);
@@ -660,7 +671,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     assert(photoOutput != nil);
     assert(movieFileOutput != nil);
     
-    [self removeObserversForPhotoOutput:photoOutput];
+    [self unregisterObserversForPhotoOutput:photoOutput];
     
     if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
         [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
@@ -982,6 +993,30 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                                                     userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
 }
 
+- (void)postDidChangeSpatialCaptureDiscomfortReasonNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName
+                                                      object:self
+                                                    userInfo:@{
+        CaptureServiceCaptureDeviceKey: captureDevice
+    }];
+}
+
+- (void)registerObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
+    [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
+}
+
+- (void)unregisterObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
+    [captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
+    [captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
+    [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
+    [captureDevice removeObserver:self forKeyPath:@"formats"];
+    [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
+}
+
 - (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
     [photoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"availablePhotoCodecTypes" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -997,7 +1032,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [photoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
-- (void)removeObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+- (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
     [photoOutput removeObserver:self forKeyPath:@"availablePhotoPixelFormatTypes"];
     [photoOutput removeObserver:self forKeyPath:@"availablePhotoCodecTypes"];
     [photoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
@@ -1098,15 +1133,17 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
             if (__kindof AVCaptureOutput *output = connection.output) {
                 if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
                     auto photoOutput = static_cast<AVCapturePhotoOutput *>(output);
-                    [self removeObserversForPhotoOutput:photoOutput];
+                    [self unregisterObserversForPhotoOutput:photoOutput];
                     
                     //
                     
+                    NSMutableArray<AVCaptureDevice *> *debug_removedDevices = [NSMutableArray new];
                     for (AVCaptureInputPort *inputPort in connection.inputPorts) {
                         auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
                         
                         if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
                             AVCaptureDevice *captureDevice = deviceInput.device;
+                            if ([debug_removedDevices containsObject:captureDevice]) continue;
                             
                             if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
                                 [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
@@ -1115,9 +1152,12 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                                 abort();
                             }
                             
+                            assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice]);
                             [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+                            [debug_removedDevices addObject:captureDevice];
                         }
                     }
+                    [debug_removedDevices release];
                     
                     assert(self.queue_previewLayersByCaptureDevice.count == 0);
                     

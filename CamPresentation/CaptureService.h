@@ -27,6 +27,8 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceReactionEffectsInProgressKey */;
 
+CP_EXTERN NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName /* CaptureServiceCaptureDeviceKey */;
+
 //
 
 @interface CaptureService : NSObject
@@ -37,6 +39,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgr
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
