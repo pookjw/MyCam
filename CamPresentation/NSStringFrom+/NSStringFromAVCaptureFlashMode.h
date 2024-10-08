@@ -6,14 +6,10 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/Extern.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * NSStringFromAVCaptureFlashMode(AVCaptureFlashMode captureFlashMode);
+CP_EXTERN NSString * NSStringFromAVCaptureFlashMode(AVCaptureFlashMode captureFlashMode);
 
 NS_ASSUME_NONNULL_END

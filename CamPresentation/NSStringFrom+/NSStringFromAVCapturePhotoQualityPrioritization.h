@@ -6,14 +6,10 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/Extern.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * NSStringFromAVCapturePhotoQualityPrioritization(AVCapturePhotoQualityPrioritization photoQualityPrioritization);
+CP_EXTERN NSString * NSStringFromAVCapturePhotoQualityPrioritization(AVCapturePhotoQualityPrioritization photoQualityPrioritization);
 
 NS_ASSUME_NONNULL_END

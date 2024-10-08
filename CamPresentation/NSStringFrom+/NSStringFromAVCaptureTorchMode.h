@@ -6,14 +6,10 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/Extern.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-#if defined(__cplusplus)
-extern "C"
-#else
-extern
-#endif
-NSString * NSStringFromAVCaptureTorchMode(AVCaptureTorchMode torchMode);
+CP_EXTERN NSString * NSStringFromAVCaptureTorchMode(AVCaptureTorchMode torchMode);
 
 NS_ASSUME_NONNULL_END

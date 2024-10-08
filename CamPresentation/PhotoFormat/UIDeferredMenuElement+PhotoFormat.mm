@@ -11,6 +11,7 @@
 #import <CamPresentation/NSStringFromAVCapturePhotoQualityPrioritization.h>
 #import <CamPresentation/NSStringFromAVCaptureFlashMode.h>
 #import <CamPresentation/NSStringFromAVCaptureTorchMode.h>
+#import <CamPresentation/NSStringFromAVCaptureColorSpace.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -1098,7 +1099,7 @@
     return menu;
 }
 
-+ (UIMenu *)_cp_queue_movieRecordingMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice movieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
++ (UIMenu * _Nonnull)_cp_queue_movieRecordingMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice movieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
     NSArray<UIAction *> *actions;
     
     if (movieFileOutput.isRecording) {
@@ -1139,6 +1140,17 @@
     UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
     
     return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_activeColorSpacesMenuWithCaptureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    auto actionsVec = std::vector<AVCaptureColorSpace> {
+        AVCaptureColorSpace_sRGB,
+        AVCaptureColorSpace_P3_D65,
+        AVCaptureColorSpace_HLG_BT2020,
+        AVCaptureColorSpace_AppleLog
+    }
+    | std::views::transform
+    
 }
 
 @end
