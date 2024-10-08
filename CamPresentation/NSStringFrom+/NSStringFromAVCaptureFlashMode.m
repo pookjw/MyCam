@@ -16,6 +16,6 @@ NSString * NSStringFromAVCaptureFlashMode(AVCaptureFlashMode captureFlashMode) {
         case AVCaptureFlashModeAuto:
             return @"Auto";
         default:
-            return @"";
+            abort();
     }
 }

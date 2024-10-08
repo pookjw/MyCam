@@ -12,12 +12,14 @@
 #import <CamPresentation/NSStringFromAVCaptureFlashMode.h>
 #import <CamPresentation/NSStringFromAVCaptureTorchMode.h>
 #import <CamPresentation/NSStringFromAVCaptureColorSpace.h>
+#import <CamPresentation/NSStringFromAVCaptureVideoStabilizationMode.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
 #include <ranges>
 
 #warning Spatial Over Capture, AVSpatialOverCaptureVideoPreviewLayer
+#warning -[AVCaptureDevice isProResSupported], spatialCaptureDiscomfortReasons
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -40,7 +42,11 @@
                 [elements addObject:menu];
             }
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
                 [elements addObject:menu];
@@ -57,45 +63,6 @@
     }];
     
     return result;
-}
-
-+ (UIMenu * _Nonnull)_cp_queue_formatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    NSArray<AVCaptureDeviceFormat *> *formats = captureDevice.formats;
-    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-    NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
-    
-    [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([captureService.queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class] && !format.multiCamSupported) {
-            return;
-        }
-        
-        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(captureService.captureSessionQueue, ^{
-                NSError * _Nullable error = nil;
-                [captureDevice lockForConfiguration:&error];
-                assert(error == nil);
-                captureDevice.activeFormat = format;
-                [captureDevice unlockForConfiguration];
-                if (didChangeHandler) didChangeHandler();
-            });
-        }];
-        
-        action.cp_overrideNumberOfTitleLines = @(0);
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-        action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        [formatActions addObject:action];
-    }];
-    
-    UIMenu *menu = [UIMenu menuWithTitle:@"Format"
-                                   image:nil
-                              identifier:nil
-                                 options:0
-                                children:formatActions];
-    [formatActions release];
-    menu.subtitle = activeFormat.debugDescription;
-    
-    return menu;
 }
 
 + (UIMenu *)_cp_queue_photoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
@@ -121,7 +88,9 @@
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_rawMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
-    [elements addObject:[UIDeferredMenuElement _cp_queue_spatialOverCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+    [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Spatial Over Capture Formats" includeSubtitle:NO filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSpatialOverCaptureSupported"));
+    } didChangeHandler:didChangeHandler]];
     
     if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialOverCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
         [elements addObject:action];
@@ -166,6 +135,28 @@
     NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_movieRecordingMenuWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_movieOutputSettingsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+    
+    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput didChangeHandler:didChangeHandler]) {
+        [elements addObject:action];
+    }
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService
+                                                                                             captureDevice:captureDevice
+                                                                                                     title:@"Formats by Video Stabilizations for Spatial Video Capture"
+                                                                                             modeFilterHandler:^BOOL(AVCaptureVideoStabilizationMode videoStabilizationMode) {
+        // -[AVCaptureMovieFileOutput _updateSpatialVideoCaptureSupportedForSourceDevice:]
+        return ((0x1 << videoStabilizationMode) & 0x2c) != 0x0;
+    }
+                                                                                       formatFilterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.isSpatialVideoCaptureSupported;
+    }
+                                                                                          didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:captureDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:movieFileOutput.connections[0] didChangeHandler:didChangeHandler]];
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Movie" children:elements];
     [elements release];
@@ -663,36 +654,6 @@
     return menu;
 }
 
-+ (UIMenu *)_cp_queue_spatialOverCaptureSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    NSMutableArray<UIAction *> *actions = [NSMutableArray new];
-    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-    
-    [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
-        if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSpatialOverCaptureSupported"))) return;
-        
-        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(captureService.captureSessionQueue, ^{
-                NSError * _Nullable error = nil;
-                [captureDevice lockForConfiguration:&error];
-                assert(error == nil);
-                captureDevice.activeFormat = format;
-                [captureDevice unlockForConfiguration];
-            });
-        }];
-        
-        action.cp_overrideNumberOfTitleLines = @(0);
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-        action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        [actions addObject:action];
-    }];
-    
-    UIMenu *menu = [UIMenu menuWithTitle:@"Spatial Over Capture Formats" image:nil identifier:nil options:0 children:actions];
-    [actions release];
-    
-    return menu;
-}
-
 + (UIAction * _Nullable)_cp_queue_toggleSpatialOverCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureSupported"))) {
         return nil;
@@ -1047,32 +1008,9 @@
     
     //
     
-    NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
-    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-    
-    [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
-        if (format.reactionEffectsSupported) {
-            UIAction *formatAction = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                dispatch_async(captureService.captureSessionQueue, ^{
-                    NSError * _Nullable error = nil;
-                    [captureDevice lockForConfiguration:&error];
-                    assert(error == nil);
-                    captureDevice.activeFormat = format;
-                    [captureDevice unlockForConfiguration];
-                });
-            }];
-            
-            formatAction.cp_overrideNumberOfTitleLines = @(0);
-            formatAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-            formatAction.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
-            
-            [formatActions addObject:formatAction];
-        }
-    }];
-    
-    UIMenu *formatMenu = [UIMenu menuWithTitle:@"Reaction Format" children:formatActions];
-    [formatActions release];
-    [menuElements addObject:formatMenu];
+    [menuElements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Reaction Format" includeSubtitle:NO filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.reactionEffectsSupported;
+    } didChangeHandler:didChangeHandler]];
     
     //
     
@@ -1142,15 +1080,277 @@
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_queue_activeColorSpacesMenuWithCaptureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    auto actionsVec = std::vector<AVCaptureColorSpace> {
++ (UIMenu * _Nonnull)_cp_queue_activeColorSpacesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureColorSpace activeColorSpace = captureDevice.activeColorSpace;
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    NSArray<NSNumber *> *supportedColorSpaces = activeFormat.supportedColorSpaces;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_allColorSpacesVector]
+    | std::views::filter([supportedColorSpaces](AVCaptureColorSpace colorSpace) -> bool {
+        return [supportedColorSpaces containsObject:@(colorSpace)];
+    })
+    | std::views::transform([captureService, captureDevice, activeColorSpace](AVCaptureColorSpace colorSpace) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureColorSpace(colorSpace)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                AVCaptureMovieFileOutput *output = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+                NSLog(@"%@", [output supportedOutputSettingsKeysForConnection:output.connections[0]]);
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.activeColorSpace = colorSpace;
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        action.state = (activeColorSpace == colorSpace) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Color Space" image:nil identifier:nil options:0 children:actions];
+    [actions release];
+    menu.subtitle = NSStringFromAVCaptureColorSpace(activeColorSpace);
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_movieOutputSettingsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:movieFileOutput.connections[0]];
+    
+    NSMutableArray<UIMenu *> *menus = [NSMutableArray new];
+    
+    for (NSString *outputSettingKey in supportedOutputSettingsKeys) {
+        if ([outputSettingKey isEqualToString:AVVideoCodecKey]) {
+            [menus addObject:[UIDeferredMenuElement _cp_queue_videoCodecTypesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+        } else if ([outputSettingKey isEqualToString:AVVideoCompressionPropertiesKey]) {
+            
+        } else {
+            abort();
+        }
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:menus];
+    [menus release];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureConnection *connection = movieFileOutput.connections[0];
+    NSDictionary<NSString *, id> *outputSettings = [movieFileOutput outputSettingsForConnection:connection];
+    AVVideoCodecType activeVideoCodecType = outputSettings[AVVideoCodecKey];
+    NSArray<AVVideoCodecType> *availableVideoCodecTypes = movieFileOutput.availableVideoCodecTypes;
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableVideoCodecTypes.count];
+    
+    for (AVVideoCodecType videoCodecType in availableVideoCodecTypes) {
+        UIAction *action = [UIAction actionWithTitle:videoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                AVCaptureConnection *connection = movieFileOutput.connections[0];
+                NSMutableDictionary<NSString *, id> *outputSettings = [[movieFileOutput outputSettingsForConnection:connection] mutableCopy];
+                
+                outputSettings[AVVideoCodecKey] = videoCodecType;
+                
+                [movieFileOutput setOutputSettings:outputSettings forConnection:connection];
+                [outputSettings release];
+                
+                didChangeHandler();
+            });
+        }];
+        
+        action.state = [activeVideoCodecType isEqualToString:videoCodecType] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Video Codecs" children:actions];
+    [actions release];
+    menu.subtitle = outputSettings[AVVideoCodecKey];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_formatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice title:(NSString *)title includeSubtitle:(BOOL)includeSubtitle filterHandler:(BOOL (^ _Nullable)(AVCaptureDeviceFormat *format))filterHandler didChangeHandler:(void (^)())didChangeHandler {
+    NSArray<AVCaptureDeviceFormat *> *formats = captureDevice.formats;
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
+    
+    [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([captureService.queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class] && !format.multiCamSupported) {
+            return;
+        }
+        
+        if (filterHandler) {
+            if (!filterHandler(format)) return;
+        }
+        
+        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.activeFormat = format;
+                [captureDevice unlockForConfiguration];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.cp_overrideNumberOfTitleLines = @(0);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [formatActions addObject:action];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:title
+                                   image:nil
+                              identifier:nil
+                                 options:0
+                                children:formatActions];
+    [formatActions release];
+    
+    if (includeSubtitle) {
+        menu.subtitle = activeFormat.debugDescription;
+    }
+    
+    return menu;
+}
+
++ (std::vector<AVCaptureColorSpace>)_cp_allColorSpacesVector {
+    return {
         AVCaptureColorSpace_sRGB,
         AVCaptureColorSpace_P3_D65,
         AVCaptureColorSpace_HLG_BT2020,
         AVCaptureColorSpace_AppleLog
-    }
-    | std::views::transform
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_formatsByColorSpaceMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    auto menusVec = [UIDeferredMenuElement _cp_allColorSpacesVector]
+    | std::views::transform([captureService, captureDevice, didChangeHandler](AVCaptureColorSpace colorSpace) -> UIMenu * {
+        UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                                        captureDevice:captureDevice
+                                                                                title:NSStringFromAVCaptureColorSpace(colorSpace)
+                                                                      includeSubtitle:NO
+                                                                        filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+            return [format.supportedColorSpaces containsObject:@(colorSpace)];
+        }
+                                                                     didChangeHandler:didChangeHandler];
+        
+        return menu;
+    })
+    | std::ranges::to<std::vector<UIMenu *>>();
     
+    NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Formats by Color Space" children:menus];
+    [menus release];
+    
+    return menu;
+}
+
++ (UIAction * _Nullable)_cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice movieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput didChangeHandler:(void (^)())didChangeHandler {
+    if (!movieFileOutput.isSpatialVideoCaptureSupported) return nil;
+    
+    BOOL isSpatialVideoCaptureEnabled = movieFileOutput.isSpatialVideoCaptureEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            movieFileOutput.spatialVideoCaptureEnabled = !isSpatialVideoCaptureEnabled;
+        });
+    }];
+    
+    action.state = isSpatialVideoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (std::vector<AVCaptureVideoStabilizationMode>)_cp_allVideoStabilizationModes {
+    return {
+        AVCaptureVideoStabilizationModeOff,
+        AVCaptureVideoStabilizationModeStandard,
+        AVCaptureVideoStabilizationModeCinematic,
+        AVCaptureVideoStabilizationModeCinematicExtended,
+        AVCaptureVideoStabilizationModePreviewOptimized,
+        AVCaptureVideoStabilizationModeCinematicExtendedEnhanced,
+        AVCaptureVideoStabilizationModeAuto
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_formatsByVideoStabilizationModeWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice title:(NSString *)title modeFilterHandler:(BOOL (^ _Nullable)(AVCaptureVideoStabilizationMode videoStabilizationMode))modeFilterHandler formatFilterHandler:(BOOL (^ _Nullable)(AVCaptureDeviceFormat *format))formatFilterHandler didChangeHandler:(void (^)())didChangeHandler {
+    auto menusVec = [UIDeferredMenuElement _cp_allVideoStabilizationModes]
+    | std::views::filter([modeFilterHandler](AVCaptureVideoStabilizationMode videoStabilizationMode) -> bool {
+        if (modeFilterHandler) {
+            return modeFilterHandler(videoStabilizationMode);
+        } else {
+            return true;
+        }
+    })
+    | std::views::transform([captureService, captureDevice, didChangeHandler, formatFilterHandler](AVCaptureVideoStabilizationMode videoStabilizationMode) -> UIMenu * {
+        return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                                captureDevice:captureDevice
+                                                                        title:NSStringFromAVCaptureVideoStabilizationMode(videoStabilizationMode)
+                                                              includeSubtitle:NO
+                                                                filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+            if (![format isVideoStabilizationModeSupported:videoStabilizationMode]) {
+                return NO;
+            }
+            
+            if (formatFilterHandler) {
+                return formatFilterHandler(format);
+            }
+            
+            return YES;
+        }
+                                                             didChangeHandler:didChangeHandler];
+    })
+    | std::ranges::to<std::vector<UIMenu *>>();
+    
+    NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
+    UIMenu *menu = [UIMenu menuWithTitle:title image:nil identifier:nil options:0 children:menus];
+    [menus release];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice connection:(AVCaptureConnection *)connection didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    AVCaptureVideoStabilizationMode activeVideoStabilizationMode = connection.activeVideoStabilizationMode;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_allVideoStabilizationModes]
+    | std::views::filter([activeFormat](AVCaptureVideoStabilizationMode mode) -> bool {
+        return [activeFormat isVideoStabilizationModeSupported:mode];
+    })
+    | std::views::transform([captureService, connection, activeVideoStabilizationMode](AVCaptureVideoStabilizationMode mode) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureVideoStabilizationMode(mode)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                connection.preferredVideoStabilizationMode = mode;
+            });
+        }];
+        
+        action.state = (mode == activeVideoStabilizationMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    UIMenu *menu = [UIMenu menuWithTitle:@"Video Stabilization Mode" image:nil identifier:nil options:0 children:actions];
+    [actions release];
+    
+    return menu;
 }
 
 @end

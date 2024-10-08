@@ -16,6 +16,6 @@ NSString * NSStringFromAVCapturePhotoQualityPrioritization(AVCapturePhotoQuality
         case AVCapturePhotoQualityPrioritizationQuality:
             return @"Quality";
         default:
-            return @"";
+            abort();
     }
 }

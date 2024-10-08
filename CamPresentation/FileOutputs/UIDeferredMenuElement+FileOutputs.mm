@@ -14,7 +14,7 @@
 
 + (instancetype)cp_fileOutputsElementWithCaptureService:(CaptureService *)captureService {
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        [AVExternalStorageDevice requestAccessWithCompletionHandler:^(BOOL granted) {
+        [AVExternalStorageDevice requestAccessWithCompletionHandler:^(BOOL granted) { // prefs:root=Privacy&path=FILEACCESS
             assert(granted);
             
             dispatch_async(captureService.captureSessionQueue, ^{

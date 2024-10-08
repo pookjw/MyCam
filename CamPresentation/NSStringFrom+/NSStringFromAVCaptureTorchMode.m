@@ -16,6 +16,6 @@ NSString * NSStringFromAVCaptureTorchMode(AVCaptureTorchMode torchMode) {
         case AVCaptureTorchModeAuto:
             return @"Auto";
         default:
-            return @"";
+            abort();
     }
 }

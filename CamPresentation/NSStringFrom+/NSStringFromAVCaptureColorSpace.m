@@ -18,6 +18,6 @@ NSString * NSStringFromAVCaptureColorSpace(AVCaptureColorSpace colorSpace) {
         case AVCaptureColorSpace_AppleLog:
             return @"AVCaptureColorSpace_AppleLog";
         default:
-            return @"";
+            abort();
     }
 }

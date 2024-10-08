@@ -97,7 +97,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
-        _queue_fileOutput = [[PhotoLibraryFileOutput output] retain];
+        self.queue_fileOutput = nil;
         
         //
         
@@ -644,9 +644,11 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                 if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
                     assert(photoOutput == nil);
                     photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
+                    break;
                 } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
                     assert(movieFileOutput == nil);
                     movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
+                    break;
                 }
             }
         }
@@ -1043,6 +1045,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     //
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
+    
+    captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     
     if (captureSessionClass == AVCaptureSession.class) {
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
