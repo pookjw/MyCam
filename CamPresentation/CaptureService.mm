@@ -65,6 +65,13 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
                                                                                                                                 mediaType:AVMediaTypeVideo
                                                                                                                                  position:AVCaptureDevicePositionUnspecified];
         
+        //
+        
+        AVExternalStorageDeviceDiscoverySession *externalStorageDeviceDiscoverySession = AVExternalStorageDeviceDiscoverySession.sharedSession;
+        [externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
+        
+        //
+        
         NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
@@ -84,6 +91,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         
         _captureSessionQueue = captureSessionQueue;
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
+        _externalStorageDeviceDiscoverySession = [externalStorageDeviceDiscoverySession retain];
         _queue_photoFormatModelsByCaptureDevice = [photoFormatModelsByCaptureDevice retain];
         _locationManager = locationManager;
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
@@ -125,6 +133,8 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     [_captureSessionQueue release];
     [_captureDeviceDiscoverySession release];
+    [_externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
+    [_externalStorageDeviceDiscoverySession release];
     
     for (AVCaptureDeviceRotationCoordinator *rotationCoordinator in _queue_rotationCoordinatorsByCaptureDevice.objectEnumerator) {
         [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
@@ -159,7 +169,22 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
+    if ([object isEqual:self.externalStorageDeviceDiscoverySession]) {
+        if ([keyPath isEqualToString:@"externalStorageDevices"]) {
+            dispatch_async(self.captureSessionQueue, ^{
+                __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
+                
+                if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
+                    auto output = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
+                    
+                    if (!output.externalStorageDevice.isConnected) {
+                        self.queue_fileOutput = nil;
+                    }
+                }
+            });
+            return;
+        }
+    } else if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
         if ([keyPath isEqualToString:@"hardwareCost"]) {
             NSLog(@"hardwareCost: %@", change[NSKeyValueChangeNewKey]);
             return;
@@ -381,7 +406,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [_queue_fileOutput release];
     
     if (queue_fileOutput == nil) {
-        _queue_fileOutput = [[PhotoLibraryFileOutput output] retain];
+        _queue_fileOutput = [[PhotoLibraryFileOutput alloc] initWithPhotoLibrary:PHPhotoLibrary.sharedPhotoLibrary];
     } else {
         _queue_fileOutput = [queue_fileOutput retain];
     }
@@ -886,11 +911,26 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     assert(!movieFileOutput.isRecording);
     assert(!movieFileOutput.isRecordingPaused);
     
-    NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
-    NSString *processName = NSProcessInfo.processInfo.processName;
-    NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
-    NSURL *outputURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+    __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
+    NSURL *outputURL;
     
+    if (fileOutput.class == PhotoLibraryFileOutput.class) {
+        NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
+        NSString *processName = NSProcessInfo.processInfo.processName;
+        NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
+        outputURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+    } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
+        auto output = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
+        AVExternalStorageDevice *externalStorageDevice = output.externalStorageDevice;
+        NSError * _Nullable error = nil;
+        NSArray<NSURL *> *urls = [externalStorageDevice nextAvailableURLsWithPathExtensions:@[UTTypeQuickTimeMovie.preferredFilenameExtension] error:&error];
+        assert(error == nil);
+        outputURL = urls[0];
+    } else {
+        abort();
+    }
+    
+    assert([outputURL startAccessingSecurityScopedResource]);
     [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
 }
 
@@ -1248,18 +1288,48 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
-    NSData * _Nullable fileDataRepresentation = photo.fileDataRepresentation;
     
-    [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-        PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
+    dispatch_async(self.captureSessionQueue, ^{
+        __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
         
-        assert(fileDataRepresentation != nil);
-        [request addResourceWithType:PHAssetResourceTypePhoto data:fileDataRepresentation options:nil];
-        request.location = self.locationManager.location;
-    }
-                                    completionHandler:^(BOOL success, NSError * _Nullable error) {
-        NSLog(@"%d %@", success, error);
-    }];
+        if (fileOutput.class == PhotoLibraryFileOutput.class) {
+            auto output = static_cast<PhotoLibraryFileOutput *>(fileOutput);
+            NSData * _Nullable fileDataRepresentation = photo.fileDataRepresentation;
+            
+            [output.photoLibrary performChanges:^{
+                PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
+                
+                assert(fileDataRepresentation != nil);
+                [request addResourceWithType:PHAssetResourceTypePhoto data:fileDataRepresentation options:nil];
+                request.location = self.locationManager.location;
+            }
+                                            completionHandler:^(BOOL success, NSError * _Nullable error) {
+                NSLog(@"%d %@", success, error);
+            }];
+        } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
+            NSData * _Nullable fileDataRepresentation = photo.fileDataRepresentation;
+            assert(fileDataRepresentation != nil);
+            
+            auto output = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
+            AVExternalStorageDevice *device = output.externalStorageDevice;
+            assert(device.isConnected);
+            assert(!device.isNotRecommendedForCaptureUse);
+            
+            NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
+            UTType *uti = [UTType typeWithIdentifier:processedFileType];
+            
+            NSError * _Nullable error = nil;
+            NSArray<NSURL *> *urls = [device nextAvailableURLsWithPathExtensions:@[uti.preferredFilenameExtension] error:&error];
+            assert(error == nil);
+            NSURL *url = urls[0];
+            
+            assert([url startAccessingSecurityScopedResource]);
+            assert([NSFileManager.defaultManager createFileAtPath:url.path contents:fileDataRepresentation attributes:nil]);
+            [url stopAccessingSecurityScopedResource];
+        } else {
+            abort();
+        }
+    });
 }
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
@@ -1352,6 +1422,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 }
 
 - (void)captureOutput:(AVCaptureFileOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error {
+    [output.outputFileURL stopAccessingSecurityScopedResource];
     assert(error == nil);
 }
 

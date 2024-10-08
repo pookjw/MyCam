@@ -33,6 +33,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgr
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
+@property (retain, nonatomic, readonly) AVExternalStorageDeviceDiscoverySession *externalStorageDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;

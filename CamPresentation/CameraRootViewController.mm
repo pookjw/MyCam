@@ -108,7 +108,9 @@
     
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
+        [captureService removeObserver:self forKeyPath:@"queue_fileOutput"];
         [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
+        [captureService.externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
         [captureService release];
     }
     [_photoFormatModel release];
@@ -117,14 +119,28 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isEqual:self.captureService]) {
-        __kindof AVCaptureSession *captureSession = change[NSKeyValueChangeNewKey];
-        NSString *string = NSStringFromClass(captureSession.class);
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.title = string;
-        });
-        
-        return;
+        if ([keyPath isEqualToString:@"queue_captureSession"]) {
+            __kindof AVCaptureSession *captureSession = change[NSKeyValueChangeNewKey];
+            NSString *string = NSStringFromClass(captureSession.class);
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.title = string;
+            });
+            
+            return;
+        } else if ([keyPath isEqualToString:@"queue_fileOutput"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.fileOutputsBarButtonItem, sel_registerName("_updateMenuInPlace"));
+            });
+            return;
+        }
+    } else if ([object isEqual:self.captureService.externalStorageDeviceDiscoverySession]) {
+        if ([keyPath isEqualToString:@"externalStorageDevices"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.fileOutputsBarButtonItem, sel_registerName("_updateMenuInPlace"));
+            });
+            return;
+        }
     } else if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"devices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -319,7 +335,7 @@
     if (auto fileOutputsBarButtonItem = _fileOutputsBarButtonItem) return fileOutputsBarButtonItem;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_fileOutputsElementWithSelectionHandler:^(__kindof BaseFileOutput * _Nonnull fileOutput) { NSLog(@"TODO"); }]
+        [UIDeferredMenuElement cp_fileOutputsElementWithCaptureService:self.captureService]
     ]];
     
     UIBarButtonItem *fileOutputsBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"externaldrive"] menu:menu];
@@ -408,6 +424,8 @@
                                              object:captureService];
     
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];

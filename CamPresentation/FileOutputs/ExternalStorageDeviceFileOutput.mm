@@ -1,5 +1,5 @@
 //
-//  ExternalStorageDeviceFileOutput.m
+//  ExternalStorageDeviceFileOutput.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/8/24.
@@ -21,6 +21,17 @@
 - (void)dealloc {
     [_externalStorageDevice release];
     [super dealloc];
+}
+
+- (BOOL)isEqual:(id)other {
+    if (other == self) {
+        return YES;
+    } else if (![super isEqual:other]) {
+        return NO;
+    } else {
+        auto output = static_cast<ExternalStorageDeviceFileOutput *>(other);
+        return [_externalStorageDevice isEqual:output->_externalStorageDevice];
+    }
 }
 
 @end
