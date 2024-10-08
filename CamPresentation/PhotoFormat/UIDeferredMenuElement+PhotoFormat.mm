@@ -1157,6 +1157,13 @@
             dispatch_async(captureService.captureSessionQueue, ^{
                 AVCaptureConnection *connection = movieFileOutput.connections[0];
                 NSMutableDictionary<NSString *, id> *outputSettings = [[movieFileOutput outputSettingsForConnection:connection] mutableCopy];
+                NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:movieFileOutput.connections[0]];
+                
+                for (NSString *key in outputSettings.allKeys) {
+                    if (![supportedOutputSettingsKeys containsObject:key]) {
+                        [outputSettings removeObjectForKey:key];
+                    }
+                }
                 
                 outputSettings[AVVideoCodecKey] = videoCodecType;
                 
@@ -1265,7 +1272,21 @@
     
     UIAction *action = [UIAction actionWithTitle:@"Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
+            __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
+            
+            BOOL wasRunning = captureSession.isRunning;
+            
+            if (wasRunning) {
+                [captureSession stopRunning];
+            }
+            
+            [captureSession beginConfiguration];
             movieFileOutput.spatialVideoCaptureEnabled = !isSpatialVideoCaptureEnabled;
+            [captureSession commitConfiguration];
+            
+            if (wasRunning) {
+                [captureSession startRunning];
+            }
         });
     }];
     

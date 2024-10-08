@@ -35,6 +35,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
@@ -76,6 +77,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         
         //
         
@@ -97,6 +99,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
+        _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
         
         //
@@ -143,6 +146,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     [_queue_photoFormatModelsByCaptureDevice release];
     [_queue_readinessCoordinatorByCapturePhotoOutput release];
     [_queue_previewLayersByCaptureDevice release];
+    [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [super dealloc];
@@ -870,7 +874,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
     
     BOOL isSpatialOverCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(capturePhotoOutput, sel_registerName("isSpatialOverCaptureEnabled"));
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoSettings, sel_registerName("setAutoSpatialOverCaptureEnabled:"), isSpatialOverCaptureEnabled);
-    if (isSpatialOverCaptureEnabled) {
+    if (isSpatialPhotoCaptureEnabled || isSpatialOverCaptureEnabled) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(capturePhotoOutput, sel_registerName("setMovieRecordingEnabled:"), YES);
         
         NSError * _Nullable error = nil;
@@ -920,6 +924,16 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
         NSString *processName = NSProcessInfo.processInfo.processName;
         NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
+        
+        BOOL isDirectory;
+        if (![NSFileManager.defaultManager fileExistsAtPath:processDirectoryURL.path isDirectory:&isDirectory]) {
+            NSError * _Nullable error = nil;
+            [NSFileManager.defaultManager createDirectoryAtURL:processDirectoryURL withIntermediateDirectories:YES attributes:nil error:&error];
+            assert(error == nil);
+            isDirectory = YES;
+        }
+        assert(isDirectory);
+        
         outputURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
     } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
         auto output = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
@@ -932,7 +946,9 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
         abort();
     }
     
-    assert([outputURL startAccessingSecurityScopedResource]);
+    [self.queue_movieFileOutputsByFileOutput setObject:fileOutput forKey:movieFileOutput];
+    
+    [outputURL startAccessingSecurityScopedResource];
     [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
 }
 
@@ -1337,6 +1353,7 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 }
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
+    assert(self.queue_fileOutput.class == PhotoLibraryFileOutput.class);
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(deferredPhotoProxy.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
     NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
@@ -1427,7 +1444,37 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 - (void)captureOutput:(AVCaptureFileOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error {
     [output.outputFileURL stopAccessingSecurityScopedResource];
+    
     assert(error == nil);
+    assert([output isKindOfClass:AVCaptureMovieFileOutput.class]);
+    assert([NSFileManager.defaultManager fileExistsAtPath:outputFileURL.path]);
+    
+    auto movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(output);
+    __kindof BaseFileOutput *fileOutput = [self.queue_movieFileOutputsByFileOutput objectForKey:movieFileOutput];
+    [self.queue_movieFileOutputsByFileOutput removeObjectForKey:movieFileOutput];
+    
+    if (fileOutput.class == PhotoLibraryFileOutput.class) {
+        auto photoLibraryFileOutput = static_cast<PhotoLibraryFileOutput *>(fileOutput);
+        
+        [photoLibraryFileOutput.photoLibrary performChanges:^{
+            PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
+            
+            [request addResourceWithType:PHAssetResourceTypeVideo fileURL:outputFileURL options:nil];
+            
+            request.location = self.locationManager.location;
+        }
+                                        completionHandler:^(BOOL success, NSError * _Nullable error) {
+            NSLog(@"%d %@", success, error);
+            assert(error == nil);
+            
+            [NSFileManager.defaultManager removeItemAtURL:outputFileURL error:&error];
+            assert(error == nil);
+        }];
+    } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
+        
+    } else {
+        abort();
+    }
 }
 
 - (void)captureOutput:(AVCaptureFileOutput *)output didPauseRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
