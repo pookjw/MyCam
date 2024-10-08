@@ -1337,13 +1337,16 @@
     | std::views::filter([activeFormat](AVCaptureVideoStabilizationMode mode) -> bool {
         return [activeFormat isVideoStabilizationModeSupported:mode];
     })
-    | std::views::transform([captureService, connection, activeVideoStabilizationMode](AVCaptureVideoStabilizationMode mode) -> UIAction * {
+    | std::views::transform([captureService, connection, didChangeHandler, activeVideoStabilizationMode](AVCaptureVideoStabilizationMode mode) -> UIAction * {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureVideoStabilizationMode(mode)
                                                image:nil
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 connection.preferredVideoStabilizationMode = mode;
+                if (didChangeHandler != nil) {
+                    didChangeHandler();
+                }
             });
         }];
         
