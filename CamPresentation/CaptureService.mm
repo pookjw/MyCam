@@ -1349,6 +1349,9 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
     
+    BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
+    NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
+    
     dispatch_async(self.captureSessionQueue, ^{
         __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
         
@@ -1412,6 +1415,10 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
                                     completionHandler:^(BOOL success, NSError * _Nullable error) {
         NSLog(@"%d %@", success, error);
     }];
+}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
+    
 }
 
 
