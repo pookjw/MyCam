@@ -11,6 +11,8 @@
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 
+#warning Center Stage, Depth
+
 NS_ASSUME_NONNULL_BEGIN
 
 CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;

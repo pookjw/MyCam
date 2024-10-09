@@ -18,8 +18,8 @@
 #include <vector>
 #include <ranges>
 
-#warning Spatial Over Capture, AVSpatialOverCaptureVideoPreviewLayer
-#warning -[AVCaptureDevice isProResSupported], spatialCaptureDiscomfortReasons
+#warning AVSpatialOverCaptureVideoPreviewLayer
+#warning -[AVCaptureDevice isProResSupported]
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -35,6 +35,8 @@
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomSliderElementWithCaptureService:captureService captureDevice:captureDevice]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
@@ -1361,6 +1363,56 @@
     [actions release];
     
     return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_zoomSliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+         AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+         AVZoomRange *zoomRange = activeFormat.systemRecommendedVideoZoomRange;
+         
+         UILabel *label = [UILabel new];
+         label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+         label.numberOfLines = 0;
+         label.text = [NSString stringWithFormat:@"Zoom: %lf", captureDevice.videoZoomFactor];
+         
+         //
+         
+         UISlider *slider = [UISlider new];
+         slider.minimumValue = zoomRange.minZoomFactor;
+         slider.maximumValue = zoomRange.maxZoomFactor;
+         slider.value = captureDevice.videoZoomFactor;
+         slider.continuous = YES;
+         
+         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+             auto slider = static_cast<UISlider *>(action.sender);
+             float value = slider.value;
+             
+             dispatch_async(captureService.captureSessionQueue, ^{
+                 NSError * _Nullable error = nil;
+                 [captureDevice lockForConfiguration:&error];
+                 assert(error == nil);
+                 captureDevice.videoZoomFactor = value;
+                 [captureDevice unlockForConfiguration];
+             });
+             
+             label.text = [NSString stringWithFormat:@"Zoom: %lf", value];
+         }];
+         
+         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+         
+         //
+         
+         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
+         [label release];
+         [slider release];
+         stackView.axis = UILayoutConstraintAxisVertical;
+         stackView.distribution = UIStackViewDistributionFill;
+         stackView.alignment = UIStackViewAlignmentFill;
+         
+         return [stackView autorelease];
+     });
+    
+    return element;
 }
 
 @end
