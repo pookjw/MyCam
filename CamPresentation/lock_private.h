@@ -6,9 +6,10 @@
 //
 
 #include <os/lock.h>
-#import <CamPresentation/Extern.h>
 
 OS_ASSUME_NONNULL_BEGIN
+
+__BEGIN_DECLS
 
 #define OS_UNFAIR_RECURSIVE_LOCK_AVAILABILITY \
         __OSX_AVAILABLE(10.14) __IOS_AVAILABLE(12.0) \
@@ -49,15 +50,17 @@ OS_OPTIONS(os_unfair_lock_options, uint32_t,
 );
 
 OS_UNFAIR_RECURSIVE_LOCK_AVAILABILITY
-CP_EXTERN OS_NOTHROW OS_NONNULL_ALL
+OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
 void os_unfair_recursive_lock_lock_with_options(os_unfair_recursive_lock_t lock, os_unfair_lock_options_t options);
 
 OS_UNFAIR_RECURSIVE_LOCK_AVAILABILITY
-CP_EXTERN OS_NOTHROW OS_WARN_RESULT OS_NONNULL_ALL
+OS_EXPORT OS_NOTHROW OS_WARN_RESULT OS_NONNULL_ALL
 bool os_unfair_recursive_lock_trylock(os_unfair_recursive_lock_t lock);
 
 OS_UNFAIR_RECURSIVE_LOCK_AVAILABILITY
-CP_EXTERN OS_NOTHROW OS_NONNULL_ALL
+OS_EXPORT OS_NOTHROW OS_NONNULL_ALL
 void os_unfair_recursive_lock_unlock(os_unfair_recursive_lock_t lock);
+
+__END_DECLS
 
 OS_ASSUME_NONNULL_END
