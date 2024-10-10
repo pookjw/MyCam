@@ -44,7 +44,7 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_depthMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -1518,6 +1518,26 @@
     }
     
     return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_depthMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
+        [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_hasDepthDataFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Formats with Depth Data"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.supportedDepthDataFormats.count > 0;
+    }
+                                                         didChangeHandler:didChangeHandler];
 }
 
 + (UIMenu * _Nonnull)_cp_queue_depthDataFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice title:(NSString *)title includeSubtitle:(BOOL)includeSubtitle filterHandler:(BOOL (^ _Nullable)(AVCaptureDeviceFormat *format))filterHandler didChangeHandler:(void (^)())didChangeHandler {

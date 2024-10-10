@@ -34,7 +34,7 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
 NSString * const CaptureServiceCaptureSessionKey = @"CaptureServiceCaptureSessionKey";
 NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName = @"CaptureServiceCaptureSessionRuntimeErrorNotificationName";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
@@ -515,15 +515,12 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     assert([captureSession canAddInput:newInput]);
     [captureSession addInputWithNoConnections:newInput];
     
-    NSMutableArray<AVCaptureInputPort *> *inputPorts = [NSMutableArray new];
     AVCaptureInputPort *videoInputPort = nil;
     AVCaptureInputPort * _Nullable depthDataInputPort = nil;
     for (AVCaptureInputPort *inputPort in newInput.ports) {
         if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
-            [inputPorts addObject:inputPort];
             videoInputPort = inputPort;
         } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
-            [inputPorts addObject:inputPort];
             depthDataInputPort = inputPort;
         }
         
@@ -542,7 +539,8 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [self registerObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
-    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:photoOutput];
+    AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:photoOutput];
+    assert([captureSession canAddConnection:photoOutputConnection]);
     [captureSession addConnection:photoOutputConnection];
     [photoOutputConnection release];
     
@@ -554,8 +552,9 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     assert([captureSession canAddOutput:movieFileOutput]);
     [captureSession addOutputWithNoConnections:movieFileOutput];
     
-    AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
+    AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
     [movieFileOutput release];
+    assert([captureSession canAddConnection:movieFileOutputConnection]);
     [captureSession addConnection:movieFileOutputConnection];
     [movieFileOutputConnection release];
     
@@ -566,14 +565,28 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     assert([captureSession canAddOutput:videoDataOutput]);
     [captureSession addOutputWithNoConnections:videoDataOutput];
     
-    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:videoDataOutput];
+    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
     [videoDataOutput release];
+    assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     [videoDataOutputConnection release];
     
     //
     
-    [inputPorts release];
+    if (depthDataInputPort != nil) {
+        AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
+        [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
+        assert([captureSession canAddOutput:depthDataOutput]);
+        [captureSession addOutputWithNoConnections:depthDataOutput];
+        
+        AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
+        [depthDataOutput release];
+        assert([captureSession canAddConnection:depthDataOutputConnection]);
+        [captureSession addConnection:depthDataOutputConnection];
+        [depthDataOutputConnection release];
+    }
+    
+    //
     
 #if TARGET_OS_IOS
     for (__kindof AVCaptureControl *control in captureSession.controls) {
@@ -705,6 +718,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     AVCapturePhotoOutput *photoOutput = nil;
     AVCaptureMovieFileOutput *movieFileOutput = nil;
     AVCaptureVideoDataOutput *videoDataOutput = nil;
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = nil;
     for (__kindof AVCaptureConnection *connection in captureSession.connections) {
         for (AVCaptureInputPort *inputPort in connection.inputPorts) {
             if ([inputPort.input isEqual:deviceInput]) {
@@ -720,6 +734,9 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                     } else if ([connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
                         assert(videoDataOutput == nil);
                         videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(connection.output);
+                    } else if ([connection.output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                        assert(depthDataOutput == nil);
+                        depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(connection.output);
                     } else {
                         abort();
                     }
@@ -761,6 +778,9 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureSession removeOutput:photoOutput];
     [captureSession removeOutput:movieFileOutput];
     [captureSession removeOutput:videoDataOutput];
+    if (videoDataOutput) {
+        [captureSession removeOutput:depthDataOutput];
+    }
     [captureSession removeInput:deviceInput];
     
     [captureSession commitConfiguration];
@@ -1280,6 +1300,9 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 } else if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
                     auto videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
                     [videoDataOutput setSampleBufferDelegate:nil queue:nil];
+                } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                    auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(output);
+                    [depthDataOutput setDelegate:nil callbackQueue:nil];
                 } else {
                     abort();
                 }
@@ -1353,6 +1376,15 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 
                 [addedOutputsByOutputs setObject:newVideoDataOutput forKey:output];
                 [newVideoDataOutput release];
+            } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                AVCaptureDepthDataOutput *newDepthDataOutput = [AVCaptureDepthDataOutput new];
+                [newDepthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
+                
+                assert([captureSession canAddOutput:newDepthDataOutput]);
+                [captureSession addOutputWithNoConnections:newDepthDataOutput];
+                
+                [addedOutputsByOutputs setObject:newDepthDataOutput forKey:output];
+                [newDepthDataOutput release];
             } else {
                 abort();
             }
@@ -1367,15 +1399,16 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
             AVCaptureInput *addedInput = [addedInputsByOldInput objectForKey:oldInput];
             assert(addedInput != nil);
             
-            NSMutableArray<AVCaptureInputPort *> *inputPorts = [NSMutableArray new];
             AVCaptureInputPort *videoInputPort = nil;
+            AVCaptureInputPort * _Nullable depthDataInputPort = nil;
             for (AVCaptureInputPort *inputPort in addedInput.ports) {
                 if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
-                    [inputPorts addObject:inputPort];
                     videoInputPort = inputPort;
                 } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
-                    [inputPorts addObject:inputPort];
+                    depthDataInputPort = inputPort;
                 }
+                
+                if (videoInputPort != nil && depthDataInputPort != nil) break;
             }
             assert(videoInputPort != nil);
             
@@ -1401,9 +1434,9 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
                 assert(addedOutput != nil);
                 
-                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:addedOutput];
-                
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
+                    
                     auto addedPhotoOutput = static_cast<AVCapturePhotoOutput *>(addedOutput);
                     
                     //
@@ -1429,16 +1462,18 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                         abort();
                     }
                 } else if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                    
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
                 } else if ([addedOutput isKindOfClass:AVCaptureVideoDataOutput.class]) {
-                    
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
+                } else if ([addedOutput isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                    assert(depthDataInputPort != nil);
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:addedOutput];
                 } else {
                     abort();
                 }
             }
             
-            [inputPorts release];
-            
+            assert([captureSession canAddConnection:newConnection]);
             [captureSession addConnection:newConnection];
             
             //
@@ -1467,6 +1502,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 #pragma mark - AVCapturePhotoCaptureDelegate
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
+#warning 직접 calibration 해보기
     assert(error == nil);
     NSLog(@"%@", photo.depthData);
     
@@ -1658,6 +1694,13 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
 #warning Intrinsic
+}
+
+
+#pragma mark - AVCaptureDepthDataOutputDelegate
+
+- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
+    NSLog(@"%@", NSDate.now);
 }
 
 @end
