@@ -12,6 +12,12 @@
 
 @implementation UIDeferredMenuElement (CaptureDevices)
 
+/*
+ isGeometricDistortionCorrectionSupported
+ isCameraIntrinsicMatrixDeliverySupported
+ autoRedEyeReductionEnabled
+ */
+
 + (instancetype)cp_captureDevicesElementWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
@@ -21,8 +27,6 @@
             NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
             
             for (AVCaptureDevice *captureDevice in devices) {
-                if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isCameraIntrinsicMatrixDeliverySupported"))) continue;
-                
                 UIImage *image;
                 if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
                     image = [UIImage systemImageNamed:@"web.camera"];

@@ -40,9 +40,7 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
-            if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_torchModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-                [elements addObject:menu];
-            }
+            [elements addObject:[UIDeferredMenuElement _cp_queue_torchModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
@@ -52,11 +50,11 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleGeometricDistortionCorrectionActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_cameraIntrinsicMatrixDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
-            if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-                [elements addObject:menu];
-            }
+            [elements addObject:[UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
             
 #warning TODO: autoVideoFrameRateEnabled
             
@@ -86,9 +84,7 @@
     [elements addObject:[UIDeferredMenuElement _cp_queue_photoPixelFormatTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     [elements addObject:[UIDeferredMenuElement _cp_queue_codecTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
-    if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_qualitiesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-        [elements addObject:menu];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_qualitiesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_photoFileTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
@@ -98,33 +94,25 @@
         return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSpatialOverCaptureSupported"));
     } didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialOverCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialOverCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleZeroShutterLagActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleZeroShutterLagActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleResponsiveCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleResponsiveCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleFastCapturePrioritizationActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleFastCapturePrioritizationActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-    if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_photoQualityPrioritizationMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-        [elements addObject:menu];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_photoQualityPrioritizationMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraCalibrationDataDeliveryActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_cameraCalibrationDataDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleVirtualDeviceConstituentPhotoDeliveryActionWithCaptureService:captureService photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
     //
     
@@ -359,11 +347,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_qualitiesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (photoFormatModel.photoPixelFormatType != nil) {
-        return nil;
-    }
-    
++ (UIMenu * _Nonnull)_cp_queue_qualitiesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     NSMutableArray<UIAction *> *qualityActions = [[NSMutableArray alloc] initWithCapacity:10];
     
     for (NSUInteger count = 1; count <= 10; count++) {
@@ -381,7 +365,7 @@
         }];
         
         action.state = (photoFormatModel.quality == quality) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | ((photoFormatModel.photoPixelFormatType == nil) ? 0 : UIMenuElementAttributesDisabled);
         [qualityActions addObject:action];
     }
     
@@ -401,17 +385,11 @@
     
     [children addObject:[UIDeferredMenuElement _cp_queue_toggleRAWActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleAppleProRAWActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-        [children addObject:action];
-    }
+    [children addObject:[UIDeferredMenuElement _cp_queue_toggleAppleProRAWActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
-    if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_rawPhotoPixelFormatTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-        [children addObject:menu];
-    }
+    [children addObject:[UIDeferredMenuElement _cp_queue_rawPhotoPixelFormatTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
-    if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_rawPhotoFileTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]) {
-        [children addObject:menu];
-    }
+    [children addObject:[UIDeferredMenuElement _cp_queue_rawPhotoFileTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
     UIMenu *menu = [UIMenu menuWithTitle:@""
                                    image:nil
@@ -455,10 +433,7 @@
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleAppleProRAWActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoFormatModel.isRAWEnabled) return nil;
-    if (!photoOutput.isAppleProRAWSupported) return nil;
-    
++ (UIAction * _Nonnull)_cp_queue_toggleAppleProRAWActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     BOOL isAppleProRAWEnabled = photoOutput.isAppleProRAWEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Apple Pro RAW"
@@ -471,15 +446,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | ((!photoFormatModel.isRAWEnabled || !photoOutput.isAppleProRAWSupported) ? UIMenuElementAttributesDisabled : 0);
     action.state = isAppleProRAWEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_rawPhotoPixelFormatTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoFormatModel.isRAWEnabled) return nil;
-    
++ (UIMenu * _Nonnull)_cp_queue_rawPhotoPixelFormatTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     NSArray<NSNumber *> *availableRawPhotoPixelFormatTypes;
     if (photoFormatModel.processedFileType == nil) {
         availableRawPhotoPixelFormatTypes = photoOutput.availableRawPhotoPixelFormatTypes;
@@ -516,7 +489,7 @@
         
         [string release];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoFormatModel.isRAWEnabled ? 0 : UIMenuElementAttributesDisabled);
         action.state = [photoFormatModel.rawPhotoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [rawPhotoPixelFormatTypeActions addObject:action];
@@ -549,9 +522,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_rawPhotoFileTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoFormatModel.isRAWEnabled) return nil;
-    
++ (UIMenu * _Nonnull)_cp_queue_rawPhotoFileTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     NSArray<AVFileType> *availableRawPhotoFileTypes = photoOutput.availableRawPhotoFileTypes;
     NSMutableArray<UIAction *> *rawFileTypeActions = [[NSMutableArray alloc] initWithCapacity:availableRawPhotoFileTypes.count];
     
@@ -570,7 +541,7 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoFormatModel.isRAWEnabled ? 0 : UIMenuElementAttributesDisabled);
         action.state = [photoFormatModel.rawFileType isEqualToString:fileType] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [rawFileTypeActions addObject:action];
@@ -660,11 +631,8 @@
     return menu;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleSpatialOverCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureSupported"))) {
-        return nil;
-    }
-    
++ (UIAction * _Nonnull)_cp_queue_toggleSpatialOverCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isSpatialOverCaptureSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureSupported"));
     BOOL isSpatialOverCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialOverCaptureEnabled"));
     
     UIAction *action = [UIAction actionWithTitle:@"Spatial Over Capture"
@@ -686,17 +654,14 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (isSpatialOverCaptureSupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isSpatialOverCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialPhotoCaptureSupported"))) {
-        return nil;
-    }
-    
++ (UIAction * _Nonnull)_cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isSpatialPhotoCaptureSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialPhotoCaptureSupported"));
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isSpatialPhotoCaptureEnabled"));
     
     UIAction *action = [UIAction actionWithTitle:@"Spatial Photo Capture"
@@ -709,17 +674,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (isSpatialPhotoCaptureSupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isSpatialPhotoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoOutput.isAutoDeferredPhotoDeliverySupported) {
-        return nil;
-    }
-    
++ (UIAction * _Nonnull)_cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliveryEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Deferred Photo"
@@ -732,17 +693,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoOutput.isAutoDeferredPhotoDeliverySupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isAutoDeferredPhotoDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleZeroShutterLagActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoOutput.isZeroShutterLagSupported) {
-        return nil;
-    }
-    
++ (UIAction * _Nonnull)_cp_queue_toggleZeroShutterLagActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isZeroShutterLagEnabled = photoOutput.isZeroShutterLagEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Zero Shutter Lag"
@@ -755,17 +712,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoOutput.isZeroShutterLagSupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isZeroShutterLagEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleResponsiveCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoOutput.isResponsiveCaptureSupported) {
-        return nil;
-    }
-    
++ (UIAction * _Nonnull)_cp_queue_toggleResponsiveCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isResponsiveCaptureEnabled = photoOutput.isResponsiveCaptureEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Responsive Capture"
@@ -778,15 +731,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoOutput.isResponsiveCaptureSupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isResponsiveCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleFastCapturePrioritizationActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!photoOutput.isFastCapturePrioritizationSupported) return nil;
-    
++ (UIAction * _Nonnull)_cp_queue_toggleFastCapturePrioritizationActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isFastCapturePrioritizationEnabled = photoOutput.isFastCapturePrioritizationEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Fast-capture Prioritization"
@@ -799,18 +750,13 @@
         });
     }];
     
-    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoOutput.isFastCapturePrioritizationSupported ? 0 : UIMenuElementAttributesDisabled);
     action.state = isFastCapturePrioritizationEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_photoQualityPrioritizationMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (photoFormatModel.isRAWEnabled) {
-        // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
-        return nil;
-    }
-    
++ (UIMenu * _Nonnull)_cp_queue_photoQualityPrioritizationMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     AVCapturePhotoQualityPrioritization photoQualityPrioritization = photoFormatModel.photoQualityPrioritization;
     
     auto vec = std::vector<AVCapturePhotoQualityPrioritization> {
@@ -835,7 +781,10 @@
                 if (didChangeHandler) didChangeHandler();
             });
         }];
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        
+        // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoFormatModel.isRAWEnabled ? UIMenuElementAttributesDisabled : 0);
+        
         action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
         return action;
     })
@@ -906,9 +855,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_torchModesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    if (!captureDevice.torchAvailable) return nil;
-    
++ (UIMenu * _Nonnull)_cp_queue_torchModesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
     auto vec = std::vector<AVCaptureTorchMode> {
         AVCaptureTorchModeOff,
         AVCaptureTorchModeOn,
@@ -951,7 +898,7 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (captureDevice.torchAvailable ? 0 : UIMenuElementAttributesDisabled);
         action.state = (captureDevice.torchMode == torchMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         return action;
@@ -975,6 +922,7 @@
         slider.minimumValue = 0.f;
         slider.maximumValue = std::fminf(1.f, AVCaptureMaxAvailableTorchLevel);
         slider.value = captureDevice.torchLevel;
+        slider.enabled = captureDevice.torchAvailable;
         
         [slider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             // fcmp   s8, #0.0
@@ -1005,11 +953,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nullable)_cp_queue_reactionEffectsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!AVCaptureDevice.reactionEffectsEnabled) {
-        return nil;
-    }
-    
++ (UIMenu * _Nonnull)_cp_queue_reactionEffectsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     NSMutableArray<UIMenuElement *> *menuElements = [NSMutableArray new];
     
     //
@@ -1032,6 +976,8 @@
                     [captureDevice performEffectForReaction:reactionType];
                 });
             }];
+            
+            action.attributes = AVCaptureDevice.reactionEffectsEnabled ? 0 : UIMenuElementAttributesDisabled;
             
             [menuElements addObject:action];
         }
@@ -1372,7 +1318,6 @@
 + (__kindof UIMenuElement *)_cp_queue_zoomSliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
      __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
          AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-         AVZoomRange *zoomRange = activeFormat.systemRecommendedVideoZoomRange;
          
          UILabel *label = [UILabel new];
          label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
@@ -1382,8 +1327,16 @@
          //
          
          UISlider *slider = [UISlider new];
-         slider.minimumValue = zoomRange.minZoomFactor;
-         slider.maximumValue = zoomRange.maxZoomFactor;
+         
+         if (AVZoomRange *zoomRange = activeFormat.systemRecommendedVideoZoomRange) {
+             slider.minimumValue = zoomRange.minZoomFactor;
+             slider.maximumValue = zoomRange.maxZoomFactor;
+         } else {
+             slider.minimumValue = 1.f;
+             slider.maximumValue = captureDevice.maxAvailableVideoZoomFactor;
+         }
+         
+#warning TODO: videoMaxZoomFactor videoMaxZoomFactorForCenterStage, videoMaxZoomFactorForDepthDataDelivery
          slider.value = captureDevice.videoZoomFactor;
          slider.continuous = YES;
          
@@ -1464,6 +1417,84 @@
         return (lastRange.maxFrameRate <= 120.);
     } 
                                                          didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleCameraCalibrationDataDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isCameraCalibrationDataDeliveryEnabled = photoFormatModel.isCameraCalibrationDataDeliveryEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Camera Calibration Data Delivery" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            PhotoFormatModel *copy = [photoFormatModel copy];
+            copy.cameraCalibrationDataDeliveryEnabled = !isCameraCalibrationDataDeliveryEnabled;
+            [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+            [copy release];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isCameraCalibrationDataDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = photoOutput.isCameraCalibrationDataDeliverySupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_cameraCalibrationDataDeliverySupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isGeometricDistortionCorrectionEnabled = captureDevice.isGeometricDistortionCorrectionEnabled;
+    NSUInteger constituentDevicesCount = captureDevice.constituentDevices.count;
+    
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Camera Calibration Data Delivery Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        if (!photoOutput.isVirtualDeviceConstituentPhotoDeliveryEnabled || isGeometricDistortionCorrectionEnabled) return NO;
+        if (constituentDevicesCount == 2) {
+            return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isStillImageDisparitySupported"));
+        } else {
+            return YES;
+        }
+    }
+                                                         didChangeHandler:^{
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(photoOutput, sel_registerName("_updateCameraCalibrationDataDeliverySupportedForSourceDevice:"), captureDevice);
+        if (didChangeHandler) didChangeHandler();
+    }];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleGeometricDistortionCorrectionActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isGeometricDistortionCorrectionEnabled = captureDevice.isGeometricDistortionCorrectionEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Geometric Distortion Correction" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.geometricDistortionCorrectionEnabled = !isGeometricDistortionCorrectionEnabled;
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isGeometricDistortionCorrectionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = captureDevice.isGeometricDistortionCorrectionSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleVirtualDeviceConstituentPhotoDeliveryActionWithCaptureService:(CaptureService *)captureService photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isVirtualDeviceConstituentPhotoDeliveryEnabled = photoOutput.isVirtualDeviceConstituentPhotoDeliveryEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Virtual Device Constituent Photo Delivery" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            photoOutput.virtualDeviceConstituentPhotoDeliveryEnabled = !isVirtualDeviceConstituentPhotoDeliveryEnabled;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isVirtualDeviceConstituentPhotoDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = photoOutput.isVirtualDeviceConstituentPhotoDeliverySupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
 }
 
 @end

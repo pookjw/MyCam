@@ -33,6 +33,7 @@
         _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
         _photoQualityPrioritization = static_cast<AVCapturePhotoQualityPrioritization>([coder decodeIntegerForKey:@"photoQualityPrioritization"]);
         _flashMode = static_cast<AVCaptureFlashMode>([coder decodeIntegerForKey:@"flashMode"]);
+        _cameraCalibrationDataDeliveryEnabled = [coder decodeBoolForKey:@"cameraCalibrationDataDeliveryEnabled"];
     }
     
     return self;
@@ -61,6 +62,7 @@
         casted->_processedFileType = [_processedFileType copyWithZone:zone];
         casted->_photoQualityPrioritization = _photoQualityPrioritization;
         casted->_flashMode = _flashMode;
+        casted->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
     }
     
     return copy;
@@ -76,6 +78,7 @@
     [coder encodeObject:_processedFileType forKey:@"processedFileType"];
     [coder encodeInteger:_photoQualityPrioritization forKey:@"photoQualityPrioritization"];
     [coder encodeInteger:_flashMode forKey:@"flashMode"];
+    [coder encodeBool:_cameraCalibrationDataDeliveryEnabled forKey:@"cameraCalibrationDataDeliveryEnabled"];
 }
 
 - (BOOL)isEqual:(id)other {
@@ -91,7 +94,8 @@
         [_rawFileType isEqualToString:casted->_rawFileType] &&
         [_processedFileType isEqualToString:casted->_processedFileType] &&
         _photoQualityPrioritization == casted->_photoQualityPrioritization &&
-        _flashMode == casted->_flashMode;
+        _flashMode == casted->_flashMode &&
+        _cameraCalibrationDataDeliveryEnabled == casted->_cameraCalibrationDataDeliveryEnabled;
     }
 }
 
@@ -104,7 +108,8 @@
     _rawFileType.hash ^
     _processedFileType.hash ^
     _photoQualityPrioritization ^
-    _flashMode;
+    _flashMode ^
+    _cameraCalibrationDataDeliveryEnabled;
 }
 
 - (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -223,6 +228,15 @@
     }
     
     return shouldUpdate;
+}
+
+- (BOOL)updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    if (!photoOutput.isCameraCalibrationDataDeliverySupported) {
+        self.cameraCalibrationDataDeliveryEnabled = NO;
+        return YES;
+    }
+    
+    return NO;
 }
 
 @end

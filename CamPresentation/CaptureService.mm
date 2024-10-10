@@ -379,6 +379,20 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 }
             });
             return;
+        } else if ([keyPath isEqualToString:@"isCameraCalibrationDataDeliverySupported"]) {
+            dispatch_async(self.captureSessionQueue, ^{
+                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                
+                [photoFormatModel updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:photoOutput];
+                
+                if (captureDevice != nil) {
+                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
+                }
+            });
+            return;
         }
     }
     
@@ -907,6 +921,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     }
     
     capturePhotoSettings.flashMode = photoModel.flashMode;
+    capturePhotoSettings.cameraCalibrationDataDeliveryEnabled = photoModel.isCameraCalibrationDataDeliveryEnabled;
+    
+    if (photoModel.isCameraCalibrationDataDeliveryEnabled) {
+        capturePhotoSettings.virtualDeviceConstituentPhotoDeliveryEnabledDevices = captureDevice.constituentDevices;
+    }
     
     //
     
@@ -1060,6 +1079,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [photoOutput addObserver:self forKeyPath:@"isResponsiveCaptureSupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isAppleProRAWSupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
+    [photoOutput addObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -1075,6 +1095,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [photoOutput removeObserver:self forKeyPath:@"isResponsiveCaptureSupported"];
     [photoOutput removeObserver:self forKeyPath:@"isAppleProRAWSupported"];
     [photoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
+    [photoOutput removeObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported"];
 }
 
 - (void)didReceiveRuntimeErrorNotification:(NSNotification *)notification {
