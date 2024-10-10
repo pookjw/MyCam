@@ -44,6 +44,8 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -113,6 +115,8 @@
     [elements addObject:[UIDeferredMenuElement _cp_queue_cameraCalibrationDataDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleVirtualDeviceConstituentPhotoDeliveryActionWithCaptureService:captureService photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleDepthDataDeliveryEnabledActionWithCaptureService:captureService photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
     //
     
@@ -1495,6 +1499,71 @@
     action.attributes = photoOutput.isVirtualDeviceConstituentPhotoDeliverySupported ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleDepthDataDeliveryEnabledActionWithCaptureService:(CaptureService *)captureService photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isDepthDataDeliveryEnabled = photoOutput.isDepthDataDeliveryEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Depth Data Delivery" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            photoOutput.depthDataDeliveryEnabled = !isDepthDataDeliveryEnabled;
+        });
+    }];
+    
+    action.state = isDepthDataDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = photoOutput.isDepthDataDeliverySupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    if (photoFormatModel.processedFileType == nil) {
+        action.subtitle = [NSString stringWithFormat:@"Requires processedFileType such as %@ or %@", AVFileTypeHEIC, AVFileTypeJPEG];
+    }
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_depthDataFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice title:(NSString *)title includeSubtitle:(BOOL)includeSubtitle filterHandler:(BOOL (^ _Nullable)(AVCaptureDeviceFormat *format))filterHandler didChangeHandler:(void (^)())didChangeHandler {
+    NSArray<AVCaptureDeviceFormat *> *formats = captureDevice.activeFormat.supportedDepthDataFormats;
+    AVCaptureDeviceFormat * _Nullable activeDepthDataFormat = captureDevice.activeDepthDataFormat;
+    NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
+    
+    [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([captureService.queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class] && !format.multiCamSupported) {
+            return;
+        }
+        
+        if (filterHandler) {
+            if (!filterHandler(format)) return;
+        }
+        
+        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.activeDepthDataFormat = format;
+                [captureDevice unlockForConfiguration];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.cp_overrideNumberOfTitleLines = @(0);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.state = [activeDepthDataFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [formatActions addObject:action];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:title
+                                   image:nil
+                              identifier:nil
+                                 options:0
+                                children:formatActions];
+    [formatActions release];
+    
+    if (includeSubtitle) {
+        menu.subtitle = activeDepthDataFormat.debugDescription;
+    }
+    
+    return menu;
 }
 
 @end

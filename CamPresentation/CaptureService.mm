@@ -237,6 +237,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
             return;
+        } else if ([keyPath isEqualToString:@"activeDepthDataFormat"]) {
+            if (captureDevice != nil) {
+                [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
+            }
+            return;
         }
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class]) {
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
@@ -393,6 +398,16 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 }
             });
             return;
+        } else if ([keyPath isEqualToString:@"isDepthDataDeliverySupported"]) {
+            dispatch_async(self.captureSessionQueue, ^{
+                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                
+                if (captureDevice != nil) {
+                    [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
+                }
+            });
+            return;
         }
     }
     
@@ -502,13 +517,17 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     
     NSMutableArray<AVCaptureInputPort *> *inputPorts = [NSMutableArray new];
     AVCaptureInputPort *videoInputPort = nil;
+    AVCaptureInputPort * _Nullable depthDataInputPort = nil;
     for (AVCaptureInputPort *inputPort in newInput.ports) {
         if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
             [inputPorts addObject:inputPort];
             videoInputPort = inputPort;
         } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
             [inputPorts addObject:inputPort];
+            depthDataInputPort = inputPort;
         }
+        
+        if (videoInputPort != nil && depthDataInputPort != nil) break;
     }
     assert(videoInputPort != nil);
     
@@ -927,6 +946,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         capturePhotoSettings.virtualDeviceConstituentPhotoDeliveryEnabledDevices = captureDevice.constituentDevices;
     }
     
+    BOOL isDepthDataDeliveryEnabled = capturePhotoOutput.isDepthDataDeliveryEnabled;
+    capturePhotoSettings.depthDataDeliveryEnabled = isDepthDataDeliveryEnabled;
+    capturePhotoSettings.embedsDepthDataInPhoto = isDepthDataDeliveryEnabled;
+    
     //
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(capturePhotoOutput, sel_registerName("isSpatialPhotoCaptureEnabled"));
@@ -1056,6 +1079,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"activeDepthDataFormat" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)unregisterObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1064,6 +1088,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
     [captureDevice removeObserver:self forKeyPath:@"formats"];
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
+    [captureDevice removeObserver:self forKeyPath:@"activeDepthDataFormat"];
 }
 
 - (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -1080,6 +1105,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [photoOutput addObserver:self forKeyPath:@"isAppleProRAWSupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
+    [photoOutput addObserver:self forKeyPath:@"isDepthDataDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -1096,6 +1122,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [photoOutput removeObserver:self forKeyPath:@"isAppleProRAWSupported"];
     [photoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
     [photoOutput removeObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported"];
+    [photoOutput removeObserver:self forKeyPath:@"isDepthDataDeliverySupported"];
 }
 
 - (void)didReceiveRuntimeErrorNotification:(NSNotification *)notification {
@@ -1441,6 +1468,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
     assert(error == nil);
+    NSLog(@"%@", photo.depthData);
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
     NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
@@ -1629,7 +1657,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    
+#warning Intrinsic
 }
 
 @end
+
+
+#warning Depth Data Output 실시간
