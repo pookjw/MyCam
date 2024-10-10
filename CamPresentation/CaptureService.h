@@ -31,6 +31,9 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgr
 
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName /* CaptureServiceCaptureDeviceKey */;
 
+CP_EXTERN NSString * const CaptureServiceCaptureSessionKey;
+CP_EXTERN NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName /* AVCaptureSessionErrorKey, CaptureServiceCaptureSessionKey */;
+
 //
 
 @interface CaptureService : NSObject

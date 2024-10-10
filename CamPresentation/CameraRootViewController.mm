@@ -430,6 +430,11 @@
                                                name:CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName
                                              object:captureService];
     
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
+                                               name:CaptureServiceCaptureSessionRuntimeErrorNotificationName
+                                             object:captureService];
+    
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -616,6 +621,26 @@
             [self updateSpatialCaptureDiscomfortReasonLabelWithCaptureDevice:captureDevice previewLayer:previewLayer];
         });
     });
+}
+
+- (void)didReceiveCaptureSessionRuntimeErrorNotification:(NSNotification *)notification {
+    NSError * _Nullable error = notification.userInfo[AVCaptureSessionErrorKey];
+    
+    if (error != nil) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Error" message:error.userInfo.description preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:nil];
+            
+            [alertController addAction:doneAction];
+            
+            __kindof UIViewController *topViewController = self;
+            while (__kindof UIViewController *presentedViewController = topViewController.presentedViewController) {
+                topViewController = presentedViewController;
+            }
+            [topViewController presentViewController:alertController animated:YES completion:nil];
+        });
+    }
 }
 
 - (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {

@@ -50,6 +50,8 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
                 [elements addObject:menu];
             }
@@ -1413,6 +1415,38 @@
      });
     
     return element;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureConnection * _Nullable connection = nil;
+    for (AVCaptureConnection *_connection in captureService.queue_captureSession.connections) {
+        for (AVCaptureInputPort *inputPort in _connection.inputPorts) {
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            if ([deviceInput.device isEqual:captureDevice]) {
+                connection = _connection;
+                break;
+            }
+        }
+        
+        if (connection != nil) break;
+    }
+    assert(connection != nil);
+    
+    BOOL isCameraIntrinsicMatrixDeliveryEnabled = connection.isCameraIntrinsicMatrixDeliveryEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Camera Intrinsic Matrix" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            connection.cameraIntrinsicMatrixDeliveryEnabled = !isCameraIntrinsicMatrixDeliveryEnabled;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isCameraIntrinsicMatrixDeliveryEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = (connection.isCameraIntrinsicMatrixDeliverySupported) ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
 }
 
 @end

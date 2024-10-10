@@ -31,7 +31,10 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName = @"CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate>
+NSString * const CaptureServiceCaptureSessionKey = @"CaptureServiceCaptureSessionKey";
+NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName = @"CaptureServiceCaptureSessionRuntimeErrorNotificationName";
+
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
@@ -518,9 +521,21 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     [captureSession addConnection:movieFileOutputConnection];
     [movieFileOutputConnection release];
     
-    [inputPorts release];
+    //
+    
+    AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
+    [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+    assert([captureSession canAddOutput:videoDataOutput]);
+    [captureSession addOutputWithNoConnections:videoDataOutput];
+    
+    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:videoDataOutput];
+    [videoDataOutput release];
+    [captureSession addConnection:videoDataOutputConnection];
+    [videoDataOutputConnection release];
     
     //
+    
+    [inputPorts release];
     
 #if TARGET_OS_IOS
     for (__kindof AVCaptureControl *control in captureSession.controls) {
@@ -651,25 +666,34 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     NSMutableArray<AVCaptureConnection *> *removingConnections = [NSMutableArray new];
     AVCapturePhotoOutput *photoOutput = nil;
     AVCaptureMovieFileOutput *movieFileOutput = nil;
+    AVCaptureVideoDataOutput *videoDataOutput = nil;
     for (__kindof AVCaptureConnection *connection in captureSession.connections) {
         for (AVCaptureInputPort *inputPort in connection.inputPorts) {
             if ([inputPort.input isEqual:deviceInput]) {
                 [removingConnections addObject:connection];
                 
-                if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
-                    assert(photoOutput == nil);
-                    photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
-                    break;
-                } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                    assert(movieFileOutput == nil);
-                    movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
-                    break;
+                if (connection.output != nil) {
+                    if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
+                        assert(photoOutput == nil);
+                        photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
+                    } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                        assert(movieFileOutput == nil);
+                        movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
+                    } else if ([connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                        assert(videoDataOutput == nil);
+                        videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(connection.output);
+                    } else {
+                        abort();
+                    }
                 }
+                
+                break;
             }
         }
     }
     assert(photoOutput != nil);
     assert(movieFileOutput != nil);
+    assert(videoDataOutput != nil);
     
     [self unregisterObserversForPhotoOutput:photoOutput];
     
@@ -698,6 +722,7 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     
     [captureSession removeOutput:photoOutput];
     [captureSession removeOutput:movieFileOutput];
+    [captureSession removeOutput:videoDataOutput];
     [captureSession removeInput:deviceInput];
     
     [captureSession commitConfiguration];
@@ -1047,6 +1072,30 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     [photoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
 }
 
+- (void)didReceiveRuntimeErrorNotification:(NSNotification *)notification {
+    dispatch_async(self.captureSessionQueue, ^{
+        NSMutableDictionary *userInfo = [NSMutableDictionary new];
+        
+        if (NSError *error = notification.userInfo[AVCaptureSessionErrorKey]) {
+            assert([error isKindOfClass:NSError.class]);
+            userInfo[AVCaptureSessionErrorKey] = error;
+        } else {
+            abort();
+        }
+        
+        if (__kindof AVCaptureSession *session = notification.object) {
+            assert([session isKindOfClass:AVCaptureSession.class]);
+            assert(([session isEqual:self.queue_captureSession]));
+            userInfo[CaptureServiceCaptureSessionKey] = session;
+        } else {
+            abort();
+        }
+        
+        [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceCaptureSessionRuntimeErrorNotificationName object:self userInfo:userInfo];
+        [userInfo release];
+    });
+}
+
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionWithClass:(Class)captureSessionClass postNotification:(BOOL)postNotification {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureSessionClass == AVCaptureSession.class || [captureSessionClass isSubclassOfClass:AVCaptureSession.class]);
@@ -1056,6 +1105,8 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     
     BOOL wasRunning;
     if (__kindof AVCaptureSession *currentCaptureSession = _queue_captureSession) {
+        [NSNotificationCenter.defaultCenter removeObserver:self name:AVCaptureSessionRuntimeErrorNotification object:currentCaptureSession];
+        
         wasRunning = currentCaptureSession.isRunning;
         if (wasRunning) {
             [currentCaptureSession stopRunning];
@@ -1097,6 +1148,7 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRuntimeErrorNotification:) name:AVCaptureSessionRuntimeErrorNotification object:captureSession];
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     
     if (captureSessionClass == AVCaptureSession.class) {
@@ -1171,6 +1223,9 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
                     }
                 } else if ([output isKindOfClass:AVCaptureMovieFileOutput.class]) {
                     
+                } else if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                    auto videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
+                    [videoDataOutput setSampleBufferDelegate:nil queue:nil];
                 } else {
                     abort();
                 }
@@ -1235,6 +1290,15 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
                 
                 [addedOutputsByOutputs setObject:newMovieFileOutput forKey:output];
                 [newMovieFileOutput release];
+            } else if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                AVCaptureVideoDataOutput *newVideoDataOutput = [AVCaptureVideoDataOutput new];
+                [newVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+                
+                assert([captureSession canAddOutput:newVideoDataOutput]);
+                [captureSession addOutputWithNoConnections:newVideoDataOutput];
+                
+                [addedOutputsByOutputs setObject:newVideoDataOutput forKey:output];
+                [newVideoDataOutput release];
             } else {
                 abort();
             }
@@ -1311,6 +1375,8 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
                         abort();
                     }
                 } else if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                    
+                } else if ([addedOutput isKindOfClass:AVCaptureVideoDataOutput.class]) {
                     
                 } else {
                     abort();
@@ -1529,6 +1595,13 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
 }
 
 - (void)captureOutput:(AVCaptureFileOutput *)output didResumeRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+    
+}
+
+
+#pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
+
+- (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
     
 }
 
