@@ -13,6 +13,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
+#import <CamPresentation/PixelBufferLayer.h>
 
 #warning HDR Format Filter
 
@@ -37,6 +38,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -82,6 +84,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         
         //
@@ -104,6 +107,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
+        _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
         
@@ -151,6 +155,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [_queue_photoFormatModelsByCaptureDevice release];
     [_queue_readinessCoordinatorByCapturePhotoOutput release];
     [_queue_previewLayersByCaptureDevice release];
+    [_queue_depthMapLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
@@ -464,6 +469,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     return [[self.queue_previewLayersByCaptureDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_depthMapLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_depthMapLayersByCaptureDevice copy] autorelease];
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
@@ -584,6 +594,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         assert([captureSession canAddConnection:depthDataOutputConnection]);
         [captureSession addConnection:depthDataOutputConnection];
         [depthDataOutputConnection release];
+        
+        PixelBufferLayer *depthMapLayer = [PixelBufferLayer new];
+        [self.queue_depthMapLayersByCaptureDevice setObject:depthMapLayer forKey:captureDevice];
+        [depthMapLayer release];
     }
     
     //
@@ -1700,7 +1714,21 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 #pragma mark - AVCaptureDepthDataOutputDelegate
 
 - (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
-    NSLog(@"%@", NSDate.now);
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCaptureDevice *captureDevice = nil;
+    for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+        auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+        
+        if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+            captureDevice = deviceInput.device;
+            break;
+        }
+    }
+    assert(captureDevice != nil);
+    
+    PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
+    depthMapLayer.pixelBuffer = depthData.depthDataMap;
 }
 
 @end

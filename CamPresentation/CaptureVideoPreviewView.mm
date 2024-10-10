@@ -10,15 +10,21 @@
 
 @implementation CaptureVideoPreviewView
 @synthesize previewLayer = _previewLayer;
+@synthesize depthMapLayer = _depthMapLayer;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 
-- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer {
     if (self = [super init]) {
         _previewLayer = [previewLayer retain];
+        _depthMapLayer = [depthMapLayer retain];
         
         CALayer *layer = self.layer;
+        
         previewLayer.frame = layer.bounds;
+        depthMapLayer.frame = layer.bounds;
+        
         [layer addSublayer:previewLayer];
+        [layer addSublayer:depthMapLayer];
         
         //
         
@@ -41,13 +47,17 @@
 
 - (void)dealloc {
     [_previewLayer release];
+    [_depthMapLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [super dealloc];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    self.previewLayer.frame = self.layer.bounds;
+    
+    CGRect bounds = self.layer.bounds;
+    self.previewLayer.frame = bounds;
+    self.depthMapLayer.frame = bounds;
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {

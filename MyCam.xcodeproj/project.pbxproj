@@ -19,6 +19,7 @@
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
+		4F8CC70F2CB8263D00CA3138 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
 		4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5F2C97152500F17348 /* SwiftUI.framework */; };
@@ -126,6 +127,7 @@
 		4F47801A2C98388800813671 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreMedia.framework; sourceTree = DEVELOPER_DIR; };
 		4F4780332C984BE500813671 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
 		4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = "MyCaptureExtension-Swift.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA73E5D2C97152500F17348 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -186,6 +188,7 @@
 				FileOutputs/PhotoLibraryFileOutput.mm,
 				"FileOutputs/UIDeferredMenuElement+FileOutputs.h",
 				"FileOutputs/UIDeferredMenuElement+FileOutputs.mm",
+				lock_private.h,
 				"NSObject+Foundation_IvarDescription.h",
 				"NSObject+Foundation_IvarDescription.mm",
 				"NSStringFrom+/NSStringFromAVCaptureColorSpace.h",
@@ -204,6 +207,8 @@
 				PhotoFormat/PhotoFormatModel.mm,
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.h",
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.mm",
+				PixelBufferLayer.h,
+				PixelBufferLayer.mm,
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIMenuElement+CP_NumberOfLines.mm",
 			);
@@ -218,6 +223,7 @@
 				FileOutputs/ExternalStorageDeviceFileOutput.h,
 				FileOutputs/PhotoLibraryFileOutput.h,
 				"FileOutputs/UIDeferredMenuElement+FileOutputs.h",
+				lock_private.h,
 				"NSObject+Foundation_IvarDescription.h",
 				"NSStringFrom+/NSStringFromAVCaptureColorSpace.h",
 				"NSStringFrom+/NSStringFromAVCaptureFlashMode.h",
@@ -227,6 +233,7 @@
 				"NSStringFrom+/NSStringFromCMVideoDimensions.h",
 				PhotoFormat/PhotoFormatModel.h,
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.h",
+				PixelBufferLayer.h,
 				"UIMenuElement+CP_NumberOfLines.h",
 			);
 			publicHeaders = (
@@ -317,6 +324,7 @@
 			files = (
 				4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
+				4F8CC70F2CB8263D00CA3138 /* VideoToolbox.framework in Frameworks */,
 				4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */,
 				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
 				4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */,
@@ -369,6 +377,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */,
 				4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */,
 				4FED1AD42C99999800174044 /* CoreLocation.framework */,
 				4FED1AD62C99999D00174044 /* CoreLocation.framework */,
