@@ -412,6 +412,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         captureDevice = AVCaptureDevice.systemPreferredCamera;
     }
     
+    if (captureDevice.uniqueID == nil) {
+        // Simulator
+        return nil;
+    }
+    
     return captureDevice;
 }
 
@@ -1079,6 +1084,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         if (NSError *error = notification.userInfo[AVCaptureSessionErrorKey]) {
             assert([error isKindOfClass:NSError.class]);
             userInfo[AVCaptureSessionErrorKey] = error;
+            NSLog(@"%@", error);
         } else {
             abort();
         }

@@ -21,6 +21,8 @@
             NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
             
             for (AVCaptureDevice *captureDevice in devices) {
+                if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isCameraIntrinsicMatrixDeliverySupported"))) continue;
+                
                 UIImage *image;
                 if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
                     image = [UIImage systemImageNamed:@"web.camera"];

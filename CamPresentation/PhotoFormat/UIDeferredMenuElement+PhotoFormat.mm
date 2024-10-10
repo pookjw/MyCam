@@ -52,6 +52,8 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_cameraIntrinsicMatrixDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             if (UIMenu *menu = [UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]) {
                 [elements addObject:menu];
             }
@@ -1424,7 +1426,7 @@
             auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
             if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
             
-            if ([deviceInput.device isEqual:captureDevice]) {
+            if ([deviceInput.device isEqual:captureDevice] && [_connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
                 connection = _connection;
                 break;
             }
@@ -1447,6 +1449,21 @@
     action.attributes = (connection.isCameraIntrinsicMatrixDeliverySupported) ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_cameraIntrinsicMatrixDeliverySupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Camera Intrinsic Matrix Delivery Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        AVFrameRateRange *lastRange = format.videoSupportedFrameRateRanges.lastObject;
+        
+        if (lastRange == nil) return NO;
+        
+        return (lastRange.maxFrameRate <= 120.);
+    } 
+                                                         didChangeHandler:didChangeHandler];
 }
 
 @end
