@@ -20,6 +20,7 @@
 
 #warning AVSpatialOverCaptureVideoPreviewLayer
 #warning -[AVCaptureDevice isProResSupported]
+#warning videoMirrored
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -1523,7 +1524,9 @@
 + (UIMenu * _Nonnull)_cp_queue_depthMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleDepthMapVisibilityActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleDepthMapFilteringActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -1584,6 +1587,67 @@
     }
     
     return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleDepthMapVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_depthDataOutputFromCaptureDevice:captureDevice];
+    AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+    assert((depthDataOutput == nil && connection == nil) || (depthDataOutput != nil && connection != nil));
+    
+    BOOL isEnabled;
+    if (connection == nil) {
+        isEnabled = NO;
+    } else {
+        isEnabled = connection.isEnabled;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Depth Map Visibility" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setUpdatesDepthMapLayer:!isEnabled captureDevice:captureDevice];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    if (connection == nil) {
+        action.attributes = UIMenuElementAttributesDisabled;
+    } else {
+        action.state = isEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    }
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleDepthMapFilteringActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_depthDataOutputFromCaptureDevice:captureDevice];
+    AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+    assert((depthDataOutput == nil && connection == nil) || (depthDataOutput != nil && connection != nil));
+    
+    BOOL isUpdating;
+    if (connection == nil) {
+        isUpdating = NO;
+    } else {
+        isUpdating = connection.isEnabled;
+    }
+    
+    BOOL isFilteringEnabled;
+    if (depthDataOutput == nil) {
+        isFilteringEnabled = NO;
+    } else {
+        isFilteringEnabled = depthDataOutput.isFilteringEnabled;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Depth Map Filtering" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            depthDataOutput.filteringEnabled = !isFilteringEnabled;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isFilteringEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isUpdating ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
 }
 
 @end

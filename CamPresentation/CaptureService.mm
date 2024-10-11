@@ -863,6 +863,52 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     return nil;
 }
 
+- (AVCaptureDepthDataOutput *)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        for (AVCaptureInputPort *port in connection.inputPorts) {
+            auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(connection.output);
+            if (![depthDataOutput isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                continue;
+            }
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
+            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                if ([deviceInput.device isEqual:captureDevice]) {
+                    return depthDataOutput;
+                }
+            }
+        }
+    }
+    
+    return nil;
+}
+
+- (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];
+    assert(depthDataOutput != nil);
+    AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+    assert(connection != nil);
+    
+    connection.enabled = updatesDepthMapLayer;
+    
+    PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
+    assert(depthMapLayer != nil);
+    [depthMapLayer updateWithCIImage:nil rotationAngle:0.f];
+}
+
+//- (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice {
+//    dispatch_assert_queue(self.captureSessionQueue);
+//    AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];
+//    assert(depthDataOutput != nil);
+//    AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+//    assert(connection != nil);
+//    
+//    return connection.isEnabled;
+//}
+
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
@@ -1487,6 +1533,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 }
             }
             
+            newConnection.enabled = connection.isEnabled;
             assert([captureSession canAddConnection:newConnection]);
             [captureSession addConnection:newConnection];
             
@@ -1715,6 +1762,8 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 
 - (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
     dispatch_assert_queue(self.captureSessionQueue);
+    
+    if (!connection.isEnabled) return;
     
     AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
     assert(captureDevice != nil);
