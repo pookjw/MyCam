@@ -1710,21 +1710,20 @@
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleCenterStageActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-#warning centerStageControlMode을 뭔가 해야 하는듯
     BOOL isCenterStageSupported = captureDevice.activeFormat.isCenterStageSupported;
-    BOOL isCenterStageEnabled = AVCaptureDevice.isCenterStageEnabled;
+    BOOL isCenterStageActive = captureDevice.isCenterStageActive;
+    
+    AVCaptureDevice.centerStageControlMode = AVCaptureCenterStageControlModeCooperative;
     
     UIAction *action = [UIAction actionWithTitle:@"Center Stage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            AVCaptureDevice.centerStageEnabled = !isCenterStageEnabled;
+            AVCaptureDevice.centerStageEnabled = !isCenterStageActive;
             if (didChangeHandler) didChangeHandler(); 
         });
     }];
     
     action.attributes = isCenterStageSupported ? 0 : UIMenuElementAttributesDisabled;
-    
-#warning KVO
-    action.state = isCenterStageEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.state = isCenterStageActive ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }

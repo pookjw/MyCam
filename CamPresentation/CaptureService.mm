@@ -115,6 +115,8 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         //
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveCaptureDeviceWasDisconnectedNotification:) name:AVCaptureDeviceWasDisconnectedNotification object:nil];
+        
+        [AVCaptureDevice addObserver:self forKeyPath:@"centerStageEnabled" options:NSKeyValueObservingOptionNew context:nullptr];
     }
     
     return self;
@@ -122,6 +124,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
+    [AVCaptureDevice removeObserver:self forKeyPath:@"centerStageEnabled"];
     
     for (__kindof AVCaptureInput *input in _queue_captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
@@ -217,7 +220,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         auto captureDevice = static_cast<AVCaptureDevice *>(object);
         
         if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
-#warning TODO
+#warning TODO - method 분리
             [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
                                                               object:self
                                                             userInfo:@{
@@ -252,6 +255,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
             return;
+        } else if ([keyPath isEqualToString:@"isCenterStageActive"]) {
+            if (captureDevice != nil) {
+                [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
+            }
         }
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class]) {
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
@@ -416,6 +423,14 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+            });
+            return;
+        }
+    } else if ([object isEqual:AVCaptureDevice.class]) {
+        if ([keyPath isEqualToString:@"centerStageEnabled"]) {
+            dispatch_async(self.captureSessionQueue, ^{
+#warning TODO
+                NSLog(@"Hello World! %d", self.queue_addedCaptureDevices.firstObject.isCenterStageActive);
             });
             return;
         }
@@ -1168,6 +1183,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeDepthDataFormat" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"isCenterStageActive" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)unregisterObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1177,6 +1193,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice removeObserver:self forKeyPath:@"formats"];
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
     [captureDevice removeObserver:self forKeyPath:@"activeDepthDataFormat"];
+    [captureDevice removeObserver:self forKeyPath:@"isCenterStageActive"];
 }
 
 - (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
