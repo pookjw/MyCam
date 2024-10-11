@@ -19,7 +19,6 @@
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
-		4F8CC70F2CB8263D00CA3138 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
 		4FA73E602C97152500F17348 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5F2C97152500F17348 /* SwiftUI.framework */; };
@@ -324,7 +323,6 @@
 			files = (
 				4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
-				4F8CC70F2CB8263D00CA3138 /* VideoToolbox.framework in Frameworks */,
 				4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */,
 				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
 				4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */,

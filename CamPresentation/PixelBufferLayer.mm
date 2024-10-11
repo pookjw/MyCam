@@ -6,14 +6,20 @@
 //
 
 #import <CamPresentation/PixelBufferLayer.h>
-#import <VideoToolbox/VideoToolbox.h>
+#import <CoreImage/CoreImage.h>
 #import <CamPresentation/lock_private.h>
 
 @interface PixelBufferLayer ()
+@property (class, retain, nonatomic, readonly) CIContext *ciContext;
 @property (assign, nonatomic, readonly) os_unfair_recursive_lock lock;
 @end
 
 @implementation PixelBufferLayer
+
++ (CIContext *)ciContext {
+    static CIContext *ciContext = [[CIContext alloc] initWithOptions:nil];
+    return ciContext;
+}
 
 - (instancetype)init {
     if (self = [super init]) {
@@ -51,6 +57,8 @@
 }
 
 - (void)setPixelBuffer:(CVPixelBufferRef)pixelBuffer {
+    NSLog(@"%s", sel_getName(_cmd));
+    
     os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
     
     if (CVPixelBufferRef oldPixelBuffer = _pixelBuffer) {
@@ -58,10 +66,12 @@
     }
     
     _pixelBuffer = CVPixelBufferRetain(pixelBuffer);
-    [self setNeedsDisplay];
-    [self display];
     
     os_unfair_recursive_lock_unlock(&_lock);
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self setNeedsDisplay];
+    });
 }
 
 - (void)drawInContext:(CGContextRef)ctx {
@@ -74,12 +84,19 @@
         return;
     }
     
-    CGImageRef image = nullptr;
-#warning 잘 안 됨
-    VTCreateCGImageFromCVPixelBuffer(pixelBuffer, nullptr, &image);
+//    NSLog(@"%s", CVPixelBufferGetPixelFormatType(pixelBuffer));
+//    assert(CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32ARGB || CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_422YpCbCr8 || CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA);
     
-    if (image) {
-        CGContextDrawImage(ctx, self.bounds, image);
+    CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:pixelBuffer options:@{kCIImageAuxiliaryDisparity: @YES}];
+    
+    CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:ciImage fromRect:ciImage.extent];
+    
+    if (cgImage) {
+        CGContextSetAlpha(ctx, 0.5);
+        CGContextDrawImage(ctx, self.bounds, cgImage);
+        NSLog(@"Drawn!");
+    } else {
+        NSLog(@"Failed!");
     }
     
     os_unfair_recursive_lock_unlock(&_lock);

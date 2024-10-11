@@ -16,6 +16,7 @@
 #import <CamPresentation/PixelBufferLayer.h>
 
 #warning HDR Format Filter
+#warning Focus (TrueDepthStreamer focus(with focusMode: AVCaptureDevice.FocusMode))
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
@@ -585,6 +586,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     
     if (depthDataInputPort != nil) {
         AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
+        depthDataOutput.filteringEnabled = NO;
         [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
         assert([captureSession canAddOutput:depthDataOutput]);
         [captureSession addOutputWithNoConnections:depthDataOutput];
@@ -1392,6 +1394,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 [newVideoDataOutput release];
             } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
                 AVCaptureDepthDataOutput *newDepthDataOutput = [AVCaptureDepthDataOutput new];
+                newDepthDataOutput.filteringEnabled = static_cast<AVCaptureDepthDataOutput *>(output).isFilteringEnabled;
                 [newDepthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
                 
                 assert([captureSession canAddOutput:newDepthDataOutput]);
@@ -1714,6 +1717,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 #pragma mark - AVCaptureDepthDataOutputDelegate
 
 - (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
+    NSLog(@"%s", sel_getName(_cmd));
     dispatch_assert_queue(self.captureSessionQueue);
     
     AVCaptureDevice *captureDevice = nil;
@@ -1729,6 +1733,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     
     PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
     depthMapLayer.pixelBuffer = depthData.depthDataMap;
+}
+
+- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didDropDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection reason:(AVCaptureOutputDataDroppedReason)reason {
+    NSLog(@"%ld", reason);
 }
 
 @end

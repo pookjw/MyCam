@@ -19,12 +19,15 @@
         _depthMapLayer = [depthMapLayer retain];
         
         CALayer *layer = self.layer;
+        CGRect bounds = layer.bounds;
         
-        previewLayer.frame = layer.bounds;
-        depthMapLayer.frame = layer.bounds;
-        
+        previewLayer.frame = bounds;
         [layer addSublayer:previewLayer];
-        [layer addSublayer:depthMapLayer];
+        
+        if (depthMapLayer != nil) {
+            depthMapLayer.frame = bounds;
+            [layer addSublayer:depthMapLayer];
+        }
         
         //
         
