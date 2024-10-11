@@ -573,7 +573,6 @@
     for (AVCaptureDevice *captureDevice in captureService.queue_addedCaptureDevices) {
         AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
         
-        NSLog(@"%ld", static_cast<long>(readinessCoordinator.captureReadiness));
         if (readinessCoordinator.captureReadiness != AVCapturePhotoOutputCaptureReadinessReady) {
             isLoading = YES;
             break;

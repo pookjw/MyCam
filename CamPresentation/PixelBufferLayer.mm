@@ -66,7 +66,7 @@
             CGImageRelease(oldCGImage);
         }
         
-        CGAffineTransform transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(ciImage.extent), CGRectGetMidY(ciImage.extent)), rotationAngle * M_PI / 180.f);
+        CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(ciImage.extent), CGRectGetMidY(ciImage.extent)), rotationAngle * M_PI / 180.f), -1.f, 1.f);
         CIImage *rotatedCIImage = [ciImage imageByApplyingTransform:transform highQualityDownsample:NO];
         
         // retained
@@ -81,14 +81,19 @@
 }
 
 - (void)drawInContext:(CGContextRef)ctx {
+    CGImageRef cgImage;
     os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
-    
-    if (CGImageRef cgImage = _cgImageIsolated) {
-        CGContextSetAlpha(ctx, 0.75);
-        CGContextDrawImage(ctx, AVMakeRectWithAspectRatioInsideRect(CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage)), self.bounds), cgImage);
+    cgImage = _cgImageIsolated;
+    if (cgImage != nullptr) {
+        CGImageRetain(cgImage);
     }
-    
     os_unfair_recursive_lock_unlock(&_lock);
+    
+    if (cgImage != nil) {
+        CGContextSetAlpha(ctx, self.opacity);
+        CGContextDrawImage(ctx, AVMakeRectWithAspectRatioInsideRect(CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage)), self.bounds), cgImage);
+        CGImageRelease(cgImage);
+    }
 }
 
 @end

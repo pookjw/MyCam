@@ -1528,6 +1528,7 @@
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_noDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapVisibilityActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapFilteringActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
@@ -1630,6 +1631,34 @@
     }
     
     return action;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    __kindof CALayer *layer = [captureService queue_depthMapLayerFromCaptureDevice:captureDevice];
+    
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        if (layer != nil) {
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 1.f;
+            slider.value = layer.opacity;
+            slider.continuous = YES;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                auto sender = static_cast<UISlider *>(action.sender);
+                layer.opacity = sender.value;
+            }];
+            
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        } else {
+            slider.enabled = NO;
+        }
+        
+        return [slider autorelease];
+    });
+    
+    return element;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapFilteringActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {

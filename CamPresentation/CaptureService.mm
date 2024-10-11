@@ -163,15 +163,15 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [super dealloc];
 }
 
-- (BOOL)respondsToSelector:(SEL)aSelector {
-    BOOL responds = [super respondsToSelector:aSelector];
-    
-    if (!responds) {
-        NSLog(@"%@: %s", NSStringFromClass(self.class), sel_getName(aSelector));
-    }
-    
-    return responds;
-}
+//- (BOOL)respondsToSelector:(SEL)aSelector {
+//    BOOL responds = [super respondsToSelector:aSelector];
+//    
+//    if (!responds) {
+//        NSLog(@"%@: %s", NSStringFromClass(self.class), sel_getName(aSelector));
+//    }
+//    
+//    return responds;
+//}
 
 + (BOOL)conformsToProtocol:(Protocol *)protocol {
     BOOL confroms = [super conformsToProtocol:protocol];
@@ -597,12 +597,14 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         [captureSession addOutputWithNoConnections:depthDataOutput];
         
         AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
+        depthDataOutputConnection.videoMirrored = YES;
         [depthDataOutput release];
         assert([captureSession canAddConnection:depthDataOutputConnection]);
         [captureSession addConnection:depthDataOutputConnection];
         [depthDataOutputConnection release];
         
         PixelBufferLayer *depthMapLayer = [PixelBufferLayer new];
+        depthMapLayer.opacity = 0.75f;
         [self.queue_depthMapLayersByCaptureDevice setObject:depthMapLayer forKey:captureDevice];
         [depthMapLayer release];
     }
@@ -916,6 +918,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+}
+
+- (__kindof CALayer *)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
 }
 
 - (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1777,8 +1784,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:depthData.depthDataMap options:@{kCIImageAuxiliaryDisparity: @YES}];
     
     PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
-    
-    [depthMapLayer updateWithCIImage:ciImage rotationAngle:rotationCoordinator.videoRotationAngleForHorizonLevelPreview];
+    [depthMapLayer updateWithCIImage:ciImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture];
     
     [ciImage release];
 }
@@ -1788,6 +1794,3 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 }
 
 @end
-
-
-#warning Depth Data Output 실시간
