@@ -208,6 +208,8 @@
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.mm",
 				PixelBufferLayer.h,
 				PixelBufferLayer.mm,
+				SVRunLoop.hpp,
+				SVRunLoop.mm,
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIMenuElement+CP_NumberOfLines.mm",
 			);
@@ -233,6 +235,7 @@
 				PhotoFormat/PhotoFormatModel.h,
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.h",
 				PixelBufferLayer.h,
+				SVRunLoop.hpp,
 				"UIMenuElement+CP_NumberOfLines.h",
 			);
 			publicHeaders = (

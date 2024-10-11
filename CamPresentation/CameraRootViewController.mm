@@ -658,7 +658,7 @@
     [tapGestureRecogninzer release];
     
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = captureVideoPreviewView.previewLayer;
-    captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
     
     return captureVideoPreviewView;
 }

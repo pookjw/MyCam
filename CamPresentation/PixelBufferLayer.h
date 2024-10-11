@@ -6,12 +6,12 @@
 //
 
 #import <QuartzCore/QuartzCore.h>
-#import <CoreVideo/CoreVideo.h>
+#import <CoreImage/CoreImage.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PixelBufferLayer : CALayer
-@property (assign, nonatomic) CVPixelBufferRef pixelBuffer;
+- (void)updateWithCIImage:(CIImage *)ciImage rotationAngle:(float)rotationAngle;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -253,7 +253,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
@@ -267,7 +267,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"availablePhotoCodecTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
@@ -281,7 +281,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"availableRawPhotoPixelFormatTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
@@ -295,7 +295,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"availableRawPhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updateRawFileTypeIfNeededWithPhotoOutput:photoOutput];
@@ -309,7 +309,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"availablePhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updateProcessedFileTypeIfNeededWithPhotoOutput:photoOutput];
@@ -323,7 +323,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -333,7 +333,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -343,7 +343,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -353,7 +353,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isZeroShutterLagSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -363,7 +363,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isResponsiveCaptureSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -373,7 +373,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isAppleProRAWSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -383,7 +383,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isFastCapturePrioritizationSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -393,7 +393,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isCameraCalibrationDataDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
                 
                 [photoFormatModel updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:photoOutput];
@@ -407,7 +407,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         } else if ([keyPath isEqualToString:@"isDepthDataDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
-                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
@@ -586,7 +586,8 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     
     if (depthDataInputPort != nil) {
         AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
-        depthDataOutput.filteringEnabled = NO;
+        depthDataOutput.filteringEnabled = YES;
+        depthDataOutput.alwaysDiscardsLateDepthData = YES;
         [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
         assert([captureSession canAddOutput:depthDataOutput]);
         [captureSession addOutputWithNoConnections:depthDataOutput];
@@ -898,17 +899,11 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     return nil;
 }
 
-- (AVCaptureDevice *)queue_captureDeviceFromPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+- (AVCaptureDevice *)queue_captureDeviceFromOutput:(__kindof AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
         for (AVCaptureInputPort *port in connection.inputPorts) {
-            auto _photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
-            
-            if (![photoOutput isKindOfClass:AVCapturePhotoOutput.class]) {
-                continue;
-            }
-            
-            if (![photoOutput isEqual:_photoOutput]) {
+            if (![output isEqual:connection.output]) {
                 continue;
             }
             
@@ -1393,8 +1388,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 [addedOutputsByOutputs setObject:newVideoDataOutput forKey:output];
                 [newVideoDataOutput release];
             } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(output);
                 AVCaptureDepthDataOutput *newDepthDataOutput = [AVCaptureDepthDataOutput new];
-                newDepthDataOutput.filteringEnabled = static_cast<AVCaptureDepthDataOutput *>(output).isFilteringEnabled;
+                newDepthDataOutput.filteringEnabled = depthDataOutput.isFilteringEnabled;
+                newDepthDataOutput.alwaysDiscardsLateDepthData = depthDataOutput.alwaysDiscardsLateDepthData;
                 [newDepthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
                 
                 assert([captureSession canAddOutput:newDepthDataOutput]);
@@ -1644,7 +1641,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
         AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromReadinessCoordinator:coordinator];
         if (photoOutput == nil) return;
         
-        AVCaptureDevice *captureDevice = [self queue_captureDeviceFromPhotoOutput:photoOutput];
+        AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
         if (captureDevice == nil) return;
         
         [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeCaptureReadinessNotificationName
@@ -1717,26 +1714,24 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 #pragma mark - AVCaptureDepthDataOutputDelegate
 
 - (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
-    NSLog(@"%s", sel_getName(_cmd));
     dispatch_assert_queue(self.captureSessionQueue);
     
-    AVCaptureDevice *captureDevice = nil;
-    for (AVCaptureInputPort *inputPort in connection.inputPorts) {
-        auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
-        
-        if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
-            captureDevice = deviceInput.device;
-            break;
-        }
-    }
+    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
     assert(captureDevice != nil);
     
+    AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice];
+    
+    CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:depthData.depthDataMap options:@{kCIImageAuxiliaryDisparity: @YES}];
+    
     PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
-    depthMapLayer.pixelBuffer = depthData.depthDataMap;
+    
+    [depthMapLayer updateWithCIImage:ciImage rotationAngle:rotationCoordinator.videoRotationAngleForHorizonLevelPreview];
+    
+    [ciImage release];
 }
 
 - (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didDropDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection reason:(AVCaptureOutputDataDroppedReason)reason {
-    NSLog(@"%ld", reason);
+    
 }
 
 @end
