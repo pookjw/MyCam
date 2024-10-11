@@ -230,7 +230,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
-                if (captureDevice.activeFormat.supportedDepthDataFormats.count == 0) {
+                if ((captureDevice.activeFormat.supportedDepthDataFormats.count == 0) && ([self queue_depthDataOutputFromCaptureDevice:captureDevice] != nil)) {
                     [self queue_setUpdatesDepthMapLayer:NO captureDevice:captureDevice];
                 }
                 

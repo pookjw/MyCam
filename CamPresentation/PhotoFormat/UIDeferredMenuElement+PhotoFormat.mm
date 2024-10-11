@@ -59,6 +59,8 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_centerStageMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
 #warning TODO: autoVideoFrameRateEnabled
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -1658,6 +1660,42 @@
     
     action.state = isFilteringEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     action.attributes = isUpdating ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_centerStageMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
+        [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                         captureDevice:captureDevice
+                                                                 title:@"Center Stage Supported Formats"
+                                                       includeSubtitle:NO
+                                                         filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+            return format.centerStageSupported;
+        }
+                                                      didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleCenterStageActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleCenterStageActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+#warning centerStageControlMode을 뭔가 해야 하는듯
+    BOOL isCenterStageSupported = captureDevice.activeFormat.isCenterStageSupported;
+    BOOL isCenterStageEnabled = AVCaptureDevice.isCenterStageEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Center Stage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            AVCaptureDevice.centerStageEnabled = !isCenterStageEnabled;
+            if (didChangeHandler) didChangeHandler(); 
+        });
+    }];
+    
+    action.attributes = isCenterStageSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+#warning KVO
+    action.state = isCenterStageEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }
