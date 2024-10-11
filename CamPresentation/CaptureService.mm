@@ -1139,8 +1139,14 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
-#warning TODO
-    NSLog(@"Disconnected!");
+    auto captureDevice = static_cast<AVCaptureDevice * _Nullable>(notification.object);
+    if (captureDevice == nil) return;
+    
+    dispatch_async(self.captureSessionQueue, ^{
+        if ([self.queue_addedCaptureDevices containsObject:captureDevice]) {
+            [self queue_removeCaptureDevice:captureDevice];
+        }
+    });
 }
 
 - (void)postReloadingPhotoFormatMenuNeededNotification:(AVCaptureDevice *)captureDevice {
@@ -1510,13 +1516,6 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
                 [self.queue_previewLayersByCaptureDevice setObject:previewLayer forKey:captureDevice];
                 
                 newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
-                
-                AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
-                previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-                [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
-                [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
-                [rotationCoodinator release];
-                
                 [previewLayer release];
             } else {
                 AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
@@ -1562,8 +1561,26 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
             }
             
             newConnection.enabled = connection.isEnabled;
+            newConnection.automaticallyAdjustsVideoMirroring = connection.automaticallyAdjustsVideoMirroring;
+            
+            if (!newConnection.automaticallyAdjustsVideoMirroring) {
+                newConnection.videoMirrored = connection.isVideoMirrored;
+            }
+            
             assert([captureSession canAddConnection:newConnection]);
             [captureSession addConnection:newConnection];
+            
+            if (AVCaptureVideoPreviewLayer *previewLayer = newConnection.videoPreviewLayer) {
+                auto addedDeviceInput = static_cast<AVCaptureDeviceInput *>(addedInput);
+                assert([addedDeviceInput isKindOfClass:AVCaptureDeviceInput.class]);
+                AVCaptureDevice *captureDevice = addedDeviceInput.device;
+                
+                AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
+                previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+                [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+                [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
+                [rotationCoodinator release];
+            }
             
             //
             
