@@ -17,6 +17,7 @@
 
 #warning HDR Format Filter
 #warning Focus (TrueDepthStreamer focus(with focusMode: AVCaptureDevice.FocusMode))
+#warning Zoom, Exposure
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";

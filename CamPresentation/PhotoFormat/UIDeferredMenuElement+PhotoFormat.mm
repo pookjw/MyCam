@@ -1718,7 +1718,7 @@
     UIAction *action = [UIAction actionWithTitle:@"Center Stage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             AVCaptureDevice.centerStageEnabled = !isCenterStageActive;
-            if (didChangeHandler) didChangeHandler(); 
+            if (didChangeHandler) didChangeHandler();
         });
     }];
     
