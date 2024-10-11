@@ -1524,6 +1524,7 @@
 + (UIMenu * _Nonnull)_cp_queue_depthMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_noDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapVisibilityActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapFilteringActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
@@ -1539,6 +1540,17 @@
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
         return format.supportedDepthDataFormats.count > 0;
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_noDepthDataFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Formats with no Depth Data"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.supportedDepthDataFormats.count == 0;
     }
                                                          didChangeHandler:didChangeHandler];
 }
