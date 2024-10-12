@@ -26,6 +26,7 @@
 #warning -[AVCaptureDevice isProResSupported]
 #warning videoMirrored
 #warning lensAperture
+#warning Long Press로 Focus 고정
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
