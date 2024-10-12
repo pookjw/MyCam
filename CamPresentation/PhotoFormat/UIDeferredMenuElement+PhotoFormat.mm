@@ -13,6 +13,8 @@
 #import <CamPresentation/NSStringFromAVCaptureTorchMode.h>
 #import <CamPresentation/NSStringFromAVCaptureColorSpace.h>
 #import <CamPresentation/NSStringFromAVCaptureVideoStabilizationMode.h>
+#import <CamPresentation/NSStringFromAVCaptureAutoFocusSystem.h>
+#import <CamPresentation/NSStringFromAVCaptureFocusMode.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -60,6 +62,8 @@
             [elements addObject:[UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_centerStageMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
 #warning TODO: autoVideoFrameRateEnabled
             
@@ -771,10 +775,7 @@
         AVCapturePhotoQualityPrioritizationBalanced,
         AVCapturePhotoQualityPrioritizationQuality
     }
-    | std::views::filter([max = photoOutput.maxPhotoQualityPrioritization] (AVCapturePhotoQualityPrioritization prioritization) -> bool {
-        return prioritization <= max;
-    })
-    | std::views::transform([captureService, captureDevice, photoFormatModel, photoQualityPrioritization, didChangeHandler](AVCapturePhotoQualityPrioritization prioritization) {
+    | std::views::transform([captureService, captureDevice, photoFormatModel, photoQualityPrioritization, didChangeHandler, max = photoOutput.maxPhotoQualityPrioritization](AVCapturePhotoQualityPrioritization prioritization) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCapturePhotoQualityPrioritization(prioritization)
                                                image:nil
                                           identifier:nil
@@ -790,7 +791,7 @@
         }];
         
         // *** -[AVCapturePhotoSettings setPhotoQualityPrioritization:] Unsupported when capturing RAW
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (photoFormatModel.isRAWEnabled ? UIMenuElementAttributesDisabled : 0);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | ((!photoFormatModel.isRAWEnabled && prioritization <= max) ? 0 : UIMenuElementAttributesDisabled);
         
         action.state = (photoQualityPrioritization == prioritization) ? UIMenuElementStateOn : UIMenuElementStateOff;
         return action;
@@ -868,9 +869,6 @@
         AVCaptureTorchModeOn,
         AVCaptureTorchModeAuto
     }
-    | std::views::filter([captureDevice](AVCaptureTorchMode torchMode) {
-        return [captureDevice isTorchModeSupported:torchMode];
-    })
     | std::views::transform([captureService, captureDevice, didChangeHandler](AVCaptureTorchMode torchMode) {
         UIImage * _Nullable image;
         switch (torchMode) {
@@ -905,7 +903,7 @@
             });
         }];
         
-        action.attributes = UIMenuElementAttributesKeepsMenuPresented | (captureDevice.torchAvailable ? 0 : UIMenuElementAttributesDisabled);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented | ((captureDevice.torchAvailable && [captureDevice isTorchModeSupported:torchMode]) ? 0 : UIMenuElementAttributesDisabled);
         action.state = (captureDevice.torchMode == torchMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         return action;
@@ -1045,10 +1043,7 @@
     NSArray<NSNumber *> *supportedColorSpaces = activeFormat.supportedColorSpaces;
     
     auto actionsVec = [UIDeferredMenuElement _cp_allColorSpacesVector]
-    | std::views::filter([supportedColorSpaces](AVCaptureColorSpace colorSpace) -> bool {
-        return [supportedColorSpaces containsObject:@(colorSpace)];
-    })
-    | std::views::transform([captureService, captureDevice, activeColorSpace](AVCaptureColorSpace colorSpace) -> UIAction * {
+    | std::views::transform([captureService, captureDevice, activeColorSpace, supportedColorSpaces](AVCaptureColorSpace colorSpace) -> UIAction * {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureColorSpace(colorSpace)
                                                image:nil
                                           identifier:nil
@@ -1066,6 +1061,7 @@
         }];
         
         action.state = (activeColorSpace == colorSpace) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = [supportedColorSpaces containsObject:@(colorSpace)] ? 0 : UIMenuElementAttributesDisabled;
         
         return action;
     })
@@ -1293,10 +1289,7 @@
     AVCaptureVideoStabilizationMode activeVideoStabilizationMode = connection.activeVideoStabilizationMode;
     
     auto actionsVec = [UIDeferredMenuElement _cp_allVideoStabilizationModes]
-    | std::views::filter([activeFormat](AVCaptureVideoStabilizationMode mode) -> bool {
-        return [activeFormat isVideoStabilizationModeSupported:mode];
-    })
-    | std::views::transform([captureService, connection, didChangeHandler, activeVideoStabilizationMode](AVCaptureVideoStabilizationMode mode) -> UIAction * {
+    | std::views::transform([captureService, connection, didChangeHandler, activeVideoStabilizationMode, activeFormat](AVCaptureVideoStabilizationMode mode) -> UIAction * {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureVideoStabilizationMode(mode)
                                                image:nil
                                           identifier:nil
@@ -1310,6 +1303,7 @@
         }];
         
         action.state = (mode == activeVideoStabilizationMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = [activeFormat isVideoStabilizationModeSupported:mode] ? 0 : UIMenuElementAttributesDisabled;
         
         return action;
     })
@@ -1724,6 +1718,115 @@
     
     action.attributes = isCenterStageSupported ? 0 : UIMenuElementAttributesDisabled;
     action.state = isCenterStageActive ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (std::vector<AVCaptureAutoFocusSystem>)_cp_allAutoFocusSystemsVector {
+    return {
+        AVCaptureAutoFocusSystemNone,
+        AVCaptureAutoFocusSystemContrastDetection,
+        AVCaptureAutoFocusSystemPhaseDetection
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_focusMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Focus"
+                                children:@[
+        [UIDeferredMenuElement _cp_queue_formatsByAutoFocusSystemMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setFocusModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleSmoothAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_formatsByAutoFocusSystemMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    auto menusVector = [UIDeferredMenuElement _cp_allAutoFocusSystemsVector]
+    | std::views::transform([captureService, captureDevice, didChangeHandler](AVCaptureAutoFocusSystem focusSystem) -> UIMenu * {
+        UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                                        captureDevice:captureDevice
+                                                                                title:NSStringFromAVCaptureAutoFocusSystem(focusSystem)
+                                                                      includeSubtitle:NO
+                                                                        filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+            return format.autoFocusSystem == focusSystem;
+        }
+                                                                     didChangeHandler:didChangeHandler];
+        
+        return menu;
+    })
+    | std::ranges::to<std::vector<UIMenu *>>();
+    
+    NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVector.data() count:menusVector.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Formats By Auto Focus System"
+                                   image:nil
+                              identifier:nil
+                                 options:0
+                                children:menus];
+    
+    [menus release];
+    
+    return menu;
+}
+
++ (std::vector<AVCaptureFocusMode>)_cp_allFocusModesVector {
+    return {
+        AVCaptureFocusModeLocked,
+        AVCaptureFocusModeAutoFocus,
+        AVCaptureFocusModeContinuousAutoFocus
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setFocusModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureFocusMode currentFocusMode = captureDevice.focusMode;
+    
+    auto actionsVector = [UIDeferredMenuElement _cp_allFocusModesVector]
+    | std::views::transform([captureService, captureDevice, didChangeHandler, currentFocusMode](AVCaptureFocusMode focusMode) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureFocusMode(focusMode)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.focusMode = focusMode;
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        action.state = (currentFocusMode == focusMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = [captureDevice isFocusModeSupported:focusMode] ? 0 : UIMenuElementAttributesDisabled;
+        
+        return action;
+    }) | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVector.data() count:actionsVector.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Focus Mode" image:nil identifier:nil options:0 children:actions];
+    [actions release];
+    
+    menu.subtitle = NSStringFromAVCaptureFocusMode(currentFocusMode);
+    
+    return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleSmoothAutoFocusActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isSmoothAutoFocusEnabled = captureDevice.isSmoothAutoFocusEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Smooth Auto Focus" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.smoothAutoFocusEnabled = !isSmoothAutoFocusEnabled;
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.state = isSmoothAutoFocusEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = (captureDevice.isSmoothAutoFocusSupported ? 0 : UIMenuElementAttributesDisabled);
     
     return action;
 }
