@@ -8,9 +8,8 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <objc/runtime.h>
 
-@interface CaptureVideoPreviewView () <UIContextMenuInteractionDelegate>
+@interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) UIButton *menuButton;
-@property (retain, nonatomic, readonly) UIContextMenuInteraction *contextMenuInteraction;
 @end
 
 @implementation CaptureVideoPreviewView
@@ -18,7 +17,6 @@
 @synthesize depthMapLayer = _depthMapLayer;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuButton = _menuButton;
-@synthesize contextMenuInteraction = _contextMenuInteraction;
 
 - (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer {
     if (self = [super init]) {
@@ -64,10 +62,6 @@
         ]];
         
         menuButton.layer.zPosition = previewLayer.zPosition + 1.f;
-        
-        //
-        
-        [self addInteraction:self.contextMenuInteraction];
     }
     
     return self;
@@ -78,7 +72,6 @@
     [_depthMapLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuButton release];
-    [_contextMenuInteraction release];
     [super dealloc];
 }
 
@@ -131,43 +124,6 @@
 
 - (void)setMenu:(UIMenu *)menu {
     self.menuButton.menu = menu;
-}
-
-- (UIContextMenuInteraction *)contextMenuInteraction {
-    if (auto contextMenuInteraction = _contextMenuInteraction) return contextMenuInteraction;
-    
-    UIContextMenuInteraction *contextMenuInteraction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
-    
-    _contextMenuInteraction = [contextMenuInteraction retain];
-    return [contextMenuInteraction autorelease];
-}
-
-- (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
-    UIMenu *menu = self.menu;
-    
-    //
-    
-    UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
-                                                                                        previewProvider:^UIViewController * _Nullable{
-        return nil;
-    }
-                                                                                         actionProvider:^UIMenu * _Nullable(NSArray<UIMenuElement *> * _Nonnull suggestedActions) {
-        return menu;
-    }];
-    
-    configuration.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
-    
-    return configuration;
-}
-
-- (UITargetedPreview *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configuration:(UIContextMenuConfiguration *)configuration highlightPreviewForItemWithIdentifier:(id<NSCopying>)identifier {
-    UIPreviewParameters *parameters = [UIPreviewParameters new];
-    parameters.backgroundColor = UIColor.clearColor;
-    
-    UITargetedPreview *preview = [[UITargetedPreview alloc] initWithView:interaction.view parameters:parameters];
-    [parameters release];
-    
-    return [preview autorelease];
 }
 
 @end

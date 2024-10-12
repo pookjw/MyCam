@@ -348,7 +348,7 @@
                         [captureService queue_addCapureDevice:captureDevice];
                     });
                 }
-                                                                                                        deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                                                                                                                  deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
                     dispatch_async(captureService.captureSessionQueue, ^{
                         [captureService queue_removeCaptureDevice:captureDevice];
                     });
@@ -741,6 +741,10 @@
     [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];
     [tapGestureRecogninzer release];
     
+    UILongPressGestureRecognizer *longGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewLongGestureRecognizer:)];
+    [captureVideoPreviewView addGestureRecognizer:longGestureRecognizer];
+    [longGestureRecognizer release];
+    
     captureVideoPreviewView.menu = [UIMenu menuWithChildren:@[
         [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:captureDevice didChangeHandler:nil]
     ]];
@@ -768,20 +772,41 @@
     dispatch_async(self.captureService.captureSessionQueue, ^{
         AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
         
+        if (!captureDevice.isFocusPointOfInterestSupported) return;
+        
         NSError * _Nullable error = nil;
         [captureDevice lockForConfiguration:&error];
         assert(error == nil);
         
-        if (captureDevice.isFocusPointOfInterestSupported) {
-            captureDevice.focusPointOfInterest = captureDevicePoint;
-            
-            if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
-                captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
-            } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
-                captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
-            }
+        captureDevice.focusPointOfInterest = captureDevicePoint;
+        
+        if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+            captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+        } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+            captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
         }
         
+        [captureDevice unlockForConfiguration];
+    });
+}
+
+- (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
+    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
+    CGPoint viewPoint = [sender locationInView:previewView];
+    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    
+    dispatch_async(self.captureService.captureSessionQueue, ^{
+        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
+        
+        if (!captureDevice.isFocusPointOfInterestSupported) return;
+        if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
+        
+        NSError * _Nullable error = nil;
+        [captureDevice lockForConfiguration:&error];
+        assert(error == nil);
+        captureDevice.focusPointOfInterest = captureDevicePoint;
+        captureDevice.focusMode = AVCaptureFocusModeLocked;
         [captureDevice unlockForConfiguration];
     });
 }
