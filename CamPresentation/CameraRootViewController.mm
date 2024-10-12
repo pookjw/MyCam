@@ -41,6 +41,8 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureProgressBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @end
@@ -58,6 +60,8 @@
 @synthesize captureProgressBarButtonItem = _captureProgressBarButtonItem;
 @synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
+@synthesize adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView;
+@synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize captureService = _captureService;
 
 + (void *)availablePhotoPixelFormatTypesKey {
@@ -105,6 +109,8 @@
     [_captureProgressBarButtonItem release];
     [_reactionProgressActivityIndicatorView release];
     [_reactionProgressBarButtonItem release];
+    [_adjustingFocusActivityIndicatorView release];
+    [_adjustingFocusBarButtonItem release];
     
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
@@ -203,13 +209,15 @@
     [captureEventInteraction release];
 #endif
     
-#if TARGET_OS_TV
     UINavigationItem *navigationItem = self.navigationItem;
+    
+#if TARGET_OS_TV
     navigationItem.rightBarButtonItems = @[
+        self.captureProgressBarButtonItem,
+        self.reactionProgressBarButtonItem,
+        self.adjustingFocusBarButtonItem,
         self.photosBarButtonItem,
-        self.captureBarButtonItem,
-        self.recordBarButtonItem,
-        self.formatBarButtonItem,
+        self.fileOutputsBarButtonItem,
         self.continuityDevicePickerBarButtonItem,
         self.captureDevicesBarButtonItem
     ];
@@ -221,12 +229,10 @@
         self.captureDevicesBarButtonItem
     ]];
     
-    //
-    
-    UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
         self.captureProgressBarButtonItem,
-        self.reactionProgressBarButtonItem
+        self.reactionProgressBarButtonItem,
+        self.adjustingFocusBarButtonItem
     ];
 #endif
     
@@ -424,6 +430,28 @@
     return [reactionProgressBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)adjustingFocusActivityIndicatorView {
+    if (auto adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView) return adjustingFocusActivityIndicatorView;
+    
+    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    adjustingFocusActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _adjustingFocusActivityIndicatorView = [adjustingFocusActivityIndicatorView retain];
+    return [adjustingFocusActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)adjustingFocusBarButtonItem {
+    if (auto adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem) return adjustingFocusBarButtonItem;
+    
+    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = self.adjustingFocusActivityIndicatorView;
+    UIBarButtonItem *adjustingFocusBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingFocusActivityIndicatorView];
+    adjustingFocusBarButtonItem.hidden = YES;
+    adjustingFocusBarButtonItem.enabled = NO;
+    
+    _adjustingFocusBarButtonItem = [adjustingFocusBarButtonItem retain];
+    return [adjustingFocusBarButtonItem autorelease];
+}
+
 - (CaptureService *)captureService {
     if (auto captureService = _captureService) return captureService;
     
@@ -467,6 +495,11 @@
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
                                                name:CaptureServiceCaptureSessionRuntimeErrorNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didReceiveAdjustingFocusDidChangeNotification:)
+                                               name:CaptureServiceAdjustingFocusDidChangeNotificationName
                                              object:captureService];
     
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -677,6 +710,28 @@
             [topViewController presentViewController:alertController animated:YES completion:nil];
         });
     }
+}
+
+- (void)didReceiveAdjustingFocusDidChangeNotification:(NSNotification *)notification {
+    dispatch_assert_queue(self.captureService.captureSessionQueue);
+    
+    BOOL adjustingFocus = NO;
+    for (AVCaptureDevice *captureDevice in self.captureService.queue_addedCaptureDevices) {
+        if (captureDevice.adjustingFocus) {
+            adjustingFocus = YES;
+            break;
+        }
+    }
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (adjustingFocus) {
+            [self.adjustingFocusActivityIndicatorView startAnimating];
+            self.adjustingFocusBarButtonItem.hidden = NO;
+        } else {
+            [self.adjustingFocusActivityIndicatorView stopAnimating];
+            self.adjustingFocusBarButtonItem.hidden = YES;
+        }
+    });
 }
 
 - (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {

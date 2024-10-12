@@ -37,6 +37,9 @@ NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNo
 NSString * const CaptureServiceCaptureSessionKey = @"CaptureServiceCaptureSessionKey";
 NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName = @"CaptureServiceCaptureSessionRuntimeErrorNotificationName";
 
+NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
+NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
+
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
@@ -260,6 +263,14 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
             if (captureDevice != nil) {
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
+            return;
+        } else if ([keyPath isEqualToString:@"adjustingFocus"]) {
+            if (captureDevice != nil) {
+                dispatch_async(self.captureSessionQueue, ^{
+                    [self queue_postAdjustingFocusDidChangeNotificationWithCaptureDevice:captureDevice];
+                });
+            }
+            return;
         }
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class]) {
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
@@ -1171,6 +1182,15 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName object:self userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
 }
 
+- (void)queue_postAdjustingFocusDidChangeNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceAdjustingFocusDidChangeNotificationName
+                                                      object:self
+                                                    userInfo:@{
+        CaptureServiceCaptureDeviceKey: captureDevice,
+        CaptureServiceAdjustingFocusKey: @(captureDevice.adjustingFocus)
+    }];
+}
+
 - (void)queue_postDidUpdatePreviewLayersNotification {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -1206,6 +1226,15 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeDepthDataFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"isCenterStageActive" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionNew context:nullptr];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSubjectAreaDidChangeNotification:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:nil];
+    
+    NSError * _Nullable error = nil;
+    [captureDevice lockForConfiguration:&error];
+    assert(error == nil);
+    captureDevice.subjectAreaChangeMonitoringEnabled = YES;
+    [captureDevice unlockForConfiguration];
 }
 
 - (void)unregisterObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1216,6 +1245,15 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
     [captureDevice removeObserver:self forKeyPath:@"activeDepthDataFormat"];
     [captureDevice removeObserver:self forKeyPath:@"isCenterStageActive"];
+    [captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
+    
+    [NSNotificationCenter.defaultCenter removeObserver:self name:AVCaptureDeviceSubjectAreaDidChangeNotification object:captureDevice];
+    
+    NSError * _Nullable error = nil;
+    [captureDevice lockForConfiguration:&error];
+    assert(error == nil);
+    captureDevice.subjectAreaChangeMonitoringEnabled = NO;
+    [captureDevice unlockForConfiguration];
 }
 
 - (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -1618,6 +1656,10 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     NSLog(@"New capture session: %@", captureSession);
     
     return [captureSession autorelease];
+}
+
+- (void)didReceiveSubjectAreaDidChangeNotification:(NSNotification *)notification {
+    NSLog(@"%s", sel_getName(_cmd));
 }
 
 

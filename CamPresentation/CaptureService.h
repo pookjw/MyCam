@@ -11,8 +11,6 @@
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 
-#warning Center Stage, Depth
-
 NS_ASSUME_NONNULL_BEGIN
 
 CP_EXTERN NSString * const CaptureServiceCaptureDeviceKey;
@@ -33,6 +31,9 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfo
 
 CP_EXTERN NSString * const CaptureServiceCaptureSessionKey;
 CP_EXTERN NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName /* AVCaptureSessionErrorKey, CaptureServiceCaptureSessionKey */;
+
+CP_EXTERN NSString * const CaptureServiceAdjustingFocusKey;
+CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName /* CaptureServiceCaptureSessionKey, CaptureServiceAdjustingFocusKey */;
 
 //
 
