@@ -18,12 +18,14 @@
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CoreMedia/CoreMedia.h>
 #include <vector>
 #include <ranges>
 
 #warning AVSpatialOverCaptureVideoPreviewLayer
 #warning -[AVCaptureDevice isProResSupported]
 #warning videoMirrored
+#warning lensAperture
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -1523,7 +1525,7 @@
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_noDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:captureService captureDevice:captureDevice],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapVisibilityActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleDepthMapFilteringActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
@@ -1628,7 +1630,7 @@
     return action;
 }
 
-+ (__kindof UIMenuElement *)_cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
++ (__kindof UIMenuElement *)_cp_queue_depthMapLayerOpacitySliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
     __kindof CALayer *layer = [captureService queue_depthMapLayerFromCaptureDevice:captureDevice];
     
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
@@ -1734,12 +1736,14 @@
 + (UIMenu * _Nonnull)_cp_queue_focusMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     UIMenu *menu = [UIMenu menuWithTitle:@"Focus"
                                 children:@[
+        [UIDeferredMenuElement _cp_queue_lensPositionSliderElementWithCaptureService:captureService captureDevice:captureDevice],
         [UIDeferredMenuElement _cp_queue_formatsByAutoFocusSystemMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setFocusModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleSmoothAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleFaceDrivenAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleAutomaticallyAdjustsFaceDrivenAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_setAutoFocusRangeRestrictionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_setAutoFocusRangeRestrictionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_minimumFocusDistanceActionWithCaptureDevice:captureDevice]
     ]];
     
     return menu;
@@ -1915,6 +1919,57 @@
     return menu;
 }
 
-#warning focusPointOfInterestSupported
++ (UIAction * _Nonnull)_cp_queue_minimumFocusDistanceActionWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    UIAction *action = [UIAction actionWithTitle:[NSString stringWithFormat:@"minimumFocusDistance: %ld%@", captureDevice.minimumFocusDistance, NSUnitLength.millimeters.symbol]
+                                           image:nil
+                                      identifier:nil
+                                         handler:^(__kindof UIAction * _Nonnull action) {}];
+    
+    action.attributes = UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_lensPositionSliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    BOOL isSupported = [captureDevice isFocusModeSupported:AVCaptureFocusModeLocked];
+    float lensPosition = captureDevice.lensPosition;
+    
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        if (isSupported) {
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 1.f;
+            slider.value = lensPosition;
+            slider.continuous = YES;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                auto sender = static_cast<UISlider *>(action.sender);
+                float lensPosition = sender.value;
+                
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    
+                    captureDevice.focusMode = AVCaptureFocusModeLocked;
+                    [captureDevice setFocusModeLockedWithLensPosition:lensPosition completionHandler:^(CMTime syncTime) {
+                        
+                    }];
+                    
+                    [captureDevice unlockForConfiguration];
+                });
+            }];
+            
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        } else {
+            slider.enabled = NO;
+        }
+        
+        return [slider autorelease];
+    });
+    
+    return element;
+}
 
 @end
