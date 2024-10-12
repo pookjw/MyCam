@@ -26,9 +26,9 @@
 #import <TargetConditionals.h>
 
 #if TARGET_OS_TV
-@interface CameraRootViewController () <UIContextMenuInteractionDelegate, AVContinuityDevicePickerViewControllerDelegate>
+@interface CameraRootViewController () <AVContinuityDevicePickerViewControllerDelegate>
 #else
-@interface CameraRootViewController () <UIContextMenuInteractionDelegate>
+@interface CameraRootViewController ()
 #endif
 @property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
 @property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
@@ -591,7 +591,7 @@
                 AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable depthMapLayer = [depthMapLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 
-                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer];
+                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer captureDevice:captureDevice];
                 [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
@@ -682,19 +682,16 @@
     }
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer {
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
     CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer];
-
-    UIContextMenuInteraction *contextMenuInteraction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
-    [captureVideoPreviewView addInteraction:contextMenuInteraction];
-    [contextMenuInteraction release];
     
     UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
     [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];
     [tapGestureRecogninzer release];
     
-    AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = captureVideoPreviewView.previewLayer;
-    captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+    captureVideoPreviewView.menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:captureDevice didChangeHandler:nil]
+    ]];
     
     return captureVideoPreviewView;
 }
@@ -711,76 +708,8 @@
 }
 
 - (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
-    auto captureVideoPreviewView = static_cast<CaptureVideoPreviewView *>(sender.view);
     
-    for (UIContextMenuInteraction *contextMenuInteraction in captureVideoPreviewView.interactions) {
-        if (![contextMenuInteraction isKindOfClass:UIContextMenuInteraction.class]) continue;
-        
-        CGPoint location = [sender locationInView:captureVideoPreviewView];
-        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(contextMenuInteraction, sel_registerName("_presentMenuAtLocation:"), location);
-        break;
-    }
 }
-
-- (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
-    auto previewView = static_cast<CaptureVideoPreviewView *>(interaction.view);
-    assert([previewView isKindOfClass:CaptureVideoPreviewView.class]);
-    
-    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
-    
-    AVCaptureVideoPreviewLayerInternal *_internal;
-    assert(object_getInstanceVariable(previewLayer, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
-    
-    AVCaptureConnection *connection;
-    assert(object_getInstanceVariable(_internal, "connection", reinterpret_cast<void **>(&connection)));
-    
-    AVCaptureDeviceInput * _Nullable deviceInput = nil;;
-    for (AVCaptureInputPort *inputPort in connection.inputPorts) {
-        if ([inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) {
-            deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
-            break;
-        }
-    }
-    
-    if (deviceInput == nil) return nil;
-    
-    AVCaptureDevice *captureDevice = deviceInput.device;
-    __weak auto weakSelf = self;
-    
-    //
-    
-    UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
-                                                                                        previewProvider:^UIViewController * _Nullable{
-        return nil;
-    }
-                                                                                         actionProvider:^UIMenu * _Nullable(NSArray<UIMenuElement *> * _Nonnull suggestedActions) {
-        auto loaded = weakSelf;
-        if (loaded == nil) return nil;
-        
-        UIDeferredMenuElement *element = [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:loaded.captureService captureDevice:captureDevice didChangeHandler:^{
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [interaction dismissMenu];
-                reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
-            });
-        }];
-        
-        UIMenu *menu = [UIMenu menuWithChildren:@[element]];
-        return menu;
-    }];
-    
-    return configuration;
-}
-
-- (UITargetedPreview *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configuration:(UIContextMenuConfiguration *)configuration highlightPreviewForItemWithIdentifier:(id<NSCopying>)identifier {
-    UIPreviewParameters *parameters = [UIPreviewParameters new];
-    parameters.backgroundColor = UIColor.clearColor;
-    
-    UITargetedPreview *preview = [[UITargetedPreview alloc] initWithView:interaction.view parameters:parameters];
-    [parameters release];
-    
-    return [preview autorelease];
-}
-
 
 #if TARGET_OS_TV
 - (void)didTriggerContinuityDevicePickerBarButtonItem:(UIBarButtonItem *)sender {

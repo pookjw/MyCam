@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (retain, nonatomic, readonly) AVCaptureVideoPreviewLayer *previewLayer;
 @property (retain, nonatomic, readonly) CALayer *depthMapLayer;
 @property (retain, nonatomic, readonly) UILabel *spatialCaptureDiscomfortReasonLabel;
+@property (copy, nonatomic, nullable) UIMenu *menu;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
