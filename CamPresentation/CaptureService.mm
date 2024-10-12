@@ -936,6 +936,21 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
     return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
 }
 
+- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = self.queue_previewLayersByCaptureDevice;
+    
+    for (AVCaptureDevice *captureDevice in previewLayersByCaptureDevice.keyEnumerator) {
+        AVCaptureVideoPreviewLayer *_previewLayer = [previewLayersByCaptureDevice objectForKey:captureDevice];
+        if ([_previewLayer isEqual:previewLayer]) {
+            return captureDevice;
+        }
+    }
+    
+    return nil;
+}
+
 - (__kindof CALayer *)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];

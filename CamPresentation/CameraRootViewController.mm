@@ -5,11 +5,6 @@
 //  Created by Jinwoo Kim on 9/14/24.
 //
 
-// TODO: Memory Leak Test
-// +[AVCaptureDevice cinematicFramingControlMode]
-// AVControlCenterModuleState
-// Multi-cam
-
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
@@ -24,6 +19,8 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
+
+#warning AVCaptureDeviceSubjectAreaDidChangeNotification, +[AVCaptureDevice cinematicFramingControlMode], Memory Leak Test, exposureMode
 
 #if TARGET_OS_TV
 @interface CameraRootViewController () <AVContinuityDevicePickerViewControllerDelegate>
@@ -708,7 +705,30 @@
 }
 
 - (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
+    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
+    CGPoint viewPoint = [sender locationInView:previewView];
+    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
     
+    dispatch_async(self.captureService.captureSessionQueue, ^{
+        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
+        
+        NSError * _Nullable error = nil;
+        [captureDevice lockForConfiguration:&error];
+        assert(error == nil);
+        
+        if (captureDevice.isFocusPointOfInterestSupported) {
+            captureDevice.focusPointOfInterest = captureDevicePoint;
+            
+            if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+                captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+            } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+                captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+            }
+        }
+        
+        [captureDevice unlockForConfiguration];
+    });
 }
 
 #if TARGET_OS_TV
