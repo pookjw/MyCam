@@ -15,6 +15,7 @@
 #import <CamPresentation/NSStringFromAVCaptureVideoStabilizationMode.h>
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusSystem.h>
 #import <CamPresentation/NSStringFromAVCaptureFocusMode.h>
+#import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -1735,7 +1736,10 @@
                                 children:@[
         [UIDeferredMenuElement _cp_queue_formatsByAutoFocusSystemMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setFocusModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_toggleSmoothAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_toggleSmoothAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleFaceDrivenAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleAutomaticallyAdjustsFaceDrivenAutoFocusActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setAutoFocusRangeRestrictionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -1830,5 +1834,87 @@
     
     return action;
 }
+
++ (UIAction * _Nonnull)_cp_queue_toggleFaceDrivenAutoFocusActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isFaceDrivenAutoFocusEnabled = captureDevice.isFaceDrivenAutoFocusEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Face Driven Auto Focus" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.faceDrivenAutoFocusEnabled = !isFaceDrivenAutoFocusEnabled;
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.state = isFaceDrivenAutoFocusEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = captureDevice.automaticallyAdjustsFaceDrivenAutoFocusEnabled ? UIMenuElementAttributesDisabled : 0;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAutomaticallyAdjustsFaceDrivenAutoFocusActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL automaticallyAdjustsFaceDrivenAutoFocusEnabled = captureDevice.automaticallyAdjustsFaceDrivenAutoFocusEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Automatically Adjusts Face Driven Auto Focus" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.automaticallyAdjustsFaceDrivenAutoFocusEnabled = !automaticallyAdjustsFaceDrivenAutoFocusEnabled;
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.state = automaticallyAdjustsFaceDrivenAutoFocusEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (std::vector<AVCaptureAutoFocusRangeRestriction>)_cp_allAutoFocusRangeRestrictionsVector {
+    return {
+        AVCaptureAutoFocusRangeRestrictionNone,
+        AVCaptureAutoFocusRangeRestrictionNear,
+        AVCaptureAutoFocusRangeRestrictionFar
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setAutoFocusRangeRestrictionMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isAutoFocusRangeRestrictionSupported = captureDevice.isAutoFocusRangeRestrictionSupported;
+    AVCaptureAutoFocusRangeRestriction currentAutoFocusRangeRestriction = captureDevice.autoFocusRangeRestriction;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_allAutoFocusRangeRestrictionsVector]
+    | std::views::transform([captureService, captureDevice, didChangeHandler, isAutoFocusRangeRestrictionSupported, currentAutoFocusRangeRestriction](AVCaptureAutoFocusRangeRestriction autoFocusRangeRestriction) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureAutoFocusRangeRestriction(autoFocusRangeRestriction)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.autoFocusRangeRestriction = autoFocusRangeRestriction;
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        action.state = (autoFocusRangeRestriction == currentAutoFocusRangeRestriction) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = isAutoFocusRangeRestrictionSupported ? 0 : UIMenuElementAttributesDisabled;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"AutoFocusRangeRestriction" image:nil identifier:nil options:0 children:actions];
+    [actions release];
+    menu.subtitle = NSStringFromAVCaptureAutoFocusRangeRestriction(currentAutoFocusRangeRestriction);
+    
+    return menu;
+}
+
+#warning focusPointOfInterestSupported
 
 @end
