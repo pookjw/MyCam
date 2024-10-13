@@ -43,7 +43,7 @@
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomSliderElementWithCaptureService:captureService captureDevice:captureDevice]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomSlidersElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
@@ -1320,59 +1320,235 @@
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_queue_zoomSliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
-     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-         AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-         
-         UILabel *label = [UILabel new];
-         label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
-         label.numberOfLines = 0;
-         label.text = [NSString stringWithFormat:@"Zoom: %lf", captureDevice.videoZoomFactor];
-         
-         //
-         
-         UISlider *slider = [UISlider new];
-         
-         if (AVZoomRange *zoomRange = activeFormat.systemRecommendedVideoZoomRange) {
-             slider.minimumValue = zoomRange.minZoomFactor;
-             slider.maximumValue = zoomRange.maxZoomFactor;
-         } else {
-             slider.minimumValue = 1.f;
-             slider.maximumValue = captureDevice.maxAvailableVideoZoomFactor;
-         }
-         
-#warning TODO: videoMaxZoomFactor videoMaxZoomFactorForCenterStage, videoMaxZoomFactorForDepthDataDelivery
-         slider.value = captureDevice.videoZoomFactor;
-         slider.continuous = YES;
-         
-         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-             auto slider = static_cast<UISlider *>(action.sender);
-             float value = slider.value;
-             
-             dispatch_async(captureService.captureSessionQueue, ^{
-                 NSError * _Nullable error = nil;
-                 [captureDevice lockForConfiguration:&error];
-                 assert(error == nil);
-                 captureDevice.videoZoomFactor = value;
-                 [captureDevice unlockForConfiguration];
-             });
-             
-             label.text = [NSString stringWithFormat:@"Zoom: %lf", value];
-         }];
-         
-         [slider addAction:action forControlEvents:UIControlEventValueChanged];
-         
-         //
-         
-         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
-         [label release];
-         [slider release];
-         stackView.axis = UILayoutConstraintAxisVertical;
-         stackView.distribution = UIStackViewDistributionFill;
-         stackView.alignment = UIStackViewAlignmentFill;
-         
-         return [stackView autorelease];
-     });
++ (UIDeferredMenuElement * _Nonnull)_cp_queue_zoomSlidersElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    CGFloat videoZoomFactor = captureDevice.videoZoomFactor;
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    BOOL isCenterStageActive = captureDevice.isCenterStageActive;
+    
+    AVZoomRange * _Nullable systemRecommendedVideoZoomRange = activeFormat.systemRecommendedVideoZoomRange;
+    NSArray<NSNumber *> *secondaryNativeResolutionZoomFactors = activeFormat.secondaryNativeResolutionZoomFactors;
+    NSArray<AVZoomRange *> *supportedVideoZoomRangesForDepthDataDelivery = activeFormat.supportedVideoZoomRangesForDepthDataDelivery;
+    NSArray<NSNumber *> *virtualDeviceSwitchOverVideoZoomFactors = captureDevice.virtualDeviceSwitchOverVideoZoomFactors;
+    CGFloat videoZoomFactorUpscaleThreshold = activeFormat.videoZoomFactorUpscaleThreshold;
+    CGFloat videoMinZoomFactorForCenterStage = activeFormat.videoMinZoomFactorForCenterStage;
+    CGFloat videoMaxZoomFactorForCenterStage = activeFormat.videoMaxZoomFactorForCenterStage;
+    
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        UILabel *zoomFactorLabel = [UILabel new];
+        zoomFactorLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
+        zoomFactorLabel.text = @(videoZoomFactor).stringValue;
+        
+        //
+        
+        NSMutableArray<__kindof NSValue *> *allSliderValues = [NSMutableArray new];
+        
+        //
+        
+        UISlider *systemRecommendedVideoZoomRangeSlider = [UISlider new];
+        if (systemRecommendedVideoZoomRange != nil) {
+            systemRecommendedVideoZoomRangeSlider.minimumValue = systemRecommendedVideoZoomRange.minZoomFactor;
+            systemRecommendedVideoZoomRangeSlider.maximumValue = systemRecommendedVideoZoomRange.maxZoomFactor;
+            systemRecommendedVideoZoomRangeSlider.value = videoZoomFactor;
+        } else {
+            systemRecommendedVideoZoomRangeSlider.enabled = NO;
+        }
+        
+        __kindof NSValue *systemRecommendedVideoZoomRangeSliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), systemRecommendedVideoZoomRangeSlider);
+        [allSliderValues addObject:systemRecommendedVideoZoomRangeSliderValue];
+        [systemRecommendedVideoZoomRangeSliderValue release];
+        
+        //
+        
+        NSMutableArray<UISlider *> *videoZoomRangesForDepthDataDeliverySliders = [[NSMutableArray alloc] initWithCapacity:supportedVideoZoomRangesForDepthDataDelivery.count];
+        
+        for (AVZoomRange *range in supportedVideoZoomRangesForDepthDataDelivery) {
+            UISlider *slider = [UISlider new];
+            slider.minimumValue = range.minZoomFactor;
+            slider.maximumValue = range.maxZoomFactor;
+            slider.value = videoZoomFactor;
+            [videoZoomRangesForDepthDataDeliverySliders addObject:slider];
+            
+            __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), slider);
+            [allSliderValues addObject:sliderValue];
+            [sliderValue release];
+            
+            [slider release];
+        }
+        
+        //
+        
+        UISlider *videoZoomFactorForCenterStageSlider = [UISlider new];
+        if (isCenterStageActive) {
+            videoZoomFactorForCenterStageSlider.minimumValue = videoMinZoomFactorForCenterStage;
+            videoZoomFactorForCenterStageSlider.maximumValue = videoMaxZoomFactorForCenterStage;
+            videoZoomFactorForCenterStageSlider.value = videoZoomFactor;
+            
+            __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), videoZoomFactorForCenterStageSlider);
+            [allSliderValues addObject:sliderValue];
+            [sliderValue release];
+        } else {
+            videoZoomFactorForCenterStageSlider.enabled = NO;
+        }
+        
+        //
+        
+        UIAction *sliderAction = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.videoZoomFactor = value;
+                [captureDevice unlockForConfiguration];
+            });
+            
+            for (__kindof NSValue *otherSliderValue in allSliderValues) {
+                UISlider * _Nullable otherSlider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(otherSliderValue, sel_registerName("weakObjectValue"));
+                if ([otherSlider isEqual:slider]) continue;
+                
+                otherSlider.value = value;
+            }
+            
+            zoomFactorLabel.text = @(value).stringValue;
+        }];
+        
+        for (__kindof NSValue *sliderValue in allSliderValues) {
+            UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
+            [slider addAction:sliderAction forControlEvents:UIControlEventValueChanged];
+        }
+        
+        [allSliderValues release];
+        
+        //
+        
+        __kindof UIMenuElement *zoomFactorLabelElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return zoomFactorLabel;
+        });
+        [zoomFactorLabel release];
+        
+        //
+        
+        NSMutableArray<UIAction *> *secondaryNativeResolutionZoomFactorActions = [[NSMutableArray alloc] initWithCapacity:secondaryNativeResolutionZoomFactors.count];
+        for (NSNumber *factor in secondaryNativeResolutionZoomFactors) {
+            UIAction *action = [UIAction actionWithTitle:factor.stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    
+#if CGFLOAT_IS_DOUBLE
+                    [captureDevice rampToVideoZoomFactor:factor.doubleValue withRate:1.f];
+#else
+                    [captureDevice rampToVideoZoomFactor:factor.floatValue withRate:1.f];
+#endif
+                    [captureDevice unlockForConfiguration];
+                    
+                    if (didChangeHandler) didChangeHandler();
+                });
+            }];
+            
+            [secondaryNativeResolutionZoomFactorActions addObject:action];
+        }
+        
+        UIMenu *secondaryNativeResolutionZoomFactorsMenu = [UIMenu menuWithTitle:@"Secondary Native Resolution Zoom Factor" children:secondaryNativeResolutionZoomFactorActions];
+        [secondaryNativeResolutionZoomFactorActions release];
+        
+        //
+        
+        __kindof UIMenuElement *systemRecommendedVideoZoomRangeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return systemRecommendedVideoZoomRangeSlider;
+        });
+        [systemRecommendedVideoZoomRangeSlider release];
+        
+        UIMenu *systemRecommendedVideoZoomRangeSliderMenu = [UIMenu menuWithTitle:@"System Recommended Video Zoom Range" children:@[
+            systemRecommendedVideoZoomRangeSliderElement
+        ]];
+        
+        //
+        
+        NSMutableArray<UIAction *> *virtualDeviceSwitchOverVideoZoomFactorActions = [[NSMutableArray alloc] initWithCapacity:virtualDeviceSwitchOverVideoZoomFactors.count];
+        
+        for (NSNumber *factor in virtualDeviceSwitchOverVideoZoomFactors) {
+            UIAction *action = [UIAction actionWithTitle:factor.stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    
+#if CGFLOAT_IS_DOUBLE
+                    [captureDevice rampToVideoZoomFactor:factor.doubleValue withRate:1.f];
+#else
+                    [captureDevice rampToVideoZoomFactor:factor.floatValue withRate:1.f];
+#endif
+                    [captureDevice unlockForConfiguration];
+                    
+                    if (didChangeHandler) didChangeHandler();
+                });
+            }];
+            
+            [virtualDeviceSwitchOverVideoZoomFactorActions addObject:action];
+        }
+        
+        UIMenu *virtualDeviceSwitchOverVideoZoomFactorsMenu = [UIMenu menuWithTitle:@"Virtual Device Switch Over Video Zoom Factors" children:virtualDeviceSwitchOverVideoZoomFactorActions];
+        [virtualDeviceSwitchOverVideoZoomFactorActions release];
+        
+        //
+        
+        NSMutableArray<__kindof UIMenuElement *> *videoZoomRangesForDepthDataDeliverySliderElements = [[NSMutableArray alloc] initWithCapacity:videoZoomRangesForDepthDataDeliverySliders.count];
+        for (UISlider *slider in videoZoomRangesForDepthDataDeliverySliders) {
+            __kindof UIMenuElement *sliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                return slider;
+            });
+            
+            [videoZoomRangesForDepthDataDeliverySliderElements addObject:sliderElement];
+        }
+        [videoZoomRangesForDepthDataDeliverySliders release];
+        
+        UIMenu *videoZoomRangesForDepthDataDeliverySlidersMenu = [UIMenu menuWithTitle:@"Video Zoom Ranges For Depth Data Delivery" children:videoZoomRangesForDepthDataDeliverySliderElements];
+        [videoZoomRangesForDepthDataDeliverySliderElements release];
+        
+        //
+        
+        __kindof UIMenuElement *videoZoomFactorForCenterStageSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return videoZoomFactorForCenterStageSlider;
+        });
+        [videoZoomFactorForCenterStageSlider release];
+        
+        UIMenu *videoZoomFactorForCenterStageSliderMenu = [UIMenu menuWithTitle:@"Video Zoom Factor For Center Stage" children:@[videoZoomFactorForCenterStageSliderElement]];
+        
+        //
+        
+        UIAction *videoZoomFactorUpscaleThresholdAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"Video Zoom Factor Upscale Threshold : %lf", videoZoomFactorUpscaleThreshold] image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.videoZoomFactor = videoZoomFactorUpscaleThreshold;
+                [captureDevice unlockForConfiguration];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        videoZoomFactorUpscaleThresholdAction.cp_overrideNumberOfTitleLines = @(0);
+        
+        //
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"Zoom" children:@[
+            zoomFactorLabelElement,
+            systemRecommendedVideoZoomRangeSliderMenu,
+            secondaryNativeResolutionZoomFactorsMenu,
+            videoZoomRangesForDepthDataDeliverySlidersMenu,
+            virtualDeviceSwitchOverVideoZoomFactorsMenu,
+            videoZoomFactorForCenterStageSliderMenu,
+            videoZoomFactorUpscaleThresholdAction
+        ]];
+        
+        //
+        
+        completion(@[menu]);
+    }];
     
     return element;
 }
