@@ -1532,6 +1532,8 @@
                 if (didChangeHandler) didChangeHandler();
             });
         }];
+        
+        videoZoomFactorUpscaleThresholdAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
         videoZoomFactorUpscaleThresholdAction.cp_overrideNumberOfTitleLines = @(0);
         
         //
