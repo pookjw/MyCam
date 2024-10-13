@@ -8,6 +8,8 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <objc/runtime.h>
 
+#warning 확대할 때 preview 뜨게 하기
+
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) UIButton *menuButton;
 @end
