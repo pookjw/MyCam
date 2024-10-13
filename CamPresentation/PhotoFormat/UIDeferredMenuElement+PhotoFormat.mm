@@ -16,6 +16,7 @@
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusSystem.h>
 #import <CamPresentation/NSStringFromAVCaptureFocusMode.h>
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
+#import <CamPresentation/CaptureDeviceZoomInfoView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -1334,9 +1335,7 @@
     CGFloat videoMaxZoomFactorForCenterStage = activeFormat.videoMaxZoomFactorForCenterStage;
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        UILabel *zoomFactorLabel = [UILabel new];
-        zoomFactorLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
-        zoomFactorLabel.text = @(videoZoomFactor).stringValue;
+        CaptureDeviceZoomInfoView *infoView = [[CaptureDeviceZoomInfoView alloc] initWithCaptureDevice:captureDevice];
         
         //
         
@@ -1410,8 +1409,6 @@
                 
                 otherSlider.value = value;
             }
-            
-            zoomFactorLabel.text = @(value).stringValue;
         }];
         
         for (__kindof NSValue *sliderValue in allSliderValues) {
@@ -1423,10 +1420,10 @@
         
         //
         
-        __kindof UIMenuElement *zoomFactorLabelElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-            return zoomFactorLabel;
+        __kindof UIMenuElement *infoViewElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return infoView;
         });
-        [zoomFactorLabel release];
+        [infoView release];
         
         //
         
@@ -1448,6 +1445,8 @@
                     if (didChangeHandler) didChangeHandler();
                 });
             }];
+            
+            action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             
             [secondaryNativeResolutionZoomFactorActions addObject:action];
         }
@@ -1487,6 +1486,8 @@
                     if (didChangeHandler) didChangeHandler();
                 });
             }];
+            
+            action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             
             [virtualDeviceSwitchOverVideoZoomFactorActions addObject:action];
         }
@@ -1536,7 +1537,7 @@
         //
         
         UIMenu *menu = [UIMenu menuWithTitle:@"Zoom" children:@[
-            zoomFactorLabelElement,
+            infoViewElement,
             systemRecommendedVideoZoomRangeSliderMenu,
             secondaryNativeResolutionZoomFactorsMenu,
             videoZoomRangesForDepthDataDeliverySlidersMenu,

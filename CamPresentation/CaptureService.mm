@@ -167,6 +167,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
+    [_queue_fileOutput release];
     [super dealloc];
 }
 
