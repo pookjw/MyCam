@@ -18,6 +18,8 @@
 #warning HDR Format Filter
 #warning Focus (TrueDepthStreamer focus(with focusMode: AVCaptureDevice.FocusMode))
 #warning Zoom, Exposure
+#warning AVCaptureCameraCalibrationDataOutput AVCaptureVisionDataOutput AVCapturePointCloudDataOutput (Private)
+#warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
@@ -604,6 +606,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     //
     
     AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
+    videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
+    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
     [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
     assert([captureSession canAddOutput:videoDataOutput]);
     [captureSession addOutputWithNoConnections:videoDataOutput];
@@ -693,16 +697,40 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         
         //
         
-        AVCaptureIndexPicker *captureIndexPicker = [[AVCaptureIndexPicker alloc] initWithLocalizedTitle:@"Hello Index Picker!" symbolName:@"figure.waterpolo.circle.fill" numberOfIndexes:100 localizedTitleTransform:^NSString * _Nonnull(NSInteger index) {
-            return [NSString stringWithFormat:@"%ld!!!", index];
-        }];
-        [captureIndexPicker setActionQueue:captureSessionQueue action:^(NSInteger selectedIndex) {
-            NSLog(@"%ld", selectedIndex);
-        }];
-        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureIndexPicker, &failureReason);
+//        AVCaptureIndexPicker *captureIndexPicker = [[AVCaptureIndexPicker alloc] initWithLocalizedTitle:@"Hello Index Picker!" symbolName:@"figure.waterpolo.circle.fill" numberOfIndexes:100 localizedTitleTransform:^NSString * _Nonnull(NSInteger index) {
+//            return [NSString stringWithFormat:@"%ld!!!", index];
+//        }];
+//        [captureIndexPicker setActionQueue:captureSessionQueue action:^(NSInteger selectedIndex) {
+//            NSLog(@"%ld", selectedIndex);
+//        }];
+//        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), captureIndexPicker, &failureReason);
+//        assert(failureReason == nil);
+//        [captureSession addControl:captureIndexPicker];
+//        [captureIndexPicker release];
+        
+        //
+        
+        __kindof AVCaptureControl *systemLensSelector = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureSystemLensSelector") alloc], sel_registerName("initWithDevice:"), captureDevice);
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), systemLensSelector, &failureReason);
         assert(failureReason == nil);
-        [captureSession addControl:captureIndexPicker];
-        [captureIndexPicker release];
+        [captureSession addControl:systemLensSelector];
+        [systemLensSelector release];
+        
+        //
+        
+        __kindof AVCaptureControl *systemStylePicker = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureSystemStylePicker") alloc], sel_registerName("initWithSession:"), captureSession);
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), systemStylePicker, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:systemStylePicker];
+        [systemStylePicker release];
+        
+        //
+        
+        __kindof AVCaptureControl *systemStyleSlider = reinterpret_cast<id (*)(id, SEL, id, id, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureSystemStyleSlider") alloc], sel_registerName("initWithSession:parameter:action:"), captureSession, nil, nil);
+        reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), systemStyleSlider, &failureReason);
+        assert(failureReason == nil);
+        [captureSession addControl:systemStyleSlider];
+        [systemStyleSlider release];
     }
 #endif
     
@@ -1368,6 +1396,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
+    
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRuntimeErrorNotification:) name:AVCaptureSessionRuntimeErrorNotification object:captureSession];
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     
@@ -1859,6 +1889,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
 #warning Intrinsic
+    
+//    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+//    NSLog(@"%@", imageBuffer);
 }
 
 
