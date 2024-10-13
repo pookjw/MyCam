@@ -21,6 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer;
 - (void)updateSpatialCaptureDiscomfortReasonLabelWithReasons:(NSSet<AVSpatialCaptureDiscomfortReason> *)reasons;
+- (void)reloadMenu;
 @end
 
 NS_ASSUME_NONNULL_END

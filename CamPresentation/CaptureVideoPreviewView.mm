@@ -118,6 +118,12 @@
     self.spatialCaptureDiscomfortReasonLabel.text = text;
 }
 
+- (void)reloadMenu {
+    UIMenu *menu = [self.menu copy];
+    self.menu = menu;
+    [menu release];
+}
+
 - (UIMenu *)menu {
     return self.menuButton.menu;
 }

@@ -570,16 +570,7 @@
                     continue;
                 }
                 
-                for (UIContextMenuInteraction *interaction in captureVideoPreviewView.interactions) {
-                    if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
-                        continue;
-                    }
-                    
-                    if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
-                        [interaction dismissMenu];
-                        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
-                    }
-                }
+                [captureVideoPreviewView reloadMenu];
             }
         });
     });
