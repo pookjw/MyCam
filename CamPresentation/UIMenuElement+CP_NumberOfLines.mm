@@ -67,8 +67,8 @@ UICollectionViewDiffableDataSource *custom(__kindof UIView *self, SEL _cmd, UICo
     
     assert(object_setInstanceVariable(impl, "_collectionViewCellProvider", reinterpret_cast<void *>([customCellProvider copy])) != nullptr);
     
-    // collectionViewCellProvider은 readonly, nonatomic이며 ARC에서는 string으로 취급한다. _object_setIvar이 불리면 attribute가 strong일 경우 objc_storeStrong을 호출하며, 이는 기존 값을 release한다. 따라서 over-releasing을 방지하기 위해 아래 코드는 없어야 한다.
-    //            [originalCellProvider release];
+    // https://x.com/_silgen_name/status/1845851075573923842
+//    [originalCellProvider release];
     
     return dataSource;
 }
