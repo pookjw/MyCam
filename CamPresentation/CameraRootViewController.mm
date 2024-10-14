@@ -115,7 +115,7 @@
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
         [captureService removeObserver:self forKeyPath:@"queue_fileOutput"];
-        [captureService.videoCaptureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
+        [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
         [captureService.externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
         [captureService release];
     }
@@ -147,7 +147,7 @@
             });
             return;
         }
-    } else if ([object isEqual:self.captureService.videoCaptureDeviceDiscoverySession]) {
+    } else if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"devices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -185,7 +185,7 @@
     AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
         if (event.phase == AVCaptureEventPhaseBegan) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedCaptureDevices.lastObject;
+                AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedVideoCaptureDevices.lastObject;
                 if (captureDevice == nil) return;
                 
                 [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
@@ -196,7 +196,7 @@
         if (event.phase == AVCaptureEventPhaseBegan) {
             if (event.phase == AVCaptureEventPhaseBegan) {
                 dispatch_async(captureService.captureSessionQueue, ^{
-                    AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedCaptureDevices.lastObject;
+                    AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedVideoCaptureDevices.lastObject;
                     if (captureDevice == nil) return;
                     
                     [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
@@ -239,8 +239,8 @@
     //
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        if (AVCaptureDevice *defaultCaptureDevice = captureService.defaultCaptureDevice) {
-            [captureService queue_addCapureDevice:defaultCaptureDevice];
+        if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
+            [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
             [self.captureService.queue_captureSession startRunning];
         }
     });
@@ -325,39 +325,21 @@
     
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            if (captureService.queue_addedCaptureDevices.count > 0) {
-                UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_multiCamDevicesElementWithCaptureService:self.captureService
-                                                                                                                     selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        [captureService queue_addCapureDevice:captureDevice];
-                    });
-                }
-                                                                                                                   deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        [captureService queue_removeCaptureDevice:captureDevice];
-                    });
-                }];
-                
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    completion(@[captureDevicesMenuElement]);
-                });
-            } else {
-                UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
-                                                                                                                    selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        [captureService queue_addCapureDevice:captureDevice];
-                    });
-                }
-                                                                                                                  deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        [captureService queue_removeCaptureDevice:captureDevice];
-                    });
-                }];
-                
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    completion(@[captureDevicesMenuElement]);
+            UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
+                                                                                                                 selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    [captureService queue_addCapureDevice:captureDevice];
                 });
             }
+                                                                                                               deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    [captureService queue_removeCaptureDevice:captureDevice];
+                });
+            }];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(@[captureDevicesMenuElement]);
+            });
         });
     }];
     
@@ -367,6 +349,7 @@
     ]];
     
     UIBarButtonItem *captureDevicesBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"arrow.triangle.2.circlepath"] menu:menu];
+    captureDevicesBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevicesBarButtonItem, sel_registerName("_setShowsChevron:"), YES);
     
     _captureDevicesBarButtonItem = [captureDevicesBarButtonItem retain];
@@ -505,7 +488,7 @@
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
-    [captureService.videoCaptureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
@@ -532,7 +515,7 @@
     
     dispatch_async(captureService.captureSessionQueue, ^{
         BOOL hasReaction = NO;
-        for (AVCaptureDevice *captureDevice in captureService.queue_addedCaptureDevices) {
+        for (AVCaptureDevice *captureDevice in captureService.queue_addedVideoCaptureDevices) {
             if (captureDevice.reactionEffectsInProgress.count > 0) {
                 hasReaction = YES;
                 break;
@@ -628,7 +611,7 @@
     dispatch_assert_queue(captureService.captureSessionQueue);
     
     BOOL isLoading = NO;
-    for (AVCaptureDevice *captureDevice in captureService.queue_addedCaptureDevices) {
+    for (AVCaptureDevice *captureDevice in captureService.queue_addedVideoCaptureDevices) {
         AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
         
         if (readinessCoordinator.captureReadiness != AVCapturePhotoOutputCaptureReadinessReady) {
@@ -707,7 +690,7 @@
     dispatch_assert_queue(self.captureService.captureSessionQueue);
     
     BOOL adjustingFocus = NO;
-    for (AVCaptureDevice *captureDevice in self.captureService.queue_addedCaptureDevices) {
+    for (AVCaptureDevice *captureDevice in self.captureService.queue_addedVideoCaptureDevices) {
         if (captureDevice.adjustingFocus) {
             adjustingFocus = YES;
             break;

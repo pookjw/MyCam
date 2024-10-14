@@ -40,10 +40,12 @@ CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotifica
 @interface CaptureService : NSObject
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
-@property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *videoCaptureDeviceDiscoverySession;
+@property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) AVExternalStorageDeviceDiscoverySession *externalStorageDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
-@property (nonatomic, readonly, nullable) AVCaptureDevice *defaultCaptureDevice;
+@property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedVideoCaptureDevices;
+@property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedAudioCaptureDevices;
+@property (nonatomic, readonly, nullable) AVCaptureDevice *defaultVideoCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;

@@ -9,6 +9,12 @@
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#include <vector>
+#include <ranges>
+
+AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
+AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
+AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 @implementation UIDeferredMenuElement (CaptureDevices)
 
@@ -16,134 +22,192 @@
  isGeometricDistortionCorrectionSupported
  isCameraIntrinsicMatrixDeliverySupported
  autoRedEyeReductionEnabled
+ +[AVCaptureDeviceDiscoverySession ...]
  */
 
 + (instancetype)cp_captureDevicesElementWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
-            NSArray<AVCaptureDevice *> *devices = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDevices"));
+            NSMutableArray<AVCaptureDevice *> *otherDevices = [captureService.captureDeviceDiscoverySession.devices mutableCopy];
             
-            NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
-            
-            for (AVCaptureDevice *captureDevice in devices) {
-                UIImage *image;
-                if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
-                    image = [UIImage systemImageNamed:@"web.camera"];
-                } else {
-                    image = [UIImage systemImageNamed:@"camera"];
+            auto menusVec = std::vector<SEL> {
+                sel_registerName("allVideoDeviceTypes"),
+                sel_registerName("allPointCloudDeviceTypes"),
+                sel_registerName("allMetadataCameraDeviceTypes"),
+                sel_registerName("allAudioDeviceTypes"),
+                sel_registerName("allVirtualDeviceTypes")
+            }
+            | std::views::transform([captureService, selectionHandler, deselectionHandler, otherDevices](SEL cmd) -> UIMenu * {
+                NSArray<AVCaptureDeviceType> *deviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, cmd);
+                
+                UIMenu *menu = [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                                               title:NSStringFromSelector(cmd)
+                                                                                       filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+                    if ([deviceTypes containsObject:captureDevice.deviceType]) {
+                        [otherDevices removeObject:captureDevice];
+                        return YES;
+                    } else {
+                        return NO;
+                    }
                 }
+                                                                                    selectionHandler:selectionHandler
+                                                                                  deselectionHandler:deselectionHandler];
                 
-                BOOL isAdded = [addedCaptureDevices containsObject:captureDevice];
+                return menu;
+            })
+            | std::ranges::to<std::vector<UIMenu *>>();
+            
+            //
+            
+            if (otherDevices.count > 0) {
+                UIMenu *menu = [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                                               title:@"Other Devices"
+                                                                                       filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+                    return [otherDevices containsObject:captureDevice];
+                }
+                                                                                    selectionHandler:selectionHandler
+                                                                                  deselectionHandler:deselectionHandler];
                 
-                UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
-                                                       image:image
-                                                  identifier:captureDevice.uniqueID
-                                                     handler:^(__kindof UIAction * _Nonnull action) {
-                    dispatch_async(captureService.captureSessionQueue, ^{
-                        if (isAdded) {
-                            if (deselectionHandler != nil) {
-                                deselectionHandler(captureDevice);
-                            }
-                        } else {
-                            if (selectionHandler != nil) {
-                                selectionHandler(captureDevice);
-                            }
-                        }
-                    });
-                }];
-                
-                action.state = (isAdded ? UIMenuElementStateOn : UIMenuElementStateOff);
-                action.attributes = UIMenuElementAttributesKeepsMenuPresented;
-                action.subtitle = [NSString stringWithFormat:@"manufacturer : %@, isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.manufacturer, captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
-                action.cp_overrideNumberOfSubtitleLines = @0;
-                
-                [actions addObject:action];
+                menusVec.push_back(menu);
             }
             
+            [otherDevices release];
+            
+            //
+            
+            UIMenu *multiCamMenu = [UIDeferredMenuElement _cp_queue_multiCamCaptureDevicesMenuWithCaptureService:captureService title:@"Multi Cam" filterHandler:nil selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+            menusVec.push_back(multiCamMenu);
+            
+            //
+            
+            NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
+            
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(actions);
+                completion(menus);
             });
             
-            [actions release];
+            [menus release];
         });
     }];
 }
 
-+ (instancetype)cp_multiCamDevicesElementWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
-    return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
-            NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.videoCaptureDeviceDiscoverySession.supportedMultiCamDeviceSets;
-            
-            NSMutableArray<UIMenu *> *enabledMenuArray = [NSMutableArray new];
-            NSMutableArray<UIMenu *> *disabledMenuArray = [NSMutableArray new];
-            
-            for (NSSet<AVCaptureDevice *> *captureDevices in multiCamDeviceSets) {
-                BOOL isSubset = [[NSSet setWithArray:addedCaptureDevices] isSubsetOfSet:captureDevices];
-                
-                NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:captureDevices.count];
-                NSArray<AVCaptureDevice *> *sortedCaptureDevices = [captureDevices.allObjects sortedArrayUsingComparator:^NSComparisonResult(AVCaptureDevice * _Nonnull obj1, AVCaptureDevice * _Nonnull obj2) {
-                    return [obj1.uniqueID compare:obj2.uniqueID];
-                }];
-                
-                for (AVCaptureDevice *captureDevice in sortedCaptureDevices) {
-                    UIImage *image;
-                    if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
-                        image = [UIImage systemImageNamed:@"web.camera"];
-                    } else {
-                        image = [UIImage systemImageNamed:@"camera"];
++ (UIMenu * _Nonnull)_cp_queue_captureDevicesMenuWithCaptureService:(CaptureService *)captureService title:(NSString *)title filterHandler:(BOOL (^)(AVCaptureDevice *captureDevice))filterHandler selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
+    NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
+    NSArray<AVCaptureDevice *> *devices = captureService.captureDeviceDiscoverySession.devices;
+    
+    NSMutableArray<UIAction *> *actions = [NSMutableArray new];
+    
+    for (AVCaptureDevice *captureDevice in devices) {
+        if (filterHandler != nil) {
+            if (!filterHandler(captureDevice)) continue;
+        }
+        
+        BOOL isAdded = [addedCaptureDevices containsObject:captureDevice];
+        
+        UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
+                                               image:nil
+                                          identifier:captureDevice.uniqueID
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                if (isAdded) {
+                    if (deselectionHandler != nil) {
+                        deselectionHandler(captureDevice);
                     }
-                    
-                    BOOL isAdded = [addedCaptureDevices containsObject:captureDevice];
-                    
-                    UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
-                                                           image:image
-                                                      identifier:nil
-                                                         handler:^(__kindof UIAction * _Nonnull action) {
-                        dispatch_async(captureService.captureSessionQueue, ^{
-                            if (isAdded) {
-                                if (deselectionHandler != nil) {
-                                    deselectionHandler(captureDevice);
-                                }
-                            } else {
-                                if (selectionHandler != nil) {
-                                    selectionHandler(captureDevice);
-                                }
-                            }
-                        });
-                    }];
-                    
-                    action.state = ((isAdded) ? UIMenuElementStateOn : UIMenuElementStateOff);
-                    action.attributes = UIMenuElementAttributesKeepsMenuPresented | (isSubset ? 0 : UIMenuElementAttributesDisabled);
-                    action.subtitle = [NSString stringWithFormat:@"manufacturer : %@, isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.manufacturer, captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
-                    action.cp_overrideNumberOfSubtitleLines = @0;
-                    
-                    [actions addObject:action];
-                }
-                
-                UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
-                [actions release];
-                
-                if (isSubset) {
-                    [enabledMenuArray addObject:menu];
                 } else {
-                    [disabledMenuArray addObject:menu];
+                    if (selectionHandler != nil) {
+                        selectionHandler(captureDevice);
+                    }
                 }
+            });
+        }];
+        
+        action.state = (isAdded ? UIMenuElementStateOn : UIMenuElementStateOff);
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.subtitle = [NSString stringWithFormat:@"isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
+        action.cp_overrideNumberOfSubtitleLines = @0;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:title children:actions];
+    [actions release];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_multiCamCaptureDevicesMenuWithCaptureService:(CaptureService *)captureService title:(NSString *)title filterHandler:(BOOL (^)(NSSet<AVCaptureDevice *> *deviceSet))filterHandler selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
+    NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
+    NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.captureDeviceDiscoverySession.supportedMultiCamDeviceSets;
+    
+    NSMutableArray<UIMenu *> *enabledMenuArray = [NSMutableArray new];
+    NSMutableArray<UIMenu *> *disabledMenuArray = [NSMutableArray new];
+    
+    for (NSSet<AVCaptureDevice *> *captureDevices in multiCamDeviceSets) {
+        if (filterHandler != nil) {
+            if (!filterHandler(captureDevices)) continue;
+        }
+        
+        BOOL isSubset = [[NSSet setWithArray:addedCaptureDevices] isSubsetOfSet:captureDevices];
+        
+        NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:captureDevices.count];
+        NSArray<AVCaptureDevice *> *sortedCaptureDevices = [captureDevices.allObjects sortedArrayUsingComparator:^NSComparisonResult(AVCaptureDevice * _Nonnull obj1, AVCaptureDevice * _Nonnull obj2) {
+            return [obj1.uniqueID compare:obj2.uniqueID];
+        }];
+        
+        for (AVCaptureDevice *captureDevice in sortedCaptureDevices) {
+            UIImage *image;
+            if (captureDevice.deviceType == AVCaptureDeviceTypeExternal) {
+                image = [UIImage systemImageNamed:@"web.camera"];
+            } else {
+                image = [UIImage systemImageNamed:@"camera"];
             }
             
-            assert(enabledMenuArray.count + disabledMenuArray.count == multiCamDeviceSets.count);
+            BOOL isAdded = [addedCaptureDevices containsObject:captureDevice];
             
-            NSArray<UIMenu *> *allMenuArray = [enabledMenuArray arrayByAddingObjectsFromArray:disabledMenuArray];
+            UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
+                                                   image:image
+                                              identifier:nil
+                                                 handler:^(__kindof UIAction * _Nonnull action) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    if (isAdded) {
+                        if (deselectionHandler != nil) {
+                            deselectionHandler(captureDevice);
+                        }
+                    } else {
+                        if (selectionHandler != nil) {
+                            selectionHandler(captureDevice);
+                        }
+                    }
+                });
+            }];
             
-            [enabledMenuArray release];
-            [disabledMenuArray release];
+            action.state = ((isAdded) ? UIMenuElementStateOn : UIMenuElementStateOff);
+            action.attributes = UIMenuElementAttributesKeepsMenuPresented | (isSubset ? 0 : UIMenuElementAttributesDisabled);
+            action.subtitle = [NSString stringWithFormat:@"manufacturer : %@, isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.manufacturer, captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
+            action.cp_overrideNumberOfSubtitleLines = @0;
             
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(allMenuArray);
-            });
-        });
-    }];
+            [actions addObject:action];
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
+        [actions release];
+        
+        if (isSubset) {
+            [enabledMenuArray addObject:menu];
+        } else {
+            [disabledMenuArray addObject:menu];
+        }
+    }
+    
+    assert(enabledMenuArray.count + disabledMenuArray.count == multiCamDeviceSets.count);
+    
+    NSArray<UIMenu *> *allMenuArray = [enabledMenuArray arrayByAddingObjectsFromArray:disabledMenuArray];
+    
+    [enabledMenuArray release];
+    [disabledMenuArray release];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:title children:allMenuArray];
+    return menu;
 }
 
 @end

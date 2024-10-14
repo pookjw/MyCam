@@ -166,7 +166,7 @@
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:captureDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler]];
     
-    [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:movieFileOutput.connections[0] didChangeHandler:didChangeHandler]];
+    [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo] didChangeHandler:didChangeHandler]];
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Movie" children:elements];
     [elements release];
@@ -1055,7 +1055,7 @@
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 AVCaptureMovieFileOutput *output = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
-                NSLog(@"%@", [output supportedOutputSettingsKeysForConnection:output.connections[0]]);
+                NSLog(@"%@", [output supportedOutputSettingsKeysForConnection:[output connectionWithMediaType:AVMediaTypeVideo]]);
                 
                 NSError * _Nullable error = nil;
                 [captureDevice lockForConfiguration:&error];
@@ -1083,7 +1083,7 @@
 
 + (UIMenu * _Nonnull)_cp_queue_movieOutputSettingsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
-    NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:movieFileOutput.connections[0]];
+    NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo]];
     
     NSMutableArray<UIMenu *> *menus = [NSMutableArray new];
     
@@ -1105,7 +1105,7 @@
 
 + (UIMenu * _Nonnull)_cp_queue_videoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
-    AVCaptureConnection *connection = movieFileOutput.connections[0];
+    AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
     NSDictionary<NSString *, id> *outputSettings = [movieFileOutput outputSettingsForConnection:connection];
     AVVideoCodecType activeVideoCodecType = outputSettings[AVVideoCodecKey];
     NSArray<AVVideoCodecType> *availableVideoCodecTypes = movieFileOutput.availableVideoCodecTypes;
@@ -1115,9 +1115,9 @@
     for (AVVideoCodecType videoCodecType in availableVideoCodecTypes) {
         UIAction *action = [UIAction actionWithTitle:videoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                AVCaptureConnection *connection = movieFileOutput.connections[0];
+                AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
                 NSMutableDictionary<NSString *, id> *outputSettings = [[movieFileOutput outputSettingsForConnection:connection] mutableCopy];
-                NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:movieFileOutput.connections[0]];
+                NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo]];
                 
                 for (NSString *key in outputSettings.allKeys) {
                     if (![supportedOutputSettingsKeys containsObject:key]) {

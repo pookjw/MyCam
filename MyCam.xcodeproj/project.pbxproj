@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */; };
 		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; };
 		4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
 		4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -116,6 +117,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS18.1.sdk/System/Library/Frameworks/AVFAudio.framework; sourceTree = DEVELOPER_DIR; };
 		4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LockedCameraCapture.framework; path = System/Library/Frameworks/LockedCameraCapture.framework; sourceTree = SDKROOT; };
 		4F2A41922C98148000726F2F /* CamPresentation.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CamPresentation.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F2A41D12C981A6000726F2F /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -357,6 +359,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */,
 				4FED1AD52C99999800174044 /* CoreLocation.framework in Frameworks */,
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
@@ -390,6 +393,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */,
 				4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */,
 				4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */,
 				4FED1AD42C99999800174044 /* CoreLocation.framework */,
@@ -770,6 +774,7 @@
 				INFOPLIST_FILE = MyCam/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = Location;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = Microphone;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -806,6 +811,7 @@
 				INFOPLIST_FILE = MyCam/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = Camera;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = Location;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = Microphone;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = Photo;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

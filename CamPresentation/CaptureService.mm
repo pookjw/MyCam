@@ -20,6 +20,7 @@
 #warning Zoom, Exposure
 #warning AVCaptureCameraCalibrationDataOutput AVCaptureVisionDataOutput AVCapturePointCloudDataOutput (Private)
 #warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState
+#warning 녹화할 때 connection에 audio도 추가해야함
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
@@ -42,7 +43,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
 NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -63,22 +64,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         
         //
         
-        AVCaptureDeviceDiscoverySession *videoCaptureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
-            AVCaptureDeviceTypeBuiltInWideAngleCamera,
-            AVCaptureDeviceTypeBuiltInUltraWideCamera,
-            AVCaptureDeviceTypeBuiltInTelephotoCamera,
-            AVCaptureDeviceTypeBuiltInDualCamera,
-            AVCaptureDeviceTypeBuiltInDualWideCamera,
-            AVCaptureDeviceTypeBuiltInTripleCamera,
-            AVCaptureDeviceTypeContinuityCamera,
-            AVCaptureDeviceTypeBuiltInTrueDepthCamera,
-            AVCaptureDeviceTypeBuiltInLiDARDepthCamera,
-            AVCaptureDeviceTypeBuiltInWideAngleCamera,
-            AVCaptureDeviceTypeExternal,
-            
-        ]
-                                                                                                                                mediaType:AVMediaTypeVideo
-                                                                                                                                 position:AVCaptureDevicePositionUnspecified];
+        NSArray<AVCaptureDeviceType> *allDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allDeviceTypes"));
+        
+        AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:allDeviceTypes
+                                                                                                                                     mediaType:nil
+                                                                                                                                      position:AVCaptureDevicePositionUnspecified];
         
         //
         
@@ -107,7 +97,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         //
         
         _captureSessionQueue = captureSessionQueue;
-        _videoCaptureDeviceDiscoverySession = [videoCaptureDeviceDiscoverySession retain];
+        _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _externalStorageDeviceDiscoverySession = [externalStorageDeviceDiscoverySession retain];
         _queue_photoFormatModelsByCaptureDevice = [photoFormatModelsByCaptureDevice retain];
         _locationManager = locationManager;
@@ -154,7 +144,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_captureSession release];
     
     [_captureSessionQueue release];
-    [_videoCaptureDeviceDiscoverySession release];
+    [_captureDeviceDiscoverySession release];
     [_externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
     [_externalStorageDeviceDiscoverySession release];
     
@@ -445,7 +435,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         if ([keyPath isEqualToString:@"centerStageEnabled"]) {
             dispatch_async(self.captureSessionQueue, ^{
 #warning TODO
-                NSLog(@"Hello World! %d", self.queue_addedCaptureDevices.firstObject.isCenterStageActive);
+                NSLog(@"Hello World! %d", self.queue_addedVideoCaptureDevices.firstObject.isCenterStageActive);
             });
             return;
         }
@@ -474,7 +464,37 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return [captureDevices autorelease];
 }
 
-- (AVCaptureDevice *)defaultCaptureDevice {
+- (NSArray<AVCaptureDevice *> *)queue_addedVideoCaptureDevices {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    NSMutableArray<AVCaptureDevice *> *captureDevices = [NSMutableArray new];
+    
+    for (AVCaptureDevice *captureDevice in self.queue_addedCaptureDevices) {
+        if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+            [captureDevices addObject:captureDevice];
+        }
+    }
+    
+    return [captureDevices autorelease];
+}
+
+- (NSArray<AVCaptureDevice *> *)queue_addedAudioCaptureDevices {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    NSMutableArray<AVCaptureDevice *> *captureDevices = [NSMutableArray new];
+    
+    for (AVCaptureDevice *captureDevice in self.queue_addedCaptureDevices) {
+        if ([allAudioDeviceTypes containsObject:captureDevice.deviceType]) {
+            [captureDevices addObject:captureDevice];
+        }
+    }
+    
+    return [captureDevices autorelease];
+}
+
+- (AVCaptureDevice *)defaultVideoCaptureDevice {
     AVCaptureDevice * _Nullable captureDevice = AVCaptureDevice.userPreferredCamera;
     
     if (captureDevice == nil) {
@@ -510,9 +530,32 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    
+    if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+        [self _queue_addVideoCapureDevice:captureDevice];
+        return;
+    }
+    
+    //
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    
+    if ([allAudioDeviceTypes containsObject:captureDevice.deviceType]) {
+        [self _queue_addAudioCapureDevice:captureDevice];
+        return;
+    }
+    
+    abort();
+}
+
+- (void)_queue_addVideoCapureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
-    assert(![self.queue_addedCaptureDevices containsObject:captureDevice]);
+    assert(![self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
+    
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
     __kindof AVCaptureSession *captureSession;
     if (__kindof AVCaptureSession *currentCaptureSession = self.queue_captureSession) {
@@ -767,10 +810,56 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [self queue_postDidUpdatePreviewLayersNotification];
 }
 
+- (void)_queue_addAudioCapureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert(captureDevice != nil);
+    assert(![self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    assert([allAudioDeviceTypes containsObject:captureDevice.deviceType]);
+    
+#warning AVCaptureAudioDataOutput으로 파형 그려보기
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    
+    [captureSession beginConfiguration];
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    AVCaptureDeviceInput *deviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
+    assert(error == nil);
+    
+    NSArray<AVCaptureInputPort *> *audioDevicePorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
+    
+    assert([captureSession canAddInput:deviceInput]);
+    [captureSession addInputWithNoConnections:deviceInput];
+    
+    //
+    
+    AVCaptureAudioDataOutput *audioDataOutput = [AVCaptureAudioDataOutput new];
+    [audioDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+    assert([captureSession canAddOutput:audioDataOutput]);
+    [captureSession addOutputWithNoConnections:audioDataOutput];
+    
+    //
+    
+    AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:audioDevicePorts output:audioDataOutput];
+    [deviceInput release];
+    [audioDataOutput release];
+    assert([captureSession canAddConnection:connection]);
+    assert(connection.isEnabled);
+    assert(connection.isActive);
+    [connection release];
+    
+    [captureSession commitConfiguration];
+}
+
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
-    assert([self.queue_addedCaptureDevices containsObject:captureDevice]);
+    assert([self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
     
     [self unregisterObserversForCaptureDevice:captureDevice];
     
@@ -1199,7 +1288,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     if (captureDevice == nil) return;
     
     dispatch_async(self.captureSessionQueue, ^{
-        if ([self.queue_addedCaptureDevices containsObject:captureDevice]) {
+        if ([self.queue_addedVideoCaptureDevices containsObject:captureDevice]) {
             [self queue_removeCaptureDevice:captureDevice];
         }
     });
@@ -1885,13 +1974,22 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 
-#pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
+#pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
+    NSLog(@"%@", output.class);
+    
+    if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
 #warning Intrinsic
     
 //    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
 //    NSLog(@"%@", imageBuffer);
+        
+    } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
+        
+    } else {
+        abort();
+    }
 }
 
 
