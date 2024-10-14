@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PhotoFormatModel : NSObject <NSCopying, NSSecureCoding>
+@interface PhotoFormatModel : NSObject <NSCopying>
 @property (copy, nullable) NSNumber *photoPixelFormatType;
 @property (copy, nullable) AVVideoCodecType codecType;
 @property (assign) float quality;
@@ -23,6 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (assign) AVCaptureFlashMode flashMode;
 
 @property (assign, getter=isCameraCalibrationDataDeliveryEnabled) BOOL cameraCalibrationDataDeliveryEnabled;
+
+@property (copy) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
 
 - (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;

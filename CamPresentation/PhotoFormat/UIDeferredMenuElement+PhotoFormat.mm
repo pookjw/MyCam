@@ -130,6 +130,8 @@
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleDepthDataDeliveryEnabledActionWithCaptureService:captureService photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
+    [elements addObject:[UIDeferredMenuElement _cp_queue_exposureBracketedStillImageSettingsMenuWithCaptureService:captureService captureDevice:captureDevice photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+    
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Photo" children:elements];
@@ -2150,6 +2152,172 @@
     });
     
     return element;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_exposureBracketedStillImageSettingsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+    
+    for (__kindof AVCaptureBracketedStillImageSettings *settings in photoFormatModel.bracketedSettings) {
+        UIAction *removeAction = [UIAction actionWithTitle:@"Remove" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                PhotoFormatModel *copy = [photoFormatModel copy];
+                NSMutableArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings = [copy.bracketedSettings mutableCopy];
+                [bracketedSettings removeObject:settings];
+                copy.bracketedSettings = bracketedSettings;
+                [bracketedSettings release];
+                
+                [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+                [copy release];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        removeAction.attributes = UIMenuElementAttributesDestructive;
+        
+        NSString *title;
+        if (settings.class == AVCaptureAutoExposureBracketedStillImageSettings.class) {
+            auto casted = static_cast<AVCaptureAutoExposureBracketedStillImageSettings *>(settings);
+            title = [NSString stringWithFormat:@"Auto - exposureTargetBias: %lf", casted.exposureTargetBias];
+        } else if (settings.class == AVCaptureManualExposureBracketedStillImageSettings.class) {
+            auto casted = static_cast<AVCaptureManualExposureBracketedStillImageSettings *>(settings);
+            CFStringRef descStr = CMTimeCopyDescription(kCFAllocatorDefault, casted.exposureDuration);
+            title = [NSString stringWithFormat:@"Manual - ISO: %lf, exposureDuration: %@", casted.ISO, (id)descStr];
+            CFRelease(descStr);
+        } else {
+            abort();
+        }
+        
+        UIMenu *submenu = [UIMenu menuWithTitle:title children:@[removeAction]];
+        submenu.cp_overrideNumberOfTitleLines = @(0);
+        
+        [children addObject:submenu];
+    }
+    
+    //
+    
+    float minExposureTargetBias = captureDevice.minExposureTargetBias;
+    float maxExposureTargetBias = captureDevice.maxExposureTargetBias;
+    float exposureTargetBias = captureDevice.exposureTargetBias;
+    
+    UIDeferredMenuElement *autoExposureBracketedStillImageSettingsElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = minExposureTargetBias;
+        slider.maximumValue = maxExposureTargetBias;
+        slider.value = exposureTargetBias;
+        
+        __kindof UIMenuElement *sliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return slider;
+        });
+        
+        UIAction *addAction = [UIAction actionWithTitle:@"Add" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            float value = slider.value;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                PhotoFormatModel *copy = [photoFormatModel copy];
+                
+                AVCaptureAutoExposureBracketedStillImageSettings *settings = [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:value];
+                
+                NSMutableArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings = [copy.bracketedSettings mutableCopy];
+                [bracketedSettings addObject:settings];
+                copy.bracketedSettings = bracketedSettings;
+                [bracketedSettings release];
+                
+                [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+                [copy release];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        [slider release];
+        
+        UIMenu *submenu = [UIMenu menuWithTitle:@"Add Auto Exposure Bracketed Still Image Settings" children:@[
+            sliderElement,
+            addAction
+        ]];
+        
+        completion(@[submenu]);
+    }];
+    
+    [children addObject:autoExposureBracketedStillImageSettingsElement];
+    
+    //
+    
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    float maxISO = activeFormat.maxISO;
+    float minISO = activeFormat.minISO;
+    float ISO = captureDevice.ISO;
+    CMTime maxExposureDuration = activeFormat.maxExposureDuration;
+    CMTime minExposureDuration = activeFormat.minExposureDuration;
+    CMTime exposureDuration = captureDevice.exposureDuration;
+    
+    UIDeferredMenuElement *manualExposureBracketedStillImageSettingsElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        UISlider *ISOSlider = [UISlider new];
+        ISOSlider.maximumValue = maxISO;
+        ISOSlider.minimumValue = minISO;
+        ISOSlider.value = ISO;
+        
+        UISlider *exposureDurationSlider = [UISlider new];
+        exposureDurationSlider.maximumValue = CMTimeGetSeconds(maxExposureDuration);
+        exposureDurationSlider.minimumValue = CMTimeGetSeconds(minExposureDuration);
+        exposureDurationSlider.value = CMTimeGetSeconds(exposureDuration);
+        
+        __kindof UIMenuElement *ISOSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return ISOSlider;
+        });
+        
+        __kindof UIMenuElement *exposureDurationSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return exposureDurationSlider;
+        });
+        
+        UIAction *addAction = [UIAction actionWithTitle:@"Add" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            float ISO = ISOSlider.value;
+            float exposureDurationSeconds = exposureDurationSlider.value;
+            CMTime exposureDuration = CMTimeMakeWithSeconds(exposureDurationSeconds, 1);
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                PhotoFormatModel *copy = [photoFormatModel copy];
+                
+                AVCaptureManualExposureBracketedStillImageSettings *settings = [AVCaptureManualExposureBracketedStillImageSettings manualExposureSettingsWithExposureDuration:exposureDuration ISO:ISO];
+                
+                NSMutableArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings = [copy.bracketedSettings mutableCopy];
+                [bracketedSettings addObject:settings];
+                copy.bracketedSettings = bracketedSettings;
+                [bracketedSettings release];
+                
+                [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+                [copy release];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        [ISOSlider release];
+        [exposureDurationSlider release];
+        
+        UIMenu *submenu = [UIMenu menuWithTitle:@"Add Manual Exposure Bracketed Still Image Settings" children:@[
+            ISOSliderElement,
+            exposureDurationSliderElement,
+            addAction
+        ]];
+        
+        submenu.cp_overrideNumberOfTitleLines = @(0);
+        
+        completion(@[submenu]);
+    }];
+    
+    [children addObject:manualExposureBracketedStillImageSettingsElement];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Bracketed Settings" children:children];
+    [children release];
+    
+    menu.subtitle = @(photoFormatModel.bracketedSettings.count).stringValue;
+    
+    return menu;
 }
 
 @end

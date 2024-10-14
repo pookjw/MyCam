@@ -1977,7 +1977,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    NSLog(@"%@", output.class);
+//    NSLog(@"%@", output.class);
     
     if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
 #warning Intrinsic

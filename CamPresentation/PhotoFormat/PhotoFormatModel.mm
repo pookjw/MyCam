@@ -9,31 +9,11 @@
 
 @implementation PhotoFormatModel
 
-+ (BOOL)supportsSecureCoding {
-    return YES;
-}
-
 - (instancetype)init {
     if (self = [super init]) {
         _quality = 1.f;
         _photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
-    }
-    
-    return self;
-}
-
-- (instancetype)initWithCoder:(NSCoder *)coder {
-    if (self = [super init]) {
-        _photoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"photoPixelFormatType"] copy];
-        _codecType = [[coder decodeObjectOfClass:NSString.class forKey:@"codecType"] copy];
-        _quality = [coder decodeFloatForKey:@"quality"];
-        _isRAWEnabled = [coder decodeBoolForKey:@"isRAWEnabled"];
-        _rawPhotoPixelFormatType = [[coder decodeObjectOfClass:NSNumber.class forKey:@"rawPhotoPixelFormatType"] copy];
-        _rawFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"rawFileType"] copy];
-        _processedFileType = [[coder decodeObjectOfClass:NSString.class forKey:@"processedFileType"] copy];
-        _photoQualityPrioritization = static_cast<AVCapturePhotoQualityPrioritization>([coder decodeIntegerForKey:@"photoQualityPrioritization"]);
-        _flashMode = static_cast<AVCaptureFlashMode>([coder decodeIntegerForKey:@"flashMode"]);
-        _cameraCalibrationDataDeliveryEnabled = [coder decodeBoolForKey:@"cameraCalibrationDataDeliveryEnabled"];
+        _bracketedSettings = [NSArray new];
     }
     
     return self;
@@ -45,6 +25,7 @@
     [_rawPhotoPixelFormatType release];
     [_rawFileType release];
     [_processedFileType release];
+    [_bracketedSettings release];
     [super dealloc];
 }
 
@@ -63,22 +44,10 @@
         casted->_photoQualityPrioritization = _photoQualityPrioritization;
         casted->_flashMode = _flashMode;
         casted->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
+        casted->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
     }
     
     return copy;
-}
-
-- (void)encodeWithCoder:(NSCoder *)coder {
-    [coder encodeObject:_photoPixelFormatType forKey:@"photoPixelFormatType"];
-    [coder encodeObject:_codecType forKey:@"codecType"];
-    [coder encodeFloat:_quality forKey:@"quality"];
-    [coder encodeBool:_isRAWEnabled forKey:@"isRAWEnabled"];
-    [coder encodeObject:_rawPhotoPixelFormatType forKey:@"rawPhotoPixelFormatType"];
-    [coder encodeObject:_rawFileType forKey:@"rawFileType"];
-    [coder encodeObject:_processedFileType forKey:@"processedFileType"];
-    [coder encodeInteger:_photoQualityPrioritization forKey:@"photoQualityPrioritization"];
-    [coder encodeInteger:_flashMode forKey:@"flashMode"];
-    [coder encodeBool:_cameraCalibrationDataDeliveryEnabled forKey:@"cameraCalibrationDataDeliveryEnabled"];
 }
 
 - (BOOL)isEqual:(id)other {
@@ -95,7 +64,8 @@
         [_processedFileType isEqualToString:casted->_processedFileType] &&
         _photoQualityPrioritization == casted->_photoQualityPrioritization &&
         _flashMode == casted->_flashMode &&
-        _cameraCalibrationDataDeliveryEnabled == casted->_cameraCalibrationDataDeliveryEnabled;
+        _cameraCalibrationDataDeliveryEnabled == casted->_cameraCalibrationDataDeliveryEnabled &&
+        [_bracketedSettings isEqualToArray:casted->_bracketedSettings];
     }
 }
 
@@ -109,7 +79,8 @@
     _processedFileType.hash ^
     _photoQualityPrioritization ^
     _flashMode ^
-    _cameraCalibrationDataDeliveryEnabled;
+    _cameraCalibrationDataDeliveryEnabled ^
+    _bracketedSettings.hash;
 }
 
 - (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
