@@ -12,6 +12,7 @@
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
+#import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -43,6 +44,7 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @end
@@ -63,6 +65,7 @@
 @synthesize adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView;
 @synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize captureService = _captureService;
+@synthesize audioBarButtonItem = _audioBarButtonItem;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -111,6 +114,7 @@
     [_reactionProgressBarButtonItem release];
     [_adjustingFocusActivityIndicatorView release];
     [_adjustingFocusBarButtonItem release];
+    [_audioBarButtonItem release];
     
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
@@ -217,6 +221,7 @@
         self.reactionProgressBarButtonItem,
         self.adjustingFocusBarButtonItem,
         self.photosBarButtonItem,
+        self.audioBarButtonItem,
         self.fileOutputsBarButtonItem,
         self.continuityDevicePickerBarButtonItem,
         self.captureDevicesBarButtonItem
@@ -225,6 +230,7 @@
     [self setToolbarItems:@[
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
+        self.audioBarButtonItem,
         self.fileOutputsBarButtonItem,
         self.captureDevicesBarButtonItem
     ]];
@@ -323,23 +329,15 @@
     
     CaptureService *captureService = self.captureService;
     
-    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+    UIDeferredMenuElement *element = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
+                                                                                                         selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            UIDeferredMenuElement *captureDevicesMenuElement = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
-                                                                                                                 selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                dispatch_async(captureService.captureSessionQueue, ^{
-                    [captureService queue_addCapureDevice:captureDevice];
-                });
-            }
-                                                                                                               deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-                dispatch_async(captureService.captureSessionQueue, ^{
-                    [captureService queue_removeCaptureDevice:captureDevice];
-                });
-            }];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[captureDevicesMenuElement]);
-            });
+            [captureService queue_addCapureDevice:captureDevice];
+        });
+    }
+                                                                                                       deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_removeCaptureDevice:captureDevice];
         });
     }];
     
@@ -433,6 +431,19 @@
     
     _adjustingFocusBarButtonItem = [adjustingFocusBarButtonItem retain];
     return [adjustingFocusBarButtonItem autorelease];
+}
+
+- (UIBarButtonItem *)audioBarButtonItem {
+    if (auto audioBarButtonItem = _audioBarButtonItem) return audioBarButtonItem;
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_audioElementWithCaptureService:self.captureService didChangeHandler:nil]
+    ]];
+    
+    UIBarButtonItem *audioBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"music.note"] menu:menu];
+    
+    _audioBarButtonItem = [audioBarButtonItem retain];
+    return [audioBarButtonItem autorelease];
 }
 
 - (CaptureService *)captureService {
