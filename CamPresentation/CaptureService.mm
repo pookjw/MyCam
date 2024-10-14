@@ -63,7 +63,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         
         //
         
-        AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
+        AVCaptureDeviceDiscoverySession *videoCaptureDeviceDiscoverySession = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[
             AVCaptureDeviceTypeBuiltInWideAngleCamera,
             AVCaptureDeviceTypeBuiltInUltraWideCamera,
             AVCaptureDeviceTypeBuiltInTelephotoCamera,
@@ -107,7 +107,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         //
         
         _captureSessionQueue = captureSessionQueue;
-        _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
+        _videoCaptureDeviceDiscoverySession = [videoCaptureDeviceDiscoverySession retain];
         _externalStorageDeviceDiscoverySession = [externalStorageDeviceDiscoverySession retain];
         _queue_photoFormatModelsByCaptureDevice = [photoFormatModelsByCaptureDevice retain];
         _locationManager = locationManager;
@@ -154,7 +154,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_captureSession release];
     
     [_captureSessionQueue release];
-    [_captureDeviceDiscoverySession release];
+    [_videoCaptureDeviceDiscoverySession release];
     [_externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
     [_externalStorageDeviceDiscoverySession release];
     

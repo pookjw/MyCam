@@ -74,7 +74,7 @@
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
             NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
-            NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.captureDeviceDiscoverySession.supportedMultiCamDeviceSets;
+            NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.videoCaptureDeviceDiscoverySession.supportedMultiCamDeviceSets;
             
             NSMutableArray<UIMenu *> *enabledMenuArray = [NSMutableArray new];
             NSMutableArray<UIMenu *> *disabledMenuArray = [NSMutableArray new];

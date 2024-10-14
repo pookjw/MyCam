@@ -115,7 +115,7 @@
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
         [captureService removeObserver:self forKeyPath:@"queue_fileOutput"];
-        [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
+        [captureService.videoCaptureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
         [captureService.externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
         [captureService release];
     }
@@ -147,7 +147,7 @@
             });
             return;
         }
-    } else if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
+    } else if ([object isEqual:self.captureService.videoCaptureDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"devices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -505,7 +505,7 @@
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
-    [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
+    [captureService.videoCaptureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
