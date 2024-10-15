@@ -7,26 +7,33 @@
 
 #import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRouteSharingPolicy.h>
+#import <CamPresentation/AudioSessionRenderingModeInfoView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
 #include <ranges>
+
+#warning TODO visionOS Spatial Experience
 
 @implementation UIDeferredMenuElement (Audio)
 
 + (instancetype)cp_audioElementWithCaptureService:(CaptureService *)captureService didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            UIMenu *categoriesMenu = [UIDeferredMenuElement _cp_audioSessionCategoriesMenuWithDidChangeHandler:didChangeHandler];
-            UIMenu *modesMenu = [UIDeferredMenuElement _cp_audioSessionModesMenuWithDidChangeHandler:didChangeHandler];
-            UIMenu *routeSharingPoliciesMenu = [UIDeferredMenuElement _cp_audioSessionRouteSharingPoliciesWithDidChangeHandler:didChangeHandler];
-            UIMenu *activationMenu = [UIDeferredMenuElement _cp_audioSesssionActivationMenuWithDidChangeHandler:didChangeHandler];
+            AVAudioSession *audioSession = AVAudioSession.sharedInstance;
+            
+            UIMenu *categoriesMenu = [UIDeferredMenuElement _cp_audioSessionCategoriesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *modesMenu = [UIDeferredMenuElement _cp_audioSessionModesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *routeSharingPoliciesMenu = [UIDeferredMenuElement _cp_audioSessionRouteSharingPoliciesWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *activationMenu = [UIDeferredMenuElement _cp_audioSesssionActivationMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *renderingModeElement = [UIDeferredMenuElement _cp_audioSessionRenderingModeInfoElementWithAudioSession:audioSession];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
                 modesMenu,
                 routeSharingPoliciesMenu,
-                activationMenu
+                activationMenu,
+                renderingModeElement
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -38,9 +45,7 @@
     return element;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionCategoriesMenuWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    AVAudioSession *audioSession = AVAudioSession.sharedInstance;
-    
++ (UIMenu * _Nonnull)_cp_audioSessionCategoriesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     NSArray<AVAudioSessionCategory> *availableCategories = audioSession.availableCategories;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableCategories.count];
     
@@ -67,7 +72,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSesssionActivationMenuWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_audioSesssionActivationMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioSession *session = AVAudioSession.sharedInstance;
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
@@ -109,9 +114,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionModesMenuWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    AVAudioSession *audioSession = AVAudioSession.sharedInstance;
-    
++ (UIMenu * _Nonnull)_cp_audioSessionModesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     NSArray<AVAudioSessionMode> *availableModes = audioSession.availableModes;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableModes.count];
     
@@ -147,8 +150,7 @@
     };
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionRouteSharingPoliciesWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    AVAudioSession *audioSession = AVAudioSession.sharedInstance;
++ (UIMenu * _Nonnull)_cp_audioSessionRouteSharingPoliciesWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioSessionRouteSharingPolicy currentRouteSharingPolicy = audioSession.routeSharingPolicy;
     
     auto actionsVec = std::vector<AVAudioSessionRouteSharingPolicy> {
@@ -187,5 +189,17 @@
     
     return menu;
 }
+
++ (__kindof UIMenuElement *)_cp_audioSessionRenderingModeInfoElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        AudioSessionRenderingModeInfoView *view = [[AudioSessionRenderingModeInfoView alloc] initWithAudioSession:audioSession];
+        return [view autorelease];
+    });
+    
+    return element;
+}
+
+// AVAusioApplication Mute
+//+ (UIAction * _Nonnull)
 
 @end
