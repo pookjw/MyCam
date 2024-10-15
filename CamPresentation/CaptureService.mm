@@ -851,6 +851,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     assert([captureSession canAddConnection:connection]);
     assert(connection.isEnabled);
     assert(connection.isActive);
+    [captureSession addConnection:connection];
     [connection release];
     
     [captureSession commitConfiguration];
@@ -957,16 +958,21 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [self.queue_photoFormatModelsByCaptureDevice removeObjectForKey:captureDevice];
     
-    NSUInteger numberOfInputDevices = 0;
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    
+    NSUInteger numberOfVideoInputDevices = 0;
     for (AVCaptureInput *input in captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
-            numberOfInputDevices += 1;
+            AVCaptureDevice *device = static_cast<AVCaptureDeviceInput *>(input).device;
+            if ([allVideoDeviceTypes containsObject:device.deviceType]) {
+                numberOfVideoInputDevices += 1;
+            }
         }
     }
     
-    if (numberOfInputDevices == 0) {
+    if (numberOfVideoInputDevices == 0) {
         assert(captureSession.class == AVCaptureSession.class);
-    } else if (numberOfInputDevices == 1) {
+    } else if (numberOfVideoInputDevices == 1) {
         assert(captureSession.class == AVCaptureMultiCamSession.class);
         captureSession = [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:NO];
     } else {
@@ -2002,7 +2008,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 //    NSLog(@"%@", imageBuffer);
         
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-//        NSLog(@"%@", output.class);
+        NSLog(@"%@", output.class);
     } else {
         abort();
     }
