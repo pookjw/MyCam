@@ -1290,6 +1290,8 @@
     UIMenu *menu = [UIMenu menuWithTitle:title image:nil identifier:nil options:0 children:menus];
     [menus release];
     
+    menu.cp_overrideNumberOfTitleLines = 0;
+    
     return menu;
 }
 
