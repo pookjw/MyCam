@@ -22,6 +22,8 @@
 #warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState
 #warning 녹화할 때 connection에 audio도 추가해야함
 
+#warning AVCaptureFileOutput.maxRecordedDuration
+
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
 NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName = @"CaptureServiceReloadingPhotoFormatMenuNeededNotificationName";
@@ -1125,38 +1127,33 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 #warning Multi Cam 전환 지원
+#warning Multi Mic 지원
+#warning disconnect 처리
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
     dispatch_assert_queue(self.captureSessionQueue);
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
-    assert(captureSession != nil);
-    
-    AVCaptureDeviceInput *audioDeviceInput = nil;
-    for (AVCaptureDeviceInput *deviceInput in captureSession.inputs) {
-        if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
-        
-        if ([deviceInput.device isEqual:audioDevice]) {
-            audioDeviceInput = deviceInput;
-            break;
-        }
-    }
-    assert(audioDeviceInput != nil);
     
     [captureSession beginConfiguration];
     
-    AVCaptureConnection *oldConnection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
-    assert(oldConnection != nil);
+    AVCaptureDeviceInput *deviceInput = nil;
+    for (AVCaptureDeviceInput *input in captureSession.inputs) {
+        if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+        if ([input.device isEqual:audioDevice]) {
+            deviceInput = input;
+            break;
+        }
+    }
+    assert(deviceInput != nil);
     
-    NSArray<AVCaptureInputPort *> *oldInputPorts = oldConnection.inputPorts;
-    [captureSession removeConnection:oldConnection];
+    NSArray<AVCaptureInputPort *> *inputPorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:audioDevice.deviceType sourceDevicePosition:AVCaptureDevicePositionUnspecified];
     
-    NSArray<AVCaptureInputPort *> *audioInputPorts = [audioDeviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
-    NSArray<AVCaptureInputPort *> *newInputPorts = [oldInputPorts arrayByAddingObjectsFromArray:audioInputPorts];
+    AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
     
-    AVCaptureConnection *newConnection = [[AVCaptureConnection alloc] initWithInputPorts:newInputPorts output:movieFileOutput];
-    assert([captureSession canAddConnection:newConnection]);
-    [captureSession addConnection:newConnection];
-    [newConnection release];
+    NSString * _Nullable reason = nil;
+    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), connection, &reason));
+    [captureSession addConnection:connection];
+    [connection release];
     
     [captureSession commitConfiguration];
 }

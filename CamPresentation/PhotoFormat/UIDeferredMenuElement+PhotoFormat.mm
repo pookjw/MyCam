@@ -2357,43 +2357,42 @@
 
 + (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
     AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
-    AVCaptureConnection * _Nullable audioConnection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
     
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
     
-#warning TODO
     /*
      이미 다른 곳에 추가된 Device는 Action Attributes에 Disabled 처리가 필요할 것
-     기존 AudioDataOutput과 Port를 공유해도 되는가?
      */
     for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
+        AVCaptureMovieFileOutput * _Nullable connectedMovileFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:audioDevice];
+        
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-//                __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
-//                assert(captureSession != nil);
-//                
-//                [captureSession beginConfiguration];
-//                
-//                NSError * _Nullable error = nil;
-//                AVCaptureDeviceInput *deviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:audioDevice error:&error];
-//                assert(error == nil);
-//                
-//                NSArray<AVCaptureInputPort *> *inputPorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
-//                
-//                AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
-//                [deviceInput release];
-//                
-////                assert([captureSession canAddConnection:connection]);
-//                NSString * _Nullable reason = nil;
-//                assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), connection, &reason));
-//                [captureSession addConnection:connection];
-//                [connection release];
-//                
-//                [captureSession commitConfiguration];
-                [captureService queue_connectAudioDevice:audioDevice withMovieFileOutput:movieFileOutput];
+                if (connectedMovileFileOutput == nil) {
+                    [captureService queue_connectAudioDevice:audioDevice withMovieFileOutput:movieFileOutput];
+                } else {
+                    assert([connectedMovileFileOutput isEqual:movieFileOutput]);
+                    
+                    __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
+                    AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
+                    assert(connection != nil);
+                    
+                    [captureSession beginConfiguration];
+                    [captureSession removeConnection:connection];
+                    [captureSession commitConfiguration];
+                }
+                
+                if (didChangeHandler) didChangeHandler();
             });
         }];
+        
+        if (connectedMovileFileOutput == nil) {
+            action.state = UIMenuElementStateOff;
+        } else {
+            action.state = UIMenuElementStateOn;
+            action.attributes = ([connectedMovileFileOutput isEqual:movieFileOutput]) ? 0 : UIMenuElementAttributesDisabled;
+        }
         
         [actions addObject:action];
     }
