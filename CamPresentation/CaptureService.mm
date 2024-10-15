@@ -1130,9 +1130,24 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return nil;
 }
 
-#warning Multi Cam 전환 지원
+- (NSSet<AVCaptureDevice *> *)queue_captureDevicesFromOutput:(AVCaptureOutput *)output {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMutableSet<AVCaptureDevice *> *captureDevices = [NSMutableSet new];
+    
+    for (AVCaptureConnection *connection in output.connections) {
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            [captureDevices addObject:deviceInput.device];
+        }
+    }
+    
+    return [captureDevices autorelease];
+}
+
 #warning Multi Mic 지원
-#warning disconnect 처리
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
     dispatch_assert_queue(self.captureSessionQueue);
     

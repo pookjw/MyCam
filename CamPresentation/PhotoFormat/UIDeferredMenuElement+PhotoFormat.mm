@@ -2397,6 +2397,15 @@
     UIMenu *menu = [UIMenu menuWithTitle:@"Audio Device" children:actions];
     [actions release];
     
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    
+    for (AVCaptureDevice *device in [captureService queue_captureDevicesFromOutput:movieFileOutput]) {
+        if ([allAudioDeviceTypes containsObject:device.deviceType]) {
+            menu.subtitle = device.localizedName;
+            break;
+        }
+    }
+    
     return menu;
 }
 
