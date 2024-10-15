@@ -1167,15 +1167,29 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         };
     }
     
-    AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
+    __kindof AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
     
-    if (photoModel.isRAWEnabled) {
-        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
-                                                                               rawFileType:photoModel.rawFileType
-                                                                           processedFormat:format
-                                                                         processedFileType:photoModel.processedFileType];
+    if (photoModel.bracketedSettings.count > 0) {
+        if (photoModel.isRAWEnabled) {
+            capturePhotoSettings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                                                 rawFileType:photoModel.rawFileType
+                                                                                             processedFormat:format
+                                                                                           processedFileType:photoModel.processedFileType
+                                                                                           bracketedSettings:photoModel.bracketedSettings];
+        } else {
+            capturePhotoSettings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                                             processedFormat:format
+                                                                                           bracketedSettings:photoModel.bracketedSettings];
+        }
     } else {
-        capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithFormat:format];
+        if (photoModel.isRAWEnabled) {
+            capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                                   rawFileType:photoModel.rawFileType
+                                                                               processedFormat:format
+                                                                             processedFileType:photoModel.processedFileType];
+        } else {
+            capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithFormat:format];
+        }
     }
     
     [format release];
