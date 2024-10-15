@@ -136,7 +136,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_multiCamCaptureDevicesMenuWithCaptureService:(CaptureService *)captureService title:(NSString *)title filterHandler:(BOOL (^)(NSSet<AVCaptureDevice *> *deviceSet))filterHandler selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
-    NSArray<AVCaptureDevice *> *addedCaptureDevices = captureService.queue_addedCaptureDevices;
+    NSArray<AVCaptureDevice *> *addedVideoCaptureDevices = captureService.queue_addedVideoCaptureDevices;
     NSArray<NSSet<AVCaptureDevice *> *> *multiCamDeviceSets = captureService.captureDeviceDiscoverySession.supportedMultiCamDeviceSets;
     
     NSMutableArray<UIMenu *> *enabledMenuArray = [NSMutableArray new];
@@ -147,7 +147,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             if (!filterHandler(captureDevices)) continue;
         }
         
-        BOOL isSubset = [[NSSet setWithArray:addedCaptureDevices] isSubsetOfSet:captureDevices];
+        BOOL isSubset = [[NSSet setWithArray:addedVideoCaptureDevices] isSubsetOfSet:captureDevices];
         
         NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:captureDevices.count];
         NSArray<AVCaptureDevice *> *sortedCaptureDevices = [captureDevices.allObjects sortedArrayUsingComparator:^NSComparisonResult(AVCaptureDevice * _Nonnull obj1, AVCaptureDevice * _Nonnull obj2) {
@@ -162,7 +162,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                 image = [UIImage systemImageNamed:@"camera"];
             }
             
-            BOOL isAdded = [addedCaptureDevices containsObject:captureDevice];
+            BOOL isAdded = [addedVideoCaptureDevices containsObject:captureDevice];
             
             UIAction *action = [UIAction actionWithTitle:captureDevice.localizedName
                                                    image:image

@@ -563,20 +563,24 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     __kindof AVCaptureSession *captureSession;
     if (__kindof AVCaptureSession *currentCaptureSession = self.queue_captureSession) {
-        NSUInteger numberOfInputDevices = 0;
-        for (AVCaptureInput *input in currentCaptureSession.inputs) {
-            if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
-                numberOfInputDevices += 1;
+        NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+        
+        NSUInteger numberOfVideoInputDevices = 0;
+        for (AVCaptureDeviceInput *input in currentCaptureSession.inputs) {
+            if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            if ([allVideoDeviceTypes containsObject:input.device.deviceType]) {
+                numberOfVideoInputDevices += 1;
             }
         }
         
-        if (numberOfInputDevices == 0) {
+        if (numberOfVideoInputDevices == 0) {
             if (currentCaptureSession.class == AVCaptureSession.class) {
                 captureSession = currentCaptureSession;
             } else {
                 abort();
             }
-        } else if (numberOfInputDevices == 1) {
+        } else if (numberOfVideoInputDevices == 1) {
             if (currentCaptureSession.class == AVCaptureSession.class) {
                 captureSession = [self queue_switchCaptureSessionWithClass:AVCaptureMultiCamSession.class postNotification:NO];
             } else {
@@ -1500,26 +1504,30 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         }
         
         if (currentCaptureSession.class == AVCaptureSession.class) {
+            NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+            
             for (__kindof AVCaptureInput *input in currentCaptureSession.inputs) {
                 if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
                     auto deviceInput = static_cast<AVCaptureDeviceInput *>(input);
                     AVCaptureDevice *device = deviceInput.device;
                     
-                    // MultiCam으로 전환하기 위해서는 현재 추가된 Device의 Format을 MultiCam이 지원되는 것으로 바꿔야함
-                    if (!device.activeFormat.isMultiCamSupported) {
-                        [device.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
-                            if (format.isMultiCamSupported) {
-                                NSError * _Nullable error = nil;
-                                [device lockForConfiguration:&error];
-                                assert(error == nil);
-                                device.activeFormat = format;
-                                [device unlockForConfiguration];
-                                *stop = YES;
-                            }
-                        }];
-                        
-                        // Input을 지워야 할 수도 있음
-                        assert(device.activeFormat.isMultiCamSupported);
+                    if ([allVideoDeviceTypes containsObject:device.deviceType]) {
+                        // MultiCam으로 전환하기 위해서는 현재 추가된 Device의 Format을 MultiCam이 지원되는 것으로 바꿔야함
+                        if (!device.activeFormat.isMultiCamSupported) {
+                            [device.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+                                if (format.isMultiCamSupported) {
+                                    NSError * _Nullable error = nil;
+                                    [device lockForConfiguration:&error];
+                                    assert(error == nil);
+                                    device.activeFormat = format;
+                                    [device unlockForConfiguration];
+                                    *stop = YES;
+                                }
+                            }];
+                            
+                            // Input을 지워야 할 수도 있음
+                            assert(device.activeFormat.isMultiCamSupported);
+                        }
                     }
                 }
             }
@@ -1568,7 +1576,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         [oldCaptureSession beginConfiguration];
         
         NSArray<AVCaptureConnection *> *connections = oldCaptureSession.connections;
-        NSMutableArray<__kindof AVCaptureOutput *> *outputs = [NSMutableArray new];
+        
+        // AVCaptureMovieFileOutput 처럼 여러 Connection (Video, Audio)이 하나의 Output을 가지는 경우가 있어, 배열에 중복을 피하기 위해 Set을 사용
+        NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
         
         for (AVCaptureConnection *connection in oldCaptureSession.connections) {
             if (__kindof AVCaptureOutput *output = connection.output) {
@@ -1618,6 +1628,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
                     auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(output);
                     [depthDataOutput setDelegate:nil callbackQueue:nil];
+                } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
+                    auto audioDataOutput = static_cast<AVCaptureAudioDataOutput *>(output);
+                    [audioDataOutput setSampleBufferDelegate:nil queue:nil];
                 } else {
                     abort();
                 }
@@ -1703,6 +1716,15 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 
                 [addedOutputsByOutputs setObject:newDepthDataOutput forKey:output];
                 [newDepthDataOutput release];
+            } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
+                AVCaptureAudioDataOutput *newAudioDataOutput = [AVCaptureAudioDataOutput new];
+                [newAudioDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+                
+                assert([captureSession canAddOutput:newAudioDataOutput]);
+                [captureSession addOutputWithNoConnections:newAudioDataOutput];
+                
+                [addedOutputsByOutputs setObject:newAudioDataOutput forKey:output];
+                [newAudioDataOutput release];
             } else {
                 abort();
             }
@@ -1711,24 +1733,28 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         [outputs release];
         
         for (AVCaptureConnection *connection in connections) {
+            assert(connection.inputPorts.count == 0 || connection.inputPorts.count == 1);
             AVCaptureInput *oldInput = connection.inputPorts.firstObject.input;
             assert(oldInput != nil);
             
             AVCaptureInput *addedInput = [addedInputsByOldInput objectForKey:oldInput];
             assert(addedInput != nil);
             
-            AVCaptureInputPort *videoInputPort = nil;
+            AVCaptureInputPort * _Nullable videoInputPort = nil;
             AVCaptureInputPort * _Nullable depthDataInputPort = nil;
+            AVCaptureInputPort * _Nullable audioInputPort = nil;
             for (AVCaptureInputPort *inputPort in addedInput.ports) {
                 if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
+                    assert(videoInputPort == nil);
                     videoInputPort = inputPort;
                 } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
+                    assert(depthDataInputPort == nil);
                     depthDataInputPort = inputPort;
+                } else if ([inputPort.mediaType isEqualToString:AVMediaTypeAudio]) {
+                    assert(audioInputPort == nil);
+                    audioInputPort = inputPort;
                 }
-                
-                if (videoInputPort != nil && depthDataInputPort != nil) break;
             }
-            assert(videoInputPort != nil);
             
             AVCaptureConnection *newConnection;
             if (connection.videoPreviewLayer != nil) {
@@ -1746,6 +1772,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 assert(addedOutput != nil);
                 
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
+                    assert(videoInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
                     
                     auto addedPhotoOutput = static_cast<AVCapturePhotoOutput *>(addedOutput);
@@ -1773,22 +1800,34 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                         abort();
                     }
                 } else if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
+                    if (audioInputPort != nil) {
+                        newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[audioInputPort] output:addedOutput];
+                    } else {
+                        assert(videoInputPort != nil);
+                        newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
+                    }
                 } else if ([addedOutput isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                    assert(videoInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
                 } else if ([addedOutput isKindOfClass:AVCaptureDepthDataOutput.class]) {
                     assert(depthDataInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:addedOutput];
+                } else if ([addedOutput isKindOfClass:AVCaptureAudioDataOutput.class]) {
+                    assert(audioInputPort != nil);
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[audioInputPort] output:addedOutput];
                 } else {
                     abort();
                 }
             }
             
             newConnection.enabled = connection.isEnabled;
-            newConnection.automaticallyAdjustsVideoMirroring = connection.automaticallyAdjustsVideoMirroring;
             
-            if (!newConnection.automaticallyAdjustsVideoMirroring) {
-                newConnection.videoMirrored = connection.isVideoMirrored;
+            if (newConnection.isVideoMirroringSupported) {
+                newConnection.automaticallyAdjustsVideoMirroring = connection.automaticallyAdjustsVideoMirroring;
+                
+                if (!newConnection.automaticallyAdjustsVideoMirroring) {
+                    newConnection.videoMirrored = connection.isVideoMirrored;
+                }
             }
             
             assert([captureSession canAddConnection:newConnection]);
