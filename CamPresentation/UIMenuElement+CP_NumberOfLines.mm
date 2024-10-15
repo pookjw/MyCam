@@ -60,7 +60,13 @@ UICollectionViewDiffableDataSource *custom(__kindof UIView *self, SEL _cmd, UICo
         UICollectionViewCell *cell = originalCellProvider(collectionView, indexPath, itemIdentifier);
         UIView *contentView = cell.contentView;
         
-#warning TODO
+//        if (NSNumber *overrideNumberOfTitleLines = itemIdentifier.cp_overrideNumberOfTitleLines) {
+//            abort();
+//        }
+//        
+//        if (NSNumber *overrideNumberOfSubtitleLines = itemIdentifier.cp_overrideNumberOfSubtitleLines) {
+//            abort();
+//        }
         
         return cell;
     };
@@ -130,7 +136,28 @@ void swizzle() {
 }
 }
 
+/*
+ -[UIMenu _immutableCopySharingLeafObservers:] 
+ -[UIMenu _mutableCopy]
+ -[UIMenu _copyWithOptions:]
+ */
+
 namespace cp_UIMenu {
+
+namespace _immutableCopySharingLeafObservers {
+id (*original)(id, SEL, BOOL);
+id custom(UIMenu *self, SEL _cmd, BOOL x2) {
+    auto copy = static_cast<__kindof UIMenuElement *>(original(self, _cmd, x2));
+    copy.cp_overrideNumberOfTitleLines = self.cp_overrideNumberOfTitleLines;
+    copy.cp_overrideNumberOfSubtitleLines = self.cp_overrideNumberOfSubtitleLines;
+    return copy;
+}
+void swizzle() {
+    Method method = class_getInstanceMethod(UIMenu.class, sel_registerName("_immutableCopySharingLeafObservers:"));
+    original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
+    method_setImplementation(method, reinterpret_cast<IMP>(custom));
+}
+}
 
 namespace _mutableCopy {
 id (*original)(id, SEL);
@@ -147,17 +174,31 @@ void swizzle() {
 }
 }
 
-namespace _immutableCopy {
-id (*original)(id, SEL);
-id custom(UIMenu *self, SEL _cmd) {
-    auto copy = static_cast<__kindof UIMenuElement *>(original(self, _cmd));
-    NSLog(@"%@", self.cp_overrideNumberOfTitleLines);
+namespace _copyWithOptions {
+id (*original)(id, SEL, UIMenuOptions);
+id custom(UIMenu *self, SEL _cmd, UIMenuOptions options) {
+    auto copy = static_cast<__kindof UIMenuElement *>(original(self, _cmd, options));
     copy.cp_overrideNumberOfTitleLines = self.cp_overrideNumberOfTitleLines;
     copy.cp_overrideNumberOfSubtitleLines = self.cp_overrideNumberOfSubtitleLines;
     return copy;
 }
 void swizzle() {
-    Method method = class_getInstanceMethod(UIMenu.class, sel_registerName("_immutableCopy"));
+    Method method = class_getInstanceMethod(UIMenu.class, sel_registerName("_copyWithOptions:"));
+    original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
+    method_setImplementation(method, reinterpret_cast<IMP>(custom));
+}
+}
+
+namespace menuByReplacingChildren {
+UIMenu * (*original)(id, SEL, id);
+UIMenu * custom(UIMenu *self, SEL _cmd, NSArray<__kindof UIMenuElement *> *children) {
+    auto result = original(self, _cmd, children);
+    result.cp_overrideNumberOfTitleLines = self.cp_overrideNumberOfTitleLines;
+    result.cp_overrideNumberOfSubtitleLines = self.cp_overrideNumberOfSubtitleLines;
+    return result;
+}
+void swizzle() {
+    Method method = class_getInstanceMethod(UIMenu.class, sel_registerName("menuByReplacingChildren:"));
     original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
     method_setImplementation(method, reinterpret_cast<IMP>(custom));
 }
@@ -174,12 +215,14 @@ void swizzle() {
      -[UIMenuElement _immutableCopy]
      */
     cp_UIContextMenuListView::_configureCell_inCollectionView_atIndexPath_forElement_section_size::swizzle();
-    cp_UIContextMenuListView::_dataSourceForCollectionView::swizzle();
+//    cp_UIContextMenuListView::_dataSourceForCollectionView::swizzle();
     cp_UIMenuElement::copyWithZone::swizzle();
     cp_UIMenuElement::_immutableCopy::swizzle();
     cp_UIAction::_immutableCopy::swizzle();
+    cp_UIMenu::_immutableCopySharingLeafObservers::swizzle();
     cp_UIMenu::_mutableCopy::swizzle();
-    cp_UIMenu::_immutableCopy::swizzle();
+    cp_UIMenu::_copyWithOptions::swizzle();
+    cp_UIMenu::menuByReplacingChildren::swizzle();
 }
 
 + (void *)cp_overrideNumberOfTitleLines {

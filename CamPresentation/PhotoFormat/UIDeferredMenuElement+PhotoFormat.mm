@@ -2238,6 +2238,8 @@
             addAction
         ]];
         
+        submenu.cp_overrideNumberOfTitleLines = @(0);
+        
         completion(@[submenu]);
     }];
     
