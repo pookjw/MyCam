@@ -1170,17 +1170,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     __kindof AVCapturePhotoSettings * __autoreleasing capturePhotoSettings;
     
     if (photoModel.bracketedSettings.count > 0) {
-        if (photoModel.isRAWEnabled) {
-            capturePhotoSettings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
-                                                                                                 rawFileType:photoModel.rawFileType
-                                                                                             processedFormat:format
-                                                                                           processedFileType:photoModel.processedFileType
-                                                                                           bracketedSettings:photoModel.bracketedSettings];
-        } else {
-            capturePhotoSettings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
-                                                                                             processedFormat:format
-                                                                                           bracketedSettings:photoModel.bracketedSettings];
-        }
+        capturePhotoSettings = [AVCapturePhotoBracketSettings photoBracketSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
+                                                                                             rawFileType:photoModel.rawFileType
+                                                                                         processedFormat:format
+                                                                                       processedFileType:photoModel.processedFileType
+                                                                                       bracketedSettings:photoModel.bracketedSettings];
     } else {
         if (photoModel.isRAWEnabled) {
             capturePhotoSettings = [AVCapturePhotoSettings photoSettingsWithRawPixelFormatType:photoModel.rawPhotoPixelFormatType.unsignedIntValue
@@ -1799,6 +1793,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 
 #pragma mark - AVCapturePhotoCaptureDelegate
 
+//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhotoSampleBuffer:(CMSampleBufferRef)photoSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
+//    
+//}
+//
+//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingRawPhotoSampleBuffer:(CMSampleBufferRef)rawSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
+//    
+//}
+
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
 #warning 직접 calibration 해보기
     assert(error == nil);
@@ -2000,7 +2002,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 //    NSLog(@"%@", imageBuffer);
         
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-        
+//        NSLog(@"%@", output.class);
     } else {
         abort();
     }
