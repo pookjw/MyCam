@@ -2361,9 +2361,6 @@
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
     
-    /*
-     이미 다른 곳에 추가된 Device는 Action Attributes에 Disabled 처리가 필요할 것
-     */
     for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
         AVCaptureMovieFileOutput * _Nullable connectedMovileFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:audioDevice];
         
