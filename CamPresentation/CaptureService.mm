@@ -1122,6 +1122,43 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return nil;
 }
 
+#warning Multi Cam 전환 지원
+- (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    assert(captureSession != nil);
+    
+    AVCaptureDeviceInput *audioDeviceInput = nil;
+    for (AVCaptureDeviceInput *deviceInput in captureSession.inputs) {
+        if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
+        
+        if ([deviceInput.device isEqual:audioDevice]) {
+            audioDeviceInput = deviceInput;
+            break;
+        }
+    }
+    assert(audioDeviceInput != nil);
+    
+    [captureSession beginConfiguration];
+    
+    AVCaptureConnection *oldConnection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
+    assert(oldConnection != nil);
+    
+    NSArray<AVCaptureInputPort *> *oldInputPorts = oldConnection.inputPorts;
+    [captureSession removeConnection:oldConnection];
+    
+    NSArray<AVCaptureInputPort *> *audioInputPorts = [audioDeviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
+    NSArray<AVCaptureInputPort *> *newInputPorts = [oldInputPorts arrayByAddingObjectsFromArray:audioInputPorts];
+    
+    AVCaptureConnection *newConnection = [[AVCaptureConnection alloc] initWithInputPorts:newInputPorts output:movieFileOutput];
+    assert([captureSession canAddConnection:newConnection]);
+    [captureSession addConnection:newConnection];
+    [newConnection release];
+    
+    [captureSession commitConfiguration];
+}
+
 - (AVCaptureDevice *)queue_captureDeviceFromOutput:(__kindof AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {

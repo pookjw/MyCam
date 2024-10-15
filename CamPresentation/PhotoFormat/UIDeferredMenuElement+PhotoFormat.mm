@@ -148,11 +148,11 @@
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_movieRecordingMenuWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput]];
     
+    [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+    
     [elements addObject:[UIDeferredMenuElement _cp_queue_movieOutputSettingsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
     
-    if (UIAction *action = [UIDeferredMenuElement _cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput didChangeHandler:didChangeHandler]) {
-        [elements addObject:action];
-    }
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput didChangeHandler:didChangeHandler]];
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService
                                                                                              captureDevice:captureDevice
@@ -1229,9 +1229,7 @@
     return menu;
 }
 
-+ (UIAction * _Nullable)_cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice movieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput didChangeHandler:(void (^)())didChangeHandler {
-    if (!movieFileOutput.isSpatialVideoCaptureSupported) return nil;
-    
++ (UIAction * _Nonnull)_cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice movieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isSpatialVideoCaptureEnabled = movieFileOutput.isSpatialVideoCaptureEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -1241,6 +1239,7 @@
     }];
     
     action.state = isSpatialVideoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = movieFileOutput.isSpatialVideoCaptureSupported ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
 }
@@ -2352,6 +2351,55 @@
     [children release];
     
     menu.subtitle = @(photoFormatModel.bracketedSettings.count).stringValue;
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureConnection * _Nullable audioConnection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
+    
+    NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
+    
+#warning TODO
+    /*
+     이미 다른 곳에 추가된 Device는 Action Attributes에 Disabled 처리가 필요할 것
+     기존 AudioDataOutput과 Port를 공유해도 되는가?
+     */
+    for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
+        UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+//                __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
+//                assert(captureSession != nil);
+//                
+//                [captureSession beginConfiguration];
+//                
+//                NSError * _Nullable error = nil;
+//                AVCaptureDeviceInput *deviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:audioDevice error:&error];
+//                assert(error == nil);
+//                
+//                NSArray<AVCaptureInputPort *> *inputPorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
+//                
+//                AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
+//                [deviceInput release];
+//                
+////                assert([captureSession canAddConnection:connection]);
+//                NSString * _Nullable reason = nil;
+//                assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), connection, &reason));
+//                [captureSession addConnection:connection];
+//                [connection release];
+//                
+//                [captureSession commitConfiguration];
+                [captureService queue_connectAudioDevice:audioDevice withMovieFileOutput:movieFileOutput];
+            });
+        }];
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Device" children:actions];
+    [actions release];
     
     return menu;
 }
