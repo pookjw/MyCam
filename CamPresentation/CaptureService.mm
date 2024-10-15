@@ -2047,7 +2047,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 //    NSLog(@"%@", imageBuffer);
         
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-        NSLog(@"%@", output.class);
+//        NSLog(@"%@", output.class);
     } else {
         abort();
     }
