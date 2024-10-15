@@ -10,8 +10,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface UIMenuElement (CP_NumberOfLines)
-@property (copy, nonatomic, nullable, setter=cp_setOverrideNumberOfTitleLines:) NSNumber *cp_overrideNumberOfTitleLines;
-@property (copy, nonatomic, nullable, setter=cp_setOverrideNumberOfSubtitleLines:) NSNumber *cp_overrideNumberOfSubtitleLines;
+@property (assign, nonatomic, setter=cp_setOverrideNumberOfTitleLines:) NSInteger cp_overrideNumberOfTitleLines;
+@property (assign, nonatomic, setter=cp_setOverrideNumberOfSubtitleLines:) NSInteger cp_overrideNumberOfSubtitleLines;
 @end
 
 NS_ASSUME_NONNULL_END

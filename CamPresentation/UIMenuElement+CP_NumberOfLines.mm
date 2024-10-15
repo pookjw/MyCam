@@ -15,17 +15,19 @@ void (*original)(id, SEL, id, id, id, id, NSInteger);
 void custom(__kindof UIView *self, SEL _cmd, __kindof UICollectionViewCell *cell, UICollectionView *collectionView, NSIndexPath *indexPath, __kindof UIMenuElement *element, NSInteger size) {
     original(self, _cmd, cell, collectionView, indexPath, element, size);
     
-    if (NSNumber *overrideNumberOfTitleLines = element.cp_overrideNumberOfTitleLines) {
+    NSInteger overrideNumberOfTitleLines = element.cp_overrideNumberOfTitleLines;
+    if (overrideNumberOfTitleLines != NSNotFound) {
         __kindof UIView *actionView = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(cell, sel_registerName("actionView"));
         
-        reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(actionView, sel_registerName("setOverrideNumberOfTitleLines:"), overrideNumberOfTitleLines.unsignedIntegerValue);
+        reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(actionView, sel_registerName("setOverrideNumberOfTitleLines:"), overrideNumberOfTitleLines);
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(actionView, sel_registerName("_updateTitleLabelNumberOfLines"));
     }
     
-    if (NSNumber *overrideNumberOfSubtitleLines = element.cp_overrideNumberOfSubtitleLines) {
+    NSInteger overrideNumberOfSubtitleLines = element.cp_overrideNumberOfSubtitleLines;
+    if (overrideNumberOfSubtitleLines != NSNotFound) {
         __kindof UIView *actionView = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(cell, sel_registerName("actionView"));
         
-        reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(actionView, sel_registerName("setOverrideNumberOfSubtitleLines:"), overrideNumberOfSubtitleLines.unsignedIntegerValue);
+        reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(actionView, sel_registerName("setOverrideNumberOfSubtitleLines:"), overrideNumberOfSubtitleLines);
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(actionView, sel_registerName("_updateSubtitleLabelNumberOfLines"));
     }
 }
@@ -58,16 +60,6 @@ UICollectionViewDiffableDataSource *custom(__kindof UIView *self, SEL _cmd, UICo
     
     UICollectionViewDiffableDataSourceCellProvider customCellProvider = ^ UICollectionViewCell * (UICollectionView *collectionView, NSIndexPath *indexPath, __kindof UIMenuElement *itemIdentifier) {
         UICollectionViewCell *cell = originalCellProvider(collectionView, indexPath, itemIdentifier);
-        UIView *contentView = cell.contentView;
-        
-//        if (NSNumber *overrideNumberOfTitleLines = itemIdentifier.cp_overrideNumberOfTitleLines) {
-//            abort();
-//        }
-//        
-//        if (NSNumber *overrideNumberOfSubtitleLines = itemIdentifier.cp_overrideNumberOfSubtitleLines) {
-//            abort();
-//        }
-        
         return cell;
     };
     
@@ -235,20 +227,32 @@ void swizzle() {
     return key;
 }
 
-- (NSNumber *)cp_overrideNumberOfTitleLines {
-    return objc_getAssociatedObject(self, [UIMenuElement cp_overrideNumberOfTitleLines]);
+- (NSInteger)cp_overrideNumberOfTitleLines {
+    NSNumber * _Nullable number = objc_getAssociatedObject(self, [UIMenuElement cp_overrideNumberOfTitleLines]);
+    
+    if (number == nil) {
+        return NSNotFound;
+    }
+    
+    return number.integerValue;
 }
 
-- (void)cp_setOverrideNumberOfTitleLines:(NSNumber *)cp_overrideNumberOfTitleLines {
-    objc_setAssociatedObject(self, [UIMenuElement cp_overrideNumberOfTitleLines], cp_overrideNumberOfTitleLines, OBJC_ASSOCIATION_COPY_NONATOMIC);
+- (void)cp_setOverrideNumberOfTitleLines:(NSInteger)cp_overrideNumberOfTitleLines {
+    objc_setAssociatedObject(self, [UIMenuElement cp_overrideNumberOfTitleLines], @(cp_overrideNumberOfTitleLines), OBJC_ASSOCIATION_COPY_NONATOMIC);
 }
 
-- (NSNumber *)cp_overrideNumberOfSubtitleLines {
-    return objc_getAssociatedObject(self, [UIMenuElement cp_overrideNumberOfSubtitleLinesKey]);
+- (NSInteger)cp_overrideNumberOfSubtitleLines {
+    NSNumber * _Nullable number = objc_getAssociatedObject(self, [UIMenuElement cp_overrideNumberOfSubtitleLinesKey]);
+    
+    if (number == nil) {
+        return NSNotFound;
+    }
+    
+    return number.integerValue;
 }
 
-- (void)cp_setOverrideNumberOfSubtitleLines:(NSNumber *)cp_overrideNumberOfSubtitleLines {
-    objc_setAssociatedObject(self, [UIMenuElement cp_overrideNumberOfSubtitleLinesKey], cp_overrideNumberOfSubtitleLines, OBJC_ASSOCIATION_COPY_NONATOMIC);
+- (void)cp_setOverrideNumberOfSubtitleLines:(NSInteger)cp_overrideNumberOfSubtitleLines {
+    objc_setAssociatedObject(self, [UIMenuElement cp_overrideNumberOfSubtitleLinesKey], @(cp_overrideNumberOfSubtitleLines), OBJC_ASSOCIATION_COPY_NONATOMIC);
 }
 
 @end

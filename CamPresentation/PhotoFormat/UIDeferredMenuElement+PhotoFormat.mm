@@ -1173,7 +1173,7 @@
             });
         }];
         
-        action.cp_overrideNumberOfTitleLines = @(0);
+        action.cp_overrideNumberOfTitleLines = 0;
         action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
@@ -1190,6 +1190,8 @@
     if (includeSubtitle) {
         menu.subtitle = activeFormat.debugDescription;
     }
+    
+    menu.cp_overrideNumberOfTitleLines = 0;
     
     return menu;
 }
@@ -1536,7 +1538,7 @@
         }];
         
         videoZoomFactorUpscaleThresholdAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-        videoZoomFactorUpscaleThresholdAction.cp_overrideNumberOfTitleLines = @(0);
+        videoZoomFactorUpscaleThresholdAction.cp_overrideNumberOfTitleLines = 0;
         
         //
         
@@ -1697,6 +1699,7 @@
     
     if (photoFormatModel.processedFileType == nil) {
         action.subtitle = [NSString stringWithFormat:@"Requires processedFileType such as %@ or %@", AVFileTypeHEIC, AVFileTypeJPEG];
+        action.cp_overrideNumberOfSubtitleLines = 0;
     }
     
     return action;
@@ -1762,7 +1765,7 @@
             });
         }];
         
-        action.cp_overrideNumberOfTitleLines = @(0);
+        action.cp_overrideNumberOfTitleLines = 0;
         action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [activeDepthDataFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
         
@@ -2189,7 +2192,7 @@
         }
         
         UIMenu *submenu = [UIMenu menuWithTitle:title children:@[removeAction]];
-        submenu.cp_overrideNumberOfTitleLines = @(0);
+        submenu.cp_overrideNumberOfTitleLines = 0;
         
         [children addObject:submenu];
     }
@@ -2238,7 +2241,7 @@
             addAction
         ]];
         
-        submenu.cp_overrideNumberOfTitleLines = @(0);
+        submenu.cp_overrideNumberOfTitleLines = 0;
         
         completion(@[submenu]);
     }];
@@ -2305,7 +2308,7 @@
             addAction
         ]];
         
-        submenu.cp_overrideNumberOfTitleLines = @(0);
+        submenu.cp_overrideNumberOfTitleLines = 0;
         
         completion(@[submenu]);
     }];

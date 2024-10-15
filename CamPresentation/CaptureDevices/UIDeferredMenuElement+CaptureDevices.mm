@@ -124,7 +124,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         action.state = (isAdded ? UIMenuElementStateOn : UIMenuElementStateOff);
         action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.subtitle = [NSString stringWithFormat:@"isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
-        action.cp_overrideNumberOfSubtitleLines = @0;
+        action.cp_overrideNumberOfSubtitleLines = 0;
         
         [actions addObject:action];
     }
@@ -184,7 +184,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             action.state = ((isAdded) ? UIMenuElementStateOn : UIMenuElementStateOff);
             action.attributes = UIMenuElementAttributesKeepsMenuPresented | (isSubset ? 0 : UIMenuElementAttributesDisabled);
             action.subtitle = [NSString stringWithFormat:@"manufacturer : %@, isVirtualDevice : %d, constituentDevices.count: %ld", captureDevice.manufacturer, captureDevice.isVirtualDevice, captureDevice.constituentDevices.count];
-            action.cp_overrideNumberOfSubtitleLines = @0;
+            action.cp_overrideNumberOfSubtitleLines = 0;
             
             [actions addObject:action];
         }
