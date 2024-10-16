@@ -8,7 +8,7 @@
 #import <CamPresentation/NSStringFromAVAudioSessionCategoryOptions.h>
 
 NSString * NSStringFromAVAudioSessionCategoryOptions(AVAudioSessionCategoryOptions audioSessionCategoryOptions) {
-    NSMutableArray *array = [NSMutableArray new];
+    NSMutableArray<NSString *> *array = [NSMutableArray new];
     
     // 오타 아님. bit가 겹치기 때문 (0x11, 0x1)
     if ((audioSessionCategoryOptions & AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers) == AVAudioSessionCategoryOptionMixWithOthers) {

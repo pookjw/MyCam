@@ -5,14 +5,25 @@
 //  Created by Jinwoo Kim on 10/16/24.
 //
 
+#warning -[AVAudioSession interruptionPriority]
+#warning setPrefersNoInterruptionsByRingtonesAndAlerts
+
 #import <CamPresentation/AudioSessionInfoView.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRenderingMode.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRouteChangeReason.h>
+#import <CamPresentation/NSStringFromAVAudioSessionInterruptionReason.h>
+#import <CamPresentation/NSStringFromAVAudioSessionInterruptionType.h>
+#import <CamPresentation/NSStringFromAVAudioSessionInterruptionOptions.h>
+#import <CamPresentation/NSStringFromAVAudioSessionPromptStyle.h>
 
 @interface AudioSessionInfoView ()
 @property (retain, nonatomic, readonly) AVAudioSession *audioSession;
 @property (retain, nonatomic, readonly) UILabel *label;
-@property (retain, nonatomic, readonly) NSMutableArray<NSNumber *> *routeChangeReasons;
+@property (copy, nonatomic, nullable) NSNumber *routeChangeReasonNumber;
+
+@property (copy, nonatomic, nullable) NSNumber *interruptionTypeNumber;
+@property (copy, nonatomic, nullable) NSNumber *interruptionOptionsNumber;
+@property (copy, nonatomic, nullable) NSNumber *interruptionReasonNumber;
 @end
 
 @implementation AudioSessionInfoView
@@ -21,7 +32,6 @@
 - (instancetype)initWithAudioSession:(AVAudioSession *)audioSession {
     if (self = [super initWithFrame:CGRectNull]) {
         _audioSession = [audioSession retain];
-        _routeChangeReasons = [NSMutableArray new];
         
         UILabel *label = self.label;
         label.translatesAutoresizingMaskIntoConstraints = NO;
@@ -35,11 +45,15 @@
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRenderingModeChangeNotification:) name:AVAudioSessionRenderingModeChangeNotification object:audioSession];
         
-        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveInterruptionNotification:) name:@"AVAudioSessionPickableRouteChangeNotification" object:audioSession];
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveInterruptionNotification:) name:AVAudioSessionInterruptionNotification object:audioSession];
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSilenceSecondaryAudioHintNotification:) name:AVAudioSessionSilenceSecondaryAudioHintNotification object:audioSession];
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRouteChangeNotification:) name:AVAudioSessionRouteChangeNotification object:audioSession];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSpatialPlaybackCapabilitiesChangedNotification:) name:AVAudioSessionSpatialPlaybackCapabilitiesChangedNotification object:audioSession];
+        
+        [audioSession addObserver:self forKeyPath:@"promptStyle" options:NSKeyValueObservingOptionNew context:nil];
         
         [self updateLabel];
     }
@@ -49,10 +63,26 @@
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
+    [_audioSession removeObserver:self forKeyPath:@"promptStyle"];
     [_audioSession release];
     [_label release];
-    [_routeChangeReasons release];
+    [_routeChangeReasonNumber release];
+    [_interruptionOptionsNumber release];
+    [_interruptionReasonNumber release];
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isEqual:self.audioSession]) {
+        if ([keyPath isEqualToString:@"promptStyle"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateLabel];
+            });
+            return;
+        }
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)didReceiveRenderingModeChangeNotification:(NSNotification *)notification {
@@ -63,7 +93,14 @@
 }
 
 - (void)didReceiveInterruptionNotification:(NSNotification *)notification {
+    NSNumber *interruptionTypeNumber = notification.userInfo[AVAudioSessionInterruptionTypeKey];
+    NSNumber *interruptionOptionsNumber = notification.userInfo[AVAudioSessionInterruptionOptionKey];
+    NSNumber *interruptionReasonNumber = notification.userInfo[AVAudioSessionInterruptionReasonKey];
+    
     dispatch_async(dispatch_get_main_queue(), ^{
+        self.interruptionTypeNumber = interruptionTypeNumber;
+        self.interruptionOptionsNumber = interruptionOptionsNumber;
+        self.interruptionReasonNumber = interruptionReasonNumber;
         [self updateLabel];
     });
 }
@@ -78,8 +115,15 @@
     NSNumber *routeChangeReasonNumber = notification.userInfo[AVAudioSessionRouteChangeReasonKey];
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self.routeChangeReasons addObject:routeChangeReasonNumber];
-        
+        self.routeChangeReasonNumber = routeChangeReasonNumber;
+        [self updateLabel];
+    });
+}
+
+- (void)didReceiveSpatialPlaybackCapabilitiesChangedNotification:(NSNotification *)notification {
+    // AVAudioSessionSpatialAudioEnabledKey
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
         [self updateLabel];
     });
 }
@@ -91,25 +135,62 @@
     label.numberOfLines = 0;
     label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleSubheadline];
     label.textAlignment = NSTextAlignmentCenter;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = 0.001;
     
     _label = [label retain];
     return [label autorelease];
 }
 
 - (void)updateLabel {
-    NSMutableArray<NSString *> *routeChangeReasonStrings = [[NSMutableArray alloc] initWithCapacity:self.routeChangeReasons.count];
-    for (NSNumber *routeChangeReason in self.routeChangeReasons) {
-        [routeChangeReasonStrings addObject:NSStringFromAVAudioSessionRouteChangeReason(static_cast<AVAudioSessionRouteChangeReason>(routeChangeReason.unsignedIntegerValue))];
+    NSMutableString *string = [NSMutableString new];
+    
+    [string appendFormat:@"Rendering Mode : %@", NSStringFromAVAudioSessionRenderingMode(self.audioSession.renderingMode)];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"isOtherAudioPlaying : %d", self.audioSession.isOtherAudioPlaying];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"secondaryAudioShouldBeSilencedHint : %d", self.audioSession.secondaryAudioShouldBeSilencedHint];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"currentRoute : %p (inputs : %ld, outputs : %ld)", self.audioSession.currentRoute, self.audioSession.currentRoute.inputs.count, self.audioSession.currentRoute.outputs.count];
+    
+    BOOL isSpatialAudioEnabled = NO;
+    for (AVAudioSessionPortDescription *output in self.audioSession.currentRoute.outputs) {
+        if (output.isSpatialAudioEnabled) {
+            isSpatialAudioEnabled = YES;
+            break;
+        }
+    }
+    [string appendString:@"\n"];
+    [string appendFormat:@"isSpatialAudioEnabled : %d", isSpatialAudioEnabled];
+    
+    if (NSNumber *routeChangeReasonNumber = self.routeChangeReasonNumber) {
+        [string appendString:@"\n"];
+        [string appendFormat:@"routeChangeReason : %@", NSStringFromAVAudioSessionRouteChangeReason(static_cast<AVAudioSessionRouteChangeReason>(routeChangeReasonNumber.unsignedIntegerValue))];
     }
     
-    self.label.text = [NSString stringWithFormat:@"Rendering Mode : %@\nisOtherAudioPlaying : %d\nsecondaryAudioShouldBeSilencedHint : %d\ncurrentRoute : %p\nrouteChangeReasons: %@",
-                       NSStringFromAVAudioSessionRenderingMode(self.audioSession.renderingMode),
-                       self.audioSession.isOtherAudioPlaying,
-                       self.audioSession.secondaryAudioShouldBeSilencedHint,
-                       self.audioSession.currentRoute,
-                       [routeChangeReasonStrings componentsJoinedByString:@", "]];
+    [string appendString:@"\n"];
+    [string appendFormat:@"promptStyle : %@", NSStringFromAVAudioSessionPromptStyle(self.audioSession.promptStyle)];
     
-    [routeChangeReasonStrings release];
+    if (NSNumber *interruptionTypeNumber = self.interruptionTypeNumber) {
+        [string appendString:@"\n"];
+        [string appendFormat:@"interruptionType : %@", NSStringFromAVAudioSessionInterruptionType(static_cast<AVAudioSessionInterruptionType>(interruptionTypeNumber.unsignedIntegerValue))];
+    }
+    
+    if (NSNumber *interruptionOptionsNumber = self.interruptionOptionsNumber) {
+        [string appendString:@"\n"];
+        [string appendFormat:@"interruptionOptions : %@", NSStringFromAVAudioSessionInterruptionOptions(static_cast<AVAudioSessionInterruptionOptions>(interruptionOptionsNumber.unsignedIntegerValue))];
+    }
+    
+    if (NSNumber *interruptionReasonNumber = self.interruptionReasonNumber) {
+        [string appendString:@"\n"];
+        [string appendFormat:@"interruptionReason : %@", NSStringFromAVAudioSessionInterruptionReason(static_cast<AVAudioSessionInterruptionReason>(interruptionReasonNumber.unsignedIntegerValue))];
+    }
+    
+    self.label.text = string;
+    [string release];
 }
 
 @end

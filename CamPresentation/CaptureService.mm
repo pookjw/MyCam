@@ -129,7 +129,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     for (__kindof AVCaptureInput *input in _queue_captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
             auto captureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
-            [self unregisterObserversForCaptureDevice:captureDevice];
+            [self unregisterObserversForVideoCaptureDevice:captureDevice];
         }
     }
     
@@ -597,7 +597,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         captureSession = [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:NO];
     }
     
-    [self registerObserversForCaptureDevice:captureDevice];
+    [self registerObserversForVideoCaptureDevice:captureDevice];
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
@@ -868,9 +868,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
-    assert([self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
+    assert([self.queue_addedCaptureDevices containsObject:captureDevice]);
     
-    [self unregisterObserversForCaptureDevice:captureDevice];
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+#warning TODO : Removing Audio Device
+    assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
+    
+    [self unregisterObserversForVideoCaptureDevice:captureDevice];
+    
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     assert(captureSession != nil);
@@ -965,8 +970,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     //
     
     [self.queue_photoFormatModelsByCaptureDevice removeObjectForKey:captureDevice];
-    
-    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
     NSUInteger numberOfVideoInputDevices = 0;
     for (AVCaptureInput *input in captureSession.inputs) {
@@ -1405,7 +1408,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     }];
 }
 
-- (void)registerObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
+- (void)registerObserversForVideoCaptureDevice:(AVCaptureDevice *)captureDevice {
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
+    
     [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -1424,7 +1430,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureDevice unlockForConfiguration];
 }
 
-- (void)unregisterObserversForCaptureDevice:(AVCaptureDevice *)captureDevice {
+- (void)unregisterObserversForVideoCaptureDevice:(AVCaptureDevice *)captureDevice {
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
+    
     [captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
     [captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
     [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
