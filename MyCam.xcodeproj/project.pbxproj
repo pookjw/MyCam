@@ -169,8 +169,8 @@
 		4F4780A62C99DB0500813671 /* Exceptions for "CamPresentation" folder in "CamPresentation" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Audio/AudioSessionRenderingModeInfoView.h,
-				Audio/AudioSessionRenderingModeInfoView.mm,
+				Audio/AudioSessionInfoView.h,
+				Audio/AudioSessionInfoView.mm,
 				"Audio/UIDeferredMenuElement+Audio.h",
 				"Audio/UIDeferredMenuElement+Audio.mm",
 				"AVCaptureSession+CP_Private.h",
@@ -237,7 +237,7 @@
 				"UIMenuElement+CP_NumberOfLines.mm",
 			);
 			privateHeaders = (
-				Audio/AudioSessionRenderingModeInfoView.h,
+				Audio/AudioSessionInfoView.h,
 				"Audio/UIDeferredMenuElement+Audio.h",
 				"AVCaptureSession+CP_Private.h",
 				"CaptureDevices/UIDeferredMenuElement+CaptureDevices.h",

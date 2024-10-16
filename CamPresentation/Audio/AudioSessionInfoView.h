@@ -1,8 +1,8 @@
 //
-//  AudioSessionRenderingModeInfoView.h
+//  AudioSessionInfoView.h
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 10/15/24.
+//  Created by Jinwoo Kim on 10/16/24.
 //
 
 #import <UIKit/UIKit.h>
@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AudioSessionRenderingModeInfoView : UIView
+@interface AudioSessionInfoView : UIView
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
