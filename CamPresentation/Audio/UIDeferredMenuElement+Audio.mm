@@ -461,6 +461,7 @@ AVKIT_EXTERN const char * audit_stringMediaPlayer;
         // TODO: https://developer.apple.com/documentation/avrouting/avcustomroutingcontroller?language=objc
         id controls = [[objc_lookUpClass("MPMediaControls") alloc] init];
         
+#warning configuration -[AVRoutePickerView _routePickerButtonTapped:]
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("startPrewarming"));
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(controls, sel_registerName("setDismissHandler:"), ^{
             
