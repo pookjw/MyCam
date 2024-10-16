@@ -20,6 +20,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
+#import <TargetConditionals.h>
 #include <vector>
 #include <ranges>
 
@@ -112,7 +113,9 @@
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
+#if !TARGET_OS_MACCATALYST
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+#endif
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleZeroShutterLagActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
@@ -698,6 +701,7 @@
     return action;
 }
 
+#if !TARGET_OS_MACCATALYST
 + (UIAction * _Nonnull)_cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliveryEnabled;
     
@@ -716,6 +720,7 @@
     
     return action;
 }
+#endif
 
 + (UIAction * _Nonnull)_cp_queue_toggleZeroShutterLagActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isZeroShutterLagEnabled = photoOutput.isZeroShutterLagEnabled;

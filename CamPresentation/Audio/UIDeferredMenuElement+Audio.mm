@@ -10,10 +10,14 @@
 #import <CamPresentation/NSStringFromAVAudioSessionCategoryOptions.h>
 #import <CamPresentation/AudioSessionRenderingModeInfoView.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <dlfcn.h>
 #include <vector>
 #include <ranges>
+
+AVKIT_EXTERN const char * audit_stringMediaPlayer;
 
 #warning TODO visionOS Spatial Experience
 #warning 남은 기능 구현하기
@@ -32,6 +36,13 @@
             UIMenu *activationMenu = [UIDeferredMenuElement _cp_audioSesssionActivationMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             __kindof UIMenuElement *renderingModeElement = [UIDeferredMenuElement _cp_audioSessionRenderingModeInfoElementWithAudioSession:audioSession];
             UIMenu *categoryOptionsMenu = [UIDeferredMenuElement _cp_audioSessionCategoryOptionsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *preferredInputElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredInputElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *inputDataSourcesMenu = [UIDeferredMenuElement _cp_audioSessionInputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *portPatternsForInputMenu = [UIDeferredMenuElement _cp_audioSessionPolarPatternsMenuForInputWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *outputDataSourcesMenu = [UIDeferredMenuElement _cp_audioSessionOutputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *portPatternsForOutputMenu = [UIDeferredMenuElement _cp_audioSessionPolarPatternsMenuForOutputWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *routePickerViewElement = [UIDeferredMenuElement _cp_routePickerViewElement];
+            UIAction *routePickerAction = [UIDeferredMenuElement _cp_routePickerAction];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -39,7 +50,14 @@
                 routeSharingPoliciesMenu,
                 activationMenu,
                 renderingModeElement,
-                categoryOptionsMenu
+                categoryOptionsMenu,
+                preferredInputElement,
+                inputDataSourcesMenu,
+                portPatternsForInputMenu,
+                outputDataSourcesMenu,
+                portPatternsForOutputMenu,
+                routePickerViewElement,
+                routePickerAction
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -116,6 +134,8 @@
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Activation" children:children];
     [children release];
+    
+    menu.subtitle = isActive ? @"Actived" : @"Deactivated";
     
     return menu;
 }
@@ -262,6 +282,194 @@
     menu.cp_overrideNumberOfSubtitleLines = 0;
     
     return menu;
+}
+
+#warning Output
++ (__kindof UIMenuElement *)_cp_audioSessionSetPreferredInputElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    if (!audioSession.inputAvailable) {
+        UIAction *action = [UIAction actionWithTitle:@"Input Unavailable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    NSArray<AVAudioSessionPortDescription *> *availableInputs = audioSession.availableInputs;
+    NSMutableArray<UIAction *> *actions = [NSMutableArray new];
+    
+    AVAudioSessionPortDescription *preferredInput = audioSession.preferredInput;
+    
+    for (AVAudioSessionPortDescription *description in availableInputs) {
+        UIAction *action = [UIAction actionWithTitle:description.portName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            [audioSession setPreferredInput:description error:&error];
+            assert(error == nil);
+            
+            if (didChangeHandler) didChangeHandler();
+        }];
+        
+        action.subtitle = [NSString stringWithFormat:@"%@, spatialAudioEnabled : %d", description.UID, description.spatialAudioEnabled];
+        action.state = ([description isEqual:preferredInput]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Preferred Input" children:actions];
+    [actions release];
+    
+    menu.subtitle = preferredInput.portName;
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_audioSessionInputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    NSArray<AVAudioSessionDataSourceDescription *> *inputDataSources = audioSession.inputDataSources;
+    AVAudioSessionDataSourceDescription *inputDataSource = audioSession.inputDataSource;
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:inputDataSources.count];
+    
+    for (AVAudioSessionDataSourceDescription *description in inputDataSources) {
+        UIAction *action = [UIAction actionWithTitle:description.dataSourceName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            [audioSession setInputDataSource:description error:&error];
+            assert(error == nil);
+            
+            if (didChangeHandler) didChangeHandler();
+        }];
+        
+        action.subtitle = description.dataSourceID.stringValue;
+        action.state = ([inputDataSource isEqual:description]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Input Data Source" children:actions];
+    [actions release];
+    
+    menu.subtitle = inputDataSource.dataSourceName;
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_audioSessionPolarPatternsMenuForInputWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    AVAudioSessionDataSourceDescription *inputDataSource = audioSession.inputDataSource;
+    NSArray<AVAudioSessionPolarPattern> *supportedPolarPatterns = inputDataSource.supportedPolarPatterns;
+    AVAudioSessionPolarPattern selectedPolarPattern = inputDataSource.selectedPolarPattern;
+    AVAudioSessionPolarPattern preferredPolarPattern = inputDataSource.preferredPolarPattern;
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedPolarPatterns.count];
+    
+    for (AVAudioSessionPolarPattern polorPattern in supportedPolarPatterns) {
+        UIAction *action = [UIAction actionWithTitle:polorPattern image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            [inputDataSource setPreferredPolarPattern:polorPattern error:&error];
+            assert(error == nil);
+        }];
+        
+        if ([selectedPolarPattern isEqualToString:polorPattern]) {
+            action.state = UIMenuElementStateOn;
+        } else if ([preferredPolarPattern isEqualToString:polorPattern]) {
+            action.state = UIMenuElementStateMixed;
+        } else {
+            action.state = UIMenuElementStateOff;
+        }
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Polar Pattern" children:actions];
+    [actions release];
+    
+    menu.subtitle = selectedPolarPattern;
+    
+    return menu;
+}
+
+#warning HomePod로 하면 뭔가 될지도?
++ (UIMenu * _Nonnull)_cp_audioSessionOutputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    NSArray<AVAudioSessionDataSourceDescription *> *outputDataSources = audioSession.outputDataSources;
+    AVAudioSessionDataSourceDescription *outputDataSource = audioSession.outputDataSource;
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:outputDataSources.count];
+    
+    for (AVAudioSessionDataSourceDescription *description in outputDataSources) {
+        UIAction *action = [UIAction actionWithTitle:description.dataSourceName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            [audioSession setOutputDataSource:description error:&error];
+            assert(error == nil);
+        }];
+        
+        action.subtitle = description.dataSourceID.stringValue;
+        action.state = ([outputDataSource isEqual:description]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:outputDataSource.dataSourceName children:actions];
+    [actions release];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_audioSessionPolarPatternsMenuForOutputWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    AVAudioSessionDataSourceDescription *outputDataSource = audioSession.outputDataSource;
+    NSArray<AVAudioSessionPolarPattern> *supportedPolarPatterns = outputDataSource.supportedPolarPatterns;
+    AVAudioSessionPolarPattern selectedPolarPattern = outputDataSource.selectedPolarPattern;
+    AVAudioSessionPolarPattern preferredPolarPattern = outputDataSource.preferredPolarPattern;
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedPolarPatterns.count];
+    
+    for (AVAudioSessionPolarPattern polorPattern in supportedPolarPatterns) {
+        UIAction *action = [UIAction actionWithTitle:polorPattern image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            [outputDataSource setPreferredPolarPattern:polorPattern error:&error];
+            assert(error == nil);
+        }];
+        
+        if ([selectedPolarPattern isEqualToString:polorPattern]) {
+            action.state = UIMenuElementStateOn;
+        } else if ([preferredPolarPattern isEqualToString:polorPattern]) {
+            action.state = UIMenuElementStateMixed;
+        } else {
+            action.state = UIMenuElementStateOff;
+        }
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Polar Pattern" children:actions];
+    [actions release];
+    
+    menu.subtitle = selectedPolarPattern;
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement * _Nonnull)_cp_routePickerViewElement {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        AVRoutePickerView *view = [AVRoutePickerView new];
+        return [view autorelease];
+    });
+    
+    return element;
+}
+
++ (UIAction * _Nonnull)_cp_routePickerAction {
+    UIAction *action = [UIAction actionWithTitle:@"Present Route Picker" image:[UIImage systemImageNamed:@"airplay.audio"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+#warning dlopen 어케 하는지 보기
+        assert(dlopen("/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer", RTLD_NOW));
+        // TODO: https://developer.apple.com/documentation/avrouting/avcustomroutingcontroller?language=objc
+        id controls = [[objc_lookUpClass("MPMediaControls") alloc] init];
+        
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("startPrewarming"));
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(controls, sel_registerName("setDismissHandler:"), ^{
+            
+        });
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("present"));
+        [controls release];
+    }];
+    
+    return action;
 }
 
 // AVAusioApplication Mute

@@ -10,6 +10,7 @@
 #import <CamPresentation/Extern.h>
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/PhotoLibraryFileOutput.h>
+#import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

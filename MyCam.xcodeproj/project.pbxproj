@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */; };
-		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; };
+		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; platformFilter = ios; };
 		4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
 		4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F2A41A32C9815C500726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
@@ -145,6 +145,7 @@
 		4FED1AD22C9995DE00174044 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1AD42C99999800174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		4FED1AD62C99999D00174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreLocation.framework; sourceTree = DEVELOPER_DIR; };
+		4FFA40242CBF5EC800940200 /* MyWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MyWidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -442,6 +443,7 @@
 		4F69053B2C949D4D00CD2C22 = {
 			isa = PBXGroup;
 			children = (
+				4FFA40242CBF5EC800940200 /* MyWidgetExtension.entitlements */,
 				4F6905462C949D4D00CD2C22 /* MyCam */,
 				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,
 				4FA73E612C97152500F17348 /* MyWidget */,
@@ -807,7 +809,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
@@ -844,7 +846,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
@@ -992,6 +994,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pookjw.MyCam.MyCaptureExtension-Swift";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1023,6 +1026,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pookjw.MyCam.MyCaptureExtension-Swift";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1036,6 +1040,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = MyWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P53D29U9LJ;
@@ -1055,6 +1060,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.MyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -1069,6 +1075,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = MyWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P53D29U9LJ;
@@ -1088,6 +1095,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.MyCam.MyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

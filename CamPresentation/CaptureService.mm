@@ -1948,6 +1948,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     });
 }
 
+#if !TARGET_OS_MACCATALYST
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
     assert(self.queue_fileOutput.class == PhotoLibraryFileOutput.class);
     
@@ -1969,6 +1970,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSLog(@"%d %@", success, error);
     }];
 }
+#endif
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
     
