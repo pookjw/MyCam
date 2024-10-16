@@ -7,7 +7,9 @@
 
 #import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRouteSharingPolicy.h>
+#import <CamPresentation/NSStringFromAVAudioSessionCategoryOptions.h>
 #import <CamPresentation/AudioSessionRenderingModeInfoView.h>
+#import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -15,6 +17,7 @@
 
 #warning TODO visionOS Spatial Experience
 #warning 남은 기능 구현하기
+#warning Options + Inputs
 
 @implementation UIDeferredMenuElement (Audio)
 
@@ -28,13 +31,15 @@
             UIMenu *routeSharingPoliciesMenu = [UIDeferredMenuElement _cp_audioSessionRouteSharingPoliciesWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *activationMenu = [UIDeferredMenuElement _cp_audioSesssionActivationMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             __kindof UIMenuElement *renderingModeElement = [UIDeferredMenuElement _cp_audioSessionRenderingModeInfoElementWithAudioSession:audioSession];
+            UIMenu *categoryOptionsMenu = [UIDeferredMenuElement _cp_audioSessionCategoryOptionsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
                 modesMenu,
                 routeSharingPoliciesMenu,
                 activationMenu,
-                renderingModeElement
+                renderingModeElement,
+                categoryOptionsMenu
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -55,7 +60,7 @@
     for (AVAudioSessionCategory category in availableCategories) {
         UIAction *action = [UIAction actionWithTitle:category image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             NSError * _Nullable error = nil;
-            [AVAudioSession.sharedInstance setCategory:category error:&error];
+            [audioSession setCategory:category error:&error];
             assert(error == nil);
             
             if (didChangeHandler) didChangeHandler();
@@ -165,12 +170,13 @@
                                                image:nil
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
-#warning TODO options
+            AVAudioSessionCategoryOptions categoryOptions = audioSession.categoryOptions;
+            
             NSError * _Nullable error = nil;
             [audioSession setCategory:audioSession.category
                                  mode:audioSession.mode
                    routeSharingPolicy:policy
-                              options:0
+                              options:categoryOptions
                                 error:&error];
             assert(error == nil);
         }];
@@ -198,6 +204,64 @@
     });
     
     return element;
+}
+
++ (std::vector<AVAudioSessionCategoryOptions>)_cp_audioSessionCategoryOptionsVector {
+    return {
+        AVAudioSessionCategoryOptionMixWithOthers,
+        AVAudioSessionCategoryOptionDuckOthers,
+        AVAudioSessionCategoryOptionAllowBluetooth,
+        AVAudioSessionCategoryOptionDefaultToSpeaker,
+        AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers,
+        AVAudioSessionCategoryOptionAllowBluetoothA2DP,
+        AVAudioSessionCategoryOptionAllowAirPlay,
+        AVAudioSessionCategoryOptionOverrideMutedMicrophoneInterruption
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_audioSessionCategoryOptionsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    AVAudioSessionCategoryOptions currentCategoryOptions = audioSession.categoryOptions;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_audioSessionCategoryOptionsVector]
+    | std::views::transform([audioSession, didChangeHandler, currentCategoryOptions](AVAudioSessionCategoryOptions categoryOptions) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVAudioSessionCategoryOptions(categoryOptions)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            
+            AVAudioSessionCategoryOptions newCategoryOptions;
+            if ((currentCategoryOptions & categoryOptions) == categoryOptions) {
+                newCategoryOptions = (currentCategoryOptions & ~categoryOptions);
+                
+                if (categoryOptions == AVAudioSessionCategoryOptionMixWithOthers) {
+                    newCategoryOptions &= ~AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers;
+                }
+            } else {
+                newCategoryOptions = (currentCategoryOptions | categoryOptions);
+            }
+            
+            reinterpret_cast<void (*)(id, SEL, AVAudioSessionCategoryOptions, id *)>(objc_msgSend)(audioSession, sel_registerName("setCategoryOptions:error:"), newCategoryOptions, &error);
+            assert(error == nil);
+            
+            if (didChangeHandler) didChangeHandler();
+        }];
+        
+        action.state = ((currentCategoryOptions & categoryOptions) == categoryOptions) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Category Options" children:actions];
+    [actions release];
+    
+    menu.subtitle = NSStringFromAVAudioSessionCategoryOptions(currentCategoryOptions);
+    menu.cp_overrideNumberOfSubtitleLines = 0;
+    
+    return menu;
 }
 
 // AVAusioApplication Mute
