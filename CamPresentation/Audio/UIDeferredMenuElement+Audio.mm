@@ -17,8 +17,6 @@
 #include <vector>
 #include <ranges>
 
-AVKIT_EXTERN const char * audit_stringMediaPlayer;
-
 #warning TODO visionOS Spatial Experience
 #warning 남은 기능 구현하기
 #warning Options + Inputs
@@ -456,12 +454,18 @@ AVKIT_EXTERN const char * audit_stringMediaPlayer;
 
 + (UIAction * _Nonnull)_cp_routePickerAction {
     UIAction *action = [UIAction actionWithTitle:@"Present Route Picker" image:[UIImage systemImageNamed:@"airplay.audio"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-#warning dlopen 어케 하는지 보기
-        assert(dlopen("/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer", RTLD_NOW));
-        // TODO: https://developer.apple.com/documentation/avrouting/avcustomroutingcontroller?language=objc
+        assert(dlopen("/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer", RTLD_NOW) != nullptr);
+        
+        /*
+         TODO: https://developer.apple.com/documentation/avrouting/avcustomroutingcontroller?language=objc
+         -[AVRoutePickerView _routePickerButtonTapped:]를 보면 알 수 있음
+         */
         id controls = [[objc_lookUpClass("MPMediaControls") alloc] init];
         
-#warning configuration -[AVRoutePickerView _routePickerButtonTapped:]
+        id configuration = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("configuration"));
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(configuration, sel_registerName("setSortByIsVideoRoute:"), NO);
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(configuration, @selector(setValue:forKey:), @NO, @"useGenericDevicesIconInHeader");
+        
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("startPrewarming"));
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(controls, sel_registerName("setDismissHandler:"), ^{
             
