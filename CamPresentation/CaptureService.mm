@@ -1540,7 +1540,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                                 }
                             }];
                             
-                            // Input을 지워야 할 수도 있음
+                            // Input을 지워야 할 수도 있음 - iPad 7이 Multi-Cam을 지원하지 않아 문제됨
                             assert(device.activeFormat.isMultiCamSupported);
                         }
                     }

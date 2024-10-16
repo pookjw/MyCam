@@ -43,6 +43,7 @@
             __kindof UIMenuElement *audioSessionInfoViewElement = [UIDeferredMenuElement _cp_audioSessionInfoViewElementWithAudioSession:audioSession];
             UIAction *allowHapticsAndSystemSoundsDuringRecordingAction = [UIDeferredMenuElement _cp_audioSessionAllowHapticsAndSystemSoundsDuringRecordingActionWithCaptureService:captureService audioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *generateImpactFeecbackAction = [UIDeferredMenuElement _cp_generateImpactFeecbackAction];
+            UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_audioSessionPrepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -55,11 +56,12 @@
                 portPatternsForInputMenu,
                 outputDataSourcesMenu,
                 portPatternsForOutputMenu,
-                routePickerViewElement,
+//                routePickerViewElement,
                 routePickerAction,
                 audioSessionInfoViewElement,
                 allowHapticsAndSystemSoundsDuringRecordingAction,
-                generateImpactFeecbackAction
+                generateImpactFeecbackAction,
+                prepareRouteSelectionForPlaybackAction
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -475,6 +477,8 @@
 + (__kindof UIMenuElement * _Nonnull)_cp_routePickerViewElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         AVRoutePickerView *view = [AVRoutePickerView new];
+#warning TODO
+        view.prioritizesVideoDevices = YES;
         return [view autorelease];
     });
     
@@ -502,6 +506,8 @@
         reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controls, sel_registerName("present"));
         [controls release];
     }];
+    
+    action.attributes = UIMenuElementAttributesKeepsMenuPresented;
     
     return action;
 }
@@ -545,7 +551,16 @@
     return action;
 }
 
-//+ (UIAction *)_cp
++ (UIAction *)_cp_audioSessionPrepareRouteSelectionForPlaybackActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    UIAction *action = [UIAction actionWithTitle:@"Prepare Route Selection For Playback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        // 사용자에게 Route 선택 화면을 필요에 따라 띄우지만 난 안 뜸 https://developer.apple.com/videos/play/wwdc2019/501
+        [audioSession prepareRouteSelectionForPlaybackWithCompletionHandler:^(BOOL shouldStartPlayback, AVAudioSessionRouteSelection routeSelection) {
+            if (didChangeHandler) didChangeHandler();
+        }];
+    }];
+    
+    return action;
+}
 
 // AVAusioApplication Mute
 //+ (UIAction * _Nonnull)
