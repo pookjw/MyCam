@@ -9,11 +9,6 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-/*
- MPVolumeController
- MPVolumeHUDController
- */
-
 @interface VolumeSlider ()
 @property (retain, nonatomic, readonly) id volumeController;
 @end
@@ -61,7 +56,7 @@
 }
 
 - (float)minimumValue {
-    return 1.f;
+    return 0.f;
 }
 
 - (void)setValue:(float)value animated:(BOOL)animated {
@@ -150,7 +145,9 @@
 }
 
 - (void)volumeController:(id)volumeControler volumeValueDidChange:(float)arg2 silenceVolumeHUD:(BOOL)arg3 {
-    
+    if (!self.isTracking) {
+        [self setValue:arg2 animated:YES];
+    }
 }
 
 - (void)volumeController:(id)volumeControler volumeControlLabelDidChange:(id)arg2 {

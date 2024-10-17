@@ -12,6 +12,7 @@
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/AudioSessionInfoView.h>
 #import <CamPresentation/VolumeSlider.h>
+#import <CamPresentation/VolumeStepper.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
@@ -56,6 +57,7 @@
             __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:audioSession];
             __kindof UIMenuElement *audioSessionVolumeViewElement = [UIDeferredMenuElement _cp_audioSessionVolumeViewElement];
             __kindof UIMenuElement *volumeSliderElement = [UIDeferredMenuElement _cp_audioSessionVolumeSliderElement];
+            __kindof UIMenuElement *volumeStepperElement = [UIDeferredMenuElement _cp_audioSessionVolumeStepperElement];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -80,8 +82,9 @@
                 setPreferredSampleRateElement,
                 setInputGainElement,
                 setPreferredIOBufferDurationElement,
-                audioSessionVolumeViewElement,
-                volumeSliderElement
+//                audioSessionVolumeViewElement,
+//                volumeSliderElement,
+                volumeStepperElement
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -817,6 +820,15 @@
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         VolumeSlider *volumeSlider = [VolumeSlider new];
         return [volumeSlider autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_audioSessionVolumeStepperElement {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        VolumeStepper *volumeStepper = [VolumeStepper new];
+        return [volumeStepper autorelease];
     });
     
     return element;
