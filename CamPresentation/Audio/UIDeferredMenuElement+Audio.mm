@@ -82,8 +82,8 @@
                 setPreferredSampleRateElement,
                 setInputGainElement,
                 setPreferredIOBufferDurationElement,
-//                audioSessionVolumeViewElement,
-//                volumeSliderElement,
+                audioSessionVolumeViewElement,
+                volumeSliderElement,
                 volumeStepperElement
             ];
             

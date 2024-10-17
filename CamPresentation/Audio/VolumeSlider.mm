@@ -9,12 +9,17 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface VolumeSlider ()
+@interface VolumeSlider () {
+    BOOL _forcingOffscreenVisibility;
+    BOOL _isOffScreen;
+}
+@property (assign, nonatomic, setter=_setIsOffScreen:) BOOL _isOffScreen;
 @property (retain, nonatomic, readonly) id volumeController;
 @end
 
 @implementation VolumeSlider
 @synthesize volumeController = _volumeController;
+@synthesize _isOffScreen = _isOffScreen;
 
 + (void)load {
     Protocol *MPVolumeControllerDelegate = NSProtocolFromString(@"MPVolumeControllerDelegate");
@@ -28,7 +33,8 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
-        
+        _forcingOffscreenVisibility = YES;
+        _isOffScreen = YES;
     }
     
     return self;
@@ -129,6 +135,32 @@
     }
 }
 
+- (BOOL)_isOffScreen {
+    if (self.window == nil) return YES;
+    
+    if (_forcingOffscreenVisibility) {
+        return _isOffScreen;
+    }
+    
+    UIView * _Nullable target = self;
+    while (target != nil) {
+        if (target.isHidden) return YES;
+        if (target.alpha <= 0.) return YES;
+        target = target.superview;
+    }
+    
+    return NO;
+}
+
+- (void)_setIsOffScreen:(BOOL)_isOffScreen {
+    id controller = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("MPVolumeHUDController"), sel_registerName("sharedInstance"));
+    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controller, sel_registerName("setNeedsUpdate"));
+    
+    if (self.superview != nil) {
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(self.volumeController, sel_registerName("updateVolumeValue"));
+    }
+}
+
 
 #pragma mark - MPVolumeControllerDelegate
 
@@ -182,11 +214,7 @@
 }
 
 - (BOOL)isOnScreenForVolumeDisplay {
-    if (self.window == nil) return NO;
-    if (self.isHidden) return NO;
-    if (self.alpha <= 0.) return NO;
-    if (self.superview == nil) return NO;
-    return YES;
+    return !self._isOffScreen;
 }
 
 - (id)windowSceneForVolumeDisplay {

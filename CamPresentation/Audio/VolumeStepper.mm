@@ -23,20 +23,14 @@
         __kindof UISlider *volumeSlider = self.volumeSlider;
         __weak auto weakSelf = self;
         
-        UIView *containerView = [UIView new];
-        [containerView addSubview:self.volumeView];
-        [self addSubview:containerView];
-        containerView.alpha = 0.01;
-        containerView.userInteractionEnabled = NO;
-        [containerView release];
-        
         // HUD 방지
-//        object_setInstanceVariable(volumeSlider, "_forcingOffscreenVisibility", reinterpret_cast<void *>(YES));
-//        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(volumeSlider, sel_registerName("_setIsOffScreen:"), NO);
+        [self addSubview:volumeSlider];
+        volumeSlider.hidden = YES;
+        object_setInstanceVariable(volumeSlider, "_forcingOffscreenVisibility", reinterpret_cast<void *>(YES));
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(volumeSlider, sel_registerName("_setIsOffScreen:"), NO);
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             auto slider = static_cast<__kindof UISlider *>(action.sender);
-            NSLog(@"%lf", slider.value);
             weakSelf.value = slider.value;
         }];
         
