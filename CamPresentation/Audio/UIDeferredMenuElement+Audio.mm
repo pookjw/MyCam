@@ -33,31 +33,30 @@
         dispatch_async(dispatch_get_global_queue(0, 0), ^{
             AVAudioSession *audioSession = AVAudioSession.sharedInstance;
             
-            UIMenu *categoriesMenu = [UIDeferredMenuElement _cp_audioSessionCategoriesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *modesMenu = [UIDeferredMenuElement _cp_audioSessionModesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *routeSharingPoliciesMenu = [UIDeferredMenuElement _cp_audioSessionRouteSharingPoliciesWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *activationMenu = [UIDeferredMenuElement _cp_audioSesssionActivationMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *categoryOptionsMenu = [UIDeferredMenuElement _cp_audioSessionCategoryOptionsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            __kindof UIMenuElement *preferredInputElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredInputElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *inputDataSourcesMenu = [UIDeferredMenuElement _cp_audioSessionInputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *portPatternsForInputMenu = [UIDeferredMenuElement _cp_audioSessionPolarPatternsMenuForInputWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *outputDataSourcesMenu = [UIDeferredMenuElement _cp_audioSessionOutputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *portPatternsForOutputMenu = [UIDeferredMenuElement _cp_audioSessionPolarPatternsMenuForOutputWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *categoriesMenu = [UIDeferredMenuElement _cp_categoriesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *modesMenu = [UIDeferredMenuElement _cp_modesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *routeSharingPoliciesMenu = [UIDeferredMenuElement _cp_routeSharingPoliciesWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *activationMenu = [UIDeferredMenuElement _cp_activationMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *categoryOptionsMenu = [UIDeferredMenuElement _cp_categoryOptionsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *preferredInputElement = [UIDeferredMenuElement _cp_setPreferredInputElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *inputDataSourcesMenu = [UIDeferredMenuElement _cp_inputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *outputDataSourcesMenu = [UIDeferredMenuElement _cp_outputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             __kindof UIMenuElement *routePickerViewElement = [UIDeferredMenuElement _cp_routePickerViewElement];
             UIAction *routePickerAction = [UIDeferredMenuElement _cp_routePickerAction];
-            __kindof UIMenuElement *audioSessionInfoViewElement = [UIDeferredMenuElement _cp_audioSessionInfoViewElementWithAudioSession:audioSession];
-            UIAction *allowHapticsAndSystemSoundsDuringRecordingAction = [UIDeferredMenuElement _cp_audioSessionAllowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *audioSessionInfoViewElement = [UIDeferredMenuElement _cp_infoViewElementWithAudioSession:audioSession];
+            UIAction *allowHapticsAndSystemSoundsDuringRecordingAction = [UIDeferredMenuElement _cp_allowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *generateImpactFeecbackAction = [UIDeferredMenuElement _cp_generateImpactFeecbackAction];
-            UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_audioSessionPrepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIAction *setPrefersNoInterruptionsFromSystemAlertsAction = [UIDeferredMenuElement _cp_audioSessionSetPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIAction *setPrefersInterruptionOnRouteDisconnectAction = [UIDeferredMenuElement _cp_audioSessionSetPrefersInterruptionOnRouteDisconnectActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            UIMenu *inputOrientationsMenu = [UIDeferredMenuElement _cp_audioSessionInputOrientationsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
-            __kindof UIMenuElement *setPreferredSampleRateElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredSampleRateElementWithAudioSession:audioSession];
-            __kindof UIMenuElement *setInputGainElement = [UIDeferredMenuElement _cp_audioSessionSetInputGainElementWithAudioSession:audioSession];
-            __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:audioSession];
-            __kindof UIMenuElement *audioSessionVolumeViewElement = [UIDeferredMenuElement _cp_audioSessionVolumeViewElement];
-            __kindof UIMenuElement *volumeSliderElement = [UIDeferredMenuElement _cp_audioSessionVolumeSliderElement];
-            __kindof UIMenuElement *volumeStepperElement = [UIDeferredMenuElement _cp_audioSessionVolumeStepperElement];
+            UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_prepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIAction *setPrefersNoInterruptionsFromSystemAlertsAction = [UIDeferredMenuElement _cp_setPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIAction *setPrefersInterruptionOnRouteDisconnectAction = [UIDeferredMenuElement _cp_setPrefersInterruptionOnRouteDisconnectActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *inputOrientationsMenu = [UIDeferredMenuElement _cp_inputOrientationsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *setPreferredSampleRateElement = [UIDeferredMenuElement _cp_setPreferredSampleRateElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *setInputGainElement = [UIDeferredMenuElement _cp_setInputGainElementWithAudioSession:audioSession];
+            __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_setPreferredIOBufferDurationElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *volumeControlsMenu = [UIDeferredMenuElement _cp_volumeControlsMenu];
+            UIMenu *numberOfChannelsSteppersMenuWithAudioSession = [UIDeferredMenuElement _cp_numberOfChannelsSteppersMenuWithAudioSession:audioSession];
+            UIAction *setSupportsMultichannelContentWithAudioSession = [UIDeferredMenuElement _cp_setSupportsMultichannelContentActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *currentRouteMenu = [UIDeferredMenuElement _cp_currentRouteMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -67,9 +66,7 @@
                 categoryOptionsMenu,
                 preferredInputElement,
                 inputDataSourcesMenu,
-                portPatternsForInputMenu,
                 outputDataSourcesMenu,
-                portPatternsForOutputMenu,
                 routePickerViewElement,
                 routePickerAction,
                 audioSessionInfoViewElement,
@@ -82,9 +79,10 @@
                 setPreferredSampleRateElement,
                 setInputGainElement,
                 setPreferredIOBufferDurationElement,
-                audioSessionVolumeViewElement,
-                volumeSliderElement,
-                volumeStepperElement
+                volumeControlsMenu,
+                numberOfChannelsSteppersMenuWithAudioSession,
+                setSupportsMultichannelContentWithAudioSession,
+                currentRouteMenu
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -96,7 +94,7 @@
     return element;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionCategoriesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_categoriesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     NSArray<AVAudioSessionCategory> *availableCategories = audioSession.availableCategories;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableCategories.count];
     
@@ -125,7 +123,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSesssionActivationMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_activationMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioSession *session = AVAudioSession.sharedInstance;
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
@@ -193,7 +191,7 @@
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionModesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_modesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     NSArray<AVAudioSessionMode> *availableModes = audioSession.availableModes;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableModes.count];
     
@@ -231,7 +229,7 @@
     };
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionRouteSharingPoliciesWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_routeSharingPoliciesWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioSessionRouteSharingPolicy currentRouteSharingPolicy = audioSession.routeSharingPolicy;
     
     auto actionsVec = std::vector<AVAudioSessionRouteSharingPolicy> {
@@ -276,7 +274,7 @@
     return menu;
 }
 
-+ (std::vector<AVAudioSessionCategoryOptions>)_cp_audioSessionCategoryOptionsVector {
++ (std::vector<AVAudioSessionCategoryOptions>)_cp_CategoryOptionsVector {
     return {
         AVAudioSessionCategoryOptionMixWithOthers,
         AVAudioSessionCategoryOptionDuckOthers,
@@ -289,10 +287,10 @@
     };
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionCategoryOptionsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_categoryOptionsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioSessionCategoryOptions currentCategoryOptions = audioSession.categoryOptions;
     
-    auto actionsVec = [UIDeferredMenuElement _cp_audioSessionCategoryOptionsVector]
+    auto actionsVec = [UIDeferredMenuElement _cp_CategoryOptionsVector]
     | std::views::transform([audioSession, didChangeHandler, currentCategoryOptions](AVAudioSessionCategoryOptions categoryOptions) -> UIAction * {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVAudioSessionCategoryOptions(categoryOptions)
                                                image:nil
@@ -336,7 +334,7 @@
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionSetPreferredInputElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (__kindof UIMenuElement *)_cp_setPreferredInputElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     if (!audioSession.inputAvailable) {
         UIAction *action = [UIAction actionWithTitle:@"Input Unavailable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             
@@ -372,137 +370,6 @@
     [actions release];
     
     menu.subtitle = preferredInput.portName;
-    
-    return menu;
-}
-
-+ (UIMenu * _Nonnull)_cp_audioSessionInputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    NSArray<AVAudioSessionDataSourceDescription *> *inputDataSources = audioSession.inputDataSources;
-    AVAudioSessionDataSourceDescription *inputDataSource = audioSession.inputDataSource;
-    
-    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:inputDataSources.count];
-    
-    for (AVAudioSessionDataSourceDescription *description in inputDataSources) {
-        UIAction *action = [UIAction actionWithTitle:description.dataSourceName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(dispatch_get_global_queue(0, 0), ^{
-                NSError * _Nullable error = nil;
-                [audioSession setInputDataSource:description error:&error];
-                assert(error == nil);
-                
-                if (didChangeHandler) didChangeHandler();
-            });
-        }];
-        
-        action.subtitle = description.dataSourceID.stringValue;
-        action.state = ([inputDataSource isEqual:description]) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        [actions addObject:action];
-    }
-    
-    UIMenu *menu = [UIMenu menuWithTitle:@"Input Data Source" children:actions];
-    [actions release];
-    
-    menu.subtitle = inputDataSource.dataSourceName;
-    
-    return menu;
-}
-
-+ (UIMenu * _Nonnull)_cp_audioSessionPolarPatternsMenuForInputWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    AVAudioSessionDataSourceDescription *inputDataSource = audioSession.inputDataSource;
-    NSArray<AVAudioSessionPolarPattern> *supportedPolarPatterns = inputDataSource.supportedPolarPatterns;
-    AVAudioSessionPolarPattern selectedPolarPattern = inputDataSource.selectedPolarPattern;
-    AVAudioSessionPolarPattern preferredPolarPattern = inputDataSource.preferredPolarPattern;
-    
-    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedPolarPatterns.count];
-    
-    for (AVAudioSessionPolarPattern polorPattern in supportedPolarPatterns) {
-        UIAction *action = [UIAction actionWithTitle:polorPattern image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(dispatch_get_global_queue(0, 0), ^{
-                NSError * _Nullable error = nil;
-                [inputDataSource setPreferredPolarPattern:polorPattern error:&error];
-                assert(error == nil);
-            });
-        }];
-        
-        if ([selectedPolarPattern isEqualToString:polorPattern]) {
-            action.state = UIMenuElementStateOn;
-        } else if ([preferredPolarPattern isEqualToString:polorPattern]) {
-            action.state = UIMenuElementStateMixed;
-            action.subtitle = @"Preferred";
-        } else {
-            action.state = UIMenuElementStateOff;
-        }
-        
-        [actions addObject:action];
-    }
-    
-    UIMenu *menu = [UIMenu menuWithTitle:@"Polar Pattern" children:actions];
-    [actions release];
-    
-    menu.subtitle = selectedPolarPattern;
-    
-    return menu;
-}
-
-+ (UIMenu * _Nonnull)_cp_audioSessionOutputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    NSArray<AVAudioSessionDataSourceDescription *> *outputDataSources = audioSession.outputDataSources;
-    AVAudioSessionDataSourceDescription *outputDataSource = audioSession.outputDataSource;
-    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:outputDataSources.count];
-    
-    for (AVAudioSessionDataSourceDescription *description in outputDataSources) {
-        UIAction *action = [UIAction actionWithTitle:description.dataSourceName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(dispatch_get_global_queue(0, 0), ^{
-                NSError * _Nullable error = nil;
-                [audioSession setOutputDataSource:description error:&error];
-                assert(error == nil);
-            });
-        }];
-        
-        action.subtitle = description.dataSourceID.stringValue;
-        action.state = ([outputDataSource isEqual:description]) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        [actions addObject:action];
-    }
-    
-    UIMenu *menu = [UIMenu menuWithTitle:outputDataSource.dataSourceName children:actions];
-    [actions release];
-    
-    return menu;
-}
-
-+ (UIMenu * _Nonnull)_cp_audioSessionPolarPatternsMenuForOutputWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
-    AVAudioSessionDataSourceDescription *outputDataSource = audioSession.outputDataSource;
-    NSArray<AVAudioSessionPolarPattern> *supportedPolarPatterns = outputDataSource.supportedPolarPatterns;
-    AVAudioSessionPolarPattern selectedPolarPattern = outputDataSource.selectedPolarPattern;
-    AVAudioSessionPolarPattern preferredPolarPattern = outputDataSource.preferredPolarPattern;
-    
-    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:supportedPolarPatterns.count];
-    
-    for (AVAudioSessionPolarPattern polorPattern in supportedPolarPatterns) {
-        UIAction *action = [UIAction actionWithTitle:polorPattern image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(dispatch_get_global_queue(0, 0), ^{
-                NSError * _Nullable error = nil;
-                [outputDataSource setPreferredPolarPattern:polorPattern error:&error];
-                assert(error == nil);
-            });
-        }];
-        
-        if ([selectedPolarPattern isEqualToString:polorPattern]) {
-            action.state = UIMenuElementStateOn;
-        } else if ([preferredPolarPattern isEqualToString:polorPattern]) {
-            action.state = UIMenuElementStateMixed;
-            action.subtitle = @"Preferred";
-        } else {
-            action.state = UIMenuElementStateOff;
-        }
-        
-        [actions addObject:action];
-    }
-    
-    UIMenu *menu = [UIMenu menuWithTitle:@"Polar Pattern" children:actions];
-    [actions release];
-    
-    menu.subtitle = selectedPolarPattern;
     
     return menu;
 }
@@ -545,7 +412,7 @@
     return action;
 }
 
-+ (__kindof UIMenuElement * _Nonnull)_cp_audioSessionInfoViewElementWithAudioSession:(AVAudioSession *)audioSession {
++ (__kindof UIMenuElement * _Nonnull)_cp_infoViewElementWithAudioSession:(AVAudioSession *)audioSession {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         AudioSessionInfoView *view = [[AudioSessionInfoView alloc] initWithAudioSession:audioSession];
         return [view autorelease];
@@ -554,7 +421,7 @@
     return element;
 }
 
-+ (UIAction * _Nonnull)_cp_audioSessionAllowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIAction * _Nonnull)_cp_allowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     BOOL allowHapticsAndSystemSoundsDuringRecording = audioSession.allowHapticsAndSystemSoundsDuringRecording;
     
     UIAction *action = [UIAction actionWithTitle:@"Allow Haptics And System Sounds During Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -584,7 +451,7 @@
     return action;
 }
 
-+ (UIAction * _Nonnull)_cp_audioSessionPrepareRouteSelectionForPlaybackActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIAction * _Nonnull)_cp_prepareRouteSelectionForPlaybackActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIAction *action = [UIAction actionWithTitle:@"Prepare Route Selection For Playback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         // 사용자에게 Route 선택 화면을 필요에 따라 띄우지만 난 안 뜸 https://developer.apple.com/videos/play/wwdc2019/501
         [audioSession prepareRouteSelectionForPlaybackWithCompletionHandler:^(BOOL shouldStartPlayback, AVAudioSessionRouteSelection routeSelection) {
@@ -595,7 +462,7 @@
     return action;
 }
 
-+ (UIAction * _Nonnull)_cp_audioSessionSetPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIAction * _Nonnull)_cp_setPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     BOOL prefersNoInterruptionsFromSystemAlerts = audioSession.prefersNoInterruptionsFromSystemAlerts;
     
     UIAction *action = [UIAction actionWithTitle:@"Prefers No Interruptions From System Alerts" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -611,7 +478,7 @@
     return action;
 }
 
-+ (UIAction * _Nonnull)_cp_audioSessionSetPrefersInterruptionOnRouteDisconnectActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIAction * _Nonnull)_cp_setPrefersInterruptionOnRouteDisconnectActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     BOOL prefersInterruptionOnRouteDisconnect = audioSession.prefersInterruptionOnRouteDisconnect;
     
     UIAction *action = [UIAction actionWithTitle:@"Prefers Interruption On Route Disconnect" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -637,7 +504,7 @@
     };
 }
 
-+ (UIMenu * _Nonnull)_cp_audioSessionInputOrientationsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_inputOrientationsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioStereoOrientation inputOrientation = audioSession.inputOrientation;
     AVAudioStereoOrientation preferredInputOrientation = audioSession.preferredInputOrientation;
     
@@ -675,7 +542,7 @@
 }
 
 #warning TODO -setPreferredInputSampleRate:, -setPreferredOutputSampleRate:
-+ (__kindof UIMenuElement * _Nonnull)_cp_audioSessionSetPreferredSampleRateElementWithAudioSession:(AVAudioSession *)audioSession {
++ (__kindof UIMenuElement * _Nonnull)_cp_setPreferredSampleRateElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         UILabel *label = [UILabel new];
         label.textAlignment = NSTextAlignmentCenter;
@@ -700,6 +567,8 @@
                 NSError * _Nullable error = nil;
                 [audioSession setPreferredSampleRate:value error:&error];
                 assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
             });
         }];
         
@@ -718,7 +587,7 @@
     return element;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionSetInputGainElementWithAudioSession:(AVAudioSession *)audioSession {
++ (__kindof UIMenuElement *)_cp_setInputGainElementWithAudioSession:(AVAudioSession *)audioSession {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         UILabel *label = [UILabel new];
         label.textAlignment = NSTextAlignmentCenter;
@@ -743,7 +612,6 @@
             dispatch_async(dispatch_get_global_queue(0, 0), ^{
                 NSError * _Nullable error = nil;
                 [audioSession setInputGain:value error:&error];
-                NSLog(@"%lf", audioSession.inputGain);
                 assert(error == nil);
             });
         }];
@@ -763,7 +631,7 @@
     return element;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:(AVAudioSession *)audioSession {
++ (__kindof UIMenuElement *)_cp_setPreferredIOBufferDurationElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         UILabel *label = [UILabel new];
         label.textAlignment = NSTextAlignmentCenter;
@@ -773,8 +641,8 @@
         label.text = [NSString stringWithFormat:@"preferredIOBufferDuration : %lf", audioSession.preferredIOBufferDuration];
         
         UISlider *slider = [UISlider new];
-        slider.minimumValue = 0.f;
-        slider.maximumValue = 1.f;
+        slider.minimumValue = 0.005;
+        slider.maximumValue = 0.093;
         slider.value = audioSession.preferredIOBufferDuration;
         slider.continuous = YES;
         
@@ -787,8 +655,9 @@
             dispatch_async(dispatch_get_global_queue(0, 0), ^{
                 NSError * _Nullable error = nil;
                 [audioSession setPreferredIOBufferDuration:value error:&error];
-                NSLog(@"%lf", audioSession.inputGain);
                 assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
             });
         }];
         
@@ -807,7 +676,18 @@
     return element;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionVolumeViewElement {
++ (UIMenu *)_cp_volumeControlsMenu {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Volume Controls"
+                                children:@[
+        [UIDeferredMenuElement _cp_VolumeViewElement],
+        [UIDeferredMenuElement _cp_VolumeSliderElement],
+        [UIDeferredMenuElement _cp_VolumeStepperElement],
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_VolumeViewElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         MPVolumeView *volumeView = [MPVolumeView new];
         return [volumeView autorelease];
@@ -816,7 +696,7 @@
     return element;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionVolumeSliderElement {
++ (__kindof UIMenuElement *)_cp_VolumeSliderElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         VolumeSlider *volumeSlider = [VolumeSlider new];
         return [volumeSlider autorelease];
@@ -825,7 +705,7 @@
     return element;
 }
 
-+ (__kindof UIMenuElement *)_cp_audioSessionVolumeStepperElement {
++ (__kindof UIMenuElement *)_cp_VolumeStepperElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         VolumeStepper *volumeStepper = [VolumeStepper new];
         return [volumeStepper autorelease];
@@ -833,6 +713,351 @@
     
     return element;
 }
+
++ (UIMenu *)_cp_numberOfChannelsSteppersMenuWithAudioSession:(AVAudioSession *)audioSession {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Number Of Channels Steppers"
+                                children:@[
+        [UIDeferredMenuElement _cp_setPreferredInputNumberOfChannelsStepperElementWithAudioSession:audioSession],
+        [UIDeferredMenuElement _cp_setPreferredOutputNumberOfChannelsStepperElementWithAudioSession:audioSession]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_setPreferredInputNumberOfChannelsStepperElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.001;
+        label.text = [NSString stringWithFormat:@"preferredInputNumberOfChannels : %ld", audioSession.preferredInputNumberOfChannels];
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.continuous = YES;
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = audioSession.maximumInputNumberOfChannels;
+        stepper.stepValue = 1.;
+        stepper.value = audioSession.preferredInputNumberOfChannels;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            auto value = static_cast<NSInteger>(stepper.value);
+            
+            label.text = [NSString stringWithFormat:@"preferredInputNumberOfChannels : %ld", value];
+            
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setPreferredInputNumberOfChannels:value error:&error];
+                assert(error == nil);
+            });
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
+        [label release];
+        [stepper release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_setPreferredOutputNumberOfChannelsStepperElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.001;
+        label.text = [NSString stringWithFormat:@"preferredOutputNumberOfChannels : %ld", audioSession.preferredOutputNumberOfChannels];
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.continuous = YES;
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = audioSession.maximumOutputNumberOfChannels;
+        stepper.stepValue = 1.;
+        stepper.value = audioSession.preferredOutputNumberOfChannels;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            auto value = static_cast<NSInteger>(stepper.value);
+            
+            label.text = [NSString stringWithFormat:@"preferredOutputNumberOfChannels : %ld", value];
+            
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setPreferredOutputNumberOfChannels:value error:&error];
+                assert(error == nil);
+            });
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
+        [label release];
+        [stepper release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    return element;
+}
+
++ (UIAction *)_cp_setSupportsMultichannelContentActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    BOOL supportsMultichannelContent = audioSession.supportsMultichannelContent;
+    
+    UIAction *action = [UIAction actionWithTitle:@"supportsMultichannelContent" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            NSError * _Nullable error = nil;
+            [audioSession setSupportsMultichannelContent:!supportsMultichannelContent error:&error];
+            assert(error == nil);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = supportsMultichannelContent ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIMenu *)_cp_audioSessionDataSourceMenu:(AVAudioSessionDataSourceDescription *)dataSource subtitle:(NSString *)subtitle toggleHandler:(void (^)(void))tggleHandler {
+    NSMutableArray<UIAction *> *polarPatternActions = [[NSMutableArray alloc] initWithCapacity:dataSource.supportedPolarPatterns.count];
+    for (AVAudioSessionPolarPattern polarPattern in dataSource.supportedPolarPatterns) {
+        UIAction *action = [UIAction actionWithTitle:polarPattern image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [dataSource setPreferredPolarPattern:polarPattern error:&error];
+                assert(error == nil);
+            });
+        }];
+        
+        if ([dataSource.selectedPolarPattern isEqualToString:polarPattern]) {
+            action.state = UIMenuElementStateOn;
+        } else if ([dataSource.preferredPolarPattern isEqualToString:polarPattern]) {
+            action.state = UIMenuElementStateMixed;
+        } else {
+            action.state = UIMenuElementStateOff;
+        }
+        
+        [polarPatternActions addObject:action];
+    }
+    UIMenu *polarPatternsMenu = [UIMenu menuWithTitle:@"Polar Patterns" children:polarPatternActions];
+    [polarPatternActions release];
+    polarPatternsMenu.subtitle = dataSource.selectedPolarPattern;
+    
+    //
+    
+    UIAction *toggleAction = [UIAction actionWithTitle:@"Toggle" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        tggleHandler();
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:dataSource.dataSourceName
+                                children:@[
+        polarPatternsMenu,
+        toggleAction
+    ]];
+    menu.subtitle = subtitle;
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_audioSessionPortDescriptionMenu:(AVAudioSessionPortDescription *)portDesc didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    UIAction *portNameAction = [UIAction actionWithTitle:@"portName" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    portNameAction.subtitle = portDesc.portName;
+    portNameAction.attributes = UIMenuElementAttributesDisabled;
+    
+    UIAction *portTypeAction = [UIAction actionWithTitle:@"portType" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    portTypeAction.subtitle = portDesc.portType;
+    portTypeAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    NSMutableArray<UIMenu *> *channelMenus = [[NSMutableArray alloc] initWithCapacity:portDesc.channels.count];
+    for (AVAudioSessionChannelDescription *channelDesc in portDesc.channels) {
+        UIAction *channelNameAction = [UIAction actionWithTitle:@"channelName" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        channelNameAction.subtitle = channelDesc.channelName;
+        channelNameAction.attributes = UIMenuElementAttributesDisabled;
+        
+        UIAction *channelNumberAction = [UIAction actionWithTitle:@"channelNumber" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        channelNumberAction.subtitle = @(channelDesc.channelNumber).stringValue;
+        channelNumberAction.attributes = UIMenuElementAttributesDisabled;
+        
+        UIAction *owningPortUIDAction = [UIAction actionWithTitle:@"owningPortUID" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        owningPortUIDAction.subtitle = channelDesc.owningPortUID;
+        owningPortUIDAction.attributes = UIMenuElementAttributesDisabled;
+        
+        UIAction *channelLabelAction = [UIAction actionWithTitle:@"channelLabel" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        channelLabelAction.subtitle = @(channelDesc.channelLabel).stringValue;
+        channelLabelAction.attributes = UIMenuElementAttributesDisabled;
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"channelDesc.channelName"
+                                    children:@[
+            channelNameAction,
+            channelNumberAction,
+            owningPortUIDAction,
+            channelLabelAction
+        ]];
+        
+        [channelMenus addObject:menu];
+    }
+    UIMenu *channelsMenu = [UIMenu menuWithTitle:@"Channels" children:channelMenus];
+    [channelMenus release];
+    
+    //
+    
+    UIAction *UIDAction = [UIAction actionWithTitle:@"UID" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    UIDAction.subtitle = portDesc.UID;
+    UIDAction.attributes = UIMenuElementAttributesDisabled;
+    
+    UIAction *hasHardwareVoiceCallProcessingAction = [UIAction actionWithTitle:@"hasHardwareVoiceCallProcessing" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    hasHardwareVoiceCallProcessingAction.subtitle = @(portDesc.hasHardwareVoiceCallProcessing).stringValue;
+    hasHardwareVoiceCallProcessingAction.attributes = UIMenuElementAttributesDisabled;
+    
+    UIAction *isSpatialAudioEnabledAction = [UIAction actionWithTitle:@"isSpatialAudioEnabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    isSpatialAudioEnabledAction.subtitle = @(portDesc.isSpatialAudioEnabled).stringValue;
+    isSpatialAudioEnabledAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    NSMutableArray<UIMenu *> *dataSourceMenus = [[NSMutableArray alloc] initWithCapacity:portDesc.dataSources.count];
+    for (AVAudioSessionDataSourceDescription *dataSource in portDesc.dataSources) {
+        NSString *subtitle;
+        if ([portDesc.selectedDataSource isEqual:dataSource]) {
+            subtitle = @"Seleted";
+        } else if ([portDesc.preferredDataSource isEqual:dataSource]) {
+            subtitle = @"Preferred";
+        } else {
+            subtitle = nil;
+        }
+        
+        UIMenu *submenu = [UIDeferredMenuElement _cp_audioSessionDataSourceMenu:dataSource
+                                                                       subtitle:subtitle
+                                                                  toggleHandler:^{
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [portDesc setPreferredDataSource:dataSource error:&error];
+                assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        [dataSourceMenus addObject:submenu];
+    }
+    UIMenu *dataSourcesMenu = [UIMenu menuWithTitle:@"Data Sources" children:dataSourceMenus];
+    [dataSourceMenus release];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:portDesc.portName
+                                children:@[
+        portNameAction,
+        portTypeAction,
+        channelsMenu,
+        UIDAction,
+        hasHardwareVoiceCallProcessingAction,
+        isSpatialAudioEnabledAction,
+        dataSourcesMenu
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_currentRouteMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    NSMutableArray<UIMenu *> *inputsMenu = [[NSMutableArray alloc] initWithCapacity:audioSession.currentRoute.inputs.count];
+    for (AVAudioSessionPortDescription *portDesc in audioSession.currentRoute.inputs) {
+        [inputsMenu addObject:[UIDeferredMenuElement _cp_audioSessionPortDescriptionMenu:portDesc didChangeHandler:didChangeHandler]];
+    }
+    
+    NSMutableArray<UIMenu *> *outputsMenu = [[NSMutableArray alloc] initWithCapacity:audioSession.currentRoute.outputs.count];
+    for (AVAudioSessionPortDescription *portDesc in audioSession.currentRoute.outputs) {
+        [outputsMenu addObject:[UIDeferredMenuElement _cp_audioSessionPortDescriptionMenu:portDesc didChangeHandler:didChangeHandler]];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"currentRoute" children:@[
+        [UIMenu menuWithTitle:@"Inputs" children:inputsMenu],
+        [UIMenu menuWithTitle:@"Outputs" children:outputsMenu]
+    ]];
+    
+    [inputsMenu release];
+    [outputsMenu release];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_inputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    NSMutableArray<UIMenu *> *dataSourceMenus = [[NSMutableArray alloc] initWithCapacity:audioSession.inputDataSources.count];
+    
+    for (AVAudioSessionDataSourceDescription *dataSource in audioSession.inputDataSources) {
+        NSString *subtitle;
+        if ([audioSession.inputDataSource isEqual:dataSource]) {
+            subtitle = @"Selected";
+        } else {
+            subtitle = nil;
+        }
+        
+        UIMenu *submenu = [UIDeferredMenuElement _cp_audioSessionDataSourceMenu:dataSource subtitle:subtitle toggleHandler:^{
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setInputDataSource:dataSource error:&error];
+                assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        [dataSourceMenus addObject:submenu];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Input Data Sources" children:dataSourceMenus];
+    [dataSourceMenus release];
+    menu.subtitle = audioSession.inputDataSource.dataSourceName;
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_outputDataSourcesMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    NSMutableArray<UIMenu *> *dataSourceMenus = [[NSMutableArray alloc] initWithCapacity:audioSession.outputDataSources.count];
+    
+    for (AVAudioSessionDataSourceDescription *dataSource in audioSession.outputDataSources) {
+        NSString *subtitle;
+        if ([audioSession.outputDataSource isEqual:dataSource]) {
+            subtitle = @"Selected";
+        } else {
+            subtitle = nil;
+        }
+        
+        UIMenu *submenu = [UIDeferredMenuElement _cp_audioSessionDataSourceMenu:dataSource subtitle:subtitle toggleHandler:^{
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setOutputDataSource:dataSource error:&error];
+                assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        [dataSourceMenus addObject:submenu];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Output Data Sources" children:dataSourceMenus];
+    [dataSourceMenus release];
+    menu.subtitle = audioSession.outputDataSource.dataSourceName;
+    
+    return menu;
+}
+
+//+ (UIMenu *)_cp_
 
 // AVAusioApplication Mute
 //+ (UIAction * _Nonnull)

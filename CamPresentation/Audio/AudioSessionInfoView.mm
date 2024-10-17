@@ -53,13 +53,17 @@
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSpatialPlaybackCapabilitiesChangedNotification:) name:AVAudioSessionSpatialPlaybackCapabilitiesChangedNotification object:audioSession];
         
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRenderingCapabilitiesChangeNotification:) name:AVAudioSessionRenderingCapabilitiesChangeNotification object:audioSession];
+        
         [audioSession addObserver:self forKeyPath:@"promptStyle" options:NSKeyValueObservingOptionNew context:nil];
         [audioSession addObserver:self forKeyPath:@"sampleRate" options:NSKeyValueObservingOptionNew context:nil];
         
-        // KVO 되나?
-        [audioSession addObserver:self forKeyPath:@"IOBufferDuration" options:NSKeyValueObservingOptionNew context:nil];
+        // KVO 안 됨
+//        [audioSession addObserver:self forKeyPath:@"IOBufferDuration" options:NSKeyValueObservingOptionNew context:nil];
         
         [audioSession addObserver:self forKeyPath:@"outputVolume" options:NSKeyValueObservingOptionNew context:nil];
+        [audioSession addObserver:self forKeyPath:@"inputNumberOfChannels" options:NSKeyValueObservingOptionNew context:nil];
+        [audioSession addObserver:self forKeyPath:@"outputNumberOfChannels" options:NSKeyValueObservingOptionNew context:nil];
         
         [self updateLabel];
     }
@@ -71,6 +75,10 @@
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_audioSession removeObserver:self forKeyPath:@"promptStyle"];
     [_audioSession removeObserver:self forKeyPath:@"sampleRate"];
+//    [_audioSession removeObserver:self forKeyPath:@"IOBufferDuration"];
+    [_audioSession removeObserver:self forKeyPath:@"outputVolume"];
+    [_audioSession removeObserver:self forKeyPath:@"inputNumberOfChannels"];
+    [_audioSession removeObserver:self forKeyPath:@"outputNumberOfChannels"];
     [_audioSession release];
     [_label release];
     [_routeChangeReasonNumber release];
@@ -91,12 +99,22 @@
                 [self updateLabel];
             });
             return;
-        } else if ([keyPath isEqualToString:@"IOBufferDuration"]) {
+//        } else if ([keyPath isEqualToString:@"IOBufferDuration"]) {
+//            dispatch_async(dispatch_get_main_queue(), ^{
+//                [self updateLabel];
+//            });
+//            return;
+        } else if ([keyPath isEqualToString:@"outputVolume"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self updateLabel];
             });
             return;
-        } else if ([keyPath isEqualToString:@"outputVolume"]) {
+        } else if ([keyPath isEqualToString:@"inputNumberOfChannels"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateLabel];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"outputNumberOfChannels"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self updateLabel];
             });
@@ -150,6 +168,12 @@
     });
 }
 
+- (void)didReceiveRenderingCapabilitiesChangeNotification:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateLabel];
+    });
+}
+
 - (UILabel *)label {
     if (auto label = _label) return label;
     
@@ -191,7 +215,43 @@
     [string appendFormat:@"outputVolume : %lf", self.audioSession.outputVolume];
     
     [string appendString:@"\n"];
+    [string appendFormat:@"inputNumberOfChannels : %ld", self.audioSession.inputNumberOfChannels];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"outputNumberOfChannels : %ld", self.audioSession.outputNumberOfChannels];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"supportsMultichannelContent : %d", self.audioSession.supportsMultichannelContent];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"supportedOutputChannelLayouts count : %ld", self.audioSession.supportedOutputChannelLayouts.count];
+    
+    [string appendString:@"\n"];
     [string appendFormat:@"currentRoute : %p (inputs : %ld, outputs : %ld)", self.audioSession.currentRoute, self.audioSession.currentRoute.inputs.count, self.audioSession.currentRoute.outputs.count];
+    
+//    if (self.audioSession.currentRoute.inputs.count > 0) {
+//        NSMutableArray<AVAudioSessionPort> *ports = [[NSMutableArray alloc] initWithCapacity:self.audioSession.currentRoute.inputs.count];
+//        
+//        for (AVAudioSessionPortDescription *desc in self.audioSession.currentRoute.inputs) {
+//            [ports addObject:desc.portType];
+//        }
+//        
+//        [string appendString:@"\n"];
+//        [string appendFormat:@"Input Port Types : %@", [ports componentsJoinedByString:@", "]];
+//        [ports release];
+//    }
+//    
+//    if (self.audioSession.currentRoute.outputs.count > 0) {
+//        NSMutableArray<AVAudioSessionPort> *ports = [[NSMutableArray alloc] initWithCapacity:self.audioSession.currentRoute.outputs.count];
+//        
+//        for (AVAudioSessionPortDescription *desc in self.audioSession.currentRoute.outputs) {
+//            [ports addObject:desc.portType];
+//        }
+//        
+//        [string appendString:@"\n"];
+//        [string appendFormat:@"Output Port Types : %@", [ports componentsJoinedByString:@", "]];
+//        [ports release];
+//    }
     
     BOOL isSpatialAudioEnabled = NO;
     for (AVAudioSessionPortDescription *output in self.audioSession.currentRoute.outputs) {

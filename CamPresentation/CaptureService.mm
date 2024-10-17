@@ -23,6 +23,7 @@
 #warning 녹화할 때 connection에 audio도 추가해야함
 
 #warning AVCaptureFileOutput.maxRecordedDuration
+#warning KVO에서 is 제거
 
 NSNotificationName const CaptureServiceDidAddDeviceNotificationName = @"CaptureServiceDidAddDeviceNotificationName";
 NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"CaptureServiceDidRemoveDeviceNotificationName";
