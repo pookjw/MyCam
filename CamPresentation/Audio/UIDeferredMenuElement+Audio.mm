@@ -9,6 +9,7 @@
 #import <CamPresentation/NSStringFromAVAudioSessionRouteSharingPolicy.h>
 #import <CamPresentation/NSStringFromAVAudioSessionCategoryOptions.h>
 #import <CamPresentation/NSStringFromAVAudioStereoOrientation.h>
+#import <CamPresentation/NSStringFromAVAudioSessionPortOverride.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/AudioSessionInfoView.h>
 #import <CamPresentation/VolumeSlider.h>
@@ -57,6 +58,7 @@
             UIMenu *numberOfChannelsSteppersMenuWithAudioSession = [UIDeferredMenuElement _cp_numberOfChannelsSteppersMenuWithAudioSession:audioSession];
             UIAction *setSupportsMultichannelContentWithAudioSession = [UIDeferredMenuElement _cp_setSupportsMultichannelContentActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *currentRouteMenu = [UIDeferredMenuElement _cp_currentRouteMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *overrideOutputAudioPortMenu = [UIDeferredMenuElement _cp_overrideOutputAudioPortMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -82,7 +84,8 @@
                 volumeControlsMenu,
                 numberOfChannelsSteppersMenuWithAudioSession,
                 setSupportsMultichannelContentWithAudioSession,
-                currentRouteMenu
+                currentRouteMenu,
+                overrideOutputAudioPortMenu
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -857,6 +860,22 @@
     
     //
     
+    UIAction *orientationAction = [UIAction actionWithTitle:@"Orientation"
+                                                      image:nil
+                                                 identifier:nil
+                                                    handler:^(__kindof UIAction * _Nonnull action) {}];
+    orientationAction.subtitle = dataSource.orientation;
+    orientationAction.attributes = UIMenuElementAttributesDisabled;
+    
+    UIAction *locationAction = [UIAction actionWithTitle:@"Location"
+                                                   image:nil
+                                              identifier:nil
+                                                 handler:^(__kindof UIAction * _Nonnull action) {}];
+    locationAction.subtitle = dataSource.location;
+    locationAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
     UIAction *toggleAction = [UIAction actionWithTitle:@"Toggle" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         tggleHandler();
     }];
@@ -864,6 +883,8 @@
     UIMenu *menu = [UIMenu menuWithTitle:dataSource.dataSourceName
                                 children:@[
         polarPatternsMenu,
+        orientationAction,
+        locationAction,
         toggleAction
     ]];
     menu.subtitle = subtitle;
@@ -1057,7 +1078,40 @@
     return menu;
 }
 
-//+ (UIMenu *)_cp_
++ (std::vector<AVAudioSessionPortOverride>)_cp_allPortOverridesVector {
+    return {
+        AVAudioSessionPortOverrideNone,
+        AVAudioSessionPortOverrideSpeaker
+    };
+}
+
++ (UIMenu *)_cp_overrideOutputAudioPortMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    auto actionsVec = [UIDeferredMenuElement _cp_allPortOverridesVector]
+    | std::views::transform([audioSession, didChangeHandler](AVAudioSessionPortOverride portOverride) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVAudioSessionPortOverride(portOverride)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession overrideOutputAudioPort:portOverride error:&error];
+                assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Override Audio Port" children:actions];
+    [actions release];
+    
+    return menu;
+}
 
 // AVAusioApplication Mute
 //+ (UIAction * _Nonnull)
