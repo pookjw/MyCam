@@ -11,6 +11,7 @@
 #import <CamPresentation/NSStringFromAVAudioStereoOrientation.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/AudioSessionInfoView.h>
+#import <CamPresentation/VolumeSlider.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
@@ -54,6 +55,7 @@
             __kindof UIMenuElement *setInputGainElement = [UIDeferredMenuElement _cp_audioSessionSetInputGainElementWithAudioSession:audioSession];
             __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:audioSession];
             __kindof UIMenuElement *audioSessionVolumeViewElement = [UIDeferredMenuElement _cp_audioSessionVolumeViewElement];
+            __kindof UIMenuElement *volumeSliderElement = [UIDeferredMenuElement _cp_audioSessionVolumeSliderElement];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -78,7 +80,8 @@
                 setPreferredSampleRateElement,
                 setInputGainElement,
                 setPreferredIOBufferDurationElement,
-                audioSessionVolumeViewElement
+                audioSessionVolumeViewElement,
+                volumeSliderElement
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -805,6 +808,15 @@
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         MPVolumeView *volumeView = [MPVolumeView new];
         return [volumeView autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_audioSessionVolumeSliderElement {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        VolumeSlider *volumeSlider = [VolumeSlider new];
+        return [volumeSlider autorelease];
     });
     
     return element;

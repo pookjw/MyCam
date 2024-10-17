@@ -19,6 +19,7 @@
 @end
 
 @implementation VolumeSlider
+@synthesize volumeController = _volumeController;
 
 + (void)load {
     Protocol *MPVolumeControllerDelegate = NSProtocolFromString(@"MPVolumeControllerDelegate");
@@ -30,9 +31,29 @@
     assert(class_addProtocol(self, MPVolumeDisplaying));
 }
 
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        
+    }
+    
+    return self;
+}
+
+- (void)dealloc {
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(_volumeController, sel_registerName("setDelegate:"), nil);
+    [_volumeController release];
+    
+    [super dealloc];
+}
+
 - (id)volumeController {
-//    if (auto volumeController = _volumeController) return volumeController;
-    abort();
+    if (id volumeController = _volumeController) return volumeController;
+    
+    id volumeController = [objc_lookUpClass("MPVolumeController") new];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(volumeController, sel_registerName("setDelegate:"), self);
+    
+    _volumeController = [volumeController retain];
+    return [volumeController autorelease];
 }
 
 - (float)maximumValue {
@@ -46,6 +67,71 @@
 - (void)setValue:(float)value animated:(BOOL)animated {
     reinterpret_cast<void (*)(id, SEL, float, BOOL)>(objc_msgSend)(self.volumeController, sel_registerName("setVolume:withNotificationDelay:"), value, animated);
     [super setValue:value animated:animated];
+}
+
+- (BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event {
+    if (self.isEnabled) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.volumeController, sel_registerName("setMuted:"), NO);
+    }
+    
+    return [super beginTrackingWithTouch:touch withEvent:event];
+}
+
+- (BOOL)continueTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event {
+    [self _commitVolumeChange];
+    return [super continueTrackingWithTouch:touch withEvent:event];
+}
+
+- (void)endTrackingWithTouch:(UITouch *)touch withEvent:(UIEvent *)event {
+    [self _commitVolumeChange];
+    [super endTrackingWithTouch:touch withEvent:event];
+}
+
+- (void)cancelTrackingWithEvent:(UIEvent *)event {
+    [self _commitVolumeChange];
+    [super cancelTrackingWithEvent:event];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    
+    id controller = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("MPVolumeHUDController"), sel_registerName("sharedInstance"));
+    
+    if (self.window == nil) {
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(controller, sel_registerName("removeVolumeDisplay:"), self);
+    } else {
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(controller, sel_registerName("addVolumeDisplay:"), self);
+    }
+}
+
+- (void)setAlpha:(CGFloat)alpha {
+    [super setAlpha:alpha];
+    id controller = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("MPVolumeHUDController"), sel_registerName("sharedInstance"));
+    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controller, sel_registerName("setNeedsUpdate"));
+}
+
+- (void)setHidden:(BOOL)hidden {
+    [super setHidden:hidden];
+    id controller = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("MPVolumeHUDController"), sel_registerName("sharedInstance"));
+    reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(controller, sel_registerName("setNeedsUpdate"));
+}
+
+- (void)_commitVolumeChange {
+    reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(self.volumeController, sel_registerName("setVolumeValue:"), self.value);
+    [self sendActionsForControlEvents:UIControlEventValueChanged];
+}
+
+- (void)_updateVolumeAnimated:(BOOL)animated silenceVolumeHUD:(BOOL)silenceVolumeHUD {
+    id volumeController = self.volumeController;
+    
+    BOOL isVolumeControlAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(volumeController, sel_registerName("isVolumeControlAvailable"));
+    self.enabled = isVolumeControlAvailable;
+    
+    float volumeValue = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(volumeController, sel_registerName("volumeValue"));
+    
+    if (self.value != volumeValue) {
+        [self sendActionsForControlEvents:UIControlEventValueChanged];
+    }
 }
 
 
