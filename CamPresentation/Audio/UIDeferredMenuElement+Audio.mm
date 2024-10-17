@@ -11,6 +11,7 @@
 #import <CamPresentation/NSStringFromAVAudioStereoOrientation.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/AudioSessionInfoView.h>
+#import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -49,6 +50,10 @@
             UIAction *setPrefersNoInterruptionsFromSystemAlertsAction = [UIDeferredMenuElement _cp_audioSessionSetPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *setPrefersInterruptionOnRouteDisconnectAction = [UIDeferredMenuElement _cp_audioSessionSetPrefersInterruptionOnRouteDisconnectActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *inputOrientationsMenu = [UIDeferredMenuElement _cp_audioSessionInputOrientationsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            __kindof UIMenuElement *setPreferredSampleRateElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredSampleRateElementWithAudioSession:audioSession];
+            __kindof UIMenuElement *setInputGainElement = [UIDeferredMenuElement _cp_audioSessionSetInputGainElementWithAudioSession:audioSession];
+            __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:audioSession];
+            __kindof UIMenuElement *audioSessionVolumeViewElement = [UIDeferredMenuElement _cp_audioSessionVolumeViewElement];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -69,7 +74,11 @@
                 prepareRouteSelectionForPlaybackAction,
                 setPrefersNoInterruptionsFromSystemAlertsAction,
                 setPrefersInterruptionOnRouteDisconnectAction,
-                inputOrientationsMenu
+                inputOrientationsMenu,
+                setPreferredSampleRateElement,
+                setInputGainElement,
+                setPreferredIOBufferDurationElement,
+                audioSessionVolumeViewElement
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -657,6 +666,148 @@
     menu.subtitle = NSStringFromAVAudioStereoOrientation(inputOrientation);
     
     return menu;
+}
+
+#warning TODO -setPreferredInputSampleRate:, -setPreferredOutputSampleRate:
++ (__kindof UIMenuElement * _Nonnull)_cp_audioSessionSetPreferredSampleRateElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.001;
+        label.text = [NSString stringWithFormat:@"preferredSampleRate : %f", audioSession.preferredSampleRate];
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 8000.f;
+        slider.maximumValue = 48000.f;
+        slider.value = audioSession.preferredSampleRate;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = [NSString stringWithFormat:@"preferredSampleRate : %f", value];;
+            
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setPreferredSampleRate:value error:&error];
+                assert(error == nil);
+            });
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
+        [label release];
+        [slider release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_audioSessionSetInputGainElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.001;
+        label.text = [NSString stringWithFormat:@"inputGain : %lf", audioSession.inputGain];
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = audioSession.inputGain;
+        slider.continuous = YES;
+        slider.enabled = audioSession.isInputGainSettable;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = [NSString stringWithFormat:@"inputGain : %lf", value];
+            
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setInputGain:value error:&error];
+                NSLog(@"%lf", audioSession.inputGain);
+                assert(error == nil);
+            });
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
+        [label release];
+        [slider release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_audioSessionSetPreferredIOBufferDurationElementWithAudioSession:(AVAudioSession *)audioSession {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.001;
+        label.text = [NSString stringWithFormat:@"preferredIOBufferDuration : %lf", audioSession.preferredIOBufferDuration];
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = audioSession.preferredIOBufferDuration;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = [NSString stringWithFormat:@"preferredIOBufferDuration : %lf", value];
+            
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setPreferredIOBufferDuration:value error:&error];
+                NSLog(@"%lf", audioSession.inputGain);
+                assert(error == nil);
+            });
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
+        [label release];
+        [slider release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_audioSessionVolumeViewElement {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        MPVolumeView *volumeView = [MPVolumeView new];
+        return [volumeView autorelease];
+    });
+    
+    return element;
 }
 
 // AVAusioApplication Mute

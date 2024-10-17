@@ -1571,6 +1571,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRuntimeErrorNotification:) name:AVCaptureSessionRuntimeErrorNotification object:captureSession];
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
+    captureSession.automaticallyConfiguresApplicationAudioSession = NO;
     
     if (captureSessionClass == AVCaptureSession.class) {
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;

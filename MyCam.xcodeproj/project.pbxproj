@@ -29,6 +29,7 @@
 		4FA73EB72C9975E300F17348 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB52C9975E300F17348 /* Photos.framework */; };
 		4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB62C9975E300F17348 /* PhotosUI.framework */; };
 		4FA73EBA2C99764100F17348 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB92C99764100F17348 /* CoreImage.framework */; };
+		4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FB474792CC0BD80003E8507 /* MediaPlayer.framework */; };
 		4FD57C3F2C9AC4A50016FBF0 /* Symbols.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */; };
 		4FED1ACD2C997BC000174044 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACC2C997BC000174044 /* CoreGraphics.framework */; };
 		4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACE2C997E0B00174044 /* QuartzCore.framework */; };
@@ -138,6 +139,7 @@
 		4FA73EB52C9975E300F17348 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/Photos.framework; sourceTree = DEVELOPER_DIR; };
 		4FA73EB62C9975E300F17348 /* PhotosUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PhotosUI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/PhotosUI.framework; sourceTree = DEVELOPER_DIR; };
 		4FA73EB92C99764100F17348 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreImage.framework; sourceTree = DEVELOPER_DIR; };
+		4FB474792CC0BD80003E8507 /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/MediaPlayer.framework; sourceTree = DEVELOPER_DIR; };
 		4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Symbols.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/Symbols.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1ACC2C997BC000174044 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1ACE2C997E0B00174044 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
@@ -173,6 +175,8 @@
 				Audio/AudioSessionInfoView.mm,
 				"Audio/UIDeferredMenuElement+Audio.h",
 				"Audio/UIDeferredMenuElement+Audio.mm",
+				Audio/VolumeSlider.h,
+				Audio/VolumeSlider.mm,
 				"AVCaptureSession+CP_Private.h",
 				"AVCaptureSession+CP_Private.mm",
 				CameraRootViewController.h,
@@ -251,6 +255,7 @@
 			privateHeaders = (
 				Audio/AudioSessionInfoView.h,
 				"Audio/UIDeferredMenuElement+Audio.h",
+				Audio/VolumeSlider.h,
 				"AVCaptureSession+CP_Private.h",
 				"CaptureDevices/UIDeferredMenuElement+CaptureDevices.h",
 				CaptureService.h,
@@ -374,6 +379,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */,
+				4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
 				4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */,
 				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
@@ -428,6 +434,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4FB474792CC0BD80003E8507 /* MediaPlayer.framework */,
 				4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */,
 				4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */,
 				4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */,

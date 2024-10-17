@@ -54,6 +54,12 @@
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSpatialPlaybackCapabilitiesChangedNotification:) name:AVAudioSessionSpatialPlaybackCapabilitiesChangedNotification object:audioSession];
         
         [audioSession addObserver:self forKeyPath:@"promptStyle" options:NSKeyValueObservingOptionNew context:nil];
+        [audioSession addObserver:self forKeyPath:@"sampleRate" options:NSKeyValueObservingOptionNew context:nil];
+        
+        // KVO 되나?
+        [audioSession addObserver:self forKeyPath:@"IOBufferDuration" options:NSKeyValueObservingOptionNew context:nil];
+        
+        [audioSession addObserver:self forKeyPath:@"outputVolume" options:NSKeyValueObservingOptionNew context:nil];
         
         [self updateLabel];
     }
@@ -64,6 +70,7 @@
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_audioSession removeObserver:self forKeyPath:@"promptStyle"];
+    [_audioSession removeObserver:self forKeyPath:@"sampleRate"];
     [_audioSession release];
     [_label release];
     [_routeChangeReasonNumber release];
@@ -75,6 +82,21 @@
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isEqual:self.audioSession]) {
         if ([keyPath isEqualToString:@"promptStyle"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateLabel];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"sampleRate"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateLabel];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"IOBufferDuration"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateLabel];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"outputVolume"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self updateLabel];
             });
@@ -152,6 +174,21 @@
     
     [string appendString:@"\n"];
     [string appendFormat:@"secondaryAudioShouldBeSilencedHint : %d", self.audioSession.secondaryAudioShouldBeSilencedHint];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"sampleRate : %lf", self.audioSession.sampleRate];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"IOBufferDuration : %lf", self.audioSession.IOBufferDuration];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"inputLatency : %lf", self.audioSession.inputLatency];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"outputLatency : %lf", self.audioSession.outputLatency];
+    
+    [string appendString:@"\n"];
+    [string appendFormat:@"outputVolume : %lf", self.audioSession.outputVolume];
     
     [string appendString:@"\n"];
     [string appendFormat:@"currentRoute : %p (inputs : %ld, outputs : %ld)", self.audioSession.currentRoute, self.audioSession.currentRoute.inputs.count, self.audioSession.currentRoute.outputs.count];
