@@ -25,7 +25,6 @@
 #warning AVCaptureFileOutput.maxRecordedDuration
 #warning KVO에서 is 제거
 
-AVF_EXPORT AVMediaType const AVCaptureSessionPresetVoicemailGreeting;
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
 AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
