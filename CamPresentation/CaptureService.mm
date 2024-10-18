@@ -1572,6 +1572,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = NO;
+#warning configuresApplicationAudioSessionToMixWithOthers
     
     if (captureSessionClass == AVCaptureSession.class) {
         captureSession.sessionPreset = AVCaptureSessionPresetPhoto;

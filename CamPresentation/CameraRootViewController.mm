@@ -13,7 +13,7 @@
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 #import <CamPresentation/UIDeferredMenuElement+Audio.h>
-#import <CamPresentation/UIDeferredMenuElement+SessionPresets.h>
+#import <CamPresentation/UIDeferredMenuElement+CaptureSession.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -46,7 +46,7 @@
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *sessionPresetBarButton;
+@property (retain, nonatomic, readonly) UIBarButtonItem *captureSessionBarButton;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @end
@@ -68,7 +68,7 @@
 @synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize audioBarButtonItem = _audioBarButtonItem;
-@synthesize sessionPresetBarButton = _sessionPresetBarButton;
+@synthesize captureSessionBarButton = _captureSessionBarButton;
 
 + (void *)availablePhotoPixelFormatTypesKey {
     static void *key = &key;
@@ -118,7 +118,7 @@
     [_adjustingFocusActivityIndicatorView release];
     [_adjustingFocusBarButtonItem release];
     [_audioBarButtonItem release];
-    [_sessionPresetBarButton release];
+    [_captureSessionBarButton release];
     
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
@@ -227,7 +227,7 @@
         self.photosBarButtonItem,
         self.audioBarButtonItem,
         self.fileOutputsBarButtonItem,
-        self.sessionPresetBarButton,
+        self.captureSessionBarButton,
         self.continuityDevicePickerBarButtonItem,
         self.captureDevicesBarButtonItem
     ];
@@ -235,7 +235,7 @@
     [self setToolbarItems:@[
         self.photosBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
-        self.sessionPresetBarButton,
+        self.captureSessionBarButton,
         self.audioBarButtonItem,
         self.fileOutputsBarButtonItem,
         self.captureDevicesBarButtonItem
@@ -452,17 +452,18 @@
     return [audioBarButtonItem autorelease];
 }
 
-- (UIBarButtonItem *)sessionPresetBarButton {
-    if (auto sessionPresetBarButton = _sessionPresetBarButton) return sessionPresetBarButton;
+- (UIBarButtonItem *)captureSessionBarButton {
+    if (auto captureSessionBarButton = _captureSessionBarButton) return captureSessionBarButton;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_sessionPresetsElementWithCaptureService:self.captureService didChangeHandler:nil]
+        [UIDeferredMenuElement cp_captureSessionConfigurationElementWithCaptureService:self.captureService didChangeHandler:nil]
     ]];
     
-    UIBarButtonItem *sessionPresetBarButton = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"tray.2"] menu:menu];
+    UIBarButtonItem *captureSessionBarButton = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"camera.badge.ellipsis.fill"] menu:menu];
     
-    _sessionPresetBarButton = [sessionPresetBarButton retain];
-    return [sessionPresetBarButton autorelease];
+    _captureSessionBarButton = [captureSessionBarButton retain];
+    return [captureSessionBarButton autorelease];
+    
 }
 
 - (CaptureService *)captureService {
