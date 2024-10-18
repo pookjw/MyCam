@@ -2374,15 +2374,8 @@
                 if (connectedMovileFileOutput == nil) {
                     [captureService queue_connectAudioDevice:audioDevice withMovieFileOutput:movieFileOutput];
                 } else {
-                    assert([connectedMovileFileOutput isEqual:movieFileOutput]);
-                    
-                    __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
-                    AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
-                    assert(connection != nil);
-                    
-                    [captureSession beginConfiguration];
-                    [captureSession removeConnection:connection];
-                    [captureSession commitConfiguration];
+                    assert([connectedMovileFileOutput isEqual:movieFileOutput]); // check nil
+                    [captureService queue_disconnectAudioDevice:audioDevice fromMovieFileOutput:movieFileOutput];
                 }
                 
                 if (didChangeHandler) didChangeHandler();

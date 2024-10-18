@@ -644,7 +644,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     //
     
     AVCaptureMovieFileOutput *movieFileOutput = [AVCaptureMovieFileOutput new];
-    assert([captureSession canAddOutput:movieFileOutput]);
+    NSString *reason = nil;
+    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddOutput:failureReason:"), movieFileOutput, &reason));
     [captureSession addOutputWithNoConnections:movieFileOutput];
     
     AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
@@ -862,6 +863,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [connection release];
     
     [captureSession commitConfiguration];
+    
+    [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
 }
 
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -870,11 +873,32 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     assert([self.queue_addedCaptureDevices containsObject:captureDevice]);
     
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
-#warning TODO : Removing Audio Device
+
+    if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+        [self _queue_removeVideoCaptureDevice:captureDevice];
+        return;
+    }
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    
+    if ([allAudioDeviceTypes containsObject:captureDevice.deviceType]) {
+        [self _queue_removeAudioCaptureDevice:captureDevice];
+        return;
+    }
+    
+    abort();
+}
+
+- (void)_queue_removeVideoCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert(captureDevice != nil);
+    NSLog(@"%@", self.queue_addedVideoCaptureDevices);
+    assert([self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
+    
+    NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
     [self unregisterObserversForVideoCaptureDevice:captureDevice];
-    
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     assert(captureSession != nil);
@@ -884,86 +908,72 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureSession beginConfiguration];
     
     AVCaptureDeviceInput *deviceInput = nil;
-    for (__kindof AVCaptureInput *input in captureSession.inputs) {
-        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
-            AVCaptureDevice *oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
-            if ([captureDevice isEqual:oldCaptureDevice]) {
-                deviceInput = input;
-                break;
-            }
+    for (AVCaptureDeviceInput *input in captureSession.inputs) {
+        if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+        
+        AVCaptureDevice *oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+        if ([captureDevice isEqual:oldCaptureDevice]) {
+            deviceInput = input;
+            break;
         }
     }
     assert(deviceInput != nil);
     
-    NSMutableArray<AVCaptureConnection *> *removingConnections = [NSMutableArray new];
-    AVCapturePhotoOutput *photoOutput = nil;
-    AVCaptureMovieFileOutput *movieFileOutput = nil;
-    AVCaptureVideoDataOutput *videoDataOutput = nil;
-    AVCaptureDepthDataOutput * _Nullable depthDataOutput = nil;
-    for (__kindof AVCaptureConnection *connection in captureSession.connections) {
+    for (AVCaptureConnection *connection in captureSession.connections) {
+        BOOL doesInputMatch = NO;
         for (AVCaptureInputPort *inputPort in connection.inputPorts) {
             if ([inputPort.input isEqual:deviceInput]) {
-                [removingConnections addObject:connection];
-                
-                if (connection.output != nil) {
-                    if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
-                        assert(photoOutput == nil);
-                        photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
-                    } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                        assert(movieFileOutput == nil);
-                        movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
-                    } else if ([connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
-                        assert(videoDataOutput == nil);
-                        videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(connection.output);
-                    } else if ([connection.output isKindOfClass:AVCaptureDepthDataOutput.class]) {
-                        assert(depthDataOutput == nil);
-                        depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(connection.output);
-                    } else {
-                        abort();
-                    }
-                }
-                
+                doesInputMatch = YES;
                 break;
             }
         }
-    }
-    assert(photoOutput != nil);
-    assert(movieFileOutput != nil);
-    assert(videoDataOutput != nil);
-    
-    [self unregisterObserversForPhotoOutput:photoOutput];
-    
-    if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
-        [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
-        [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
-    } else {
-        abort();
-    }
-    
-    if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
-        readinessCoordinator.delegate = nil;
-        [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
-    } else {
-        abort();
+        if (!doesInputMatch) continue;
+        
+        //
+        
+        [captureSession removeConnection:connection];
+        
+        if (connection.videoPreviewLayer != nil) {
+            connection.videoPreviewLayer.session = nil;
+        } else if (connection.output != nil) {
+            if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
+                auto photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
+                
+                [self unregisterObserversForPhotoOutput:photoOutput];
+                
+                if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
+                    [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
+                    [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
+                } else {
+                    abort();
+                }
+                
+                if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
+                    readinessCoordinator.delegate = nil;
+                    [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
+                } else {
+                    abort();
+                }
+                
+                [captureSession removeOutput:photoOutput];
+            } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                [captureSession removeOutput:connection.output];
+            } else if ([connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                [captureSession removeOutput:connection.output];
+            } else if ([connection.output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                [captureSession removeOutput:connection.output];
+            } else {
+                abort();
+            }
+        } else {
+            abort();
+        }
     }
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
     
-    for (AVCaptureConnection *connection in removingConnections) {
-        [captureSession removeConnection:connection];
-        connection.videoPreviewLayer.session = nil;
-    }
-    [removingConnections release];
-    
-    [captureSession removeOutput:photoOutput];
-    [captureSession removeOutput:movieFileOutput];
-    [captureSession removeOutput:videoDataOutput];
-    if (videoDataOutput) {
-        [captureSession removeOutput:depthDataOutput];
-    }
     [captureSession removeInput:deviceInput];
-    
     [captureSession commitConfiguration];
     
     //
@@ -993,6 +1003,65 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
     [self queue_postDidUpdatePreviewLayersNotification];
+}
+
+- (void)_queue_removeAudioCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert(captureDevice != nil);
+    assert([self.queue_addedAudioCaptureDevices containsObject:captureDevice]);
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    assert([allAudioDeviceTypes containsObject:captureDevice.deviceType]);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    [captureSession beginConfiguration];
+    
+    AVCaptureDeviceInput *deviceInput = nil;
+    for (AVCaptureDeviceInput *input in captureSession.inputs) {
+        if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+        
+        AVCaptureDevice *oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+        if ([captureDevice isEqual:oldCaptureDevice]) {
+            deviceInput = input;
+            break;
+        }
+    }
+    assert(deviceInput != nil);
+    
+    for (AVCaptureConnection *connection in captureSession.connections) {
+        BOOL doesInputMatch = NO;
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if ([inputPort.input isEqual:deviceInput]) {
+                doesInputMatch = YES;
+                break;
+            }
+        }
+        if (!doesInputMatch) continue;
+        
+        //
+        
+        [captureSession removeConnection:connection];
+        
+        if (connection.videoPreviewLayer != nil) {
+            connection.videoPreviewLayer.session = nil;
+        } else if (connection.output != nil) {
+            if ([connection.output isKindOfClass:AVCaptureAudioDataOutput.class]) {
+                [captureSession removeOutput:connection.output];
+            } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                // Video Devide Input과 연결되어 있을 것이기에 Output을 제거하면 안 됨
+            } else {
+                abort();
+            }
+        } else {
+            abort();
+        }
+    }
+    
+    [captureSession removeInput:deviceInput];
+    [captureSession commitConfiguration];
+    
+    [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
 }
 
 - (PhotoFormatModel *)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1176,6 +1245,18 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureSession addConnection:connection];
     [connection release];
     
+    [captureSession commitConfiguration];
+}
+
+- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
+    assert(connection != nil);
+    
+    [captureSession beginConfiguration];
+    [captureSession removeConnection:connection];
     [captureSession commitConfiguration];
 }
 
