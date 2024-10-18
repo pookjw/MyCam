@@ -111,8 +111,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
         
-        [AVAudioSession.sharedInstance addObserver:self forKeyPath:@"isActive" options:NSKeyValueObservingOptionNew context:nil];
-        
         //
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveCaptureDeviceWasDisconnectedNotification:) name:AVCaptureDeviceWasDisconnectedNotification object:nil];
@@ -1572,6 +1570,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRuntimeErrorNotification:) name:AVCaptureSessionRuntimeErrorNotification object:captureSession];
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
+    captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = NO;
     
     if (captureSessionClass == AVCaptureSession.class) {

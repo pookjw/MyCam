@@ -10,6 +10,7 @@
 #import <CamPresentation/NSStringFromAVAudioSessionCategoryOptions.h>
 #import <CamPresentation/NSStringFromAVAudioStereoOrientation.h>
 #import <CamPresentation/NSStringFromAVAudioSessionPortOverride.h>
+#import <CamPresentation/NSStringFromAVAudioSessionIOType.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/AudioSessionInfoView.h>
 #import <CamPresentation/VolumeSlider.h>
@@ -32,6 +33,7 @@
 + (instancetype)cp_audioElementWithCaptureService:(CaptureService *)captureService didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            // auxiliarySession primarySession
             AVAudioSession *audioSession = AVAudioSession.sharedInstance;
             
             UIMenu *categoriesMenu = [UIDeferredMenuElement _cp_categoriesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
@@ -59,6 +61,7 @@
             UIAction *setSupportsMultichannelContentWithAudioSession = [UIDeferredMenuElement _cp_setSupportsMultichannelContentActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *currentRouteMenu = [UIDeferredMenuElement _cp_currentRouteMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *overrideOutputAudioPortMenu = [UIDeferredMenuElement _cp_overrideOutputAudioPortMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIMenu *aggregatedIOPreferenceMenu = [UIDeferredMenuElement _cp_aggregatedIOPreferenceMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -85,7 +88,8 @@
                 numberOfChannelsSteppersMenuWithAudioSession,
                 setSupportsMultichannelContentWithAudioSession,
                 currentRouteMenu,
-                overrideOutputAudioPortMenu
+                overrideOutputAudioPortMenu,
+                aggregatedIOPreferenceMenu
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -1108,6 +1112,42 @@
     NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Override Audio Port" children:actions];
+    [actions release];
+    
+    return menu;
+}
+
++ (std::vector<AVAudioSessionIOType>)_cp_allIOTypes {
+    return {
+        AVAudioSessionIOTypeNotSpecified,
+        AVAudioSessionIOTypeAggregated
+    };
+}
+
+// https://developer.apple.com/documentation/avfaudio/avaudiosessioniotype?language=objc
++ (UIMenu *)_cp_aggregatedIOPreferenceMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    auto actionsVec = [UIDeferredMenuElement _cp_allIOTypes]
+    | std::views::transform([audioSession, didChangeHandler](AVAudioSessionIOType IOType) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVAudioSessionIOType(IOType)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(dispatch_get_global_queue(0, 0), ^{
+                NSError * _Nullable error = nil;
+                [audioSession setAggregatedIOPreference:IOType error:&error];
+                assert(error == nil);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Set Aggregated IO Preference" children:actions];
     [actions release];
     
     return menu;
