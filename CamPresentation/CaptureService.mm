@@ -1607,12 +1607,15 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     __kindof AVCaptureSession *currentCaptureSession = self.queue_captureSession;
     
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+    NSArray<AVCaptureDeviceType> *allPointCloudDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allPointCloudDeviceTypes"));
     
     NSUInteger numberOfMultipleInputDevices = 0;
     for (AVCaptureDeviceInput *input in self.queue_captureSession.inputs) {
         if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
         
         if ([allVideoDeviceTypes containsObject:input.device.deviceType]) {
+            numberOfMultipleInputDevices += 1;
+        } else if ([allPointCloudDeviceTypes containsObject:input.device.deviceType]) {
             numberOfMultipleInputDevices += 1;
         }
     }
@@ -1627,7 +1630,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 }
             } else if (numberOfMultipleInputDevices == 1) {
                 if (currentCaptureSession.class == AVCaptureSession.class) {
-                    return [self queue_switchCaptureSessionWithClass:AVCaptureMultiCamSession.class postNotification:NO];
+                    return [self queue_switchCaptureSessionWithClass:AVCaptureMultiCamSession.class postNotification:postNotification];
                 } else {
                     abort();
                 }
@@ -1639,7 +1642,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 }
             }
         } else {
-            return [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:NO];
+            return [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:postNotification];
         }
     } else {
         if (numberOfMultipleInputDevices == 0) {
@@ -1647,7 +1650,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             return currentCaptureSession;
         } else if (numberOfMultipleInputDevices == 1) {
             assert(currentCaptureSession.class == AVCaptureMultiCamSession.class);
-            return [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:NO];
+            return [self queue_switchCaptureSessionWithClass:AVCaptureSession.class postNotification:postNotification];
         } else {
             assert(currentCaptureSession.class == AVCaptureMultiCamSession.class);
             return currentCaptureSession;
