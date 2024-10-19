@@ -63,10 +63,6 @@
 
 - (void)updateWithCIImage:(CIImage *)ciImage rotationAngle:(float)rotationAngle fill:(BOOL)fill {
     [SVRunLoop.globalRenderRunLoop runBlock:^{
-        if (CGImageRef oldCGImage = _cgImageIsolated) {
-            CGImageRelease(oldCGImage);
-        }
-        
         CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(ciImage.extent), CGRectGetMidY(ciImage.extent)), rotationAngle * M_PI / 180.f), -1.f, 1.f);
         CIImage *rotatedCIImage = [ciImage imageByApplyingTransform:transform highQualityDownsample:NO];
         
@@ -74,8 +70,14 @@
         CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:rotatedCIImage fromRect:rotatedCIImage.extent];
         
         os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
+        
+        if (CGImageRef oldCGImage = _cgImageIsolated) {
+            CGImageRelease(oldCGImage);
+        }
+        
         _cgImageIsolated = cgImage;
         _fillIsolated = fill;
+        
         os_unfair_recursive_lock_unlock(&_lock);
         
         [self setNeedsDisplay];
@@ -84,16 +86,18 @@
 
 - (void)updateWithCIImage:(CIImage *)ciImage fill:(BOOL)fill {
     [SVRunLoop.globalRenderRunLoop runBlock:^{
-        if (CGImageRef oldCGImage = _cgImageIsolated) {
-            CGImageRelease(oldCGImage);
-        }
-        
         // retained
         CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:ciImage fromRect:ciImage.extent];
         
         os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
+        
+        if (CGImageRef oldCGImage = _cgImageIsolated) {
+            CGImageRelease(oldCGImage);
+        }
+        
         _cgImageIsolated = cgImage;
         _fillIsolated = fill;
+        
         os_unfair_recursive_lock_unlock(&_lock);
         
         [self setNeedsDisplay];
@@ -106,13 +110,15 @@
     [SVRunLoop.globalRenderRunLoop runBlock:^{
         CGImageRef cgImage = (CGImageRef)casted;
         
+        os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
+        
         if (CGImageRef oldCGImage = _cgImageIsolated) {
             CGImageRelease(oldCGImage);
         }
         
-        os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
         _cgImageIsolated = CGImageRetain(cgImage);
         _fillIsolated = fill;
+        
         os_unfair_recursive_lock_unlock(&_lock);
         
         [self setNeedsDisplay];

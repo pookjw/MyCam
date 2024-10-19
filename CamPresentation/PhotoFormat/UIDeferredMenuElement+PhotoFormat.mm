@@ -24,6 +24,10 @@
 #include <vector>
 #include <ranges>
 
+AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
+AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
+AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
+
 #warning AVSpatialOverCaptureVideoPreviewLayer
 #warning -[AVCaptureDevice isProResSupported]
 #warning videoMirrored
@@ -54,6 +58,8 @@
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_depthMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_visionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -1712,7 +1718,7 @@
 }
 
 + (UIMenu * _Nonnull)_cp_queue_depthMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
+    UIMenu *menu = [UIMenu menuWithTitle:@"Depth Map" children:@[
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_noDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
@@ -1794,15 +1800,19 @@
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_depthDataOutputFromCaptureDevice:captureDevice];
-    AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
-    assert((depthDataOutput == nil && connection == nil) || (depthDataOutput != nil && connection != nil));
     
-    BOOL isEnabled;
-    if (connection == nil) {
-        isEnabled = NO;
-    } else {
-        isEnabled = connection.isEnabled;
+    if (depthDataOutput == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"No Depth Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
     }
+    
+    AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+    BOOL isEnabled = [captureService queue_updatesDepthMapLayer:captureDevice];
     
     UIAction *action = [UIAction actionWithTitle:@"Depth Map Visibility" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
@@ -2405,6 +2415,100 @@
     }
     
     return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_visionMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Vision Data" children:@[
+        [UIDeferredMenuElement _cp_queue_visionDataDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_visionDataDeliveryNotSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleVisionVisibilityActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_visionLayerOpacitySliderElementWithCaptureService:captureService captureDevice:captureDevice]
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_visionDataDeliverySupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Formats Supported Vision Data Delivery"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVisionDataDeliverySupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_visionDataDeliveryNotSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Formats Supported Vision Data Delivery"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVisionDataDeliverySupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleVisionVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    __kindof AVCaptureOutput * _Nullable visionDataOutput = [captureService queue_visionDataOutputFromCaptureDevice:captureDevice];
+    
+    if (visionDataOutput == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"No Vision Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    AVCaptureConnection * _Nullable connection = [visionDataOutput connectionWithMediaType:AVMediaTypeVisionData];
+    BOOL isEnabled = [captureService queue_updatesVisionLayer:captureDevice];
+    
+    UIAction *action = [UIAction actionWithTitle:@"Vision Data Visibility" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setUpdatesVisionLayer:!isEnabled captureDevice:captureDevice];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    if (connection == nil) {
+        action.attributes = UIMenuElementAttributesDisabled;
+    } else {
+        action.state = isEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    }
+    
+    return action;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_visionLayerOpacitySliderElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof CALayer *layer = [captureService queue_visionLayerFromCaptureDevice:captureDevice];
+    
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        if (layer != nil) {
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 1.f;
+            slider.value = layer.opacity;
+            slider.continuous = YES;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                auto sender = static_cast<UISlider *>(action.sender);
+                layer.opacity = sender.value;
+            }];
+            
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        } else {
+            slider.enabled = NO;
+        }
+        
+        return [slider autorelease];
+    });
+    
+    return element;
 }
 
 @end

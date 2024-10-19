@@ -257,6 +257,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
+#warning activeDepthDataFormat를 옵저빙해도 되지 않나?
                 if ((captureDevice.activeFormat.supportedDepthDataFormats.count == 0) && ([self queue_depthDataOutputFromCaptureDevice:captureDevice] != nil)) {
                     [self queue_setUpdatesDepthMapLayer:NO captureDevice:captureDevice];
                 }
@@ -729,7 +730,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     //
     
-    // AVCaptureDepthDataOutput와 불가
+    // Depth를 전달하는 Device에서는 안 됨. 왜인지 모르겠음
+    // AVCaptureDepthDataOutput를 추가하지 않아도 안 됨
     if (visionDataInputPort != nil && depthDataInputPort == nil) {
         __kindof AVCaptureOutput *visionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(visionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
@@ -1294,6 +1296,28 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return nil;
 }
 
+- (__kindof AVCaptureOutput *)queue_visionDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        for (AVCaptureInputPort *port in connection.inputPorts) {
+            __kindof AVCaptureOutput *visionDataOutput = connection.output;
+            if (![visionDataOutput isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+                continue;
+            }
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
+            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                if ([deviceInput.device isEqual:captureDevice]) {
+                    return visionDataOutput;
+                }
+            }
+        }
+    }
+    
+    return nil;
+}
+
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];
@@ -1305,18 +1329,42 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
     assert(depthMapLayer != nil);
-    [depthMapLayer updateWithCIImage:nil rotationAngle:0.f];
+    [depthMapLayer updateWithCIImage:nil rotationAngle:0.f fill:NO];
 }
 
-//- (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice {
-//    dispatch_assert_queue(self.captureSessionQueue);
-//    AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];
-//    assert(depthDataOutput != nil);
-//    AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
-//    assert(connection != nil);
-//    
-//    return connection.isEnabled;
-//}
+- (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];
+    assert(depthDataOutput != nil);
+    AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
+    assert(connection != nil);
+    
+    return connection.isEnabled;
+}
+
+- (void)queue_setUpdatesVisionLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    __kindof AVCaptureOutput *visionDataOutput = [self queue_visionDataOutputFromCaptureDevice:captureDevice];
+    assert(visionDataOutput != nil);
+    AVCaptureConnection *connection = [visionDataOutput connectionWithMediaType:AVMediaTypeVisionData];
+    assert(connection != nil);
+    
+    connection.enabled = updatesDepthMapLayer;
+    
+    PixelBufferLayer *visionLayer = [self.queue_visionLayersByCaptureDevice objectForKey:captureDevice];
+    assert(visionLayer != nil);
+    [visionLayer updateWithCIImage:nil rotationAngle:0.f fill:NO];
+}
+
+- (BOOL)queue_updatesVisionLayer:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    __kindof AVCaptureOutput *visionDataOutput = [self queue_visionDataOutputFromCaptureDevice:captureDevice];
+    assert(visionDataOutput != nil);
+    AVCaptureConnection *connection = [visionDataOutput connectionWithMediaType:AVMediaTypeVisionData];
+    assert(connection != nil);
+    
+    return connection.isEnabled;
+}
 
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
@@ -1341,6 +1389,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (__kindof CALayer *)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
+}
+
+- (__kindof CALayer *)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [self.queue_visionLayersByCaptureDevice objectForKey:captureDevice];
 }
 
 - (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
