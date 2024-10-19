@@ -27,6 +27,7 @@
 #warning KVO에서 is 제거
 
 #warning AVCaptureMetadataOutput
+#warning AVCaptureMetadataInput - AVMediaTypeMetadataObject의 주석을 볼 것
 
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
@@ -54,7 +55,7 @@ NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationNam
 NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
 NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -682,6 +683,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     AVCaptureInputPort * _Nullable depthDataInputPort = [newInput portsWithMediaType:AVMediaTypeDepthData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable visionDataInputPort = [newInput portsWithMediaType:AVMediaTypeVisionData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable cameraCalibrationDataInputPort = [newInput portsWithMediaType:AVMediaTypeCameraCalibrationData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+    AVCaptureInputPort * _Nullable metadataObjectInputPort = [newInput portsWithMediaType:AVMediaTypeMetadataObject sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:captureVideoPreviewLayer];
     [captureSession addConnection:previewLayerConnection];
@@ -789,6 +791,26 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), calibrationDataOutputConnection, &reason));
         [captureSession addConnection:calibrationDataOutputConnection];
         [calibrationDataOutputConnection release];
+    }
+    
+    //
+    
+    if (metadataObjectInputPort != nil) {
+        AVCaptureMetadataOutput *metadataOutput = [AVCaptureMetadataOutput new];
+        [metadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
+        assert([captureSession canAddOutput:metadataOutput]);
+        [captureSession addOutputWithNoConnections:metadataOutput];
+        
+        AVCaptureConnection *metadataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataObjectInputPort] output:metadataOutput];
+        reason = nil;
+        assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), metadataOutputConnection, &reason));
+        [captureSession addConnection:metadataOutputConnection];
+        [metadataOutputConnection release];
+        
+#warning availableMetadataObjectTypes은 KVO을 지원하므로 KVO로 업데이트
+        metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+        
+        [metadataOutput release];
     }
     
     //
@@ -2654,7 +2676,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 - (void)cameraCalibrationDataOutput:(__kindof AVCaptureOutput *)output didOutputCameraCalibrationData:(AVCameraCalibrationData *)arg2 timestamp:(CMTime)arg3 connection:(AVCaptureConnection *)arg4 {
-    NSLog(@"%@", arg2);
+//    NSLog(@"%@", arg2);
+}
+
+
+#pragma mark - AVCaptureMetadataOutputObjectsDelegate
+
+- (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
+    NSLog(@"%@", metadataObjects);
 }
 
 @end
