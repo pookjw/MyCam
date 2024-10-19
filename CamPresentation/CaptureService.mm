@@ -627,8 +627,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [captureSession beginConfiguration];
     
-#warning TODO : activeFormat이 바뀔 때마다 처리해주기
-    
     NSError * _Nullable error = nil;
     AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
     assert(error == nil);
@@ -638,6 +636,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("isVisionDataDeliverySupported"))) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newInput, sel_registerName("setVisionDataDeliveryEnabled:"), YES);
     } else {
+        // TODO: activeFormat이 바뀔 때마다 처리해줘야 하나?
         [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(obj, sel_registerName("isVisionDataDeliverySupported"))) {
                 NSError * _Nullable error = nil;
