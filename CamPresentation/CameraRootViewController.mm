@@ -8,6 +8,7 @@
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
+#import <CamPresentation/PointCloudPreviewView.h>
 #import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
@@ -496,6 +497,11 @@
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didUpdatePointCloudLayersNotification:)
+                                               name:CaptureServiceDidUpdatePointCloudLayersNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didChangeCaptureReadinessNotification:)
                                                name:CaptureServiceDidChangeCaptureReadinessNotificationName
                                              object:captureService];
@@ -629,6 +635,50 @@
                 [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
+            }
+            
+            [stackView updateConstraintsIfNeeded];
+        });
+    });
+}
+
+- (void)didUpdatePointCloudLayersNotification:(NSNotification *)notification {
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        NSMapTable<AVCaptureDevice *,__kindof CALayer *> *pointCloudLayersByCaptureDeviceCopiedMapTable = captureService.queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIStackView *stackView = self.stackView;
+            
+            for (PointCloudPreviewView *pointCloudPreviewView in stackView.arrangedSubviews) {
+                if (![pointCloudPreviewView isKindOfClass:PointCloudPreviewView.class]) continue;
+                
+                AVCaptureDevice * _Nullable captureDevice = nil;
+                for (AVCaptureDevice * _captureDevice in pointCloudLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+                    CALayer *pointCloudLayer = [pointCloudLayersByCaptureDeviceCopiedMapTable objectForKey:_captureDevice];
+                    
+                    if ([pointCloudPreviewView.pointCloudLayer isEqual:pointCloudLayer]) {
+                        captureDevice = _captureDevice;
+                        break;
+                    }
+                }
+                
+                if (captureDevice != nil) {
+                    // 이미 존재하는 Layer
+                    [pointCloudLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureDevice];;
+                } else {
+                    // 삭제된 Layer - View 제거
+                    [pointCloudPreviewView removeFromSuperview];
+                }
+            }
+            
+            for (AVCaptureDevice * captureDevice in pointCloudLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+                CALayer *pointCloudLayer = [pointCloudLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+                
+                PointCloudPreviewView *pointCloudPreviewView = [[PointCloudPreviewView alloc] initWithPointCloudLayer:pointCloudLayer];
+                [stackView addArrangedSubview:pointCloudPreviewView];
+                [pointCloudPreviewView release];
             }
             
             [stackView updateConstraintsIfNeeded];

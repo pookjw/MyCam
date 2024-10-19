@@ -35,6 +35,7 @@ NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificatio
 NSString * const CaptureServiceCaptureDeviceKey = @"CaptureServiceCaptureDeviceKey";
 
 NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName = @"CaptureServiceDidUpdatePreviewLayersNotificationName";
+NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName = @"CaptureServiceDidUpdatePointCloudLayersNotificationName";
 
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
@@ -54,6 +55,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -95,6 +97,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         
         //
@@ -118,6 +121,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
         _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
+        _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
         
@@ -169,6 +173,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_readinessCoordinatorByCapturePhotoOutput release];
     [_queue_previewLayersByCaptureDevice release];
     [_queue_depthMapLayersByCaptureDevice release];
+    [_queue_pointCloudLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
@@ -558,6 +563,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return [[self.queue_depthMapLayersByCaptureDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_pointCloudLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_pointCloudLayersByCaptureDevice copy] autorelease];
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
@@ -814,7 +824,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [photoFormatModel release];
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
-    [self queue_postDidUpdatePreviewLayersNotification];
+    [self postDidUpdatePreviewLayersNotification];
 }
 
 - (void)_queue_addAudioCapureDevice:(AVCaptureDevice *)captureDevice {
@@ -908,7 +918,16 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [captureSession commitConfiguration];
     
+    //
+    
+    PixelBufferLayer *pointCloudLayer = [PixelBufferLayer new];
+    [self.queue_pointCloudLayersByCaptureDevice setObject:pointCloudLayer forKey:captureDevice];
+    [pointCloudLayer release];
+    
+    //
+    
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
+    [self postDidUpdatePointCloudLayersNotification];
 }
 
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1036,7 +1055,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     //
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
-    [self queue_postDidUpdatePreviewLayersNotification];
+    [self postDidUpdatePreviewLayersNotification];
 }
 
 - (void)_queue_removeAudioCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1148,8 +1167,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
     
+    [self.queue_pointCloudLayersByCaptureDevice removeObjectForKey:captureDevice];
+    
     [self queue_switchCaptureSessionByAddingDevice:NO postNotification:NO];
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
+    [self postDidUpdatePointCloudLayersNotification];
 }
 
 - (PhotoFormatModel *)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1549,11 +1571,18 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     }];
 }
 
-- (void)queue_postDidUpdatePreviewLayersNotification {
+- (void)postDidUpdatePreviewLayersNotification {
     dispatch_assert_queue(self.captureSessionQueue);
     
     // NSMapTable은 Thread-safe하지 않기에 다른 Thread에서 불릴 여지가 없어야 한다. 따라서 userInfo에 전달하지 않는다.
     [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidUpdatePreviewLayersNotificationName object:self userInfo:nil];
+}
+
+- (void)postDidUpdatePointCloudLayersNotification {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    // NSMapTable은 Thread-safe하지 않기에 다른 Thread에서 불릴 여지가 없어야 한다. 따라서 userInfo에 전달하지 않는다.
+    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidUpdatePointCloudLayersNotificationName object:self userInfo:nil];
 }
 
 - (void)postDidAddDeviceNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2120,7 +2149,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         }
         
         if (postNotification) {
-            [self queue_postDidUpdatePreviewLayersNotification];
+            [self postDidUpdatePreviewLayersNotification];
         }
         
         [captureSession commitConfiguration];
@@ -2389,11 +2418,30 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 #pragma mark - AVCapturePointCloudDataOutputDelegate
 
 - (void)pointCloudDataOutput:(__kindof AVCaptureOutput *)output didDropPointCloudData:(id)arg2 timestamp:(CMTime)arg3 connection:(AVCaptureConnection *)connection reason:(NSInteger)arg5 {
-    NSLog(@"%@", arg2);
+//    NSLog(@"%@", arg2);
 }
 
-- (void)pointCloudDataOutput:(__kindof AVCaptureOutput *)output didOutputPointCloudData:(id)arg2 timestamp:(CMTime)arg3 connection:(AVCaptureConnection *)connection {
+- (void)pointCloudDataOutput:(__kindof AVCaptureOutput *)output didOutputPointCloudData:(id)pointCloudData timestamp:(CMTime)arg3 connection:(AVCaptureConnection *)connection {
+    // CVDataBuffer
+//    CVBufferRef pointCloudDataBuffer = reinterpret_cast<CVPixelBufferRef (*)(id, SEL)>(objc_msgSend)(pointCloudData, sel_registerName("pointCloudDataBuffer"));
     
+    id jasperPointCloud = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(pointCloudData, sel_registerName("jasperPointCloud"));
+    CVImageBufferRef imageBuffer = reinterpret_cast<CVImageBufferRef (*)(id, SEL)>(objc_msgSend)(jasperPointCloud, sel_registerName("createVisualization"));
+    CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:imageBuffer options:@{kCIImageAuxiliaryDisparity: @YES}];
+    CVPixelBufferRelease(imageBuffer);
+    
+    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
+    PixelBufferLayer *pointCloudLayer = [self.queue_pointCloudLayersByCaptureDevice objectForKey:captureDevice];
+    [pointCloudLayer updateWithCIImage:ciImage rotationAngle:0.f];
+    [ciImage release];
+    
+    // CVImageBufferRef이 Leak 있어서 쓰면 안 됨
+//    CGImageRef cgImageRepresentation = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(jasperPointCloud, sel_registerName("cgImageRepresentation"));
+//    
+//    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
+//    PixelBufferLayer *pointCloudLayer = [self.queue_pointCloudLayersByCaptureDevice objectForKey:captureDevice];
+//    [pointCloudLayer updateWithCGImage:cgImageRepresentation];
+//    CGImageRelease(cgImageRepresentation);
 }
 
 @end

@@ -21,6 +21,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName
 CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName /* CaptureServiceCaptureDeviceKey */;
 
 CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName;
+CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName;
 
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
@@ -51,6 +52,7 @@ CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotifica
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;

@@ -253,6 +253,8 @@
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.mm",
 				PixelBufferLayer.h,
 				PixelBufferLayer.mm,
+				PointCloudPreviewView.h,
+				PointCloudPreviewView.mm,
 				SVRunLoop.hpp,
 				SVRunLoop.mm,
 				"UIMenuElement+CP_NumberOfLines.h",
@@ -298,6 +300,7 @@
 				PhotoFormat/PhotoFormatModel.h,
 				"PhotoFormat/UIDeferredMenuElement+PhotoFormat.h",
 				PixelBufferLayer.h,
+				PointCloudPreviewView.h,
 				SVRunLoop.hpp,
 				"UIMenuElement+CP_NumberOfLines.h",
 			);

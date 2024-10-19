@@ -84,6 +84,7 @@
     [_routeChangeReasonNumber release];
     [_interruptionOptionsNumber release];
     [_interruptionReasonNumber release];
+    [_interruptionTypeNumber release];
     [super dealloc];
 }
 

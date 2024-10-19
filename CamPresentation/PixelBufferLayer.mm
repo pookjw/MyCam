@@ -80,6 +80,24 @@
     }];
 }
 
+- (void)updateWithCGImage:(CGImageRef)cgImage {
+    id casted = (id)cgImage;
+    
+    [SVRunLoop.globalRenderRunLoop runBlock:^{
+        CGImageRef cgImage = (CGImageRef)casted;
+        
+        if (CGImageRef oldCGImage = _cgImageIsolated) {
+            CGImageRelease(oldCGImage);
+        }
+        
+        os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
+        _cgImageIsolated = CGImageRetain(cgImage);
+        os_unfair_recursive_lock_unlock(&_lock);
+        
+        [self setNeedsDisplay];
+    }];
+}
+
 - (void)drawInContext:(CGContextRef)ctx {
     CGImageRef cgImage;
     os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
