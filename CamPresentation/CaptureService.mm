@@ -257,11 +257,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
-#warning activeDepthDataFormat를 옵저빙해도 되지 않나?
-                if ((captureDevice.activeFormat.supportedDepthDataFormats.count == 0) && ([self queue_depthDataOutputFromCaptureDevice:captureDevice] != nil)) {
-                    [self queue_setUpdatesDepthMapLayer:NO captureDevice:captureDevice];
-                }
-                
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
             return;
@@ -277,6 +272,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             return;
         } else if ([keyPath isEqualToString:@"activeDepthDataFormat"]) {
             if (captureDevice != nil) {
+                if (captureDevice.activeDepthDataFormat == nil) {
+                    [self queue_setUpdatesDepthMapLayer:NO captureDevice:captureDevice];
+                }
+                
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
             return;

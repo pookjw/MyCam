@@ -2442,10 +2442,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu * _Nonnull)_cp_queue_visionDataDeliveryNotSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
                                                             captureDevice:captureDevice
-                                                                    title:@"Formats Supported Vision Data Delivery"
+                                                                    title:@"Formats Not Supported Vision Data Delivery"
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
-        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVisionDataDeliverySupported"));
+        return !reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVisionDataDeliverySupported"));
     }
                                                          didChangeHandler:didChangeHandler];
 }
