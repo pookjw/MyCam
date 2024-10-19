@@ -2458,6 +2458,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
         }];
         
+        if ([captureService queue_depthDataOutputFromCaptureDevice:captureDevice] != nil) {
+            action.subtitle = @"Not Supported with Device which has Depth Port";
+        }
+        
         action.attributes = UIMenuElementAttributesDisabled;
         
         return action;

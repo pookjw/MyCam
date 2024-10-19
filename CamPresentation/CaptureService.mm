@@ -2575,6 +2575,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     assert(rotationCoordinator != nil);
     
     PixelBufferLayer *pointCloudLayer = [self.queue_pointCloudLayersByCaptureDevice objectForKey:captureDevice];
+    
+    // videoRotationAngleForHorizonLevelCapture이 계속 0 나옴
     [pointCloudLayer updateWithCIImage:ciImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture fill:YES];
     [ciImage release];
     
