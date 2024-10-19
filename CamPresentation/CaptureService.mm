@@ -14,6 +14,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CamPresentation/PixelBufferLayer.h>
+#import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
 #warning Focus (TrueDepthStreamer focus(with focusMode: AVCaptureDevice.FocusMode))
@@ -56,6 +57,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_visionLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -70,6 +72,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     Protocol *AVCapturePointCloudDataOutputDelegate = NSProtocolFromString(@"AVCapturePointCloudDataOutputDelegate");
     assert(AVCapturePointCloudDataOutputDelegate != nil);
     assert(class_addProtocol(self, AVCapturePointCloudDataOutputDelegate));
+    
+    Protocol *AVCaptureVisionDataOutputDelegate = NSProtocolFromString(@"AVCaptureVisionDataOutputDelegate");
+    assert(AVCaptureVisionDataOutputDelegate != nil);
+    assert(class_addProtocol(self, AVCaptureVisionDataOutputDelegate));
 }
 
 - (instancetype)init {
@@ -98,6 +104,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         
         //
@@ -121,6 +128,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
         _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
+        _queue_visionLayersByCaptureDevice = [visionLayersByCaptureDevice retain];
         _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
@@ -174,6 +182,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_previewLayersByCaptureDevice release];
     [_queue_depthMapLayersByCaptureDevice release];
     [_queue_pointCloudLayersByCaptureDevice release];
+    [_queue_visionLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
@@ -568,6 +577,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return [[self.queue_pointCloudLayersByCaptureDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_visionLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_visionLayersByCaptureDevice copy] autorelease];
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
@@ -613,24 +627,36 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [captureSession beginConfiguration];
     
+#warning TODO : activeFormat이 바뀔 때마다 처리해주기
+    
     NSError * _Nullable error = nil;
     AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
     assert(error == nil);
     assert([captureSession canAddInput:newInput]);
+    
+    // -addInputWithNoConnections: 전에 해야함 -addInputWithNoConnections:에서 changeSeed에 KVO를 시켜야 하기 때문. 안하면 remove 할 때 문제됨
+    if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("isVisionDataDeliverySupported"))) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newInput, sel_registerName("setVisionDataDeliveryEnabled:"), YES);
+    } else {
+        [captureDevice.formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(obj, sel_registerName("isVisionDataDeliverySupported"))) {
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.activeFormat = obj;
+                [captureDevice unlockForConfiguration];
+                reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newInput, sel_registerName("setVisionDataDeliveryEnabled:"), YES);
+                *stop = YES;
+            }
+        }];
+    }
+    
     [captureSession addInputWithNoConnections:newInput];
     
-    AVCaptureInputPort *videoInputPort = nil;
-    AVCaptureInputPort * _Nullable depthDataInputPort = nil;
-    for (AVCaptureInputPort *inputPort in newInput.ports) {
-        if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
-            videoInputPort = inputPort;
-        } else if ([inputPort.mediaType isEqualToString:AVMediaTypeDepthData]) {
-            depthDataInputPort = inputPort;
-        }
-        
-        if (videoInputPort != nil && depthDataInputPort != nil) break;
-    }
+    AVCaptureInputPort *videoInputPort = [newInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     assert(videoInputPort != nil);
+    AVCaptureInputPort * _Nullable depthDataInputPort = [newInput portsWithMediaType:AVMediaTypeDepthData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+    AVCaptureInputPort * _Nullable visionDataInputPort = [newInput portsWithMediaType:AVMediaTypeVisionData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:captureVideoPreviewLayer];
     [captureSession addConnection:previewLayerConnection];
@@ -699,6 +725,28 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         depthMapLayer.opacity = 0.75f;
         [self.queue_depthMapLayersByCaptureDevice setObject:depthMapLayer forKey:captureDevice];
         [depthMapLayer release];
+    }
+    
+    //
+    
+    // AVCaptureDepthDataOutput와 불가
+    if (visionDataInputPort != nil && depthDataInputPort == nil) {
+        __kindof AVCaptureOutput *visionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(visionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+        assert([captureSession canAddOutput:visionDataOutput]);
+        [captureSession addOutputWithNoConnections:visionDataOutput];
+        
+        AVCaptureConnection *visionDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[visionDataInputPort] output:visionDataOutput];
+        [visionDataOutput release];
+        NSString * _Nullable reason = nil;
+        assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), visionDataOutputConnection, &reason));
+        [captureSession addConnection:visionDataOutputConnection];
+        [visionDataOutputConnection release];
+        
+        PixelBufferLayer *visionLayer = [PixelBufferLayer new];
+        visionLayer.opacity = 0.75f;
+        [self.queue_visionLayersByCaptureDevice setObject:visionLayer forKey:captureDevice];
+        [visionLayer release];
     }
     
     //
@@ -924,6 +972,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [self.queue_pointCloudLayersByCaptureDevice setObject:pointCloudLayer forKey:captureDevice];
     [pointCloudLayer release];
     
+    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:nil];
+    [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:nullptr];
+    [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
+    [rotationCoodinator release];
+    
     //
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
@@ -1011,13 +1064,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 
                 [self unregisterObserversForPhotoOutput:photoOutput];
                 
-                if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
-                    [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
-                    [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
-                } else {
-                    abort();
-                }
-                
                 if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
                     readinessCoordinator.delegate = nil;
                     [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
@@ -1032,6 +1078,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 [captureSession removeOutput:connection.output];
             } else if ([connection.output isKindOfClass:AVCaptureDepthDataOutput.class]) {
                 [captureSession removeOutput:connection.output];
+            } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+                [captureSession removeOutput:connection.output];
             } else {
                 abort();
             }
@@ -1040,8 +1088,16 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         }
     }
     
+    if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
+        [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
+        [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
+    } else {
+        abort();
+    }
+    
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+    [self.queue_visionLayersByCaptureDevice removeObjectForKey:captureDevice];
     
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
@@ -1166,6 +1222,13 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
+    
+    if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
+        [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
+        [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
+    } else {
+        abort();
+    }
     
     [self.queue_pointCloudLayersByCaptureDevice removeObjectForKey:captureDevice];
     
@@ -1828,7 +1891,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 #warning configuresApplicationAudioSessionToMixWithOthers
     
     if (captureSessionClass == AVCaptureSession.class) {
-//        captureSession.sessionPreset = AVCaptureSessionPresetPhoto;
+        captureSession.sessionPreset = AVCaptureSessionPresetInputPriority;
     } else if (captureSessionClass == AVCaptureMultiCamSession.class) {
         [captureSession addObserver:self forKeyPath:@"hardwareCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureSession addObserver:self forKeyPath:@"systemPressureCost" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
@@ -1867,32 +1930,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     
                     //
                     
-                    NSMutableArray<AVCaptureDevice *> *debug_removedDevices = [NSMutableArray new];
-                    for (AVCaptureInputPort *inputPort in connection.inputPorts) {
-                        auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
-                        
-                        if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
-                            AVCaptureDevice *captureDevice = deviceInput.device;
-                            if ([debug_removedDevices containsObject:captureDevice]) continue;
-                            
-                            if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
-                                [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
-                                [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
-                            } else {
-                                abort();
-                            }
-                            
-                            assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice]);
-                            [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
-                            [debug_removedDevices addObject:captureDevice];
-                        }
-                    }
-                    [debug_removedDevices release];
-                    
-                    assert(self.queue_previewLayersByCaptureDevice.count == 0);
-                    
-                    //
-                    
                     if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
                         readinessCoordinator.delegate = nil;
                         [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
@@ -1912,6 +1949,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     [audioDataOutput setSampleBufferDelegate:nil queue:nil];
                 } else if ([output isKindOfClass:objc_lookUpClass("AVCapturePointCloudDataOutput")]) {
                     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
+                } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+                    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
                 } else {
                     abort();
                 }
@@ -1924,6 +1963,28 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         
         NSArray<__kindof AVCaptureInput *> *inputs = oldCaptureSession.inputs;
         for (__kindof AVCaptureInput *input in oldCaptureSession.inputs) {
+            if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+                auto deviceInput = static_cast<AVCaptureDeviceInput *>(input);
+                AVCaptureDevice *captureDevice = deviceInput.device;
+                
+                NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+                
+                if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+                    if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
+                        [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
+                        [self.queue_rotationCoordinatorsByCaptureDevice removeObjectForKey:captureDevice];
+                    } else {
+                        abort();
+                    }
+                    
+                    assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice]);
+                    [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+                    
+                    // AVCaptureSession <-> AVCaptureMultiCamSession 전환이 될 경우 Preview Layer는 0개 및 1개일 것이며, 1개는 위에서 지워질 것이다.
+                    assert(self.queue_previewLayersByCaptureDevice.count == 0);
+                }
+            }
+            
             [oldCaptureSession removeInput:input];
         }
         
@@ -1941,6 +2002,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 NSError * _Nullable error = nil;
                 AVCaptureDeviceInput *newDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:oldDeviceInput.device error:&error];
                 assert(error == nil);
+                
+                if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(oldDeviceInput.device.activeFormat, sel_registerName("isVisionDataDeliverySupported"))) {
+                    BOOL isVisionDataDeliveryEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(input, sel_registerName("isVisionDataDeliveryEnabled"));
+                    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newDeviceInput, sel_registerName("setVisionDataDeliveryEnabled:"), isVisionDataDeliveryEnabled);
+                }
                 
                 assert([captureSession canAddInput:newDeviceInput]);
                 [captureSession addInputWithNoConnections:newDeviceInput];
@@ -2015,6 +2081,15 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 
                 [addedOutputsByOutputs setObject:newPointCloudDataOutput forKey:output];
                 [newPointCloudDataOutput release];
+            } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+                __kindof AVCaptureOutput *visionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
+                reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(visionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+                
+                assert([captureSession canAddOutput:visionDataOutput]);
+                [captureSession addOutputWithNoConnections:visionDataOutput];
+                
+                [addedOutputsByOutputs setObject:visionDataOutput forKey:output];
+                [visionDataOutput release];
             } else {
                 abort();
             }
@@ -2034,6 +2109,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             AVCaptureInputPort * _Nullable depthDataInputPort = nil;
             AVCaptureInputPort * _Nullable audioInputPort = nil;
             AVCaptureInputPort * _Nullable pointCloudDataInputPort = nil;
+            AVCaptureInputPort * _Nullable visionDataInputPort = nil;
             for (AVCaptureInputPort *inputPort in addedInput.ports) {
                 if ([inputPort.mediaType isEqualToString:AVMediaTypeVideo]) {
                     assert(videoInputPort == nil);
@@ -2047,6 +2123,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 } else if ([inputPort.mediaType isEqualToString:AVMediaTypePointCloudData]) {
                     assert(pointCloudDataInputPort == nil);
                     pointCloudDataInputPort = inputPort;
+                } else if ([inputPort.mediaType isEqualToString:AVMediaTypeVisionData]) {
+                    assert(visionDataInputPort == nil);
+                    visionDataInputPort = inputPort;
                 }
             }
             
@@ -2112,6 +2191,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 } else if ([addedOutput isKindOfClass:objc_lookUpClass("AVCapturePointCloudDataOutput")]) {
                     assert(pointCloudDataInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[pointCloudDataInputPort] output:addedOutput];
+                } else if ([addedOutput isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+                    NSLog(@"%@", addedInput.ports);
+                    assert(visionDataInputPort != nil);
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[visionDataInputPort] output:addedOutput];
                 } else {
                     abort();
                 }
@@ -2131,16 +2214,19 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), newConnection, &reason));
             [captureSession addConnection:newConnection];
             
-            if (AVCaptureVideoPreviewLayer *previewLayer = newConnection.videoPreviewLayer) {
+            if ([addedInput isKindOfClass:AVCaptureDeviceInput.class]) {
                 auto addedDeviceInput = static_cast<AVCaptureDeviceInput *>(addedInput);
-                assert([addedDeviceInput isKindOfClass:AVCaptureDeviceInput.class]);
                 AVCaptureDevice *captureDevice = addedDeviceInput.device;
                 
-                AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
-                previewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-                [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
-                [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
-                [rotationCoodinator release];
+                NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+                
+                if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+                    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:newConnection.videoPreviewLayer];
+                    newConnection.videoPreviewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+                    [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+                    [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
+                    [rotationCoodinator release];
+                }
             }
             
             //
@@ -2401,11 +2487,12 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     assert(captureDevice != nil);
     
     AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice];
+    assert(rotationCoordinator != nil);
     
     CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:depthData.depthDataMap options:@{kCIImageAuxiliaryDisparity: @YES}];
     
     PixelBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
-    [depthMapLayer updateWithCIImage:ciImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture];
+    [depthMapLayer updateWithCIImage:ciImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture fill:NO];
     
     [ciImage release];
 }
@@ -2431,8 +2518,13 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     CVPixelBufferRelease(imageBuffer);
     
     AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
+    assert(captureDevice != nil);
+    
+    AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice];
+    assert(rotationCoordinator != nil);
+    
     PixelBufferLayer *pointCloudLayer = [self.queue_pointCloudLayersByCaptureDevice objectForKey:captureDevice];
-    [pointCloudLayer updateWithCIImage:ciImage rotationAngle:0.f];
+    [pointCloudLayer updateWithCIImage:ciImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture fill:YES];
     [ciImage release];
     
     // CVImageBufferRef이 Leak 있어서 쓰면 안 됨
@@ -2442,6 +2534,21 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 //    PixelBufferLayer *pointCloudLayer = [self.queue_pointCloudLayersByCaptureDevice objectForKey:captureDevice];
 //    [pointCloudLayer updateWithCGImage:cgImageRepresentation];
 //    CGImageRelease(cgImageRepresentation);
+}
+
+
+#pragma mark - AVCaptureVisionDataOutputDelegate
+
+- (void)visionDataOutput:(__kindof AVCaptureOutput *)output didDropVisionDataPixelBufferForTimestamp:(CMTime)arg2 connection:(AVCaptureConnection *)arg3 reason:(NSInteger)arg4 {
+    
+}
+
+- (void)visionDataOutput:(__kindof AVCaptureOutput *)output didOutputVisionDataPixelBuffer:(CVPixelBufferRef)arg2 timestamp:(CMTime)arg3 connection:(AVCaptureConnection *)arg4 {
+    CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:arg2 options:@{kCIImageAuxiliaryDisparity: @YES}];
+    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
+    PixelBufferLayer *visionLayer = [self.queue_visionLayersByCaptureDevice objectForKey:captureDevice];
+    [visionLayer updateWithCIImage:ciImage fill:YES];
+    [ciImage release];
 }
 
 @end

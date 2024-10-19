@@ -12,8 +12,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PixelBufferLayer : CALayer
-- (void)updateWithCIImage:(CIImage * _Nullable)ciImage rotationAngle:(float)rotationAngle;
-- (void)updateWithCGImage:(CGImageRef _Nullable)cgImage;
+- (void)updateWithCIImage:(CIImage * _Nullable)ciImage rotationAngle:(float)rotationAngle fill:(BOOL)fill;
+- (void)updateWithCIImage:(CIImage * _Nullable)ciImage fill:(BOOL)fill;
+- (void)updateWithCGImage:(CGImageRef _Nullable)cgImage fill:(BOOL)fill;
 @end
 
 NS_ASSUME_NONNULL_END

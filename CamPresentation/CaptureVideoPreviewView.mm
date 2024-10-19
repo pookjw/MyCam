@@ -16,14 +16,14 @@
 
 @implementation CaptureVideoPreviewView
 @synthesize previewLayer = _previewLayer;
-@synthesize depthMapLayer = _depthMapLayer;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuButton = _menuButton;
 
-- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer {
+- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer {
     if (self = [super init]) {
         _previewLayer = [previewLayer retain];
         _depthMapLayer = [depthMapLayer retain];
+        _visionLayer = [visionLayer retain];
         
         previewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
         
@@ -36,6 +36,11 @@
         if (depthMapLayer != nil) {
             depthMapLayer.frame = bounds;
             [layer addSublayer:depthMapLayer];
+        }
+        
+        if (visionLayer != nil) {
+            visionLayer.frame = bounds;
+            [layer addSublayer:visionLayer];
         }
         
         //
@@ -72,6 +77,7 @@
 - (void)dealloc {
     [_previewLayer release];
     [_depthMapLayer release];
+    [_visionLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuButton release];
     [super dealloc];
@@ -83,6 +89,7 @@
     CGRect bounds = self.layer.bounds;
     self.previewLayer.frame = bounds;
     self.depthMapLayer.frame = bounds;
+    self.visionLayer.frame = bounds;
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {
