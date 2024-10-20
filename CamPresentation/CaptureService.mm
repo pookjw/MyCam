@@ -25,6 +25,8 @@
 #warning AVCaptureFileOutput.maxRecordedDuration
 #warning KVO에서 is 제거
 
+#warning AVCaptureMetadataInput - remove/switch 대응
+
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
 AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
