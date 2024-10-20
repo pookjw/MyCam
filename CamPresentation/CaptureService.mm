@@ -1390,6 +1390,28 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return nil;
 }
 
+- (AVCaptureMetadataOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        for (AVCaptureInputPort *port in connection.inputPorts) {
+            __kindof AVCaptureOutput *visionDataOutput = connection.output;
+            if (![visionDataOutput isKindOfClass:AVCaptureMetadataOutput.class]) {
+                continue;
+            }
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
+            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                if ([deviceInput.device isEqual:captureDevice]) {
+                    return visionDataOutput;
+                }
+            }
+        }
+    }
+    
+    return nil;
+}
+
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     AVCaptureDepthDataOutput *depthDataOutput = [self queue_depthDataOutputFromCaptureDevice:captureDevice];

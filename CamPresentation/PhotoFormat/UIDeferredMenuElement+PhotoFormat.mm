@@ -61,6 +61,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_visionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_metadataObjectTypesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -2513,6 +2515,81 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     });
     
     return element;
+}
+
++ (__kindof UIMenuElement * _Nonnull)_cp_queue_metadataObjectTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    AVCaptureMetadataOutput * _Nullable metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    
+    if (metadataOutput == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"Metadata Object Types" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        action.subtitle = @"No Metadata Output";
+        
+        return action;
+    }
+    
+    NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+    NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:availableMetadataObjectTypes.count + 1];
+    
+    for (AVMetadataObjectType metadataObjectType in availableMetadataObjectTypes) {
+        BOOL contains = [metadataOutput.metadataObjectTypes containsObject:metadataObjectType];
+        
+        UIAction *action = [UIAction actionWithTitle:metadataObjectType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSMutableArray<AVMetadataObjectType> *metadataObjectTypes = [metadataOutput.metadataObjectTypes mutableCopy];
+                
+                if (contains) {
+                    [metadataObjectTypes removeObject:metadataObjectType];
+                } else {
+                    [metadataObjectTypes addObject:metadataObjectType];
+                }
+                
+                metadataOutput.metadataObjectTypes = metadataObjectTypes;
+                [metadataObjectTypes release];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = contains ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [children addObject:action];
+    }
+    
+    //
+    
+    UIAction *selectAllAction = [UIAction actionWithTitle:@"Select All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    UIAction *deselectAllAction = [UIAction actionWithTitle:@"Deselect All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            metadataOutput.metadataObjectTypes = @[];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    UIMenu *submenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
+        selectAllAction,
+        deselectAllAction
+    ]];
+    
+    [children addObject:submenu];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Metadata Object Types" children:children];
+    [children release];
+    
+    menu.subtitle = [NSString stringWithFormat:@"%ld types selected", metadataOutput.metadataObjectTypes.count];
+    
+    return menu;
 }
 
 @end
