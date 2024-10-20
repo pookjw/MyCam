@@ -18,16 +18,12 @@
 #import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
-#warning Focus (TrueDepthStreamer focus(with focusMode: AVCaptureDevice.FocusMode))
 #warning Zoom, Exposure
-#warning AVCaptureCameraCalibrationDataOutput AVCaptureVisionDataOutput AVCapturePointCloudDataOutput (Private)
 #warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState
 #warning 녹화할 때 connection에 audio도 추가해야함
 
 #warning AVCaptureFileOutput.maxRecordedDuration
 #warning KVO에서 is 제거
-
-#warning AVCaptureMetadataInput - AVMediaTypeMetadataObject의 주석을 볼 것
 
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
