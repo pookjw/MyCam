@@ -926,37 +926,29 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     //
     
-    CMMetadataFormatDescriptionRef formatDescription;
-    assert(CMMetadataFormatDescriptionCreateWithMetadataSpecifications(kCFAllocatorDefault,
-                                                                       kCMMetadataFormatType_Boxed,
-                                                                       (CFArrayRef)@[
-        @{
-            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataDetectedFace,
-            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataBaseDataType_RectF32
-        },
-        @{
-            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataLocationISO6709,
-            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataDataType_QuickTimeMetadataLocation_ISO6709
-        }
-    ],
-                                                                       &formatDescription) == 0);
+    CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
     AVCaptureMetadataInput *metadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:metadataObjectInputPort.clock];
     CFRelease(formatDescription);
     assert([captureSession canAddInput:metadataInput]);
     [captureSession addInputWithNoConnections:metadataInput];
     
+    BOOL didAdd = NO;
     for (AVCaptureInputPort *inputPort in metadataInput.ports) {
         if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
             AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:@[inputPort] output:movieFileOutput];
             assert([captureSession canAddConnection:connection]);
+            connection.enabled = NO;
             [captureSession addConnection:connection];
             [connection release];
+            didAdd = YES;
             break;
         }
     }
+    assert(didAdd);
     
     [self.queue_metadataInputsByCaptureDevice setObject:metadataInput forKey:captureDevice];
     [metadataInput release];
+    
     [movieFileOutput release];
     
     //
@@ -992,6 +984,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
     [self postDidUpdatePreviewLayersNotification];
+    
+    NSLog(@"%@", captureSession);
 }
 
 - (void)_queue_addAudioCapureDevice:(AVCaptureDevice *)captureDevice {
@@ -1134,7 +1128,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (void)_queue_removeVideoCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
-    NSLog(@"%@", self.queue_addedVideoCaptureDevices);
     assert([self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
     
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
@@ -1151,20 +1144,27 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     AVCaptureDeviceInput *deviceInput = nil;
     for (AVCaptureDeviceInput *input in captureSession.inputs) {
-        if (![input isKindOfClass:AVCaptureDeviceInput.class]) continue;
-        
-        AVCaptureDevice *oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
-        if ([captureDevice isEqual:oldCaptureDevice]) {
-            deviceInput = input;
-            break;
+        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+            AVCaptureDevice *oldCaptureDevice = static_cast<AVCaptureDeviceInput *>(input).device;
+            if ([captureDevice isEqual:oldCaptureDevice]) {
+                deviceInput = input;
+                break;
+            }
         }
     }
     assert(deviceInput != nil);
     
+    AVCaptureMetadataInput *metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
+    assert(metadataInput != nil);
+    
+    // connections loop에서 바로 output을 지워주면, output이 여러 개의 connection을 가지고 있을 때 문제된다. (예: Video Data Output -> Video Input Port, Metadata Input Port)
+    // ouput이 가진 connection들을 모두 지워준 다음에 output을 지워줘야 하므로, Set에 모아놓고 나중에 output을 지운다.
+    NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
+    
     for (AVCaptureConnection *connection in captureSession.connections) {
         BOOL doesInputMatch = NO;
         for (AVCaptureInputPort *inputPort in connection.inputPorts) {
-            if ([inputPort.input isEqual:deviceInput]) {
+            if ([inputPort.input isEqual:deviceInput] || [inputPort.input isEqual:metadataInput]) {
                 doesInputMatch = YES;
                 break;
             }
@@ -1178,46 +1178,56 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         if (connection.videoPreviewLayer != nil) {
             connection.videoPreviewLayer.session = nil;
         } else if (connection.output != nil) {
-            if ([connection.output isKindOfClass:AVCapturePhotoOutput.class]) {
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(connection.output);
-                
-                [self unregisterObserversForPhotoOutput:photoOutput];
-                
-                if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
-                    readinessCoordinator.delegate = nil;
-                    [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
-                } else {
-                    abort();
-                }
-                
-                [captureSession removeOutput:photoOutput];
-            } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                [captureSession removeOutput:connection.output];
-            } else if ([connection.output isKindOfClass:AVCaptureVideoDataOutput.class]) {
-                [captureSession removeOutput:connection.output];
-            } else if ([connection.output isKindOfClass:AVCaptureDepthDataOutput.class]) {
-                [captureSession removeOutput:connection.output];
-            } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
-                [captureSession removeOutput:connection.output];
-                
-                assert([self.queue_visionLayersByCaptureDevice objectForKey:captureDevice] != nil);
-                [self.queue_visionLayersByCaptureDevice removeObjectForKey:captureDevice];
-            } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
-                [captureSession removeOutput:connection.output];
-            } else if ([connection.output isKindOfClass:AVCaptureMetadataOutput.class]) {
-                auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(connection.output);
-                [self unregisterObserversForMetadataOutput:metadataOutput];
-                [captureSession removeOutput:metadataOutput];
-                
-                assert([self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice] != nil);
-                [self.queue_metadataObjectsLayersByCaptureDevice removeObjectForKey:captureDevice];
-            } else {
-                abort();
-            }
+            [outputs addObject:connection.output];
         } else {
             abort();
         }
     }
+    
+    //
+    
+    for (__kindof AVCaptureOutput *output in outputs) {
+        if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
+            auto photoOutput = static_cast<AVCapturePhotoOutput *>(output);
+            
+            [self unregisterObserversForPhotoOutput:photoOutput];
+            
+            if (AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput]) {
+                readinessCoordinator.delegate = nil;
+                [self.queue_readinessCoordinatorByCapturePhotoOutput removeObjectForKey:photoOutput];
+            } else {
+                abort();
+            }
+            
+            [captureSession removeOutput:photoOutput];
+        } else if ([output isKindOfClass:AVCaptureMovieFileOutput.class]) {
+            [captureSession removeOutput:output];
+        } else if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+            [captureSession removeOutput:output];
+        } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+            [captureSession removeOutput:output];
+        } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
+            [captureSession removeOutput:output];
+            
+            assert([self.queue_visionLayersByCaptureDevice objectForKey:captureDevice] != nil);
+            [self.queue_visionLayersByCaptureDevice removeObjectForKey:captureDevice];
+        } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
+            [captureSession removeOutput:output];
+        } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
+            auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
+            [self unregisterObserversForMetadataOutput:metadataOutput];
+            [captureSession removeOutput:metadataOutput];
+            
+            assert([self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice] != nil);
+            [self.queue_metadataObjectsLayersByCaptureDevice removeObjectForKey:captureDevice];
+        } else {
+            abort();
+        }
+    }
+    
+    [outputs release];
+    
+    //
     
     if (AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice]) {
         [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
@@ -1228,8 +1238,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+    [self.queue_metadataInputsByCaptureDevice removeObjectForKey:captureDevice];
     
     [captureSession removeInput:deviceInput];
+    [captureSession removeInput:metadataInput];
     [captureSession commitConfiguration];
     
     //
@@ -2205,6 +2217,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     // AVCaptureSession <-> AVCaptureMultiCamSession 전환이 될 경우 Preview Layer는 0개 및 1개일 것이며, 1개는 위에서 지워질 것이다.
                     assert(self.queue_previewLayersByCaptureDevice.count == 0);
                 }
+            } else if ([input isKindOfClass:AVCaptureMetadataInput.class]) {
+                
+            } else {
+                abort();
             }
             
             [oldCaptureSession removeInput:input];
@@ -2241,6 +2257,20 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 [addedInputsByOldInput setObject:newDeviceInput forKey:oldDeviceInput];
                 
                 [newDeviceInput release];
+            } else if ([input isKindOfClass:AVCaptureMetadataInput.class]) {
+                auto oldMetadataInput = static_cast<AVCaptureMetadataInput *>(input);
+                
+                CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
+                CMClockRef clock = reinterpret_cast<CMClockRef (*)(id, SEL)>(objc_msgSend)(oldMetadataInput, sel_registerName("clock"));
+                AVCaptureMetadataInput *newMetadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:clock];
+                CFRelease(formatDescription);
+                
+                assert([captureSession canAddInput:newMetadataInput]);
+                [captureSession addInputWithNoConnections:newMetadataInput];
+                
+                [addedInputsByOldInput setObject:newMetadataInput forKey:oldMetadataInput];
+                
+                [newMetadataInput release];
             } else {
                 abort();
             }
@@ -2343,6 +2373,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         assert(outputs.count == addedOutputsByOutputs.count);
         [outputs release];
         
+        // AVCaptureDeviceInput과 연결된 AVCaptureConnection들 처리
         for (AVCaptureConnection *connection in connections) {
             assert(connection.inputPorts.count == 0 || connection.inputPorts.count == 1);
             AVCaptureInput *oldInput = connection.inputPorts.firstObject.input;
@@ -2350,8 +2381,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             
             auto addedInput = static_cast<AVCaptureDeviceInput *>([addedInputsByOldInput objectForKey:oldInput]);
             assert(addedInput != nil);
-            assert([addedInput isKindOfClass:AVCaptureDeviceInput.class]);
             
+            if (![addedInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                continue;
+            }
             
             AVCaptureInputPort * _Nullable videoInputPort = [addedInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
             AVCaptureInputPort * _Nullable depthDataInputPort = [addedInput portsWithMediaType:AVMediaTypeDepthData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
@@ -2371,7 +2404,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
                 [previewLayer release];
             } else {
-                AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
+                __kindof AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
                 assert(addedOutput != nil);
                 
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
@@ -2403,9 +2436,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 } else if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
                     if (audioInputPort != nil) {
                         newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[audioInputPort] output:addedOutput];
-                    } else {
-                        assert(videoInputPort != nil);
+                    } else if (videoInputPort != nil) {
                         newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
+                    } else {
+                        abort();
                     }
                 } else if ([addedOutput isKindOfClass:AVCaptureVideoDataOutput.class]) {
                     assert(videoInputPort != nil);
@@ -2447,21 +2481,75 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), newConnection, &reason));
             [captureSession addConnection:newConnection];
             
-            if ([addedInput isKindOfClass:AVCaptureDeviceInput.class]) {
-                AVCaptureDevice *captureDevice = addedInput.device;
-                
-                NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
-                
-                if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
-                    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:newConnection.videoPreviewLayer];
-                    newConnection.videoPreviewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-                    [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
-                    [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
-                    [rotationCoodinator release];
-                }
+            AVCaptureDevice *captureDevice = addedInput.device;
+            
+            NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+            
+            if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {
+                AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:newConnection.videoPreviewLayer];
+                newConnection.videoPreviewLayer.connection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+                [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
+                [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
+                [rotationCoodinator release];
             }
             
             //
+            
+            [newConnection release];
+        }
+        
+        // AVCaptureMetadataInput과 연결된 AVCaptureConnection들 처리
+        for (AVCaptureConnection *connection in connections) {
+            assert(connection.inputPorts.count == 0 || connection.inputPorts.count == 1);
+            AVCaptureInput *oldInput = connection.inputPorts.firstObject.input;
+            assert(oldInput != nil);
+            
+            auto addedInput = static_cast<AVCaptureMetadataInput *>([addedInputsByOldInput objectForKey:oldInput]);
+            assert(addedInput != nil);
+            
+            if (![addedInput isKindOfClass:AVCaptureMetadataInput.class]) {
+                continue;
+            }
+            
+            AVCaptureInputPort *metadataInputPort = nil;
+            for (AVCaptureInputPort *inputPort in addedInput.ports) {
+                if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
+                    assert(metadataInputPort == nil);
+                    metadataInputPort = inputPort;
+                }
+            }
+            assert(metadataInputPort != nil);
+            
+            __kindof AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
+            
+            AVCaptureConnection *newConnection;
+            if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
+                assert(metadataInputPort != nil);
+                newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataInputPort] output:addedOutput];
+            } else {
+                abort();
+            }
+            
+            newConnection.enabled = connection.isEnabled;
+            
+            NSString * _Nullable reason = nil;
+            assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), newConnection, &reason));
+            [captureSession addConnection:newConnection];
+            
+            if ([addedInput isKindOfClass:AVCaptureMetadataInput.class]) {
+                auto metadataInput = static_cast<AVCaptureMetadataInput *>(addedInput);
+                
+                BOOL didSet = NO;
+                for (AVCaptureDevice *captureDevice in self.queue_metadataInputsByCaptureDevice.keyEnumerator) {
+                    if ([[self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice] isEqual:oldInput]) {
+                        [self.queue_metadataInputsByCaptureDevice removeObjectForKey:captureDevice];
+                        [self.queue_metadataInputsByCaptureDevice setObject:metadataInput forKey:captureDevice];
+                        didSet = YES;
+                        break;
+                    }
+                }
+                assert(didSet);
+            }
             
             [newConnection release];
         }
@@ -2485,6 +2573,25 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 
 - (void)didReceiveSubjectAreaDidChangeNotification:(NSNotification *)notification {
     NSLog(@"%s", sel_getName(_cmd));
+}
+
+- (CMMetadataFormatDescriptionRef)createMetadataFormatDescription CM_RETURNS_RETAINED {
+    CMMetadataFormatDescriptionRef formatDescription;
+    assert(CMMetadataFormatDescriptionCreateWithMetadataSpecifications(kCFAllocatorDefault,
+                                                                       kCMMetadataFormatType_Boxed,
+                                                                       (CFArrayRef)@[
+        @{
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataDetectedFace,
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataBaseDataType_RectF32
+        },
+        @{
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataLocationISO6709,
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataDataType_QuickTimeMetadataLocation_ISO6709
+        }
+    ],
+                                                                       &formatDescription) == 0);
+    
+    return formatDescription;
 }
 
 
@@ -2628,7 +2735,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 for (AVCaptureMetadataInput *input in self.queue_metadataInputsByCaptureDevice.objectEnumerator) {
                     NSError * _Nullable error = nil;
                     [input appendTimedMetadataGroup:metadataGroup error:&error];
-                    assert(error == nil);
+//                    assert(error == nil);
+                    if (error != nil) {
+                        NSLog(@"%s: %@", sel_getName(_cmd), error);
+                    }
                 }
                 
                 [metadataGroup release];
