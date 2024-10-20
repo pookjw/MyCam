@@ -63,7 +63,9 @@ UICollectionViewDiffableDataSource *custom(__kindof UIView *self, SEL _cmd, UICo
         return cell;
     };
     
-    assert(object_setInstanceVariable(impl, "_collectionViewCellProvider", reinterpret_cast<void *>([customCellProvider copy])) != nullptr);
+    id copy = [customCellProvider copy];
+    assert(object_setInstanceVariable(impl, "_collectionViewCellProvider", reinterpret_cast<void *>(copy)) != nullptr);
+    [copy release];
     
     // https://x.com/_silgen_name/status/1845851075573923842
 //    [originalCellProvider release];
