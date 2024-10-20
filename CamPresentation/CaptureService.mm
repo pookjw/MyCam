@@ -14,6 +14,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CamPresentation/PixelBufferLayer.h>
+#import <CamPresentation/MetadataObjectsLayer.h>
 #import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
@@ -61,6 +62,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_visionLayersByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *queue_metadataObjectsLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -112,6 +114,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         
         //
@@ -137,6 +140,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
         _queue_visionLayersByCaptureDevice = [visionLayersByCaptureDevice retain];
         _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
+        _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         self.queue_fileOutput = nil;
         
@@ -190,6 +194,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_depthMapLayersByCaptureDevice release];
     [_queue_pointCloudLayersByCaptureDevice release];
     [_queue_visionLayersByCaptureDevice release];
+    [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
@@ -595,6 +600,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return [[self.queue_visionLayersByCaptureDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_metadataObjectsLayersByCaptureDevice copy] autorelease];
+}
+
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
@@ -815,6 +825,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         [metadataOutputConnection release];
         
         [metadataOutput release];
+        
+        MetadataObjectsLayer *metadataObjectsLayer = [MetadataObjectsLayer new];
+        [self.queue_metadataObjectsLayersByCaptureDevice setObject:metadataObjectsLayer forKey:captureDevice];
+        [metadataObjectsLayer release];
     }
     
     //
@@ -1148,12 +1162,18 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 [captureSession removeOutput:connection.output];
             } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
                 [captureSession removeOutput:connection.output];
+                
+                assert([self.queue_visionLayersByCaptureDevice objectForKey:captureDevice] != nil);
+                [self.queue_visionLayersByCaptureDevice removeObjectForKey:captureDevice];
             } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
                 [captureSession removeOutput:connection.output];
             } else if ([connection.output isKindOfClass:AVCaptureMetadataOutput.class]) {
                 auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(connection.output);
                 [self unregisterObserversForMetadataOutput:metadataOutput];
                 [captureSession removeOutput:metadataOutput];
+                
+                assert([self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice] != nil);
+                [self.queue_metadataObjectsLayersByCaptureDevice removeObjectForKey:captureDevice];
             } else {
                 abort();
             }
@@ -1171,7 +1191,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
-    [self.queue_visionLayersByCaptureDevice removeObjectForKey:captureDevice];
     
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
@@ -1488,6 +1507,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (__kindof CALayer *)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_visionLayersByCaptureDevice objectForKey:captureDevice];
+}
+
+- (__kindof CALayer *)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
 }
 
 - (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2739,7 +2763,13 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 #pragma mark - AVCaptureMetadataOutputObjectsDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
-    NSLog(@"%@", metadataObjects);
+    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
+    MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
+    assert(metadataObjectsLayer != nil);
+    
+    AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+    
+    [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
 }
 
 @end

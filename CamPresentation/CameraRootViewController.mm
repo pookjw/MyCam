@@ -602,6 +602,7 @@
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *depthMapLayersByCaptureDeviceCopiedMapTable = captureService.queue_depthMapLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *visionLayersByCaptureDeviceCopiedMapTable = captureService.queue_visionLayersByCaptureDeviceCopiedMapTable;
+        NSMapTable<AVCaptureDevice *, __kindof CALayer *> *metadataObjectsLayersByCaptureDeviceCopiedMapTable = captureService.queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
@@ -632,8 +633,9 @@
                 AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable depthMapLayer = [depthMapLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable visionLayer = [visionLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+                __kindof CALayer * _Nullable metadataObjectsLayer = [metadataObjectsLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 
-                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer captureDevice:captureDevice];
+                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer captureDevice:captureDevice];
                 [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
@@ -790,8 +792,8 @@
     });
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer captureDevice:(AVCaptureDevice *)captureDevice {
-    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer];
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer captureDevice:(AVCaptureDevice *)captureDevice {
+    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
     
     UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
     [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];

@@ -54,6 +54,7 @@ CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotifica
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
 
 - (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
@@ -69,6 +70,7 @@ CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotifica
 - (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
 - (__kindof CALayer * _Nullable)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof CALayer * _Nullable)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureMovieFileOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
