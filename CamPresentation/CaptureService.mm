@@ -27,7 +27,6 @@
 #warning AVCaptureFileOutput.maxRecordedDuration
 #warning KVO에서 is 제거
 
-#warning AVCaptureMetadataOutput
 #warning AVCaptureMetadataInput - AVMediaTypeMetadataObject의 주석을 볼 것
 
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
@@ -67,6 +66,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
@@ -116,6 +116,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         
         //
         
@@ -142,6 +143,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
+        _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         self.queue_fileOutput = nil;
         
         //
@@ -196,6 +198,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_visionLayersByCaptureDevice release];
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
+    [_queue_metadataInputsByCaptureDevice release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [_queue_fileOutput release];
@@ -727,7 +730,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureSession addOutputWithNoConnections:movieFileOutput];
     
     AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
-    [movieFileOutput release];
     assert([captureSession canAddConnection:movieFileOutputConnection]);
     [captureSession addConnection:movieFileOutputConnection];
     [movieFileOutputConnection release];
@@ -923,6 +925,43 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         [systemStyleSlider release];
     }
 #endif
+    
+    //
+    
+    CMMetadataFormatDescriptionRef formatDescription;
+    assert(CMMetadataFormatDescriptionCreateWithMetadataSpecifications(kCFAllocatorDefault,
+                                                                       kCMMetadataFormatType_Boxed,
+                                                                       (CFArrayRef)@[
+        @{
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataDetectedFace,
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataBaseDataType_RectF32
+        },
+        @{
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_Identifier: AVMetadataIdentifierQuickTimeMetadataLocationISO6709,
+            (id)kCMMetadataFormatDescriptionMetadataSpecificationKey_DataType: (id)kCMMetadataDataType_QuickTimeMetadataLocation_ISO6709
+        }
+    ],
+                                                                       &formatDescription) == 0);
+    AVCaptureMetadataInput *metadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:metadataObjectInputPort.clock];
+    CFRelease(formatDescription);
+    assert([captureSession canAddInput:metadataInput]);
+    [captureSession addInputWithNoConnections:metadataInput];
+    
+    for (AVCaptureInputPort *inputPort in metadataInput.ports) {
+        if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
+            AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:@[inputPort] output:movieFileOutput];
+            assert([captureSession canAddConnection:connection]);
+            [captureSession addConnection:connection];
+            [connection release];
+            break;
+        }
+    }
+    
+    [self.queue_metadataInputsByCaptureDevice setObject:metadataInput forKey:captureDevice];
+    [metadataInput release];
+    [movieFileOutput release];
+    
+    //
     
     [captureSession commitConfiguration];
     
@@ -2567,7 +2606,39 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 #pragma mark - CLLocationManagerDelegate
 
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
-    
+    dispatch_async(self.captureSessionQueue, ^{
+        if (self.queue_metadataInputsByCaptureDevice.count == 0) return;
+        
+        for (CLLocation *location in locations) {
+            if (CLLocationCoordinate2DIsValid(location.coordinate)) {
+                AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
+                metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataLocationISO6709;
+                metadataItem.dataType = (id)kCMMetadataDataType_QuickTimeMetadataLocation_ISO6709;
+                
+                // https://github.com/ElfSundae/AVDemo/blob/60c31f30bf492ef89de9ac453d3e44b304133dcc/AVMetadataRecordPlay/Objective-C/AVMetadataRecordPlay/AVMetadataRecordPlayCameraViewController.m#L858C4-L858C30
+                NSString *iso6709Notation;
+                if (location.verticalAccuracy < 0.) {
+                    iso6709Notation = [NSString stringWithFormat:@"%+08.4lf%+09.4lf/", location.coordinate.latitude, location.coordinate.longitude];
+                } else {
+                    iso6709Notation = [NSString stringWithFormat:@"%+08.4lf%+09.4lf%+08.3lf/", location.coordinate.latitude, location.coordinate.longitude, location.altitude];
+                }
+                metadataItem.value = iso6709Notation;
+                
+                AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:CMTimeRangeMake(CMTimeMakeWithSeconds(location.timestamp.timeIntervalSince1970 / 10000.0, NSEC_PER_SEC), kCMTimeInvalid)];
+                [metadataItem release];
+                
+                for (AVCaptureMetadataInput *input in self.queue_metadataInputsByCaptureDevice.objectEnumerator) {
+                    NSError * _Nullable error = nil;
+                    [input appendTimedMetadataGroup:metadataGroup error:&error];
+                    assert(error == nil);
+                }
+                
+                [metadataGroup release];
+                
+                break;
+            }
+        }
+    });
 }
 
 - (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
@@ -2770,6 +2841,35 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
     
     [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
+    
+    //
+    
+    AVCaptureMetadataInput *metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
+    assert(metadataInput != nil);
+    
+    for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
+        if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
+            AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
+            metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataDetectedFace;
+            metadataItem.dataType = (id)kCMMetadataBaseDataType_RectF32;
+            metadataItem.value = @[
+                @(CGRectGetMinX(metadataObject.bounds)),
+                @(CGRectGetMinY(metadataObject.bounds)),
+                @(CGRectGetWidth(metadataObject.bounds)),
+                @(CGRectGetHeight(metadataObject.bounds))
+            ];
+            
+            CMTimeRange timeRange = CMTimeRangeMake(metadataObject.time, metadataObject.duration);
+            
+            AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:timeRange];
+            [metadataItem release];
+            
+            NSError * _Nullable error = nil;
+            [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
+            [metadataGroup release];
+            assert(error == nil);
+        }
+    }
 }
 
 @end
