@@ -2977,7 +2977,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             NSError * _Nullable error = nil;
             [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
             [metadataGroup release];
-            assert(error == nil);
+//            assert(error == nil);
+            if (error != nil) {
+                NSLog(@"%s: %@", sel_getName(_cmd), error);
+            }
         }
     }
 }
