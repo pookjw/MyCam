@@ -465,6 +465,12 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             });
             return;
         }
+    } else if ([object isKindOfClass:AVCaptureMetadataOutput.class]) {
+        if ([keyPath isEqualToString:@"availableMetadataObjectTypes"]) {
+            auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(object);
+            metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+            return;
+        }
     } else if ([object isEqual:AVCaptureDevice.class]) {
         if ([keyPath isEqualToString:@"centerStageEnabled"]) {
             dispatch_async(self.captureSessionQueue, ^{
@@ -797,6 +803,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     if (metadataObjectInputPort != nil) {
         AVCaptureMetadataOutput *metadataOutput = [AVCaptureMetadataOutput new];
+        [self registerObserversForMetadataOutput:metadataOutput];
         [metadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
         assert([captureSession canAddOutput:metadataOutput]);
         [captureSession addOutputWithNoConnections:metadataOutput];
@@ -806,9 +813,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), metadataOutputConnection, &reason));
         [captureSession addConnection:metadataOutputConnection];
         [metadataOutputConnection release];
-        
-#warning availableMetadataObjectTypes은 KVO을 지원하므로 KVO로 업데이트
-        metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
         
         [metadataOutput release];
     }
@@ -1146,6 +1150,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 [captureSession removeOutput:connection.output];
             } else if ([connection.output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
                 [captureSession removeOutput:connection.output];
+            } else if ([connection.output isKindOfClass:AVCaptureMetadataOutput.class]) {
+                auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(connection.output);
+                [self unregisterObserversForMetadataOutput:metadataOutput];
+                [captureSession removeOutput:metadataOutput];
             } else {
                 abort();
             }
@@ -1863,6 +1871,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [photoOutput removeObserver:self forKeyPath:@"isDepthDataDeliverySupported"];
 }
 
+- (void)registerObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
+    [metadataOutput addObserver:self forKeyPath:@"availableMetadataObjectTypes" options:NSKeyValueObservingOptionNew context:nil];
+}
+
+- (void)unregisterObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
+    [metadataOutput removeObserver:self forKeyPath:@"availableMetadataObjectTypes"];
+}
+
 - (void)didReceiveRuntimeErrorNotification:(NSNotification *)notification {
     dispatch_async(self.captureSessionQueue, ^{
         NSMutableDictionary *userInfo = [NSMutableDictionary new];
@@ -2070,6 +2086,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
                 } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
                     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
+                } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
+                    auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
+                    [metadataOutput setMetadataObjectsDelegate:nil queue:nil];
+                    [self unregisterObserversForMetadataOutput:metadataOutput];
                 } else {
                     abort();
                 }
@@ -2206,23 +2226,33 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 [addedOutputsByOutputs setObject:newPointCloudDataOutput forKey:output];
                 [newPointCloudDataOutput release];
             } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
-                __kindof AVCaptureOutput *visionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
-                reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(visionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+                __kindof AVCaptureOutput *newVisionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
+                reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(newVisionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
                 
-                assert([captureSession canAddOutput:visionDataOutput]);
-                [captureSession addOutputWithNoConnections:visionDataOutput];
+                assert([captureSession canAddOutput:newVisionDataOutput]);
+                [captureSession addOutputWithNoConnections:newVisionDataOutput];
                 
-                [addedOutputsByOutputs setObject:visionDataOutput forKey:output];
-                [visionDataOutput release];
+                [addedOutputsByOutputs setObject:newVisionDataOutput forKey:output];
+                [newVisionDataOutput release];
             } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
-                __kindof AVCaptureOutput *calibrationDataOutput = [objc_lookUpClass("AVCaptureCameraCalibrationDataOutput") new];
-                reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(calibrationDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+                __kindof AVCaptureOutput *newCalibrationDataOutput = [objc_lookUpClass("AVCaptureCameraCalibrationDataOutput") new];
+                reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(newCalibrationDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
                 
-                assert([captureSession canAddOutput:calibrationDataOutput]);
-                [captureSession addOutputWithNoConnections:calibrationDataOutput];
+                assert([captureSession canAddOutput:newCalibrationDataOutput]);
+                [captureSession addOutputWithNoConnections:newCalibrationDataOutput];
                 
-                [addedOutputsByOutputs setObject:calibrationDataOutput forKey:output];
-                [calibrationDataOutput release];
+                [addedOutputsByOutputs setObject:newCalibrationDataOutput forKey:output];
+                [newCalibrationDataOutput release];
+            } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
+                AVCaptureMetadataOutput *newMetadataOutput = [AVCaptureMetadataOutput new];
+                [self registerObserversForMetadataOutput:newMetadataOutput];
+                [newMetadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
+                
+                assert([captureSession canAddOutput:newMetadataOutput]);
+                [captureSession addOutputWithNoConnections:newMetadataOutput];
+                
+                [addedOutputsByOutputs setObject:newMetadataOutput forKey:output];
+                [newMetadataOutput release];
             } else {
                 abort();
             }
@@ -2246,6 +2276,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             AVCaptureInputPort * _Nullable pointCloudDataInputPort = [addedInput portsWithMediaType:AVMediaTypePointCloudData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
             AVCaptureInputPort * _Nullable visionDataInputPort = [addedInput portsWithMediaType:AVMediaTypeVisionData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
             AVCaptureInputPort * _Nullable cameraCalibrationDataInputPort = [addedInput portsWithMediaType:AVMediaTypeCameraCalibrationData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+            AVCaptureInputPort * _Nullable metadataDataInputPort = [addedInput portsWithMediaType:AVMediaTypeMetadataObject sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
             
             AVCaptureConnection *newConnection;
             if (connection.videoPreviewLayer != nil) {
@@ -2311,6 +2342,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 } else if ([addedOutput isKindOfClass:objc_lookUpClass("AVCaptureCameraCalibrationDataOutput")]) {
                     assert(cameraCalibrationDataInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[cameraCalibrationDataInputPort] output:addedOutput];
+                } else if ([addedOutput isKindOfClass:AVCaptureMetadataOutput.class]) {
+                    assert(metadataDataInputPort != nil);
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataDataInputPort] output:addedOutput];
                 } else {
                     abort();
                 }
