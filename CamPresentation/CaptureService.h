@@ -76,6 +76,10 @@ CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotifica
 
 - (NSSet<AVCaptureDevice *> *)queue_captureDevicesFromOutput:(AVCaptureOutput *)output;
 
+#warning TODO
+- (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_removeMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
 - (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output;
 
