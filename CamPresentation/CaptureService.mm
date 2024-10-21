@@ -936,6 +936,9 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     for (AVCaptureInputPort *inputPort in metadataInput.ports) {
         if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
             AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:@[inputPort] output:movieFileOutput];
+            // 왜인지 모르겠지만 AVCaptureMultiCamSession 상태에서 -11819 Error가 나옴
+            connection.enabled = (captureSession.class != AVCaptureMultiCamSession.class);
+            
             assert([captureSession canAddConnection:connection]);
             [captureSession addConnection:connection];
             [connection release];
@@ -2529,11 +2532,12 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             if ([addedOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
                 assert(metadataInputPort != nil);
                 newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataInputPort] output:addedOutput];
+                
+                // 왜인지 모르겠지만 AVCaptureMultiCamSession 상태에서 -11819 Error가 나옴
+                newConnection.enabled = (captureSession.class != AVCaptureMultiCamSession.class);
             } else {
                 abort();
             }
-            
-            newConnection.enabled = connection.isEnabled;
             
             NSString * _Nullable reason = nil;
             assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), newConnection, &reason));
