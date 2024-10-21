@@ -1011,7 +1011,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     AVCaptureDeviceInput *deviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:captureDevice error:&error];
     assert(error == nil);
     
-    assert([captureSession canAddInput:deviceInput]);
+    NSString * _Nullable reason = nil;
+    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddInput:failureReason:"), deviceInput, &reason));
     [captureSession addInputWithNoConnections:deviceInput];
     
     NSArray<AVCaptureInputPort *> *audioDevicePorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified];
@@ -1579,15 +1580,15 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
         for (AVCaptureInputPort *port in connection.inputPorts) {
-            auto movileFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
-            if (![movileFileOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
+            auto movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
+            if (![movieFileOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
                 continue;
             }
             
             auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
             if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
                 if ([deviceInput.device isEqual:captureDevice]) {
-                    return movileFileOutput;
+                    return movieFileOutput;
                 }
             }
         }
@@ -1614,7 +1615,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 #warning Multi Mic 지원
-- (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
+- (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
@@ -1633,7 +1634,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     NSArray<AVCaptureInputPort *> *inputPorts = [deviceInput portsWithMediaType:AVMediaTypeAudio sourceDeviceType:audioDevice.deviceType sourceDevicePosition:AVCaptureDevicePositionUnspecified];
     
-    AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:movieFileOutput];
+    AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:inputPorts output:output];
     
     NSString * _Nullable reason = nil;
     assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), connection, &reason));
@@ -1643,11 +1644,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [captureSession commitConfiguration];
 }
 
-- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromMovieFileOutput:(AVCaptureMovieFileOutput *)movieFileOutput {
+- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
-    AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeAudio];
+    AVCaptureConnection *connection = [output connectionWithMediaType:AVMediaTypeAudio];
     assert(connection != nil);
     
     [captureSession beginConfiguration];

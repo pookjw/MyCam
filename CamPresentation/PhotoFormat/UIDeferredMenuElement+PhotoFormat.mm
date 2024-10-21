@@ -103,6 +103,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_capturePhotoWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel]];
     
+    [elements addObject:[UIDeferredMenuElement _cp_queue_livePhotoMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+    
     [elements addObject:[UIDeferredMenuElement _cp_queue_maxPhotoDimensionsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     [elements addObject:[UIDeferredMenuElement _cp_queue_photoPixelFormatTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     [elements addObject:[UIDeferredMenuElement _cp_queue_codecTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
@@ -2374,6 +2378,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 + (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
     AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    assert(movieFileOutput != nil);
     
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
@@ -2383,23 +2388,17 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                if (connectedMovileFileOutput == nil) {
-                    [captureService queue_connectAudioDevice:audioDevice withMovieFileOutput:movieFileOutput];
+                if ([connectedMovileFileOutput isEqual:movieFileOutput]) {
+                    [captureService queue_disconnectAudioDevice:audioDevice fromOutput:movieFileOutput];
                 } else {
-                    assert([connectedMovileFileOutput isEqual:movieFileOutput]); // check nil
-                    [captureService queue_disconnectAudioDevice:audioDevice fromMovieFileOutput:movieFileOutput];
+                    [captureService queue_connectAudioDevice:audioDevice withOutput:movieFileOutput];
                 }
                 
                 if (didChangeHandler) didChangeHandler();
             });
         }];
         
-        if (connectedMovileFileOutput == nil) {
-            action.state = UIMenuElementStateOff;
-        } else {
-            action.state = UIMenuElementStateOn;
-            action.attributes = ([connectedMovileFileOutput isEqual:movieFileOutput]) ? 0 : UIMenuElementAttributesDisabled;
-        }
+        action.state = ([connectedMovileFileOutput isEqual:movieFileOutput]) ? UIMenuElementStateOn : UIMenuElementStateOff;
         
         [actions addObject:action];
     }
@@ -2590,6 +2589,97 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     menu.subtitle = [NSString stringWithFormat:@"%ld types selected", metadataOutput.metadataObjectTypes.count];
     
     return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_livePhotoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Live Photo" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleLivePhotoCaptureEnabledActionWithCaptureService:captureService photoOutput:photoOutput didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_livePhotoSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleLivePhotoCaptureEnabledActionWithCaptureService:(CaptureService *)captureService photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    if (!photoOutput.isLivePhotoCaptureSupported) {
+        UIAction *action = [UIAction actionWithTitle:@"Enable Live Photo" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Live Photo" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            photoOutput.livePhotoCaptureEnabled = !isLivePhotoCaptureEnabled;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isLivePhotoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
+    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    assert(photoOutput != nil);
+    
+    NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
+    
+    for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
+        AVCapturePhotoOutput * _Nullable connectedPhotoOutput = [captureService queue_photoOutputFromCaptureDevice:audioDevice];
+        
+        UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                if ([connectedPhotoOutput isEqual:photoOutput]) {
+                    [captureService queue_disconnectAudioDevice:audioDevice fromOutput:photoOutput];
+                } else {
+                    [captureService queue_connectAudioDevice:audioDevice withOutput:photoOutput];
+                }
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = ([connectedPhotoOutput isEqual:photoOutput]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Device" children:actions];
+    [actions release];
+    
+    NSArray<AVCaptureDeviceType> *allAudioDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allAudioDeviceTypes"));
+    
+    for (AVCaptureDevice *device in [captureService queue_captureDevicesFromOutput:photoOutput]) {
+        if ([allAudioDeviceTypes containsObject:device.deviceType]) {
+            menu.subtitle = device.localizedName;
+            break;
+        }
+    }
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_livePhotoSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Live Photo formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        // -[AVCapturePhotoOutput _updateLivePhotoCaptureSupportedForSourceDevice:]
+        BOOL isIrisSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isIrisSupported"));
+        BOOL isPhotoFormat = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isPhotoFormat"));
+        
+        return isIrisSupported && isPhotoFormat;
+    }
+                                                         didChangeHandler:didChangeHandler];
 }
 
 @end
