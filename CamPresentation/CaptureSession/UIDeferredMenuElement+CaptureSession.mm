@@ -19,10 +19,12 @@
             
             UIAction *toggleConfiguresApplicationAudioSessionToMixWithOthersAction = [UIDeferredMenuElement _cp_queue_toggleConfiguresApplicationAudioSessionToMixWithOthersActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
             UIMenu *sessionPresetsMenu = [UIDeferredMenuElement _cp_queue_sessionPresetsMenuWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
+            UIAction *toggleMultitaskingCameraAccessEnabledAction = [UIDeferredMenuElement _cp_queue_toggleMultitaskingCameraAccessEnabledActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 toggleConfiguresApplicationAudioSessionToMixWithOthersAction,
-                sessionPresetsMenu
+                sessionPresetsMenu,
+                toggleMultitaskingCameraAccessEnabledAction
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -76,6 +78,23 @@
     menu.subtitle = captureSession.sessionPreset;
     
     return menu;
+}
+
++ (UIAction *)_cp_queue_toggleMultitaskingCameraAccessEnabledActionWithCaptureService:(CaptureService *)captureService captureSession:(AVCaptureSession *)captureSession didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isMultitaskingCameraAccessEnabled = captureSession.isMultitaskingCameraAccessEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Multitasking Camera" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureSession beginConfiguration];
+            captureSession.multitaskingCameraAccessEnabled = !isMultitaskingCameraAccessEnabled;
+            [captureSession commitConfiguration];
+        });
+    }];
+    
+    action.state = isMultitaskingCameraAccessEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = captureSession.isMultitaskingCameraAccessSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
 }
 
 @end

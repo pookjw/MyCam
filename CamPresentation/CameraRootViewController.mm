@@ -15,6 +15,7 @@
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 #import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureSession.h>
+#import <CamPresentation/NSStringFromAVCaptureSessionInterruptionReason.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
@@ -513,8 +514,13 @@
     
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
-                                               name:CaptureServiceCaptureSessionRuntimeErrorNotificationName
-                                             object:captureService];
+                                               name:AVCaptureSessionRuntimeErrorNotification
+                                             object:nil];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(didReceiveCaptureSessionWasInterruptedNotification:)
+                                               name:AVCaptureSessionWasInterruptedNotification
+                                             object:nil];
     
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveAdjustingFocusDidChangeNotification:)
@@ -768,6 +774,26 @@
             [topViewController presentViewController:alertController animated:YES completion:nil];
         });
     }
+}
+
+- (void)didReceiveCaptureSessionWasInterruptedNotification:(NSNotification *)notification {
+    NSNumber * _Nullable reasonNumber = notification.userInfo[AVCaptureSessionInterruptionReasonKey];
+    if (reasonNumber == nil) return;
+    auto reason = static_cast<AVCaptureSessionInterruptionReason>(reasonNumber.integerValue);
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Interrupted" message:NSStringFromAVCaptureSessionInterruptionReason(reason) preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:nil];
+        
+        [alertController addAction:doneAction];
+        
+        __kindof UIViewController *topViewController = self;
+        while (__kindof UIViewController *presentedViewController = topViewController.presentedViewController) {
+            topViewController = presentedViewController;
+        }
+        [topViewController presentViewController:alertController animated:YES completion:nil];
+    });
 }
 
 - (void)didReceiveAdjustingFocusDidChangeNotification:(NSNotification *)notification {

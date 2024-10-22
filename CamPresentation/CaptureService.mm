@@ -49,9 +49,6 @@ NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceRe
 
 NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName = @"CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName";
 
-NSString * const CaptureServiceCaptureSessionKey = @"CaptureServiceCaptureSessionKey";
-NSNotificationName const CaptureServiceCaptureSessionRuntimeErrorNotificationName = @"CaptureServiceCaptureSessionRuntimeErrorNotificationName";
-
 NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
 NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
 
@@ -1152,8 +1149,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     }
     assert(deviceInput != nil);
     
-    AVCaptureMetadataInput *metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
-    assert(metadataInput != nil);
+    AVCaptureMetadataInput * _Nullable metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
     
     // connections loop에서 바로 output을 지워주면, output이 여러 개의 connection을 가지고 있을 때 문제된다. (예: Video Data Output -> Video Input Port, Metadata Input Port)
     // ouput이 가진 connection들을 모두 지워준 다음에 output을 지워줘야 하므로, Set에 모아놓고 나중에 output을 지운다.
@@ -1239,7 +1235,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [self.queue_metadataInputsByCaptureDevice removeObjectForKey:captureDevice];
     
     [captureSession removeInput:deviceInput];
-    [captureSession removeInput:metadataInput];
+    
+    if (metadataInput != nil) {
+        [captureSession removeInput:metadataInput];
+    }
+    
     [captureSession commitConfiguration];
     
     //
@@ -2129,31 +2129,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [metadataOutput removeObserver:self forKeyPath:@"availableMetadataObjectTypes"];
 }
 
-- (void)didReceiveRuntimeErrorNotification:(NSNotification *)notification {
-    dispatch_async(self.captureSessionQueue, ^{
-        NSMutableDictionary *userInfo = [NSMutableDictionary new];
-        
-        if (NSError *error = notification.userInfo[AVCaptureSessionErrorKey]) {
-            assert([error isKindOfClass:NSError.class]);
-            userInfo[AVCaptureSessionErrorKey] = error;
-            NSLog(@"%@", error);
-        } else {
-            abort();
-        }
-        
-        if (__kindof AVCaptureSession *session = notification.object) {
-            assert([session isKindOfClass:AVCaptureSession.class]);
-            assert(([session isEqual:self.queue_captureSession]));
-            userInfo[CaptureServiceCaptureSessionKey] = session;
-        } else {
-            abort();
-        }
-        
-        [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceCaptureSessionRuntimeErrorNotificationName object:self userInfo:userInfo];
-        [userInfo release];
-    });
-}
-
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionByAddingDevice:(BOOL)addingDevice postNotification:(BOOL)postNotification {
     __kindof AVCaptureSession *currentCaptureSession = self.queue_captureSession;
     
@@ -2267,7 +2242,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
 //    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
     
-    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRuntimeErrorNotification:) name:AVCaptureSessionRuntimeErrorNotification object:captureSession];
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = NO;
