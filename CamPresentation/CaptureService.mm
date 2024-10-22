@@ -1873,6 +1873,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     BOOL isDepthDataDeliveryEnabled = capturePhotoOutput.isDepthDataDeliveryEnabled;
     capturePhotoSettings.depthDataDeliveryEnabled = isDepthDataDeliveryEnabled;
+    
+#warning option으로 분리
     capturePhotoSettings.embedsDepthDataInPhoto = isDepthDataDeliveryEnabled;
     
     if (capturePhotoOutput.isLivePhotoCaptureEnabled) {
