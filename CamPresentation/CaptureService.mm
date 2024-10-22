@@ -2755,25 +2755,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     return formatDescription;
 }
 
-
-#pragma mark - AVCapturePhotoCaptureDelegate
-
-//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhotoSampleBuffer:(CMSampleBufferRef)photoSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
-//    
-//}
-//
-//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingRawPhotoSampleBuffer:(CMSampleBufferRef)rawSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
-//    
-//}
-
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
-#warning 직접 calibration 해보기
-    assert(error == nil);
-#warning Capture depthData는 streaming과 다르게 해상도가 더 큼 configure 해보기
-    NSLog(@"%@", photo.depthData);
+- (void)mainQueue_savePhotoWithPhotoOutput:(AVCapturePhotoOutput *)photoOutqut uniqueID:(int64_t)uniqueID {
+    AVCapturePhoto *photo = [self.mainQueue_capturePhotosByUniqueID objectForKey:@(uniqueID)];
+    assert(photo != nil);
     
-    BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
-    NSLog(@"isSpatialPhotoCaptureEnabled: %d", isSpatialPhotoCaptureEnabled);
+    NSURL * _Nullable livePhotoMovieURL = [self.mainQueue_livePhotoMovieFileURLsByUniqueID objectForKey:@(uniqueID)];
     
     dispatch_async(self.captureSessionQueue, ^{
         __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
@@ -2787,6 +2773,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 
                 assert(fileDataRepresentation != nil);
                 [request addResourceWithType:PHAssetResourceTypePhoto data:fileDataRepresentation options:nil];
+                
+                if (livePhotoMovieURL != nil) {
+                    PHAssetResourceCreationOptions *options = [PHAssetResourceCreationOptions new];
+                    options.shouldMoveFile = YES;
+                    [request addResourceWithType:PHAssetResourceTypePairedVideo fileURL:livePhotoMovieURL options:options];
+                    [options release];
+                }
+                
                 request.location = self.locationManager.location;
             }
                                             completionHandler:^(BOOL success, NSError * _Nullable error) {
@@ -2804,18 +2798,60 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             NSString *processedFileType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photo, sel_registerName("processedFileType"));
             UTType *uti = [UTType typeWithIdentifier:processedFileType];
             
-            NSError * _Nullable error = nil;
-            NSArray<NSURL *> *urls = [device nextAvailableURLsWithPathExtensions:@[uti.preferredFilenameExtension] error:&error];
-            assert(error == nil);
-            NSURL *url = urls[0];
-            
-            assert([url startAccessingSecurityScopedResource]);
-            assert([NSFileManager.defaultManager createFileAtPath:url.path contents:fileDataRepresentation attributes:nil]);
-            [url stopAccessingSecurityScopedResource];
+            if (livePhotoMovieURL == nil) {
+                NSError * _Nullable error = nil;
+                NSURL *url = [device nextAvailableURLsWithPathExtensions:@[uti.preferredFilenameExtension] error:&error].firstObject;
+                assert(error == nil);
+                assert(url != nil);
+                
+                assert([url startAccessingSecurityScopedResource]);
+                assert([NSFileManager.defaultManager createFileAtPath:url.path contents:fileDataRepresentation attributes:nil]);
+                [url stopAccessingSecurityScopedResource];
+            } else {
+                NSError * _Nullable error = nil;
+                NSArray<NSURL *> *urls = [device nextAvailableURLsWithPathExtensions:@[uti.preferredFilenameExtension, UTTypeQuickTimeMovie.preferredFilenameExtension] error:&error];
+                assert(error == nil);
+                assert(urls.count == 2);
+                
+                for (NSURL *url in urls) {
+                    assert([url startAccessingSecurityScopedResource]);
+                    
+                    if ([url.pathExtension isEqualToString:uti.preferredFilenameExtension]) {
+                        BOOL result = [NSFileManager.defaultManager createFileAtPath:url.path contents:fileDataRepresentation attributes:nil];
+                        [url stopAccessingSecurityScopedResource];
+                        assert(result);
+                    } else if ([url.pathExtension isEqualToString:UTTypeQuickTimeMovie.preferredFilenameExtension]) {
+                        [NSFileManager.defaultManager moveItemAtURL:livePhotoMovieURL toURL:url error:&error];
+                        [url stopAccessingSecurityScopedResource];
+                        assert(error == nil);
+                    }
+                }
+            }
         } else {
             abort();
         }
     });
+}
+
+
+#pragma mark - AVCapturePhotoCaptureDelegate
+
+//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhotoSampleBuffer:(CMSampleBufferRef)photoSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
+//    
+//}
+//
+//- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingRawPhotoSampleBuffer:(CMSampleBufferRef)rawSampleBuffer previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings bracketSettings:(AVCaptureBracketedStillImageSettings *)bracketSettings error:(NSError *)error {
+//    
+//}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
+#warning 직접 calibration 해보기
+    assert(error == nil);
+#warning Capture depthData는 streaming과 다르게 해상도가 더 큼 configure 해보기
+    NSLog(@"%@", photo.depthData);
+    
+    dispatch_assert_queue(dispatch_get_main_queue());
+    [self.mainQueue_capturePhotosByUniqueID setObject:photo forKey:@(photo.resolvedSettings.uniqueID)];
 }
 
 #if !TARGET_OS_MACCATALYST
@@ -2847,11 +2883,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 }
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCaptureForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
-    
+    assert(error == nil);
+    [self mainQueue_savePhotoWithPhotoOutput:output uniqueID:resolvedSettings.uniqueID];
 }
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingLivePhotoToMovieFileAtURL:(NSURL *)outputFileURL duration:(CMTime)duration photoDisplayTime:(CMTime)photoDisplayTime resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
     assert(error == nil);
+    dispatch_assert_queue(dispatch_get_main_queue());
+    [self.mainQueue_livePhotoMovieFileURLsByUniqueID setObject:outputFileURL forKey:@(resolvedSettings.uniqueID)];
 }
 
 
