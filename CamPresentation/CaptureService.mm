@@ -27,6 +27,8 @@
 
 #warning AVCaptureMetadataInput - remove/switch 대응
 
+#warning isShutterSoundSuppressionEnabled
+
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
 AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
@@ -65,6 +67,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
+
+// Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
+@property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
+@property (retain, nonatomic, readonly) NSMapTable<NSNumber *, NSURL *> *mainQueue_livePhotoMovieFileURLsByUniqueID;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
 
@@ -115,6 +121,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
+        NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         
         //
         
@@ -142,6 +150,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
+        _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
+        _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
         self.queue_fileOutput = nil;
         
         //
@@ -197,6 +207,8 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
+    [_mainQueue_capturePhotosByUniqueID release];
+    [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [_queue_fileOutput release];
@@ -1863,6 +1875,27 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     capturePhotoSettings.depthDataDeliveryEnabled = isDepthDataDeliveryEnabled;
     capturePhotoSettings.embedsDepthDataInPhoto = isDepthDataDeliveryEnabled;
     
+    if (capturePhotoOutput.isLivePhotoCaptureEnabled) {
+        capturePhotoSettings.livePhotoVideoCodecType = photoModel.livePhotoVideoCodecType;
+        
+        NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
+        NSString *processName = NSProcessInfo.processInfo.processName;
+        NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
+        
+        BOOL isDirectory;
+        if (![NSFileManager.defaultManager fileExistsAtPath:processDirectoryURL.path isDirectory:&isDirectory]) {
+            NSError * _Nullable error = nil;
+            [NSFileManager.defaultManager createDirectoryAtURL:processDirectoryURL withIntermediateDirectories:YES attributes:nil error:&error];
+            assert(error == nil);
+            isDirectory = YES;
+        }
+        assert(isDirectory);
+        
+        NSURL *livePhotoMovieFileURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+        
+        capturePhotoSettings.livePhotoMovieFileURL = livePhotoMovieFileURL;
+    }
+    
     //
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(capturePhotoOutput, sel_registerName("isSpatialPhotoCaptureEnabled"));
@@ -2736,6 +2769,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
 #warning 직접 calibration 해보기
     assert(error == nil);
+#warning Capture depthData는 streaming과 다르게 해상도가 더 큼 configure 해보기
     NSLog(@"%@", photo.depthData);
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photo.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
@@ -2810,6 +2844,14 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 
 - (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
     
+}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCaptureForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
+    
+}
+
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingLivePhotoToMovieFileAtURL:(NSURL *)outputFileURL duration:(CMTime)duration photoDisplayTime:(CMTime)photoDisplayTime resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
+    assert(error == nil);
 }
 
 
