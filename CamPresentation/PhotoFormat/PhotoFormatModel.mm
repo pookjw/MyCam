@@ -26,6 +26,7 @@
     [_rawFileType release];
     [_processedFileType release];
     [_bracketedSettings release];
+    [_livePhotoVideoCodecType release];
     [super dealloc];
 }
 
@@ -45,6 +46,7 @@
         casted->_flashMode = _flashMode;
         casted->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
         casted->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
+        casted->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
     }
     
     return copy;
@@ -65,7 +67,8 @@
         _photoQualityPrioritization == casted->_photoQualityPrioritization &&
         _flashMode == casted->_flashMode &&
         _cameraCalibrationDataDeliveryEnabled == casted->_cameraCalibrationDataDeliveryEnabled &&
-        [_bracketedSettings isEqualToArray:casted->_bracketedSettings];
+        [_bracketedSettings isEqualToArray:casted->_bracketedSettings] &&
+        [_livePhotoVideoCodecType isEqualToString:casted->_livePhotoVideoCodecType];
     }
 }
 
@@ -80,7 +83,17 @@
     _photoQualityPrioritization ^
     _flashMode ^
     _cameraCalibrationDataDeliveryEnabled ^
-    _bracketedSettings.hash;
+    _bracketedSettings.hash ^
+    _livePhotoVideoCodecType.hash;
+}
+
+- (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    [self updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
+    [self updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
+    [self updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
+    [self updateRawFileTypeIfNeededWithPhotoOutput:photoOutput];
+    [self updateProcessedFileTypeIfNeededWithPhotoOutput:photoOutput];
+    [self updateLivePhotoVideoCodecTypeWithPhotoOutput:photoOutput];
 }
 
 - (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -208,6 +221,25 @@
     }
     
     return NO;
+}
+
+- (BOOL)updateLivePhotoVideoCodecTypeWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+    NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
+    
+    BOOL shouldUpdate;
+    if (self.livePhotoVideoCodecType == nil) {
+        shouldUpdate = YES;
+    } else if (![availableLivePhotoVideoCodecTypes containsObject:self.livePhotoVideoCodecType]) {
+        shouldUpdate = YES;
+    } else {
+        shouldUpdate = NO;
+    }
+    
+    if (shouldUpdate) {
+        self.livePhotoVideoCodecType = availableLivePhotoVideoCodecTypes.lastObject;
+    }
+    
+    return shouldUpdate;
 }
 
 @end

@@ -26,12 +26,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (copy) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
 
+@property (copy) AVVideoCodecType livePhotoVideoCodecType;
+
+- (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+
 - (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 - (BOOL)updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
+- (BOOL)updateLivePhotoVideoCodecTypeWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 @end
 
 NS_ASSUME_NONNULL_END

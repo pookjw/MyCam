@@ -470,6 +470,20 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 }
             });
             return;
+        } else if ([keyPath isEqualToString:@"availableLivePhotoVideoCodecTypes"]) {
+            dispatch_async(self.captureSessionQueue, ^{
+                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
+                AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
+                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                
+                [photoFormatModel updateLivePhotoVideoCodecTypeWithPhotoOutput:photoOutput];
+                
+                if (captureDevice != nil) {
+                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
+                }
+            });
+            return;
         }
     } else if ([object isKindOfClass:AVCaptureMetadataOutput.class]) {
         if ([keyPath isEqualToString:@"availableMetadataObjectTypes"]) {
@@ -933,11 +947,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [readinessCoordinator release];
     
     PhotoFormatModel *photoFormatModel = [PhotoFormatModel new];
-    [photoFormatModel updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
-    [photoFormatModel updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
-    [photoFormatModel updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
-    [photoFormatModel updateRawFileTypeIfNeededWithPhotoOutput:photoOutput];
-    [photoFormatModel updateProcessedFileTypeIfNeededWithPhotoOutput:photoOutput];
+    [photoFormatModel updateAllWithPhotoOutput:photoOutput];
     
     [self.queue_photoFormatModelsByCaptureDevice setObject:photoFormatModel forKey:captureDevice];
     [photoOutput release];
@@ -2039,6 +2049,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [photoOutput addObserver:self forKeyPath:@"isFastCapturePrioritizationSupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"isDepthDataDeliverySupported" options:NSKeyValueObservingOptionNew context:nullptr];
+    [photoOutput addObserver:self forKeyPath:@"availableLivePhotoVideoCodecTypes" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
@@ -2056,6 +2067,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [photoOutput removeObserver:self forKeyPath:@"isFastCapturePrioritizationSupported"];
     [photoOutput removeObserver:self forKeyPath:@"isCameraCalibrationDataDeliverySupported"];
     [photoOutput removeObserver:self forKeyPath:@"isDepthDataDeliverySupported"];
+    [photoOutput removeObserver:self forKeyPath:@"availableLivePhotoVideoCodecTypes"];
 }
 
 - (void)registerObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
@@ -2521,11 +2533,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     AVCaptureDevice *captureDevice = addedInput.device;
                     
                     if (PhotoFormatModel *photoFormatModel = [self.queue_photoFormatModelsByCaptureDevice objectForKey:captureDevice]) {
-                        [photoFormatModel updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:addedPhotoOutput];
-                        [photoFormatModel updateCodecTypeIfNeededWithPhotoOutput:addedPhotoOutput];
-                        [photoFormatModel updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:addedPhotoOutput];
-                        [photoFormatModel updateRawFileTypeIfNeededWithPhotoOutput:addedPhotoOutput];
-                        [photoFormatModel updateProcessedFileTypeIfNeededWithPhotoOutput:addedPhotoOutput];
+                        [photoFormatModel updateAllWithPhotoOutput:addedPhotoOutput];
                     } else {
                         abort();
                     }

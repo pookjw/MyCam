@@ -103,7 +103,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_capturePhotoWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel]];
     
-    [elements addObject:[UIDeferredMenuElement _cp_queue_livePhotoMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+    [elements addObject:[UIDeferredMenuElement _cp_queue_livePhotoMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
     
@@ -2594,10 +2594,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_queue_livePhotoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
++ (UIMenu * _Nonnull)_cp_queue_livePhotoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
     UIMenu *menu = [UIMenu menuWithTitle:@"Live Photo" children:@[
         [UIDeferredMenuElement _cp_queue_toggleLivePhotoCaptureEnabledActionWithCaptureService:captureService photoOutput:photoOutput didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_livePhotoSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_livePhotoSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleLivePhotoCaptureSuspendedActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleLivePhotoAutoTrimmingEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_livePhotoVideoCodecTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -2706,6 +2709,74 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     action.state = hasMovieFileOutput ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleLivePhotoCaptureSuspendedActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    BOOL isLivePhotoCaptureSuspended = photoOutput.isLivePhotoCaptureSuspended;
+    BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Live Photo Capture Suspended" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            photoOutput.livePhotoCaptureSuspended = !isLivePhotoCaptureSuspended;
+        });
+    }];
+    
+    action.state = isLivePhotoCaptureSuspended ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isLivePhotoCaptureEnabled ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleLivePhotoAutoTrimmingEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    assert(photoOutput != nil);
+    BOOL isLivePhotoAutoTrimmingEnabled = photoOutput.isLivePhotoAutoTrimmingEnabled;
+    BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Live Photo Auto Trimming Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            photoOutput.livePhotoAutoTrimmingEnabled = !isLivePhotoAutoTrimmingEnabled;
+        });
+    }];
+    
+    action.state = isLivePhotoAutoTrimmingEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isLivePhotoCaptureEnabled ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_livePhotoVideoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
+    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    assert(photoOutput != nil);
+    
+    NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
+    AVVideoCodecType livePhotoVideoCodecType = photoFormatModel.livePhotoVideoCodecType;
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:availableLivePhotoVideoCodecTypes.count];
+    
+    for (AVVideoCodecType codecType in availableLivePhotoVideoCodecTypes) {
+        UIAction *action = [UIAction actionWithTitle:codecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                PhotoFormatModel *copy = [photoFormatModel copy];
+                copy.livePhotoVideoCodecType = codecType;
+                [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+                [copy release];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = ([livePhotoVideoCodecType isEqualToString:codecType]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Live Photo Video Codec" children:actions];
+    [actions release];
+    
+    menu.subtitle = livePhotoVideoCodecType;
+    
+    return menu;
 }
 
 @end
