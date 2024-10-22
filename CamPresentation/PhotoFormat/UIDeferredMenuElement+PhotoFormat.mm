@@ -92,7 +92,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return result;
 }
 
-+ (UIMenu *)_cp_queue_photoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_queue_photoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
     AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
@@ -155,35 +155,38 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return menu;
 }
 
-+ (UIMenu *)_cp_queue_movieMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
-    assert(movieFileOutput != nil);
++ (UIMenu * _Nonnull)_cp_queue_movieMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMovieFileOutput * _Nullable movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
     
     NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
     
-    [elements addObject:[UIDeferredMenuElement _cp_queue_movieRecordingMenuWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput]];
+    [elements addObject:[UIDeferredMenuElement _cp_queue_configureMovieFileOutputActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
     
-    [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
-    
-    [elements addObject:[UIDeferredMenuElement _cp_queue_movieOutputSettingsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
-    
-    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput didChangeHandler:didChangeHandler]];
-    
-    [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService
-                                                                                             captureDevice:captureDevice
-                                                                                                     title:@"Formats by Video Stabilizations for Spatial Video Capture"
+    if (movieFileOutput != nil) {
+        [elements addObject:[UIDeferredMenuElement _cp_queue_movieRecordingMenuWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_movieOutputSettingsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialVideoCaptureActionWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput didChangeHandler:didChangeHandler]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService
+                                                                                                 captureDevice:captureDevice
+                                                                                                         title:@"Formats by Video Stabilizations for Spatial Video Capture"
                                                                                              modeFilterHandler:^BOOL(AVCaptureVideoStabilizationMode videoStabilizationMode) {
-        // -[AVCaptureMovieFileOutput _updateSpatialVideoCaptureSupportedForSourceDevice:]
-        return ((0x1 << videoStabilizationMode) & 0x2c) != 0x0;
+            // -[AVCaptureMovieFileOutput _updateSpatialVideoCaptureSupportedForSourceDevice:]
+            return ((0x1 << videoStabilizationMode) & 0x2c) != 0x0;
+        }
+                                                                                           formatFilterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+            return format.isSpatialVideoCaptureSupported;
+        }
+                                                                                              didChangeHandler:didChangeHandler]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:captureDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler]];
+        
+        [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo] didChangeHandler:didChangeHandler]];
     }
-                                                                                       formatFilterHandler:^BOOL(AVCaptureDeviceFormat *format) {
-        return format.isSpatialVideoCaptureSupported;
-    }
-                                                                                          didChangeHandler:didChangeHandler]];
-    
-    [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:captureDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler]];
-    
-    [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo] didChangeHandler:didChangeHandler]];
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Movie" children:elements];
     [elements release];
@@ -2680,6 +2683,29 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         return isIrisSupported && isPhotoFormat;
     }
                                                          didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_configureMovieFileOutputActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL hasMovieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice] != nil;
+    
+    UIAction *action = [UIAction actionWithTitle:hasMovieFileOutput ? @"Remove Movie File Output" : @"Add Movie File Output"
+                                           image:nil
+                                      identifier:nil
+                                         handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            if (hasMovieFileOutput) {
+                [captureService queue_removeMovieFileOutputWithCaptureDevice:captureDevice];
+            } else {
+                assert([captureService queue_addMovieFileOutputWithCaptureDevice:captureDevice] != nil);
+            }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = hasMovieFileOutput ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
 }
 
 @end

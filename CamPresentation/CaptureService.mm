@@ -722,18 +722,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     //
     
-    AVCaptureMovieFileOutput *movieFileOutput = [AVCaptureMovieFileOutput new];
-    reason = nil;
-    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddOutput:failureReason:"), movieFileOutput, &reason));
-    [captureSession addOutputWithNoConnections:movieFileOutput];
-    
-    AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
-    assert([captureSession canAddConnection:movieFileOutputConnection]);
-    [captureSession addConnection:movieFileOutputConnection];
-    [movieFileOutputConnection release];
-    
-    //
-    
     AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
     videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
     videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
@@ -923,35 +911,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         [systemStyleSlider release];
     }
 #endif
-    
-    //
-    
-    CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
-    AVCaptureMetadataInput *metadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:metadataObjectInputPort.clock];
-    CFRelease(formatDescription);
-    assert([captureSession canAddInput:metadataInput]);
-    [captureSession addInputWithNoConnections:metadataInput];
-    
-    BOOL didAdd = NO;
-    for (AVCaptureInputPort *inputPort in metadataInput.ports) {
-        if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
-            AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:@[inputPort] output:movieFileOutput];
-            // 왜인지 모르겠지만 AVCaptureMultiCamSession 상태에서 -11819 Error가 나옴
-            connection.enabled = (captureSession.class != AVCaptureMultiCamSession.class);
-            
-            assert([captureSession canAddConnection:connection]);
-            [captureSession addConnection:connection];
-            [connection release];
-            didAdd = YES;
-            break;
-        }
-    }
-    assert(didAdd);
-    
-    [self.queue_metadataInputsByCaptureDevice setObject:metadataInput forKey:captureDevice];
-    [metadataInput release];
-    
-    [movieFileOutput release];
     
     //
     
@@ -1612,6 +1571,136 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     }
     
     return [captureDevices autorelease];
+}
+
+- (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    assert([self queue_movieFileOutputFromCaptureDevice:captureDevice] == nil);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    AVCaptureDeviceInput *deviceInput = nil;
+    for (AVCaptureInput *input in captureSession.inputs) {
+        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
+            auto _deviceInput = static_cast<AVCaptureDeviceInput *>(input);
+            if ([_deviceInput.device isEqual:captureDevice]) {
+                deviceInput = _deviceInput;
+                break;
+            }
+        }
+    }
+    assert(deviceInput != nil);
+    
+    AVCaptureInputPort *videoInputPort = [deviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+    assert(videoInputPort != nil);
+    
+    [captureSession beginConfiguration];
+    
+    AVCaptureMovieFileOutput *movieFileOutput = [AVCaptureMovieFileOutput new];
+    NSString * _Nullable reason = nil;
+    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddOutput:failureReason:"), movieFileOutput, &reason));
+    [captureSession addOutputWithNoConnections:movieFileOutput];
+    
+    AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
+    assert([captureSession canAddConnection:movieFileOutputConnection]);
+    [captureSession addConnection:movieFileOutputConnection];
+    [movieFileOutputConnection release];
+    
+    //
+    
+    CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
+    AVCaptureMetadataInput *metadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:videoInputPort.clock];
+    CFRelease(formatDescription);
+    assert([captureSession canAddInput:metadataInput]);
+    [captureSession addInputWithNoConnections:metadataInput];
+    
+    BOOL didAdd = NO;
+    for (AVCaptureInputPort *inputPort in metadataInput.ports) {
+        if ([inputPort.mediaType isEqualToString:AVMediaTypeMetadata]) {
+            AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:@[inputPort] output:movieFileOutput];
+            // 왜인지 모르겠지만 AVCaptureMultiCamSession 상태에서 -11819 Error가 나옴
+            connection.enabled = (captureSession.class != AVCaptureMultiCamSession.class);
+            
+            assert([captureSession canAddConnection:connection]);
+            [captureSession addConnection:connection];
+            [connection release];
+            didAdd = YES;
+            break;
+        }
+    }
+    assert(didAdd);
+    
+    [self.queue_metadataInputsByCaptureDevice setObject:metadataInput forKey:captureDevice];
+    [metadataInput release];
+    
+    //
+    
+    [captureSession commitConfiguration];
+    
+    return [movieFileOutput autorelease];
+}
+
+- (void)queue_removeMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    [captureSession beginConfiguration];
+    
+    AVCaptureMovieFileOutput *movieFileOutput = nil;
+    
+    for (AVCaptureConnection *connection in captureSession.connections) {
+        if (![connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) continue;
+        
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if (![inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            
+            if ([deviceInput.device isEqual:captureDevice]) {
+                movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
+                [captureSession removeConnection:connection];
+                break;
+            }
+        }
+        
+        if (movieFileOutput != nil) {
+            break;
+        }
+    }
+    
+    assert(movieFileOutput != nil);
+    
+    //
+    
+    AVCaptureMetadataInput *metadataInput = nil;
+    
+    for (AVCaptureConnection *connection in captureSession.connections) {
+        if ([connection.output isEqual:movieFileOutput]) {
+            
+            for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+                if ([inputPort.input isKindOfClass:AVCaptureMetadataInput.class]) {
+                    metadataInput = static_cast<AVCaptureMetadataInput *>(inputPort.input);
+                    [captureSession removeConnection:connection];
+                    break;
+                }
+            }
+        }
+        
+        if (metadataInput != nil) {
+            break;
+        }
+    }
+    
+    assert(metadataInput != nil);
+    [captureSession removeInput:metadataInput];
+    
+    //
+    
+    [captureSession removeOutput:movieFileOutput];
+    
+    [captureSession commitConfiguration];
 }
 
 #warning Multi Mic 지원
