@@ -310,70 +310,80 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
+                [copy updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"availablePhotoCodecTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
+                [copy updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoPixelFormatTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
+                [copy updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateRawFileTypeIfNeededWithPhotoOutput:photoOutput];
+                [copy updateRawFileTypeIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"availablePhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateProcessedFileTypeIfNeededWithPhotoOutput:photoOutput];
+                [copy updateProcessedFileTypeIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
@@ -450,14 +460,16 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:photoOutput];
+                [copy updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         } else if ([keyPath isEqualToString:@"isDepthDataDeliverySupported"]) {
@@ -474,14 +486,16 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
             dispatch_async(self.captureSessionQueue, ^{
                 auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
-                PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
+                MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
-                [photoFormatModel updateLivePhotoVideoCodecTypeWithPhotoOutput:photoOutput];
+                [copy updateLivePhotoVideoCodecTypeWithPhotoOutput:photoOutput];
                 
                 if (captureDevice != nil) {
-                    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
+                    [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                     [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
                 }
+                
+                [copy release];
             });
             return;
         }
@@ -946,11 +960,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     readinessCoordinator.delegate = self;
     [readinessCoordinator release];
     
-    PhotoFormatModel *photoFormatModel = [PhotoFormatModel new];
+    MutablePhotoFormatModel *photoFormatModel = [MutablePhotoFormatModel new];
     [photoFormatModel updateAllWithPhotoOutput:photoOutput];
-    
-    [self.queue_photoFormatModelsByCaptureDevice setObject:photoFormatModel forKey:captureDevice];
     [photoOutput release];
+    
+    [self queue_setPhotoFormatModel:photoFormatModel forCaptureDevice:captureDevice];
     [photoFormatModel release];
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
@@ -1362,6 +1376,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     PhotoFormatModel * _Nullable copy = [photoFormatModel copy];
     [self.queue_photoFormatModelsByCaptureDevice setObject:copy forKey:captureDevice];
     [copy release];
+    
+    for (PhotoFormatModel *photoFormatModel in self.queue_photoFormatModelsByCaptureDevice.objectEnumerator) {
+        assert(photoFormatModel.class == PhotoFormatModel.class);
+    }
 }
 
 - (AVCapturePhotoOutput *)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2532,8 +2550,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                     
                     AVCaptureDevice *captureDevice = addedInput.device;
                     
-                    if (PhotoFormatModel *photoFormatModel = [self.queue_photoFormatModelsByCaptureDevice objectForKey:captureDevice]) {
-                        [photoFormatModel updateAllWithPhotoOutput:addedPhotoOutput];
+                    if (PhotoFormatModel *photoFormatModel = [self queue_photoFormatModelForCaptureDevice:captureDevice]) {
+                        MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
+                        [copy updateAllWithPhotoOutput:addedPhotoOutput];
+                        [self queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
+                        [copy release];
                     } else {
                         abort();
                     }

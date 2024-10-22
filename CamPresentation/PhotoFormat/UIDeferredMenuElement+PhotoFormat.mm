@@ -294,7 +294,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.photoPixelFormatType = formatNumber;
                 copy.codecType = nil;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
@@ -356,7 +356,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     for (AVVideoCodecType photoCodecType in availablePhotoCodecTypes) {
         UIAction *action = [UIAction actionWithTitle:photoCodecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.photoPixelFormatType = nil;
                 copy.codecType = photoCodecType;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
@@ -391,7 +391,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         UIAction *action = [UIAction actionWithTitle:@(quality).stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.quality = quality;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];
@@ -443,7 +443,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                       identifier:nil
                                          handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            PhotoFormatModel *copy = [photoFormatModel copy];
+            MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
             
             copy.isRAWEnabled = !copy.isRAWEnabled;
             if (copy.isRAWEnabled) {
@@ -514,7 +514,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.rawPhotoPixelFormatType = formatNumber;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];
@@ -568,7 +568,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.rawFileType = fileType;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];
@@ -603,7 +603,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     UIAction *nullAction = [UIAction actionWithTitle:@"(null)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            PhotoFormatModel *copy = [photoFormatModel copy];
+            MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
             copy.processedFileType = nil;
             [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
             [copy release];
@@ -618,7 +618,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     for (AVFileType fileType in availablePhotoFileTypes) {
         UIAction *action = [UIAction actionWithTitle:fileType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 
                 //
                 
@@ -808,7 +808,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.photoQualityPrioritization = prioritization;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];
@@ -864,7 +864,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.flashMode = flashMode;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];
@@ -1633,7 +1633,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     UIAction *action = [UIAction actionWithTitle:@"Camera Calibration Data Delivery" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            PhotoFormatModel *copy = [photoFormatModel copy];
+            MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
             copy.cameraCalibrationDataDeliveryEnabled = !isCameraCalibrationDataDeliveryEnabled;
             [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
             [copy release];
@@ -2208,7 +2208,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         UIAction *removeAction = [UIAction actionWithTitle:@"Remove" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 NSMutableArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings = [copy.bracketedSettings mutableCopy];
                 [bracketedSettings removeObject:settings];
                 copy.bracketedSettings = bracketedSettings;
@@ -2264,7 +2264,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                 float value = slider.value;
                 
                 dispatch_async(captureService.captureSessionQueue, ^{
-                    PhotoFormatModel *copy = [photoFormatModel copy];
+                    MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                     
                     AVCaptureAutoExposureBracketedStillImageSettings *settings = [AVCaptureAutoExposureBracketedStillImageSettings autoExposureSettingsWithExposureTargetBias:value];
                     
@@ -2336,7 +2336,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                 assert((compareResult == -1) || (compareResult == 0));
                 
                 dispatch_async(captureService.captureSessionQueue, ^{
-                    PhotoFormatModel *copy = [photoFormatModel copy];
+                    MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                     
                     AVCaptureManualExposureBracketedStillImageSettings *settings = [AVCaptureManualExposureBracketedStillImageSettings manualExposureSettingsWithExposureDuration:exposureDuration ISO:ISO];
                     
@@ -2757,7 +2757,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     for (AVVideoCodecType codecType in availableLivePhotoVideoCodecTypes) {
         UIAction *action = [UIAction actionWithTitle:codecType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                PhotoFormatModel *copy = [photoFormatModel copy];
+                MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
                 copy.livePhotoVideoCodecType = codecType;
                 [captureService queue_setPhotoFormatModel:copy forCaptureDevice:captureDevice];
                 [copy release];

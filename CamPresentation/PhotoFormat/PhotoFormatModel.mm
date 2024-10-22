@@ -31,25 +31,41 @@
 }
 
 - (id)copyWithZone:(struct _NSZone *)zone {
-    id copy = [[[self class] allocWithZone:zone] init];
+    PhotoFormatModel *copy = [[PhotoFormatModel allocWithZone:zone] init];
     
-    if (copy) {
-        auto casted = static_cast<PhotoFormatModel *>(copy);
-        casted->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
-        casted->_codecType = [_codecType copyWithZone:zone];
-        casted->_quality = _quality;
-        casted->_isRAWEnabled = _isRAWEnabled;
-        casted->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
-        casted->_rawFileType = [_rawFileType copyWithZone:zone];
-        casted->_processedFileType = [_processedFileType copyWithZone:zone];
-        casted->_photoQualityPrioritization = _photoQualityPrioritization;
-        casted->_flashMode = _flashMode;
-        casted->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
-        casted->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
-        casted->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
-    }
+    copy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
+    copy->_codecType = [_codecType copyWithZone:zone];
+    copy->_quality = _quality;
+    copy->_isRAWEnabled = _isRAWEnabled;
+    copy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
+    copy->_rawFileType = [_rawFileType copyWithZone:zone];
+    copy->_processedFileType = [_processedFileType copyWithZone:zone];
+    copy->_photoQualityPrioritization = _photoQualityPrioritization;
+    copy->_flashMode = _flashMode;
+    copy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
+    copy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
+    copy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
     
     return copy;
+}
+
+- (id)mutableCopyWithZone:(struct _NSZone *)zone {
+    MutablePhotoFormatModel *mutableCopy = [[MutablePhotoFormatModel allocWithZone:zone] init];
+    
+    mutableCopy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
+    mutableCopy->_codecType = [_codecType copyWithZone:zone];
+    mutableCopy->_quality = _quality;
+    mutableCopy->_isRAWEnabled = _isRAWEnabled;
+    mutableCopy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
+    mutableCopy->_rawFileType = [_rawFileType copyWithZone:zone];
+    mutableCopy->_processedFileType = [_processedFileType copyWithZone:zone];
+    mutableCopy->_photoQualityPrioritization = _photoQualityPrioritization;
+    mutableCopy->_flashMode = _flashMode;
+    mutableCopy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
+    mutableCopy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
+    mutableCopy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
+    
+    return mutableCopy;
 }
 
 - (BOOL)isEqual:(id)other {
@@ -85,6 +101,65 @@
     _cameraCalibrationDataDeliveryEnabled ^
     _bracketedSettings.hash ^
     _livePhotoVideoCodecType.hash;
+}
+
+@end
+
+@implementation MutablePhotoFormatModel
+
+- (void)setPhotoPixelFormatType:(NSNumber *)photoPixelFormatType {
+    [_photoPixelFormatType release];
+    _photoPixelFormatType = [photoPixelFormatType copy];
+}
+
+- (void)setCodecType:(AVVideoCodecType)codecType {
+    [_codecType release];
+    _codecType = [codecType copy];
+}
+
+- (void)setQuality:(float)quality {
+    _quality = quality;
+}
+
+- (void)setRAWEnabled:(BOOL)isRAWEnabled {
+    _isRAWEnabled = isRAWEnabled;
+}
+
+- (void)setRawPhotoPixelFormatType:(NSNumber *)rawPhotoPixelFormatType {
+    [_rawPhotoPixelFormatType release];
+    _rawPhotoPixelFormatType = [rawPhotoPixelFormatType copy];
+}
+
+- (void)setRawFileType:(AVFileType)rawFileType {
+    [_rawFileType release];
+    _rawFileType = [rawFileType copy];
+}
+
+- (void)setProcessedFileType:(AVFileType)processedFileType {
+    [_processedFileType release];
+    _processedFileType = [processedFileType copy];
+}
+
+- (void)setPhotoQualityPrioritization:(AVCapturePhotoQualityPrioritization)photoQualityPrioritization {
+    _photoQualityPrioritization = photoQualityPrioritization;
+}
+
+- (void)setFlashMode:(AVCaptureFlashMode)flashMode {
+    _flashMode = flashMode;
+}
+
+- (void)setCameraCalibrationDataDeliveryEnabled:(BOOL)cameraCalibrationDataDeliveryEnabled {
+    _cameraCalibrationDataDeliveryEnabled = cameraCalibrationDataDeliveryEnabled;
+}
+
+- (void)setBracketedSettings:(NSArray<__kindof AVCaptureBracketedStillImageSettings *> *)bracketedSettings {
+    [_bracketedSettings release];
+    _bracketedSettings = [bracketedSettings copy];
+}
+
+- (void)setLivePhotoVideoCodecType:(AVVideoCodecType)livePhotoVideoCodecType {
+    [_livePhotoVideoCodecType release];
+    _livePhotoVideoCodecType = [livePhotoVideoCodecType copy];
 }
 
 - (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {

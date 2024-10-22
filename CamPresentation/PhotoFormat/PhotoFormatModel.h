@@ -9,24 +9,61 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PhotoFormatModel : NSObject <NSCopying>
-@property (copy, nullable) NSNumber *photoPixelFormatType;
-@property (copy, nullable) AVVideoCodecType codecType;
-@property (assign) float quality;
+@interface PhotoFormatModel : NSObject <NSCopying, NSMutableCopying> {
+    @package NSNumber *_photoPixelFormatType;
+    @package AVVideoCodecType _codecType;
+    @package float _quality;
+    @package BOOL _isRAWEnabled;
+    @package NSNumber *_rawPhotoPixelFormatType;
+    @package AVFileType _rawFileType;
+    @package AVFileType _processedFileType;
+    @package AVCapturePhotoQualityPrioritization _photoQualityPrioritization;
+    @package AVCaptureFlashMode _flashMode;
+    @package BOOL _cameraCalibrationDataDeliveryEnabled;
+    @package NSArray<__kindof AVCaptureBracketedStillImageSettings *> *_bracketedSettings;
+    @package AVVideoCodecType _livePhotoVideoCodecType;
+}
+@property (copy, nonatomic, readonly, nullable) NSNumber *photoPixelFormatType;
+@property (copy, nonatomic, readonly, nullable) AVVideoCodecType codecType;
+@property (assign, nonatomic, readonly) float quality;
 
-@property (assign, getter=rawEnabled, setter=setRAWEnabled:) BOOL isRAWEnabled;
-@property (copy, nullable) NSNumber *rawPhotoPixelFormatType;
-@property (copy, nullable) AVFileType rawFileType;
-@property (copy, nullable) AVFileType processedFileType;
+@property (assign, nonatomic, nonatomic, readonly, getter=rawEnabled) BOOL isRAWEnabled;
+@property (copy, nonatomic, readonly, nullable) NSNumber *rawPhotoPixelFormatType;
+@property (copy, nonatomic, readonly, nullable) AVFileType rawFileType;
+@property (copy, nonatomic, readonly, nullable) AVFileType processedFileType;
 
-@property (assign) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
-@property (assign) AVCaptureFlashMode flashMode;
+@property (assign, nonatomic, readonly) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
+@property (assign, nonatomic, readonly) AVCaptureFlashMode flashMode;
 
-@property (assign, getter=isCameraCalibrationDataDeliveryEnabled) BOOL cameraCalibrationDataDeliveryEnabled;
+@property (assign, nonatomic, readonly, getter=isCameraCalibrationDataDeliveryEnabled) BOOL cameraCalibrationDataDeliveryEnabled;
 
-@property (copy) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
+@property (copy, nonatomic, readonly) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
 
-@property (copy) AVVideoCodecType livePhotoVideoCodecType;
+@property (copy, nonatomic, readonly) AVVideoCodecType livePhotoVideoCodecType;
+@end
+
+
+@interface MutablePhotoFormatModel : PhotoFormatModel
+@property (copy, nonatomic, nullable) NSNumber *photoPixelFormatType;
+@property (copy, nonatomic, nullable) AVVideoCodecType codecType;
+@property (assign, nonatomic) float quality;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wproperty-attribute-mismatch"
+@property (assign, nonatomic, getter=rawEnabled, setter=setRAWEnabled:) BOOL isRAWEnabled;
+#pragma clang diagnostic pop
+@property (copy, nonatomic, nullable) NSNumber *rawPhotoPixelFormatType;
+@property (copy, nonatomic, nullable) AVFileType rawFileType;
+@property (copy, nonatomic, nullable) AVFileType processedFileType;
+
+@property (assign, nonatomic) AVCapturePhotoQualityPrioritization photoQualityPrioritization;
+@property (assign, nonatomic) AVCaptureFlashMode flashMode;
+
+@property (assign, nonatomic, getter=isCameraCalibrationDataDeliveryEnabled) BOOL cameraCalibrationDataDeliveryEnabled;
+
+@property (copy, nonatomic) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
+
+@property (copy, nonatomic) AVVideoCodecType livePhotoVideoCodecType;
 
 - (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 
