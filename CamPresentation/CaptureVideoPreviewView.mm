@@ -149,15 +149,8 @@
                                                    name:CaptureServiceDidChangeCaptureReadinessNotificationName
                                                  object:captureService];
         
-        [NSNotificationCenter.defaultCenter addObserver:self
-                                               selector:@selector(didChangeReactionEffectsInProgressNotification:)
-                                                   name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
-                                                 object:captureService];
-        
-        [NSNotificationCenter.defaultCenter addObserver:self
-                                               selector:@selector(didReceiveAdjustingFocusDidChangeNotification:)
-                                                   name:CaptureServiceAdjustingFocusDidChangeNotificationName
-                                                 object:captureService];
+        [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     }
     
     return self;
@@ -168,6 +161,8 @@
     [_displayScaleChangeRegistration release];
     [_captureService release];
     [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
+    [_captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
+    [_captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
     [_captureDevice release];
     [_previewLayer release];
     [_depthMapLayer release];
@@ -194,6 +189,16 @@
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self didChangeReactionEffectsInProgress];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"adjustingFocus"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self didChangeAdjustingFocus];
             });
             return;
         }
@@ -449,43 +454,28 @@
     });
 }
 
-- (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
-    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+- (void)didChangeReactionEffectsInProgress {
+    NSUInteger reactionEffectsInProgressCount = self.captureDevice.reactionEffectsInProgress.count;
     
-    if (![captureDevice isEqual:self.captureDevice]) {
-        return;
+    if (reactionEffectsInProgressCount > 0) {
+        [self.reactionProgressActivityIndicatorView startAnimating];
+        self.reactionProgressBarButtonItem.hidden = NO;
+    } else {
+        [self.reactionProgressActivityIndicatorView stopAnimating];
+        self.reactionProgressBarButtonItem.hidden = YES;
     }
-    
-    NSUInteger reactionEffectsInProgressCount = captureDevice.reactionEffectsInProgress.count;
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (reactionEffectsInProgressCount > 0) {
-            [self.reactionProgressActivityIndicatorView startAnimating];
-            self.reactionProgressBarButtonItem.hidden = NO;
-        } else {
-            [self.reactionProgressActivityIndicatorView stopAnimating];
-            self.reactionProgressBarButtonItem.hidden = YES;
-        }
-    });
 }
 
-- (void)didReceiveAdjustingFocusDidChangeNotification:(NSNotification *)notification {
-    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
-    if (![captureDevice isEqual:self.captureDevice]) {
-        return;
+- (void)didChangeAdjustingFocus {
+    BOOL adjustingFocus = self.captureDevice.adjustingFocus;
+    
+    if (adjustingFocus) {
+        [self.adjustingFocusActivityIndicatorView startAnimating];
+        self.adjustingFocusBarButtonItem.hidden = NO;
+    } else {
+        [self.adjustingFocusActivityIndicatorView stopAnimating];
+        self.adjustingFocusBarButtonItem.hidden = YES;
     }
-    
-    BOOL adjustingFocus = captureDevice.adjustingFocus;
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (adjustingFocus) {
-            [self.adjustingFocusActivityIndicatorView startAnimating];
-            self.adjustingFocusBarButtonItem.hidden = NO;
-        } else {
-            [self.adjustingFocusActivityIndicatorView stopAnimating];
-            self.adjustingFocusBarButtonItem.hidden = YES;
-        }
-    });
 }
 
 @end

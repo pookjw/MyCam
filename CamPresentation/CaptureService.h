@@ -26,12 +26,6 @@ CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotifi
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
 
-CP_EXTERN NSString * const CaptureServiceReactionEffectsInProgressKey;
-CP_EXTERN NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceReactionEffectsInProgressKey */;
-
-CP_EXTERN NSString * const CaptureServiceAdjustingFocusKey;
-CP_EXTERN NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName /* CaptureServiceCaptureSessionKey, CaptureServiceAdjustingFocusKey */;
-
 //
 
 @interface CaptureService : NSObject

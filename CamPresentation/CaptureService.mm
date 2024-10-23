@@ -44,12 +44,6 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName = @"CaptureServiceDidChangeReactionEffectsInProgressNotificationName";
-NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceReactionEffectsInProgressKey";
-
-NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
-NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
-
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
@@ -263,10 +257,7 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     } else if ([object isKindOfClass:AVCaptureDevice.class]) {
         auto captureDevice = static_cast<AVCaptureDevice *>(object);
         
-        if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
-            [self postDidChangeReactionEffectsInProgressNotificationWithCaptureDevice:captureDevice reactionEffectsInProgress:change[NSKeyValueChangeNewKey]];
-            return;
-        } else if ([keyPath isEqualToString:@"activeFormat"]) {
+        if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
             }
@@ -293,13 +284,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
         } else if ([keyPath isEqualToString:@"isCenterStageActive"]) {
             if (captureDevice != nil) {
                 [self postReloadingPhotoFormatMenuNeededNotification:captureDevice];
-            }
-            return;
-        } else if ([keyPath isEqualToString:@"adjustingFocus"]) {
-            if (captureDevice != nil) {
-                dispatch_async(self.captureSessionQueue, ^{
-                    [self queue_postAdjustingFocusDidChangeNotificationWithCaptureDevice:captureDevice];
-                });
             }
             return;
         }
@@ -1989,24 +1973,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName object:self userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
 }
 
-- (void)queue_postAdjustingFocusDidChangeNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceAdjustingFocusDidChangeNotificationName
-                                                      object:self
-                                                    userInfo:@{
-        CaptureServiceCaptureDeviceKey: captureDevice,
-        CaptureServiceAdjustingFocusKey: @(captureDevice.adjustingFocus)
-    }];
-}
-
-- (void)postDidChangeReactionEffectsInProgressNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice reactionEffectsInProgress:(NSArray<AVCaptureReactionEffectState *> *)reactionEffectsInProgress {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
-                                                      object:self
-                                                    userInfo:@{
-        CaptureServiceCaptureDeviceKey: captureDevice,
-        CaptureServiceReactionEffectsInProgressKey: reactionEffectsInProgress
-    }];
-}
-
 - (void)postDidUpdatePreviewLayersNotification {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -2037,13 +2003,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
-    [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeDepthDataFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"isCenterStageActive" options:NSKeyValueObservingOptionNew context:nullptr];
-    [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionNew context:nullptr];
     
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSubjectAreaDidChangeNotification:) name:AVCaptureDeviceSubjectAreaDidChangeNotification object:nil];
     
@@ -2058,13 +2022,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
-    [captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
     [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
     [captureDevice removeObserver:self forKeyPath:@"formats"];
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
     [captureDevice removeObserver:self forKeyPath:@"activeDepthDataFormat"];
     [captureDevice removeObserver:self forKeyPath:@"isCenterStageActive"];
-    [captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
     
     [NSNotificationCenter.defaultCenter removeObserver:self name:AVCaptureDeviceSubjectAreaDidChangeNotification object:captureDevice];
     
