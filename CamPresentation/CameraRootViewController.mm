@@ -38,12 +38,6 @@
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
-@property (retain, nonatomic, readonly) UIActivityIndicatorView *captureProgressActivityIndicatorView;
-@property (retain, nonatomic, readonly) UIBarButtonItem *captureProgressBarButtonItem;
-@property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
-@property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
-@property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
-@property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureSessionBarButton;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -58,12 +52,6 @@
 #if TARGET_OS_TV
 @synthesize continuityDevicePickerBarButtonItem = _continuityDevicePickerBarButtonItem;
 #endif
-@synthesize captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView;
-@synthesize captureProgressBarButtonItem = _captureProgressBarButtonItem;
-@synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
-@synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
-@synthesize adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView;
-@synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize captureService = _captureService;
 @synthesize audioBarButtonItem = _audioBarButtonItem;
 @synthesize captureSessionBarButton = _captureSessionBarButton;
@@ -98,12 +86,6 @@
 #if TARGET_OS_TV
     [_continuityDevicePickerBarButtonItem release];
 #endif
-    [_captureProgressActivityIndicatorView release];
-    [_captureProgressBarButtonItem release];
-    [_reactionProgressActivityIndicatorView release];
-    [_reactionProgressBarButtonItem release];
-    [_adjustingFocusActivityIndicatorView release];
-    [_adjustingFocusBarButtonItem release];
     [_audioBarButtonItem release];
     [_captureSessionBarButton release];
     
@@ -164,8 +146,8 @@
     [view addSubview:stackView];
     [NSLayoutConstraint activateConstraints:@[
         [stackView.topAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.topAnchor],
-        [stackView.leadingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.leadingAnchor],
-        [stackView.trailingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.trailingAnchor],
+        [stackView.leadingAnchor constraintEqualToAnchor:view.leadingAnchor],
+        [stackView.trailingAnchor constraintEqualToAnchor:view.trailingAnchor],
         [stackView.bottomAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.bottomAnchor],
     ]];
     
@@ -224,12 +206,6 @@
         self.fileOutputsBarButtonItem,
         self.captureDevicesBarButtonItem
     ]];
-    
-    navigationItem.leftBarButtonItems = @[
-        self.captureProgressBarButtonItem,
-        self.reactionProgressBarButtonItem,
-        self.adjustingFocusBarButtonItem
-    ];
 #endif
     
     //
@@ -319,72 +295,6 @@
     return [fileOutputsBarButtonItem autorelease];
 }
 
-- (UIActivityIndicatorView *)captureProgressActivityIndicatorView {
-    if (auto captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView) return captureProgressActivityIndicatorView;
-    
-    UIActivityIndicatorView *captureProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    captureProgressActivityIndicatorView.hidesWhenStopped = YES;
-    
-    _captureProgressActivityIndicatorView = [captureProgressActivityIndicatorView retain];
-    return [captureProgressActivityIndicatorView autorelease];
-}
-
-- (UIBarButtonItem *)captureProgressBarButtonItem {
-    if (auto captureProgressBarButtonItem = _captureProgressBarButtonItem) return captureProgressBarButtonItem;
-    
-    UIActivityIndicatorView *captureProgressActivityIndicatorView = self.captureProgressActivityIndicatorView;
-    UIBarButtonItem *captureProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:captureProgressActivityIndicatorView];
-    captureProgressBarButtonItem.hidden = YES;
-    captureProgressBarButtonItem.enabled = NO;
-    
-    _captureProgressBarButtonItem = [captureProgressBarButtonItem retain];
-    return [captureProgressBarButtonItem autorelease];
-}
-
-- (UIActivityIndicatorView *)reactionProgressActivityIndicatorView {
-    if (auto reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView) return reactionProgressActivityIndicatorView;
-    
-    UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    reactionProgressActivityIndicatorView.hidesWhenStopped = YES;
-    
-    _reactionProgressActivityIndicatorView = [reactionProgressActivityIndicatorView retain];
-    return [reactionProgressActivityIndicatorView autorelease];
-}
-
-- (UIBarButtonItem *)reactionProgressBarButtonItem {
-    if (auto reactionProgressBarButtonItem = _reactionProgressBarButtonItem) return reactionProgressBarButtonItem;
-    
-    UIActivityIndicatorView *reactionProgressActivityIndicatorView = self.reactionProgressActivityIndicatorView;
-    UIBarButtonItem *reactionProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:reactionProgressActivityIndicatorView];
-    reactionProgressBarButtonItem.hidden = YES;
-    reactionProgressBarButtonItem.enabled = NO;
-    
-    _reactionProgressBarButtonItem = [reactionProgressBarButtonItem retain];
-    return [reactionProgressBarButtonItem autorelease];
-}
-
-- (UIActivityIndicatorView *)adjustingFocusActivityIndicatorView {
-    if (auto adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView) return adjustingFocusActivityIndicatorView;
-    
-    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    adjustingFocusActivityIndicatorView.hidesWhenStopped = YES;
-    
-    _adjustingFocusActivityIndicatorView = [adjustingFocusActivityIndicatorView retain];
-    return [adjustingFocusActivityIndicatorView autorelease];
-}
-
-- (UIBarButtonItem *)adjustingFocusBarButtonItem {
-    if (auto adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem) return adjustingFocusBarButtonItem;
-    
-    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = self.adjustingFocusActivityIndicatorView;
-    UIBarButtonItem *adjustingFocusBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingFocusActivityIndicatorView];
-    adjustingFocusBarButtonItem.hidden = YES;
-    adjustingFocusBarButtonItem.enabled = NO;
-    
-    _adjustingFocusBarButtonItem = [adjustingFocusBarButtonItem retain];
-    return [adjustingFocusBarButtonItem autorelease];
-}
-
 - (UIBarButtonItem *)audioBarButtonItem {
     if (auto audioBarButtonItem = _audioBarButtonItem) return audioBarButtonItem;
     
@@ -428,11 +338,6 @@
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeReactionEffectsInProgressNotification:)
-                                               name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveReloadingPhotoFormatMenuNeededNotification:)
                                                name:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName
                                              object:captureService];
@@ -448,11 +353,6 @@
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeCaptureReadinessNotification:)
-                                               name:CaptureServiceDidChangeCaptureReadinessNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
                                                name:AVCaptureSessionRuntimeErrorNotification
                                              object:nil];
@@ -461,11 +361,6 @@
                                            selector:@selector(didReceiveCaptureSessionWasInterruptedNotification:)
                                                name:AVCaptureSessionWasInterruptedNotification
                                              object:nil];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didReceiveAdjustingFocusDidChangeNotification:)
-                                               name:CaptureServiceAdjustingFocusDidChangeNotificationName
-                                             object:captureService];
     
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -489,30 +384,6 @@
 - (void)didRemoveDeviceNotification:(NSNotification *)notification {
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
-    });
-}
-
-- (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
-    CaptureService *captureService = self.captureService;
-    
-    dispatch_async(captureService.captureSessionQueue, ^{
-        BOOL hasReaction = NO;
-        for (AVCaptureDevice *captureDevice in captureService.queue_addedVideoCaptureDevices) {
-            if (captureDevice.reactionEffectsInProgress.count > 0) {
-                hasReaction = YES;
-                break;
-            }
-        }
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (hasReaction) {
-                [self.reactionProgressActivityIndicatorView startAnimating];
-                self.reactionProgressBarButtonItem.hidden = NO;
-            } else {
-                [self.reactionProgressActivityIndicatorView stopAnimating];
-                self.reactionProgressBarButtonItem.hidden = YES;
-            }
-        });
     });
 }
 
@@ -557,8 +428,8 @@
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
                 BOOL isRemoved = YES;
-                for (AVCaptureDevice *captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
-                    if ([captureVideoPreviewView.captureDevice isEqual:captureDevice]) {
+                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator) {
+                    if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
                         isRemoved = NO;
                         break;
                     }
@@ -633,51 +504,6 @@
     });
 }
 
-- (void)didChangeCaptureReadinessNotification:(NSNotification *)notification {
-    CaptureService *captureService = self.captureService;
-    dispatch_assert_queue(captureService.captureSessionQueue);
-    
-    BOOL isLoading = NO;
-    for (AVCaptureDevice *captureDevice in captureService.queue_addedVideoCaptureDevices) {
-        AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
-        
-        if (readinessCoordinator.captureReadiness != AVCapturePhotoOutputCaptureReadinessReady) {
-            isLoading = YES;
-            break;
-        }
-    }
-    
-    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
-    AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (isLoading) {
-            [self.captureProgressActivityIndicatorView startAnimating];
-            self.captureProgressBarButtonItem.hidden = NO;
-        } else {
-            [self.captureProgressActivityIndicatorView stopAnimating];
-            self.captureProgressBarButtonItem.hidden = YES;
-        }
-        
-        for (CaptureVideoPreviewView *videoPreviewView in self.stackView.arrangedSubviews) {
-            if (![videoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
-            
-            if ([videoPreviewView.previewLayer isEqual:previewLayer]) {
-                for (UIContextMenuInteraction *interaction in videoPreviewView.interactions) {
-                    if (![interaction isKindOfClass:UIContextMenuInteraction.class]) {
-                        continue;
-                    }
-                    
-                    if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("_hasVisibleMenu"))) {
-                        [interaction dismissMenu];
-                        reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(interaction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
-                    }
-                }
-            }
-        }
-    });
-}
-
 - (void)didReceiveCaptureSessionRuntimeErrorNotification:(NSNotification *)notification {
     NSError * _Nullable error = notification.userInfo[AVCaptureSessionErrorKey];
     
@@ -715,28 +541,6 @@
             topViewController = presentedViewController;
         }
         [topViewController presentViewController:alertController animated:YES completion:nil];
-    });
-}
-
-- (void)didReceiveAdjustingFocusDidChangeNotification:(NSNotification *)notification {
-    dispatch_assert_queue(self.captureService.captureSessionQueue);
-    
-    BOOL adjustingFocus = NO;
-    for (AVCaptureDevice *captureDevice in self.captureService.queue_addedVideoCaptureDevices) {
-        if (captureDevice.adjustingFocus) {
-            adjustingFocus = YES;
-            break;
-        }
-    }
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if (adjustingFocus) {
-            [self.adjustingFocusActivityIndicatorView startAnimating];
-            self.adjustingFocusBarButtonItem.hidden = NO;
-        } else {
-            [self.adjustingFocusActivityIndicatorView stopAnimating];
-            self.adjustingFocusBarButtonItem.hidden = YES;
-        }
     });
 }
 

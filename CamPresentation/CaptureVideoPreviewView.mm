@@ -9,12 +9,20 @@
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <objc/runtime.h>
+#import <objc/message.h>
 
 #warning 확대할 때 preview 뜨게 하기
+#warning adjusting exposure
 
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *captureProgressActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *captureProgressBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *reactionProgressActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
@@ -24,6 +32,12 @@
 @implementation CaptureVideoPreviewView
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuBarButtonItem = _menuBarButtonItem;
+@synthesize captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView;
+@synthesize captureProgressBarButtonItem = _captureProgressBarButtonItem;
+@synthesize reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView;
+@synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
+@synthesize adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView;
+@synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
@@ -129,6 +143,21 @@
                                                selector:@selector(didEndSnapshotSessionNotification:)
                                                    name:@"_UIApplicationDidEndSnapshotSessionNotification"
                                                  object:nil];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(didChangeCaptureReadinessNotification:)
+                                                   name:CaptureServiceDidChangeCaptureReadinessNotificationName
+                                                 object:captureService];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(didChangeReactionEffectsInProgressNotification:)
+                                                   name:CaptureServiceDidChangeReactionEffectsInProgressNotificationName
+                                                 object:captureService];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(didReceiveAdjustingFocusDidChangeNotification:)
+                                                   name:CaptureServiceAdjustingFocusDidChangeNotificationName
+                                                 object:captureService];
     }
     
     return self;
@@ -147,6 +176,12 @@
     [_focusRectLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuBarButtonItem release];
+    [_captureProgressActivityIndicatorView release];
+    [_captureProgressBarButtonItem release];
+    [_reactionProgressActivityIndicatorView release];
+    [_reactionProgressBarButtonItem release];
+    [_adjustingFocusActivityIndicatorView release];
+    [_adjustingFocusBarButtonItem release];
     [_toolbar release];
     [_blurView release];
     [super dealloc];
@@ -202,9 +237,76 @@
     ]];
     
     UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"list.bullet"] menu:menu];
+    menuBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
     
     _menuBarButtonItem = [menuBarButtonItem retain];
     return [menuBarButtonItem autorelease];
+}
+
+- (UIActivityIndicatorView *)captureProgressActivityIndicatorView {
+    if (auto captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView) return captureProgressActivityIndicatorView;
+    
+    UIActivityIndicatorView *captureProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    captureProgressActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _captureProgressActivityIndicatorView = [captureProgressActivityIndicatorView retain];
+    return [captureProgressActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)captureProgressBarButtonItem {
+    if (auto captureProgressBarButtonItem = _captureProgressBarButtonItem) return captureProgressBarButtonItem;
+    
+    UIActivityIndicatorView *captureProgressActivityIndicatorView = self.captureProgressActivityIndicatorView;
+    UIBarButtonItem *captureProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:captureProgressActivityIndicatorView];
+    captureProgressBarButtonItem.hidden = YES;
+    captureProgressBarButtonItem.enabled = NO;
+    
+    _captureProgressBarButtonItem = [captureProgressBarButtonItem retain];
+    return [captureProgressBarButtonItem autorelease];
+}
+
+- (UIActivityIndicatorView *)reactionProgressActivityIndicatorView {
+    if (auto reactionProgressActivityIndicatorView = _reactionProgressActivityIndicatorView) return reactionProgressActivityIndicatorView;
+    
+    UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    reactionProgressActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _reactionProgressActivityIndicatorView = [reactionProgressActivityIndicatorView retain];
+    return [reactionProgressActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)reactionProgressBarButtonItem {
+    if (auto reactionProgressBarButtonItem = _reactionProgressBarButtonItem) return reactionProgressBarButtonItem;
+    
+    UIActivityIndicatorView *reactionProgressActivityIndicatorView = self.reactionProgressActivityIndicatorView;
+    UIBarButtonItem *reactionProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:reactionProgressActivityIndicatorView];
+    reactionProgressBarButtonItem.hidden = YES;
+    reactionProgressBarButtonItem.enabled = NO;
+    
+    _reactionProgressBarButtonItem = [reactionProgressBarButtonItem retain];
+    return [reactionProgressBarButtonItem autorelease];
+}
+
+- (UIActivityIndicatorView *)adjustingFocusActivityIndicatorView {
+    if (auto adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView) return adjustingFocusActivityIndicatorView;
+    
+    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    adjustingFocusActivityIndicatorView.hidesWhenStopped = YES;
+    
+    _adjustingFocusActivityIndicatorView = [adjustingFocusActivityIndicatorView retain];
+    return [adjustingFocusActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)adjustingFocusBarButtonItem {
+    if (auto adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem) return adjustingFocusBarButtonItem;
+    
+    UIActivityIndicatorView *adjustingFocusActivityIndicatorView = self.adjustingFocusActivityIndicatorView;
+    UIBarButtonItem *adjustingFocusBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingFocusActivityIndicatorView];
+    adjustingFocusBarButtonItem.hidden = YES;
+    adjustingFocusBarButtonItem.enabled = NO;
+    
+    _adjustingFocusBarButtonItem = [adjustingFocusBarButtonItem retain];
+    return [adjustingFocusBarButtonItem autorelease];
 }
 
 - (UIToolbar *)toolbar {
@@ -213,6 +315,8 @@
     UIToolbar *toolbar = [UIToolbar new];
     
     [toolbar setItems:@[
+        self.captureProgressBarButtonItem,
+        self.reactionProgressBarButtonItem,
         self.menuBarButtonItem
     ]
              animated:NO];
@@ -318,6 +422,70 @@
             self.blurView.hidden = YES;
         }
     }
+}
+
+- (void)didChangeCaptureReadinessNotification:(NSNotification *)notification {
+    CaptureService *captureService = self.captureService;
+    dispatch_assert_queue(captureService.captureSessionQueue);
+    
+    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+    
+    if (![self.captureDevice isEqual:captureDevice]) {
+        return;
+    }
+    
+    AVCapturePhotoOutputReadinessCoordinator *readinessCoordinator = [captureService queue_readinessCoordinatorFromCaptureDevice:captureDevice];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (readinessCoordinator.captureReadiness == AVCapturePhotoOutputCaptureReadinessReady) {
+            [self.captureProgressActivityIndicatorView stopAnimating];
+            self.captureProgressBarButtonItem.hidden = YES;
+        } else {
+            [self.captureProgressActivityIndicatorView startAnimating];
+            self.captureProgressBarButtonItem.hidden = NO;
+        }
+        
+        reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.menuBarButtonItem, sel_registerName("_updateMenuInPlace"));
+    });
+}
+
+- (void)didChangeReactionEffectsInProgressNotification:(NSNotification *)notification {
+    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+    
+    if (![captureDevice isEqual:self.captureDevice]) {
+        return;
+    }
+    
+    NSUInteger reactionEffectsInProgressCount = captureDevice.reactionEffectsInProgress.count;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (reactionEffectsInProgressCount > 0) {
+            [self.reactionProgressActivityIndicatorView startAnimating];
+            self.reactionProgressBarButtonItem.hidden = NO;
+        } else {
+            [self.reactionProgressActivityIndicatorView stopAnimating];
+            self.reactionProgressBarButtonItem.hidden = YES;
+        }
+    });
+}
+
+- (void)didReceiveAdjustingFocusDidChangeNotification:(NSNotification *)notification {
+    auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
+    if (![captureDevice isEqual:self.captureDevice]) {
+        return;
+    }
+    
+    BOOL adjustingFocus = captureDevice.adjustingFocus;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (adjustingFocus) {
+            [self.adjustingFocusActivityIndicatorView startAnimating];
+            self.adjustingFocusBarButtonItem.hidden = NO;
+        } else {
+            [self.adjustingFocusActivityIndicatorView stopAnimating];
+            self.adjustingFocusBarButtonItem.hidden = YES;
+        }
+    });
 }
 
 @end
