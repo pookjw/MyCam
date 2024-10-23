@@ -16,6 +16,7 @@
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusSystem.h>
 #import <CamPresentation/NSStringFromAVCaptureFocusMode.h>
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
+#import <CamPresentation/NSStringFromAVCaptureExposureMode.h>
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -78,6 +79,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_centerStageMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
 #warning TODO: autoVideoFrameRateEnabled
             
@@ -2775,6 +2778,56 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [actions release];
     
     menu.subtitle = livePhotoVideoCodecType;
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_exposureMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Exposure"
+                                children:@[
+        [UIDeferredMenuElement _cp_queue_setExposureModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (std::vector<AVCaptureExposureMode>)_cp_allExposureModes {
+    return {
+        AVCaptureExposureModeLocked,
+        AVCaptureExposureModeAutoExpose,
+        AVCaptureExposureModeContinuousAutoExposure,
+        AVCaptureExposureModeCustom,
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_queue_setExposureModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureExposureMode currentExposureMode = captureDevice.exposureMode;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_allExposureModes]
+    | std::views::transform([captureService, captureDevice, currentExposureMode](AVCaptureExposureMode exposureMode) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureExposureMode(exposureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.exposureMode = exposureMode;
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        action.state = (currentExposureMode == exposureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = ([captureDevice isExposureModeSupported:exposureMode]) ? 0 : UIMenuElementAttributesDisabled;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Exposure Mode" children:actions];
+    [actions release];
+    
+    menu.subtitle = NSStringFromAVCaptureExposureMode(currentExposureMode);
     
     return menu;
 }
