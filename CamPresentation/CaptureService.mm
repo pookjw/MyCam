@@ -2719,8 +2719,10 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
 - (void)mainQueue_savePhotoWithPhotoOutput:(AVCapturePhotoOutput *)photoOutqut uniqueID:(int64_t)uniqueID {
     AVCapturePhoto *photo = [self.mainQueue_capturePhotosByUniqueID objectForKey:@(uniqueID)];
     assert(photo != nil);
+    [self.mainQueue_capturePhotosByUniqueID removeObjectForKey:@(uniqueID)];
     
     NSURL * _Nullable livePhotoMovieURL = [self.mainQueue_livePhotoMovieFileURLsByUniqueID objectForKey:@(uniqueID)];
+    [self.mainQueue_livePhotoMovieFileURLsByUniqueID removeObjectForKey:@(uniqueID)];
     
     dispatch_async(self.captureSessionQueue, ^{
         __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
