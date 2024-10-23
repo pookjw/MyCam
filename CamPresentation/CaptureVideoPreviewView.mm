@@ -8,6 +8,7 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
+#import <CamPresentation/ExposureRectLayer.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #include <array>
@@ -53,6 +54,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
+@property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
 @property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
 @property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
 @end
@@ -107,6 +109,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
         [layer addSublayer:focusRectLayer];
         _focusRectLayer = focusRectLayer;
+        
+        ExposureRectLayer *exposureRectLayer = [[ExposureRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
+        [layer addSublayer:exposureRectLayer];
+        _exposureRectLayer = exposureRectLayer;
         
         //
         
@@ -201,6 +207,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_visionLayer release];
     [_metadataObjectsLayer release];
     [_focusRectLayer release];
+    [_exposureRectLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuBarButtonItem release];
     [_captureProgressActivityIndicatorView release];
@@ -256,6 +263,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.visionLayer.frame = bounds;
     self.metadataObjectsLayer.frame = bounds;
     self.focusRectLayer.frame = bounds;
+    self.exposureRectLayer.frame = bounds;
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {
@@ -585,6 +593,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.visionLayer.contentsScale = displayScale;
     self.metadataObjectsLayer.contentsScale = displayScale;
     self.focusRectLayer.contentsScale = displayScale;
+    self.exposureRectLayer.contentsScale = displayScale;
 }
 
 - (void)willBeginSnapshotSessionNotification:(NSNotification *)notification {
