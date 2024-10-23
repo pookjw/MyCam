@@ -18,6 +18,7 @@
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
 #import <CamPresentation/NSStringFromAVCaptureExposureMode.h>
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
+#import <CamPresentation/CaptureDeviceExposureSlidersView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -1627,7 +1628,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         if (lastRange == nil) return NO;
         
         return (lastRange.maxFrameRate <= 120.);
-    } 
+    }
                                                          didChangeHandler:didChangeHandler];
 }
 
@@ -2150,34 +2151,31 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         UISlider *slider = [UISlider new];
         
-        if (isSupported) {
-            slider.minimumValue = 0.f;
-            slider.maximumValue = 1.f;
-            slider.value = lensPosition;
-            slider.continuous = YES;
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = lensPosition;
+        slider.continuous = YES;
+        slider.enabled = isSupported;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto sender = static_cast<UISlider *>(action.sender);
+            float lensPosition = sender.value;
             
-            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-                auto sender = static_cast<UISlider *>(action.sender);
-                float lensPosition = sender.value;
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
                 
-                dispatch_async(captureService.captureSessionQueue, ^{
-                    NSError * _Nullable error = nil;
-                    [captureDevice lockForConfiguration:&error];
-                    assert(error == nil);
+                captureDevice.focusMode = AVCaptureFocusModeLocked;
+                [captureDevice setFocusModeLockedWithLensPosition:lensPosition completionHandler:^(CMTime syncTime) {
                     
-                    captureDevice.focusMode = AVCaptureFocusModeLocked;
-                    [captureDevice setFocusModeLockedWithLensPosition:lensPosition completionHandler:^(CMTime syncTime) {
-                        
-                    }];
-                    
-                    [captureDevice unlockForConfiguration];
-                });
-            }];
-            
-            [slider addAction:action forControlEvents:UIControlEventValueChanged];
-        } else {
-            slider.enabled = NO;
-        }
+                }];
+                
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
         
         return [slider autorelease];
     });
@@ -2785,7 +2783,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu * _Nonnull)_cp_queue_exposureMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     UIMenu *menu = [UIMenu menuWithTitle:@"Exposure"
                                 children:@[
-        [UIDeferredMenuElement _cp_queue_setExposureModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_setExposureModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_exposureSlidersViewElementWithCaptureService:captureService captureDevice:captureDevice]
     ]];
     
     return menu;
@@ -2816,7 +2815,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         }];
         
         action.state = (currentExposureMode == exposureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        action.attributes = ([captureDevice isExposureModeSupported:exposureMode]) ? 0 : UIMenuElementAttributesDisabled;
+        action.attributes = (([captureDevice isExposureModeSupported:exposureMode]) ? 0 : UIMenuElementAttributesDisabled) | UIMenuElementAttributesKeepsMenuPresented;
         
         return action;
     })
@@ -2830,6 +2829,15 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     menu.subtitle = NSStringFromAVCaptureExposureMode(currentExposureMode);
     
     return menu;
+}
+
++ (__kindof UIMenuElement * _Nonnull)_cp_queue_exposureSlidersViewElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceExposureSlidersView *view = [[CaptureDeviceExposureSlidersView alloc] initWithCaptureService:captureService captureDevice:captureDevice];
+        return [view autorelease];
+    });
+    
+    return element;
 }
 
 @end
