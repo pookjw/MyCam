@@ -508,11 +508,6 @@
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didChangeSpatialCaptureDiscomfortReasonNotification:)
-                                               name:CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
                                                name:AVCaptureSessionRuntimeErrorNotification
                                              object:nil];
@@ -616,22 +611,20 @@
             for (CaptureVideoPreviewView *captureVideoPreviewView in stackView.arrangedSubviews) {
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
-                AVCaptureDevice * _Nullable captureDevice = nil;
-                for (AVCaptureDevice * _captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
-                    AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:_captureDevice];
-                    
-                    if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
-                        captureDevice = _captureDevice;
+                BOOL isRemoved = YES;
+                for (AVCaptureDevice *captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+                    if ([captureVideoPreviewView.captureDevice isEqual:captureDevice]) {
+                        isRemoved = NO;
                         break;
                     }
                 }
                 
-                if (captureDevice != nil) {
-                    // 이미 존재하는 Layer
-                    [previewLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureDevice];;
-                } else {
+                if (isRemoved) {
                     // 삭제된 Layer - View 제거
                     [captureVideoPreviewView removeFromSuperview];
+                } else {
+                    // 이미 존재하는 Layer
+                    [previewLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureVideoPreviewView.captureDevice];
                 }
             }
             
@@ -641,8 +634,7 @@
                 __kindof CALayer * _Nullable visionLayer = [visionLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable metadataObjectsLayer = [metadataObjectsLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 
-                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer captureDevice:captureDevice];
-                [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
+                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithCaptureDevice:captureDevice previewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
             }
@@ -741,21 +733,6 @@
     });
 }
 
-- (void)didChangeSpatialCaptureDiscomfortReasonNotification:(NSNotification *)notification {
-    CaptureService *captureService = self.captureService;
-    
-    dispatch_async(captureService.captureSessionQueue, ^{
-        auto captureDevice = static_cast<AVCaptureDevice *>(notification.userInfo[CaptureServiceCaptureDeviceKey]);
-        assert(captureDevice != nil);
-        AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
-        assert(previewLayer != nil);
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self updateSpatialCaptureDiscomfortReasonLabelWithCaptureDevice:captureDevice previewLayer:previewLayer];
-        });
-    });
-}
-
 - (void)didReceiveCaptureSessionRuntimeErrorNotification:(NSNotification *)notification {
     NSError * _Nullable error = notification.userInfo[AVCaptureSessionErrorKey];
     
@@ -818,81 +795,10 @@
     });
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer captureDevice:(AVCaptureDevice *)captureDevice {
-    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithPreviewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
-    
-    UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
-    [captureVideoPreviewView addGestureRecognizer:tapGestureRecogninzer];
-    [tapGestureRecogninzer release];
-    
-    UILongPressGestureRecognizer *longGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewLongGestureRecognizer:)];
-    [captureVideoPreviewView addGestureRecognizer:longGestureRecognizer];
-    [longGestureRecognizer release];
-    
-    captureVideoPreviewView.menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:captureDevice didChangeHandler:nil]
-    ]];
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer {
+    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithCaptureService:self.captureService captureDevice:captureDevice previewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
     
     return captureVideoPreviewView;
-}
-
-- (void)updateSpatialCaptureDiscomfortReasonLabelWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
-    NSSet<AVSpatialCaptureDiscomfortReason> *reasons = captureDevice.spatialCaptureDiscomfortReasons;
-    
-    for (CaptureVideoPreviewView *previewView in self.stackView.arrangedSubviews) {
-        if (![previewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
-        if (![previewView.previewLayer isEqual:previewLayer]) continue;
-        
-        [previewView updateSpatialCaptureDiscomfortReasonLabelWithReasons:reasons];
-    }
-}
-
-- (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
-    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
-    CGPoint viewPoint = [sender locationInView:previewView];
-    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
-    
-    dispatch_async(self.captureService.captureSessionQueue, ^{
-        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
-        
-        if (!captureDevice.isFocusPointOfInterestSupported) return;
-        
-        NSError * _Nullable error = nil;
-        [captureDevice lockForConfiguration:&error];
-        assert(error == nil);
-        
-        captureDevice.focusPointOfInterest = captureDevicePoint;
-        
-        if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
-            captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
-        } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
-            captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
-        }
-        
-        [captureDevice unlockForConfiguration];
-    });
-}
-
-- (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
-    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
-    CGPoint viewPoint = [sender locationInView:previewView];
-    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
-    
-    dispatch_async(self.captureService.captureSessionQueue, ^{
-        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
-        
-        if (!captureDevice.isFocusPointOfInterestSupported) return;
-        if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
-        
-        NSError * _Nullable error = nil;
-        [captureDevice lockForConfiguration:&error];
-        assert(error == nil);
-        captureDevice.focusPointOfInterest = captureDevicePoint;
-        captureDevice.focusMode = AVCaptureFocusModeLocked;
-        [captureDevice unlockForConfiguration];
-    });
 }
 
 #if TARGET_OS_TV

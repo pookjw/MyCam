@@ -6,11 +6,13 @@
 //
 
 #import <CamPresentation/CaptureVideoPreviewView.h>
+#import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <objc/runtime.h>
 
 #warning 확대할 때 preview 뜨게 하기
 
 @interface CaptureVideoPreviewView ()
+@property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) UIButton *menuButton;
 @end
 
@@ -19,8 +21,10 @@
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuButton = _menuButton;
 
-- (instancetype)initWithPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
     if (self = [super init]) {
+        _captureService = [captureService retain];
+        _captureDevice = [captureDevice retain];
         _previewLayer = [previewLayer retain];
         _depthMapLayer = [depthMapLayer retain];
         _visionLayer = [visionLayer retain];
@@ -75,12 +79,30 @@
         ]];
         
         menuButton.layer.zPosition = previewLayer.zPosition + 1.f;
+        
+        //
+        
+        UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
+        [self addGestureRecognizer:tapGestureRecogninzer];
+        [tapGestureRecogninzer release];
+        
+        UILongPressGestureRecognizer *longGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewLongGestureRecognizer:)];
+        [self addGestureRecognizer:longGestureRecognizer];
+        [longGestureRecognizer release];
+        
+        //
+        
+        [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
+        [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
     }
     
     return self;
 }
 
 - (void)dealloc {
+    [_captureService release];
+    [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
+    [_captureDevice release];
     [_previewLayer release];
     [_depthMapLayer release];
     [_visionLayer release];
@@ -88,6 +110,21 @@
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuButton release];
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([_captureDevice isEqual:object]) {
+        if ([keyPath isEqualToString:@"spatialCaptureDiscomfortReasons"]) {
+            auto captureDevice = static_cast<AVCaptureDevice *>(object);
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
+            });
+            return;
+        }
+    } else {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
 }
 
 - (void)layoutSubviews {
@@ -125,6 +162,9 @@
     UIButton *menuButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
     menuButton.showsMenuAsPrimaryAction = YES;
     menuButton.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
+    menuButton.menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:self.captureDevice didChangeHandler:nil]
+    ]];
     
     _menuButton = [menuButton retain];
     return menuButton;
@@ -135,18 +175,59 @@
     self.spatialCaptureDiscomfortReasonLabel.text = text;
 }
 
+#warning deprecated
 - (void)reloadMenu {
-    UIMenu *menu = [self.menu copy];
-    self.menu = menu;
+    UIMenu *menu = [self.menuButton.menu copy];
+    self.menuButton.menu = menu;
     [menu release];
 }
 
-- (UIMenu *)menu {
-    return self.menuButton.menu;
+- (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
+    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
+    CGPoint viewPoint = [sender locationInView:previewView];
+    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    
+    dispatch_async(self.captureService.captureSessionQueue, ^{
+        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
+        
+        if (!captureDevice.isFocusPointOfInterestSupported) return;
+        
+        NSError * _Nullable error = nil;
+        [captureDevice lockForConfiguration:&error];
+        assert(error == nil);
+        
+        captureDevice.focusPointOfInterest = captureDevicePoint;
+        
+        if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+            captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+        } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+            captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+        }
+        
+        [captureDevice unlockForConfiguration];
+    });
 }
 
-- (void)setMenu:(UIMenu *)menu {
-    self.menuButton.menu = menu;
+- (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
+    auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
+    CGPoint viewPoint = [sender locationInView:previewView];
+    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    
+    dispatch_async(self.captureService.captureSessionQueue, ^{
+        AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
+        
+        if (!captureDevice.isFocusPointOfInterestSupported) return;
+        if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
+        
+        NSError * _Nullable error = nil;
+        [captureDevice lockForConfiguration:&error];
+        assert(error == nil);
+        captureDevice.focusPointOfInterest = captureDevicePoint;
+        captureDevice.focusMode = AVCaptureFocusModeLocked;
+        [captureDevice unlockForConfiguration];
+    });
 }
 
 @end

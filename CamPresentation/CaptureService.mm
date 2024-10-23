@@ -47,8 +47,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 NSNotificationName const CaptureServiceDidChangeReactionEffectsInProgressNotificationName = @"CaptureServiceDidChangeReactionEffectsInProgressNotificationName";
 NSString * const CaptureServiceReactionEffectsInProgressKey = @"CaptureServiceReactionEffectsInProgressKey";
 
-NSNotificationName const CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName = @"CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName";
-
 NSString * const CaptureServiceAdjustingFocusKey = @"CaptureServiceAdjustingFocusKey";
 NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName = @"CaptureServiceAdjustingFocusDidChangeNotificationName";
 
@@ -273,9 +271,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                 CaptureServiceCaptureDeviceKey: captureDevice,
                 CaptureServiceReactionEffectsInProgressKey: change[NSKeyValueChangeNewKey]
             }];
-            return;
-        } else if ([keyPath isEqualToString:@"spatialCaptureDiscomfortReasons"]) {
-            [self postDidChangeSpatialCaptureDiscomfortReasonNotificationWithCaptureDevice:captureDevice];
             return;
         } else if ([keyPath isEqualToString:@"activeFormat"]) {
             if (captureDevice != nil) {
@@ -2035,20 +2030,11 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
                                                     userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
 }
 
-- (void)postDidChangeSpatialCaptureDiscomfortReasonNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidChangeSpatialCaptureDiscomfortReasonNotificationName
-                                                      object:self
-                                                    userInfo:@{
-        CaptureServiceCaptureDeviceKey: captureDevice
-    }];
-}
-
 - (void)registerObserversForVideoCaptureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
     [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionNew context:nullptr];
-    [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"activeFormat" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"formats" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureDevice addObserver:self forKeyPath:@"torchAvailable" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -2070,7 +2056,6 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
     [captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
-    [captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
     [captureDevice removeObserver:self forKeyPath:@"activeFormat"];
     [captureDevice removeObserver:self forKeyPath:@"formats"];
     [captureDevice removeObserver:self forKeyPath:@"torchAvailable"];
