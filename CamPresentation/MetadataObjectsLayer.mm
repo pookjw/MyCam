@@ -49,6 +49,7 @@
         textLayer.foregroundColor = color;
         textLayer.fontSize = 30.;
         textLayer.alignmentMode = kCAAlignmentCenter;
+        textLayer.contentsScale = self.contentsScale;
         textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(rect), 30.);
         
         CGContextSaveGState(ctx);

@@ -10,9 +10,33 @@
 #import <CamPresentation/FocusRectLayer.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#include <array>
+#include <vector>
+#include <ranges>
 
 #warning 확대할 때 preview 뜨게 하기
-#warning adjusting exposure
+
+namespace CaptureVideoPreview {
+enum class GestureMode {
+    Focus, Exposure
+};
+
+constexpr const std::array<GestureMode, 2> allGestureModes {
+    GestureMode::Focus,
+    GestureMode::Exposure
+};
+
+NSString *NSStringFromGestureMode(GestureMode gestureMode) {
+    switch (gestureMode) {
+        case GestureMode::Focus:
+            return @"Focus";
+        case GestureMode::Exposure:
+            return @"Exposure";
+        default:
+            abort();
+    }
+}
+}
 
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -25,10 +49,12 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingExposureActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingExposureBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *gestureModeMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
+@property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
 @end
 
 @implementation CaptureVideoPreviewView
@@ -42,6 +68,7 @@
 @synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize adjustingExposureActivityIndicatorView = _adjustingExposureActivityIndicatorView;
 @synthesize adjustingExposureBarButtonItem = _adjustingExposureBarButtonItem;
+@synthesize gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem;
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
@@ -78,7 +105,6 @@
         }
         
         FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
-        focusRectLayer.contentsScale = 3.f;
         [layer addSublayer:focusRectLayer];
         _focusRectLayer = focusRectLayer;
         
@@ -185,6 +211,7 @@
     [_adjustingFocusBarButtonItem release];
     [_adjustingExposureActivityIndicatorView release];
     [_adjustingExposureBarButtonItem release];
+    [_gestureModeMenuBarButtonItem release];
     [_toolbar release];
     [_blurView release];
     [super dealloc];
@@ -353,6 +380,61 @@
     return [adjustingExposureBarButtonItem autorelease];
 }
 
+- (UIBarButtonItem *)gestureModeMenuBarButtonItem {
+    if (auto gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem) return gestureModeMenuBarButtonItem;
+    
+    __weak auto weakSelf = self;
+    
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        auto retained = weakSelf;
+        if (retained == nil) {
+            completion(@[]);
+            return;
+        }
+        
+        CaptureVideoPreview::GestureMode currentGestureMode = retained.gestureMode;
+        
+        auto actionsVec = CaptureVideoPreview::allGestureModes
+        | std::views::transform([currentGestureMode, weakSelf, retained](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
+            UIAction *action = [UIAction actionWithTitle:CaptureVideoPreview::NSStringFromGestureMode(gestureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                weakSelf.gestureMode = gestureMode;
+            }];
+            
+            action.state = (currentGestureMode == gestureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            
+            BOOL isSupported;
+            switch (gestureMode) {
+                case CaptureVideoPreview::GestureMode::Focus:
+                    isSupported = retained.captureDevice.isFocusPointOfInterestSupported;
+                    break;
+                case CaptureVideoPreview::GestureMode::Exposure:
+                    isSupported = retained.captureDevice.isExposurePointOfInterestSupported;
+                    break;
+                default:
+                    abort();
+            }
+            
+            action.attributes = isSupported ? 0 : UIMenuElementAttributesDisabled;
+            
+            return action;
+        })
+        | std::ranges::to<std::vector<UIAction *>>();
+        
+        NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+        completion(actions);
+        [actions release];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        element
+    ]];
+    
+    UIBarButtonItem *gestureModeMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"hand.rays"] menu:menu];
+    
+    _gestureModeMenuBarButtonItem = [gestureModeMenuBarButtonItem retain];
+    return [gestureModeMenuBarButtonItem autorelease];
+}
+
 - (UIToolbar *)toolbar {
     if (auto toolbar = _toolbar) return toolbar;
     
@@ -364,6 +446,7 @@
         self.adjustingFocusBarButtonItem,
         self.adjustingExposureBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
+        self.gestureModeMenuBarButtonItem,
         self.menuBarButtonItem
     ]
              animated:NO];
@@ -397,26 +480,54 @@
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
     AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
-    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
     
     dispatch_async(self.captureService.captureSessionQueue, ^{
         AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
         
-        if (!captureDevice.isFocusPointOfInterestSupported) return;
-        
-        NSError * _Nullable error = nil;
-        [captureDevice lockForConfiguration:&error];
-        assert(error == nil);
-        
-        captureDevice.focusPointOfInterest = captureDevicePoint;
-        
-        if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
-            captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
-        } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
-            captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+        switch (gestureMode) {
+            case CaptureVideoPreview::GestureMode::Focus:
+            {
+                if (!captureDevice.isFocusPointOfInterestSupported) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                
+                captureDevice.focusPointOfInterest = pointOfInterest;
+                
+                if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+                    captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+                } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+                    captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+                }
+                
+                [captureDevice unlockForConfiguration];
+            }
+                break;
+            case CaptureVideoPreview::GestureMode::Exposure:
+            {
+                if (!captureDevice.isExposurePointOfInterestSupported) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                
+                captureDevice.exposurePointOfInterest = pointOfInterest;
+                
+                if ([captureDevice isExposureModeSupported:AVCaptureExposureModeContinuousAutoExposure]) {
+                    captureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+                } else if ([captureDevice isExposureModeSupported:AVCaptureExposureModeAutoExpose]) {
+                    captureDevice.exposureMode = AVCaptureExposureModeAutoExpose;
+                }
+                
+                [captureDevice unlockForConfiguration];
+            }
+                break;
+            default:
+                abort();
         }
-        
-        [captureDevice unlockForConfiguration];
     });
 }
 
@@ -424,20 +535,42 @@
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
     AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
-    CGPoint captureDevicePoint = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
+    CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
     
     dispatch_async(self.captureService.captureSessionQueue, ^{
         AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
         
-        if (!captureDevice.isFocusPointOfInterestSupported) return;
-        if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
-        
-        NSError * _Nullable error = nil;
-        [captureDevice lockForConfiguration:&error];
-        assert(error == nil);
-        captureDevice.focusPointOfInterest = captureDevicePoint;
-        captureDevice.focusMode = AVCaptureFocusModeLocked;
-        [captureDevice unlockForConfiguration];
+        switch (gestureMode) {
+            case CaptureVideoPreview::GestureMode::Focus:
+            {
+                if (!captureDevice.isFocusPointOfInterestSupported) return;
+                if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.focusPointOfInterest = pointOfInterest;
+                captureDevice.focusMode = AVCaptureFocusModeLocked;
+                [captureDevice unlockForConfiguration];
+            }
+                break;
+            case CaptureVideoPreview::GestureMode::Exposure:
+            {
+                if (!captureDevice.isExposurePointOfInterestSupported) return;
+                if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.exposurePointOfInterest = pointOfInterest;
+                captureDevice.exposureMode = AVCaptureExposureModeLocked;
+                [captureDevice unlockForConfiguration];
+            }
+                break;
+            default:
+                abort();
+        }
     });
 }
 
@@ -448,7 +581,6 @@
 - (void)updateContentScale {
     CGFloat displayScale = self.traitCollection.displayScale;
     
-    self.previewLayer.contentsScale = displayScale;
     self.depthMapLayer.contentsScale = displayScale;
     self.visionLayer.contentsScale = displayScale;
     self.metadataObjectsLayer.contentsScale = displayScale;

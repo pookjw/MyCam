@@ -73,6 +73,8 @@
     AVCaptureDevice *captureDevice = self.captureDevice;
     
     if (captureDevice.isFocusPointOfInterestSupported) {
+        CGContextSaveGState(ctx);
+        
         CGColorRef color;
         switch (captureDevice.focusMode) {
             case AVCaptureFocusModeLocked:
@@ -90,13 +92,22 @@
         
         CGPoint point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.focusPointOfInterest];
         
-        CGContextSaveGState(ctx);
+        CGRect rect = CGRectMake(point.x - 50., point.y - 50., 100., 100.);
         
         CGContextSetStrokeColorWithColor(ctx, color);
-        CGColorRelease(color);
+        CGContextStrokeRectWithWidth(ctx, rect, 10.);
         
-        CGContextConcatCTM(ctx, CGAffineTransformMakeTranslation(-50., -50.));
-        CGContextStrokeRectWithWidth(ctx, CGRectMake(point.x, point.y, 100., 100.), 10.);
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = @"Focus";
+        textLayer.foregroundColor = color;
+        CGColorRelease(color);
+        textLayer.fontSize = 30.;
+        textLayer.alignmentMode = kCAAlignmentCenter;
+        textLayer.contentsScale = self.contentsScale;
+        textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(rect), 30.);
+        CGContextConcatCTM(ctx, CGAffineTransformMakeTranslation(CGRectGetMidX(rect) - CGRectGetWidth(textLayer.frame) * 0.5, CGRectGetMidY(rect) - CGRectGetHeight(textLayer.frame) * 0.5));
+        [textLayer renderInContext:ctx];
+        [textLayer release];
         
         CGContextRestoreGState(ctx);
     }
