@@ -23,6 +23,8 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *reactionProgressBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingFocusActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingExposureActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *adjustingExposureBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
@@ -38,6 +40,8 @@
 @synthesize reactionProgressBarButtonItem = _reactionProgressBarButtonItem;
 @synthesize adjustingFocusActivityIndicatorView = _adjustingFocusActivityIndicatorView;
 @synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
+@synthesize adjustingExposureActivityIndicatorView = _adjustingExposureActivityIndicatorView;
+@synthesize adjustingExposureBarButtonItem = _adjustingExposureBarButtonItem;
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
@@ -151,6 +155,7 @@
         
         [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [captureDevice addObserver:self forKeyPath:@"adjustingExposure" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     }
     
     return self;
@@ -163,6 +168,7 @@
     [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
     [_captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
+    [_captureDevice removeObserver:self forKeyPath:@"adjustingExposure"];
     [_captureDevice release];
     [_previewLayer release];
     [_depthMapLayer release];
@@ -177,6 +183,8 @@
     [_reactionProgressBarButtonItem release];
     [_adjustingFocusActivityIndicatorView release];
     [_adjustingFocusBarButtonItem release];
+    [_adjustingExposureActivityIndicatorView release];
+    [_adjustingExposureBarButtonItem release];
     [_toolbar release];
     [_blurView release];
     [super dealloc];
@@ -199,6 +207,11 @@
         } else if ([keyPath isEqualToString:@"adjustingFocus"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self didChangeAdjustingFocus];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"adjustingExposure"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self didChangeAdjustingExposure];
             });
             return;
         }
@@ -253,6 +266,7 @@
     
     UIActivityIndicatorView *captureProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     captureProgressActivityIndicatorView.hidesWhenStopped = YES;
+    captureProgressActivityIndicatorView.color = UIColor.systemRedColor;
     
     _captureProgressActivityIndicatorView = [captureProgressActivityIndicatorView retain];
     return [captureProgressActivityIndicatorView autorelease];
@@ -275,6 +289,7 @@
     
     UIActivityIndicatorView *reactionProgressActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     reactionProgressActivityIndicatorView.hidesWhenStopped = YES;
+    reactionProgressActivityIndicatorView.color = UIColor.systemOrangeColor;
     
     _reactionProgressActivityIndicatorView = [reactionProgressActivityIndicatorView retain];
     return [reactionProgressActivityIndicatorView autorelease];
@@ -297,6 +312,7 @@
     
     UIActivityIndicatorView *adjustingFocusActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
     adjustingFocusActivityIndicatorView.hidesWhenStopped = YES;
+    adjustingFocusActivityIndicatorView.color = UIColor.systemYellowColor;
     
     _adjustingFocusActivityIndicatorView = [adjustingFocusActivityIndicatorView retain];
     return [adjustingFocusActivityIndicatorView autorelease];
@@ -314,6 +330,29 @@
     return [adjustingFocusBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)adjustingExposureActivityIndicatorView {
+    if (auto adjustingExposureActivityIndicatorView = _adjustingExposureActivityIndicatorView) return adjustingExposureActivityIndicatorView;
+    
+    UIActivityIndicatorView *adjustingExposureActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    adjustingExposureActivityIndicatorView.hidesWhenStopped = YES;
+    adjustingExposureActivityIndicatorView.color = UIColor.systemGreenColor;
+    
+    _adjustingExposureActivityIndicatorView = [adjustingExposureActivityIndicatorView retain];
+    return [adjustingExposureActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)adjustingExposureBarButtonItem {
+    if (auto adjustingExposureBarButtonItem = _adjustingExposureBarButtonItem) return adjustingExposureBarButtonItem;
+    
+    UIActivityIndicatorView *adjustingExposureActivityIndicatorView = self.adjustingExposureActivityIndicatorView;
+    UIBarButtonItem *adjustingExposureBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingExposureActivityIndicatorView];
+    adjustingExposureBarButtonItem.hidden = YES;
+    adjustingExposureBarButtonItem.enabled = NO;
+    
+    _adjustingExposureBarButtonItem = [adjustingExposureBarButtonItem retain];
+    return [adjustingExposureBarButtonItem autorelease];
+}
+
 - (UIToolbar *)toolbar {
     if (auto toolbar = _toolbar) return toolbar;
     
@@ -322,6 +361,9 @@
     [toolbar setItems:@[
         self.captureProgressBarButtonItem,
         self.reactionProgressBarButtonItem,
+        self.adjustingFocusBarButtonItem,
+        self.adjustingExposureBarButtonItem,
+        [UIBarButtonItem flexibleSpaceItem],
         self.menuBarButtonItem
     ]
              animated:NO];
@@ -475,6 +517,18 @@
     } else {
         [self.adjustingFocusActivityIndicatorView stopAnimating];
         self.adjustingFocusBarButtonItem.hidden = YES;
+    }
+}
+
+- (void)didChangeAdjustingExposure {
+    BOOL adjustingExposure = self.captureDevice.adjustingExposure;
+    
+    if (adjustingExposure) {
+        [self.adjustingExposureActivityIndicatorView startAnimating];
+        self.adjustingExposureBarButtonItem.hidden = NO;
+    } else {
+        [self.adjustingExposureActivityIndicatorView stopAnimating];
+        self.adjustingExposureBarButtonItem.hidden = YES;
     }
 }
 
