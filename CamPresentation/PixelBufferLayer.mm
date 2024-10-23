@@ -146,6 +146,13 @@
             rect = AVMakeRectWithAspectRatioInsideRect(CGSizeMake(CGImageGetWidth(cgImage), CGImageGetHeight(cgImage)), CGRectMake(0., 0., CGBitmapContextGetWidth(ctx), CGBitmapContextGetHeight(ctx)));
         }
         
+        CGFloat contentScale = self.contentsScale;
+        
+        rect.origin.x /= contentScale;
+        rect.origin.y /= contentScale;
+        rect.size.width /= contentScale;
+        rect.size.height /= contentScale;
+        
         CGContextDrawImage(ctx, rect, cgImage);
         CGImageRelease(cgImage);
     }

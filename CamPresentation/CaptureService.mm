@@ -3122,32 +3122,33 @@ NSNotificationName const CaptureServiceAdjustingFocusDidChangeNotificationName =
     
     //
     
-    AVCaptureMetadataInput *metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
-    assert(metadataInput != nil);
+    AVCaptureMetadataInput * _Nullable metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
     
-    for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
-        if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
-            AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
-            metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataDetectedFace;
-            metadataItem.dataType = (id)kCMMetadataBaseDataType_RectF32;
-            metadataItem.value = @[
-                @(CGRectGetMinX(metadataObject.bounds)),
-                @(CGRectGetMinY(metadataObject.bounds)),
-                @(CGRectGetWidth(metadataObject.bounds)),
-                @(CGRectGetHeight(metadataObject.bounds))
-            ];
-            
-            CMTimeRange timeRange = CMTimeRangeMake(metadataObject.time, metadataObject.duration);
-            
-            AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:timeRange];
-            [metadataItem release];
-            
-            NSError * _Nullable error = nil;
-            [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
-            [metadataGroup release];
-//            assert(error == nil);
-            if (error != nil) {
-                NSLog(@"%s: %@", sel_getName(_cmd), error);
+    if (metadataInput != nil) {
+        for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
+            if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
+                AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
+                metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataDetectedFace;
+                metadataItem.dataType = (id)kCMMetadataBaseDataType_RectF32;
+                metadataItem.value = @[
+                    @(CGRectGetMinX(metadataObject.bounds)),
+                    @(CGRectGetMinY(metadataObject.bounds)),
+                    @(CGRectGetWidth(metadataObject.bounds)),
+                    @(CGRectGetHeight(metadataObject.bounds))
+                ];
+                
+                CMTimeRange timeRange = CMTimeRangeMake(metadataObject.time, metadataObject.duration);
+                
+                AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:timeRange];
+                [metadataItem release];
+                
+                NSError * _Nullable error = nil;
+                [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
+                [metadataGroup release];
+                //            assert(error == nil);
+                if (error != nil) {
+                    NSLog(@"%s: %@", sel_getName(_cmd), error);
+                }
             }
         }
     }

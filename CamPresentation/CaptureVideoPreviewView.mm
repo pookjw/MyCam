@@ -7,6 +7,7 @@
 
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
+#import <CamPresentation/FocusRectLayer.h>
 #import <objc/runtime.h>
 
 #warning 확대할 때 preview 뜨게 하기
@@ -14,10 +15,11 @@
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) UIButton *menuButton;
+@property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
+@property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
 @end
 
 @implementation CaptureVideoPreviewView
-@synthesize previewLayer = _previewLayer;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuButton = _menuButton;
 
@@ -52,6 +54,11 @@
             metadataObjectsLayer.frame = bounds;
             [layer addSublayer:metadataObjectsLayer];
         }
+        
+        FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
+        focusRectLayer.contentsScale = 3.f;
+        [layer addSublayer:focusRectLayer];
+        _focusRectLayer = focusRectLayer;
         
         //
         
@@ -94,12 +101,18 @@
         
         [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
         [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
+        
+        id<UITraitChangeRegistration> displayScaleChangeRegistration = [self registerForTraitChanges:@[UITraitDisplayScale.class] withTarget:self action:@selector(didChangeDisplayScale:)];
+        _displayScaleChangeRegistration = [displayScaleChangeRegistration retain];
+        
+        [self updateContentScale];
     }
     
     return self;
 }
 
 - (void)dealloc {
+    [_displayScaleChangeRegistration release];
     [_captureService release];
     [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
     [_captureDevice release];
@@ -107,6 +120,7 @@
     [_depthMapLayer release];
     [_visionLayer release];
     [_metadataObjectsLayer release];
+    [_focusRectLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuButton release];
     [super dealloc];
@@ -135,6 +149,7 @@
     self.depthMapLayer.frame = bounds;
     self.visionLayer.frame = bounds;
     self.metadataObjectsLayer.frame = bounds;
+    self.focusRectLayer.frame = bounds;
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {
@@ -228,6 +243,20 @@
         captureDevice.focusMode = AVCaptureFocusModeLocked;
         [captureDevice unlockForConfiguration];
     });
+}
+
+- (void)didChangeDisplayScale:(CaptureVideoPreviewView *)sender {
+    [self updateContentScale];
+}
+
+- (void)updateContentScale {
+    CGFloat displayScale = self.traitCollection.displayScale;
+    
+    self.previewLayer.contentsScale = displayScale;
+    self.depthMapLayer.contentsScale = displayScale;
+    self.visionLayer.contentsScale = displayScale;
+    self.metadataObjectsLayer.contentsScale = displayScale;
+    self.focusRectLayer.contentsScale = displayScale;
 }
 
 @end
