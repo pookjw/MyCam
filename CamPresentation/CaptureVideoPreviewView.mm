@@ -14,14 +14,18 @@
 
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (retain, nonatomic, readonly) UIButton *menuButton;
+@property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
+@property (retain, nonatomic, readonly) UIToolbar *toolbar;
+@property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
 @end
 
 @implementation CaptureVideoPreviewView
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
-@synthesize menuButton = _menuButton;
+@synthesize menuBarButtonItem = _menuBarButtonItem;
+@synthesize toolbar = _toolbar;
+@synthesize blurView = _blurView;
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
     if (self = [super init]) {
@@ -77,15 +81,16 @@
         
         //
         
-        UIButton *menuButton = self.menuButton;
-        menuButton.translatesAutoresizingMaskIntoConstraints = NO;
-        [self addSubview:menuButton];
+        UIToolbar *toolbar = self.toolbar;
+        toolbar.translatesAutoresizingMaskIntoConstraints = NO;
+        [self addSubview:toolbar];
         [NSLayoutConstraint activateConstraints:@[
-            [menuButton.trailingAnchor constraintEqualToAnchor:self.layoutMarginsGuide.trailingAnchor],
-            [menuButton.bottomAnchor constraintEqualToAnchor:self.layoutMarginsGuide.bottomAnchor]
+            [toolbar.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [toolbar.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [toolbar.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
         
-        menuButton.layer.zPosition = previewLayer.zPosition + 1.f;
+        toolbar.layer.zPosition = previewLayer.zPosition + 1.f;
         
         //
         
@@ -106,12 +111,31 @@
         _displayScaleChangeRegistration = [displayScaleChangeRegistration retain];
         
         [self updateContentScale];
+        
+        //
+        
+        UIVisualEffectView *blurView = self.blurView;
+        [self addSubview:blurView];
+        blurView.frame = self.bounds;
+        blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        blurView.hidden = YES;
+        
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(willBeginSnapshotSessionNotification:)
+                                                   name:@"_UIApplicationWillBeginSnapshotSessionNotification"
+                                                 object:nil];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(didEndSnapshotSessionNotification:)
+                                                   name:@"_UIApplicationDidEndSnapshotSessionNotification"
+                                                 object:nil];
     }
     
     return self;
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
     [_displayScaleChangeRegistration release];
     [_captureService release];
     [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
@@ -122,7 +146,9 @@
     [_metadataObjectsLayer release];
     [_focusRectLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
-    [_menuButton release];
+    [_menuBarButtonItem release];
+    [_toolbar release];
+    [_blurView release];
     [super dealloc];
 }
 
@@ -168,21 +194,40 @@
     return [spatialCaptureDiscomfortReasonLabel autorelease];
 }
 
-- (UIButton *)menuButton {
-    if (auto menuButton = _menuButton) return menuButton;
+- (UIBarButtonItem *)menuBarButtonItem {
+    if (auto menuBarButtonItem = _menuBarButtonItem) return menuBarButtonItem;
     
-    UIButtonConfiguration *configuration = [UIButtonConfiguration tintedButtonConfiguration];
-    configuration.image = [UIImage systemImageNamed:@"list.bullet"];
-    
-    UIButton *menuButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
-    menuButton.showsMenuAsPrimaryAction = YES;
-    menuButton.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
-    menuButton.menu = [UIMenu menuWithChildren:@[
+    UIMenu *menu = [UIMenu menuWithChildren:@[
         [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:self.captureDevice didChangeHandler:nil]
     ]];
     
-    _menuButton = [menuButton retain];
-    return menuButton;
+    UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"list.bullet"] menu:menu];
+    
+    _menuBarButtonItem = [menuBarButtonItem retain];
+    return [menuBarButtonItem autorelease];
+}
+
+- (UIToolbar *)toolbar {
+    if (auto toolbar = _toolbar) return toolbar;
+    
+    UIToolbar *toolbar = [UIToolbar new];
+    
+    [toolbar setItems:@[
+        self.menuBarButtonItem
+    ]
+             animated:NO];
+    
+    _toolbar = [toolbar retain];
+    return [toolbar autorelease];
+}
+
+- (UIVisualEffectView *)blurView {
+    if (auto blurView = _blurView) return blurView;
+    
+    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
+    
+    _blurView = [blurView retain];
+    return [blurView autorelease];
 }
 
 - (void)updateSpatialCaptureDiscomfortReasonLabelWithReasons:(NSSet<AVSpatialCaptureDiscomfortReason> *)reasons {
@@ -192,8 +237,8 @@
 
 #warning deprecated
 - (void)reloadMenu {
-    UIMenu *menu = [self.menuButton.menu copy];
-    self.menuButton.menu = menu;
+    UIMenu *menu = [self.menuBarButtonItem.menu copy];
+    self.menuBarButtonItem.menu = menu;
     [menu release];
 }
 
@@ -257,6 +302,22 @@
     self.visionLayer.contentsScale = displayScale;
     self.metadataObjectsLayer.contentsScale = displayScale;
     self.focusRectLayer.contentsScale = displayScale;
+}
+
+- (void)willBeginSnapshotSessionNotification:(NSNotification *)notification {
+    if (UIWindowScene *windowScene = self.window.windowScene) {
+        if (windowScene.activationState == UISceneActivationStateBackground) {
+            self.blurView.hidden = NO;
+        }
+    }
+}
+
+- (void)didEndSnapshotSessionNotification:(NSNotification *)notification {
+    if (UIWindowScene *windowScene = self.window.windowScene) {
+        if (windowScene.activationState == UISceneActivationStateBackground) {
+            self.blurView.hidden = YES;
+        }
+    }
 }
 
 @end

@@ -31,9 +31,6 @@
 #else
 @interface CameraRootViewController ()
 #endif
-@property (class, assign, nonatomic, readonly) void *availablePhotoPixelFormatTypesKey;
-@property (class, assign, nonatomic, readonly) void *availableRawPhotoPixelFormatTypesKey;
-@property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *photosBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureDevicesBarButtonItem;
@@ -54,7 +51,6 @@
 @end
 
 @implementation CameraRootViewController
-@synthesize blurView = _blurView;
 @synthesize stackView = _stackView;
 @synthesize photosBarButtonItem = _photosBarButtonItem;
 @synthesize captureDevicesBarButtonItem = _captureDevicesBarButtonItem;
@@ -71,16 +67,6 @@
 @synthesize captureService = _captureService;
 @synthesize audioBarButtonItem = _audioBarButtonItem;
 @synthesize captureSessionBarButton = _captureSessionBarButton;
-
-+ (void *)availablePhotoPixelFormatTypesKey {
-    static void *key = &key;
-    return key;
-}
-
-+ (void *)availableRawPhotoPixelFormatTypesKey {
-    static void *key = &key;
-    return key;
-}
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
@@ -105,7 +91,6 @@
 }
 
 - (void)dealloc {
-    [_blurView release];
     [_stackView release];
     [_photosBarButtonItem release];
     [_captureDevicesBarButtonItem release];
@@ -173,19 +158,16 @@
     [super viewDidLoad];
     
     UIView *view = self.view;
+    
     UIStackView *stackView = self.stackView;
-    UIVisualEffectView *blurView = self.blurView;
-    
+    stackView.translatesAutoresizingMaskIntoConstraints = NO;
     [view addSubview:stackView];
-    [view addSubview:blurView];
-    
-    stackView.frame = view.bounds;
-    blurView.frame = view.bounds;
-    
-    stackView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    
-    blurView.hidden = YES;
+    [NSLayoutConstraint activateConstraints:@[
+        [stackView.topAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.topAnchor],
+        [stackView.leadingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.leadingAnchor],
+        [stackView.trailingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.trailingAnchor],
+        [stackView.bottomAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.bottomAnchor],
+    ]];
     
     //
     
@@ -257,43 +239,6 @@
 //            [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
 //        }
     });
-    
-    //
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(willBeginSnapshotSessionNotification:)
-                                               name:@"_UIApplicationWillBeginSnapshotSessionNotification"
-                                             object:nil];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didEndSnapshotSessionNotification:)
-                                               name:@"_UIApplicationDidEndSnapshotSessionNotification"
-                                             object:nil];
-}
-
-- (void)willBeginSnapshotSessionNotification:(NSNotification *)notification {
-    if (UIWindowScene *windowScene = self.view.window.windowScene) {
-        if (windowScene.activationState == UISceneActivationStateBackground) {
-            self.blurView.hidden = NO;
-        }
-    }
-}
-
-- (void)didEndSnapshotSessionNotification:(NSNotification *)notification {
-    if (UIWindowScene *windowScene = self.view.window.windowScene) {
-        if (windowScene.activationState == UISceneActivationStateBackground) {
-            self.blurView.hidden = YES;
-        }
-    }
-}
-
-- (UIVisualEffectView *)blurView {
-    if (auto blurView = _blurView) return blurView;
-    
-    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
-    
-    _blurView = [blurView retain];
-    return [blurView autorelease];
 }
 
 - (UIStackView *)stackView {
