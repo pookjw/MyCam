@@ -1359,6 +1359,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     BOOL isCenterStageActive = captureDevice.isCenterStageActive;
     
     AVZoomRange * _Nullable systemRecommendedVideoZoomRange = activeFormat.systemRecommendedVideoZoomRange;
+    CGFloat minAvailableVideoZoomFactor = captureDevice.minAvailableVideoZoomFactor;
+    CGFloat maxAvailableVideoZoomFactor = captureDevice.maxAvailableVideoZoomFactor;
+    
     NSArray<NSNumber *> *secondaryNativeResolutionZoomFactors = activeFormat.secondaryNativeResolutionZoomFactors;
     NSArray<AVZoomRange *> *supportedVideoZoomRangesForDepthDataDelivery = activeFormat.supportedVideoZoomRangesForDepthDataDelivery;
     NSArray<NSNumber *> *virtualDeviceSwitchOverVideoZoomFactors = captureDevice.virtualDeviceSwitchOverVideoZoomFactors;
@@ -1375,18 +1378,19 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
-        UISlider *systemRecommendedVideoZoomRangeSlider = [UISlider new];
-        if (systemRecommendedVideoZoomRange != nil) {
-            systemRecommendedVideoZoomRangeSlider.minimumValue = systemRecommendedVideoZoomRange.minZoomFactor;
-            systemRecommendedVideoZoomRangeSlider.maximumValue = systemRecommendedVideoZoomRange.maxZoomFactor;
-            systemRecommendedVideoZoomRangeSlider.value = videoZoomFactor;
+        UISlider *videoZoomFactorSlider = [UISlider new];
+        videoZoomFactorSlider.minimumValue = minAvailableVideoZoomFactor;
+        videoZoomFactorSlider.maximumValue = maxAvailableVideoZoomFactor;
+        videoZoomFactorSlider.value = videoZoomFactor;
+        if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
+            videoZoomFactorSlider.tintColor = UIColor.systemGreenColor;
         } else {
-            systemRecommendedVideoZoomRangeSlider.enabled = NO;
+            videoZoomFactorSlider.tintColor = UIColor.systemRedColor;
         }
         
-        __kindof NSValue *systemRecommendedVideoZoomRangeSliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), systemRecommendedVideoZoomRangeSlider);
-        [allSliderValues addObject:systemRecommendedVideoZoomRangeSliderValue];
-        [systemRecommendedVideoZoomRangeSliderValue release];
+        __kindof NSValue *videoZoomFactorSliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), videoZoomFactorSlider);
+        [allSliderValues addObject:videoZoomFactorSliderValue];
+        [videoZoomFactorSliderValue release];
         
         //
         
@@ -1397,6 +1401,12 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             slider.minimumValue = range.minZoomFactor;
             slider.maximumValue = range.maxZoomFactor;
             slider.value = videoZoomFactor;
+            if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
+                slider.tintColor = UIColor.systemGreenColor;
+            } else {
+                slider.tintColor = UIColor.systemRedColor;
+            }
+            
             [videoZoomRangesForDepthDataDeliverySliders addObject:slider];
             
             __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), slider);
@@ -1413,6 +1423,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             videoZoomFactorForCenterStageSlider.minimumValue = videoMinZoomFactorForCenterStage;
             videoZoomFactorForCenterStageSlider.maximumValue = videoMaxZoomFactorForCenterStage;
             videoZoomFactorForCenterStageSlider.value = videoZoomFactor;
+            if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
+                videoZoomFactorForCenterStageSlider.tintColor = UIColor.systemGreenColor;
+            } else {
+                videoZoomFactorForCenterStageSlider.tintColor = UIColor.systemRedColor;
+            }
             
             __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), videoZoomFactorForCenterStageSlider);
             [allSliderValues addObject:sliderValue];
@@ -1435,11 +1450,17 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                 [captureDevice unlockForConfiguration];
             });
             
-            for (__kindof NSValue *otherSliderValue in allSliderValues) {
-                UISlider * _Nullable otherSlider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(otherSliderValue, sel_registerName("weakObjectValue"));
-                if ([otherSlider isEqual:slider]) continue;
+            for (__kindof NSValue *sliderValue in allSliderValues) {
+                UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
+                if (!slider.isTracking) {
+                    slider.value = value;
+                }
                 
-                otherSlider.value = value;
+                if ([systemRecommendedVideoZoomRange containsZoomFactor:value]) {
+                    slider.tintColor = UIColor.systemGreenColor;
+                } else {
+                    slider.tintColor = UIColor.systemRedColor;
+                }
             }
         }];
         
@@ -1489,9 +1510,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         //
         
         __kindof UIMenuElement *systemRecommendedVideoZoomRangeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-            return systemRecommendedVideoZoomRangeSlider;
+            return videoZoomFactorSlider;
         });
-        [systemRecommendedVideoZoomRangeSlider release];
+        [videoZoomFactorSlider release];
         
         UIMenu *systemRecommendedVideoZoomRangeSliderMenu = [UIMenu menuWithTitle:@"System Recommended Video Zoom Range" children:@[
             systemRecommendedVideoZoomRangeSliderElement
@@ -1570,6 +1591,20 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
+        UIAction *cancelVideoZoomRampAction = [UIAction actionWithTitle:@"Cancel Video Zoom Ramp" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                [captureDevice cancelVideoZoomRamp];
+                [captureDevice unlockForConfiguration];
+            });
+        }];
+        
+        cancelVideoZoomRampAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        
+        //
+        
         UIMenu *menu = [UIMenu menuWithTitle:@"Zoom" children:@[
             infoViewElement,
             systemRecommendedVideoZoomRangeSliderMenu,
@@ -1577,7 +1612,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             videoZoomRangesForDepthDataDeliverySlidersMenu,
             virtualDeviceSwitchOverVideoZoomFactorsMenu,
             videoZoomFactorForCenterStageSliderMenu,
-            videoZoomFactorUpscaleThresholdAction
+            videoZoomFactorUpscaleThresholdAction,
+            cancelVideoZoomRampAction
         ]];
         
         //

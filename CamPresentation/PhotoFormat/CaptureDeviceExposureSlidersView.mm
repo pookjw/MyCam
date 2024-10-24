@@ -8,6 +8,7 @@
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
 
 #warning TODO whitebalence (AVCaptureExposureDurationCurrent 같은 것들 모아보기)
+#warning timesacle 통일
 
 @interface CaptureDeviceExposureSlidersView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -158,6 +159,13 @@
     UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
         auto sender = static_cast<UISlider *>(action.sender);
         float value = sender.value;
+        
+        AVExposureBiasRange *systemRecommendedExposureBiasRange = captureDevice.activeFormat.systemRecommendedExposureBiasRange;
+        if ([systemRecommendedExposureBiasRange containsExposureBias:value]) {
+            sender.tintColor = UIColor.systemGreenColor;
+        } else {
+            sender.tintColor = UIColor.systemRedColor;
+        }
         
         dispatch_async(captureService.captureSessionQueue, ^{
             NSError * _Nullable error = nil;
@@ -324,6 +332,7 @@
     
     AVCaptureDevice *captureDevice = self.captureDevice;
     AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    AVExposureBiasRange *systemRecommendedExposureBiasRange = activeFormat.systemRecommendedExposureBiasRange;
     
     AVCaptureExposureMode exposureMode = captureDevice.exposureMode;
     
@@ -350,6 +359,11 @@
         exposureTargetBiasSlider.minimumValue = minExposureTargetBias;
         if (!exposureTargetBiasSlider.isTracking) {
             exposureTargetBiasSlider.value = exposureTargetBias;
+        }
+        if ([systemRecommendedExposureBiasRange containsExposureBias:exposureTargetBias]) {
+            exposureTargetBiasSlider.tintColor = UIColor.systemGreenColor;
+        } else {
+            exposureTargetBiasSlider.tintColor = UIColor.systemRedColor;
         }
         exposureTargetBiasSlider.enabled = (exposureMode != AVCaptureExposureModeCustom);
         
