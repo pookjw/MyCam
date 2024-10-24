@@ -34,8 +34,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 #warning AVSpatialOverCaptureVideoPreviewLayer
 #warning -[AVCaptureDevice isProResSupported]
 #warning videoMirrored
-#warning lensAperture = Exposure?
-#warning Long Press로 Focus 고정
+#warning lensAperture
+#warning backgroundReplacementSupported, autoVideoFrameRateSupported
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
@@ -2823,7 +2823,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     UIMenu *menu = [UIMenu menuWithTitle:@"Exposure"
                                 children:@[
         [UIDeferredMenuElement _cp_queue_setExposureModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_exposureSlidersViewElementWithCaptureService:captureService captureDevice:captureDevice]
+        [UIDeferredMenuElement _cp_queue_exposureSlidersViewElementWithCaptureService:captureService captureDevice:captureDevice],
+        [UIDeferredMenuElement _cp_queue_toggleUnifiedAutoExposureDefaultsEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_testUnifiedAutoExposureDefaultsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -2902,6 +2904,43 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [actions release];
     
     return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleUnifiedAutoExposureDefaultsEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDeviceInput *deviceInput = nil;
+    for (AVCaptureDeviceInput *_deviceInput in captureService.queue_captureSession.inputs) {
+        if (![_deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
+        if ([_deviceInput.device isEqual:captureDevice]) {
+            deviceInput = _deviceInput;
+            break;
+        }
+    }
+    assert(deviceInput != nil);
+    
+    BOOL unifiedAutoExposureDefaultsEnabled = deviceInput.unifiedAutoExposureDefaultsEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Unified Auto Exposure Defaults Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            deviceInput.unifiedAutoExposureDefaultsEnabled = !unifiedAutoExposureDefaultsEnabled;
+        });
+    }];
+    
+    action.state = unifiedAutoExposureDefaultsEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_testUnifiedAutoExposureDefaultsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    CMTime maxExposureDuration = captureDevice.activeFormat.maxExposureDuration;
+    
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Test Unified Auto Exposure Defaults"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return CMTimeCompare(maxExposureDuration, format.maxExposureDuration) != 0;
+    }
+                                                         didChangeHandler:didChangeHandler];
 }
 
 @end

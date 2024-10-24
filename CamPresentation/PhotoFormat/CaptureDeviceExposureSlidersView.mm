@@ -55,6 +55,7 @@
         [captureDevice addObserver:self forKeyPath:@"exposureTargetBias" options:NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"exposureDuration" options:NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"ISO" options:NSKeyValueObservingOptionNew context:nullptr];
+        [captureDevice addObserver:self forKeyPath:@"activeMaxExposureDuration" options:NSKeyValueObservingOptionNew context:nullptr];
         
         dispatch_async(captureService.captureSessionQueue, ^{
             [self queue_updateAttributes];
@@ -66,6 +67,12 @@
 
 - (void)dealloc {
     [_captureService release];
+    [_captureDevice removeObserver:self forKeyPath:@"activeFormat"];
+    [_captureDevice removeObserver:self forKeyPath:@"exposureMode"];
+    [_captureDevice removeObserver:self forKeyPath:@"exposureTargetBias"];
+    [_captureDevice removeObserver:self forKeyPath:@"exposureDuration"];
+    [_captureDevice removeObserver:self forKeyPath:@"ISO"];
+    [_captureDevice removeObserver:self forKeyPath:@"activeMaxExposureDuration"];
     [_captureDevice release];
     [_stackView release];
     [_exposureTargetBiasLabel release];
@@ -102,6 +109,11 @@
             });
             return;
         } else if ([keyPath isEqualToString:@"ISO"]) {
+            dispatch_async(self.captureService.captureSessionQueue, ^{
+                [self queue_updateAttributes];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"activeMaxExposureDuration"]) {
             dispatch_async(self.captureService.captureSessionQueue, ^{
                 [self queue_updateAttributes];
             });
@@ -400,6 +412,10 @@
         }
         ISOSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
     });
+    
+//    self.captureDevice.activeMaxExposureDuration;
+//    self.captureDevice.activeVideoMinFrameDuration;
+//    self.captureDevice.activeVideoMaxFrameDuration;
 }
 
 @end
