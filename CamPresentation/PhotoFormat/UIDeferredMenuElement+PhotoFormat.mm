@@ -2824,8 +2824,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                 children:@[
         [UIDeferredMenuElement _cp_queue_setExposureModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_exposureSlidersViewElementWithCaptureService:captureService captureDevice:captureDevice],
-        [UIDeferredMenuElement _cp_queue_toggleUnifiedAutoExposureDefaultsEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_testUnifiedAutoExposureDefaultsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_toggleUnifiedAutoExposureDefaultsEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -2926,21 +2925,42 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     }];
     
     action.state = unifiedAutoExposureDefaultsEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+#warning https://developer.apple.com/documentation/avfoundation/avcapturedeviceinput/2968218-unifiedautoexposuredefaultsenabl
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoFrameRateMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    abort();
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAutoVideoFrameRateEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    if (!captureDevice.isAutoVideoFrameRateEnabled) {
+        UIAction *action = [UIAction actionWithTitle:@"Auto Video Frame Rate" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    BOOL isAutoVideoFrameRateEnabled = captureDevice.isAutoVideoFrameRateEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Auto Video Frame Rate" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.autoVideoFrameRateEnabled = !isAutoVideoFrameRateEnabled;
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.attributes = captureDevice.activeFormat.isAutoVideoFrameRateSupported ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
 }
 
-+ (UIMenu * _Nonnull)_cp_queue_testUnifiedAutoExposureDefaultsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    CMTime maxExposureDuration = captureDevice.activeFormat.maxExposureDuration;
-    
-    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
-                                                            captureDevice:captureDevice
-                                                                    title:@"Test Unified Auto Exposure Defaults"
-                                                          includeSubtitle:NO
-                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
-        return CMTimeCompare(maxExposureDuration, format.maxExposureDuration) != 0;
-    }
-                                                         didChangeHandler:didChangeHandler];
-}
+#warning isWindNoiseRemovalEnabled
 
 @end
