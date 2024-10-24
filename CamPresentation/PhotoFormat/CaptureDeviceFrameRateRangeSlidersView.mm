@@ -41,6 +41,7 @@
         
         [captureDevice addObserver:self forKeyPath:@"activeVideoMinFrameDuration" options:NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"activeVideoMaxFrameDuration" options:NSKeyValueObservingOptionNew context:nullptr];
+        [captureDevice addObserver:self forKeyPath:@"autoVideoFrameRateEnabled" options:NSKeyValueObservingOptionNew context:nullptr];
         
         dispatch_async(captureService.captureSessionQueue, ^{
             [self queue_updateAttributes];
@@ -71,6 +72,11 @@
             });
             return;
         } else if ([keyPath isEqualToString:@"activeVideoMaxFrameDuration"]) {
+            dispatch_async(self.captureService.captureSessionQueue, ^{
+                [self queue_updateAttributes];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"autoVideoFrameRateEnabled"]) {
             dispatch_async(self.captureService.captureSessionQueue, ^{
                 [self queue_updateAttributes];
             });
@@ -130,7 +136,14 @@
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
-            captureDevice.activeVideoMinFrameDuration = CMTimeMakeWithSeconds(value, captureDevice.activeVideoMinFrameDuration.timescale);
+            CMTime duration = CMTimeMakeWithSeconds(value, 1000000UL);
+            if (CMTimeCompare(duration, frameRateRange.minFrameDuration) == -1) {
+                duration = frameRateRange.minFrameDuration;
+            } else if (CMTimeCompare(captureDevice.activeVideoMaxFrameDuration, duration) == -1) {
+                duration = captureDevice.activeVideoMaxFrameDuration;
+            }
+            
+            captureDevice.activeVideoMinFrameDuration = duration;
             
             [captureDevice unlockForConfiguration];
         });
@@ -159,7 +172,14 @@
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
-            captureDevice.activeVideoMaxFrameDuration = CMTimeMakeWithSeconds(value, captureDevice.activeVideoMaxFrameDuration.timescale);
+            CMTime duration = CMTimeMakeWithSeconds(value, 1000000UL);
+            if (CMTimeCompare(frameRateRange.maxFrameDuration, duration) == -1) {
+                duration = frameRateRange.maxFrameDuration;
+            } else if (CMTimeCompare(duration, captureDevice.activeVideoMinFrameDuration) == -1) {
+                duration = captureDevice.activeVideoMinFrameDuration;
+            }
+            
+            captureDevice.activeVideoMaxFrameDuration = duration;
             
             [captureDevice unlockForConfiguration];
         });
@@ -179,6 +199,7 @@
     CMTime activeVideoMaxFrameDuration = captureDevice.activeVideoMaxFrameDuration;
     
     AVFrameRateRange *frameRateRange = self.frameRateRange;
+    BOOL isAutoVideoFrameRateEnabled = captureDevice.isAutoVideoFrameRateEnabled;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UILabel *label = self.label;
@@ -190,15 +211,19 @@
         if (!minSlider.isTracking) {
             minSlider.value = CMTimeGetSeconds(activeVideoMinFrameDuration);
         }
+        minSlider.enabled = !isAutoVideoFrameRateEnabled;
         
         UISlider *maxSlider = self.maxSlider;
         maxSlider.minimumValue = CMTimeGetSeconds(activeVideoMinFrameDuration);
         maxSlider.maximumValue = CMTimeGetSeconds(frameRateRange.maxFrameDuration);
+        maxSlider.enabled = !isAutoVideoFrameRateEnabled;
         
         if (!maxSlider.isTracking) {
             maxSlider.value = CMTimeGetSeconds(activeVideoMaxFrameDuration);
         }
     });
 }
+
+#warning videoMinFrameDurationOverride
 
 @end
