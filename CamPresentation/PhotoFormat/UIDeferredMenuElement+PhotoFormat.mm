@@ -17,6 +17,7 @@
 #import <CamPresentation/NSStringFromAVCaptureFocusMode.h>
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
 #import <CamPresentation/NSStringFromAVCaptureExposureMode.h>
+#import <CamPresentation/NSStringFromAVCaptureSystemUserInterface.h>
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
 #import <objc/message.h>
@@ -82,6 +83,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
 #warning TODO: autoVideoFrameRateEnabled
             
@@ -2838,6 +2841,31 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     });
     
     return element;
+}
+
++ (std::vector<AVCaptureSystemUserInterface>)_cp_allSystemUserInterfacesVector {
+    return {
+        AVCaptureSystemUserInterfaceVideoEffects,
+        AVCaptureSystemUserInterfaceMicrophoneModes
+    };
+}
+
++ (UIMenu * _Nonnull)_cp_showSystemUserInterfaceMenu {
+    auto actionsVec = [UIDeferredMenuElement _cp_allSystemUserInterfacesVector]
+    | std::views::transform([](AVCaptureSystemUserInterface systemUserInterface) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureSystemUserInterface(systemUserInterface) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [AVCaptureDevice showSystemUserInterface:systemUserInterface];
+        }];
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    UIMenu *menu = [UIMenu menuWithTitle:@"Show System User Interface" children:actions];
+    [actions release];
+    
+    return menu;
 }
 
 @end
