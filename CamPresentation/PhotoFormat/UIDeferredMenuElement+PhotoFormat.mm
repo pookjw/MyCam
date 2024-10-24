@@ -20,6 +20,7 @@
 #import <CamPresentation/NSStringFromAVCaptureSystemUserInterface.h>
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
+#import <CamPresentation/CaptureDeviceFrameRateRangeSlidersView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -83,6 +84,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoFrameRateMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
@@ -2925,25 +2928,21 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     }];
     
     action.state = unifiedAutoExposureDefaultsEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
-#warning https://developer.apple.com/documentation/avfoundation/avcapturedeviceinput/2968218-unifiedautoexposuredefaultsenabl
+#warning https://developer.apple.com/documentation/avfoundation/avcapturedeviceinput/2968218-unifiedautoexposuredefaultsenabl (activeVideoMinFrameDuration에 reset 조건 적혀 있음)
     return action;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_videoFrameRateMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    abort();
+    UIMenu *menu = [UIMenu menuWithTitle:@"Video Frame Rate" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleAutoVideoFrameRateEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_autoVideoFrameRateSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_activeVideoFrameDurationSlidersElementWithCaptureService:captureService captureDevice:captureDevice]
+    ]];
+    
+    return menu;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleAutoVideoFrameRateEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    if (!captureDevice.isAutoVideoFrameRateEnabled) {
-        UIAction *action = [UIAction actionWithTitle:@"Auto Video Frame Rate" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            
-        }];
-        
-        action.attributes = UIMenuElementAttributesDisabled;
-        
-        return action;
-    }
-    
     BOOL isAutoVideoFrameRateEnabled = captureDevice.isAutoVideoFrameRateEnabled;
     
     UIAction *action = [UIAction actionWithTitle:@"Auto Video Frame Rate" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2956,9 +2955,44 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         });
     }];
     
+    action.state = captureDevice.isAutoVideoFrameRateEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     action.attributes = captureDevice.activeFormat.isAutoVideoFrameRateSupported ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_autoVideoFrameRateSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Video Frame Rate Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.isAutoVideoFrameRateSupported;
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIDeferredMenuElement *)_cp_queue_activeVideoFrameDurationSlidersElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    NSArray<AVFrameRateRange *> *videoSupportedFrameRateRanges = activeFormat.videoSupportedFrameRateRanges;
+    
+    return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:videoSupportedFrameRateRanges.count];
+        
+        for (AVFrameRateRange *frameRateRange in videoSupportedFrameRateRanges) {
+            __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                CaptureDeviceFrameRateRangeSlidersView *view = [[CaptureDeviceFrameRateRangeSlidersView alloc] initWithCaptureService:captureService captureDevice:captureDevice frameRateRange:frameRateRange];
+                return [view autorelease];
+            });
+            
+            [children addObject:element];
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"Active Video Frame Duration" children:children];
+        [children release];
+        
+        completion(@[menu]);
+    }];
 }
 
 #warning isWindNoiseRemovalEnabled
