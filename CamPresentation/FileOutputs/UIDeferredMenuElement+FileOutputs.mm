@@ -8,7 +8,7 @@
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 #import <objc/message.h>
 
-#warning +[AVExternalStorageDevice requestAccessWithCompletionHandler:]
+#if !TARGET_OS_VISION
 
 @implementation UIDeferredMenuElement (FileOutputs)
 
@@ -84,3 +84,5 @@
 }
 
 @end
+
+#endif

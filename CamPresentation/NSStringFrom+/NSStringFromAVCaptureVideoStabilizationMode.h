@@ -7,6 +7,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/Extern.h>
+#import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

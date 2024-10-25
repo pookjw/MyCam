@@ -394,7 +394,12 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
+#if TARGET_OS_VISION
+        __kindof CALayer *previewLayer;
+#else
+        AVCaptureVideoPreviewLayer *previewLayer;
+#endif
+        previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
         
         dispatch_async(dispatch_get_main_queue(), ^{
             for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
@@ -416,7 +421,13 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
+#if TARGET_OS_VISION
+        NSMapTable<AVCaptureDevice *, __kindof CALayer *> *previewLayersByCaptureDeviceCopiedMapTable;
+#else
+        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable;
+#endif
+        previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
+        
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *depthMapLayersByCaptureDeviceCopiedMapTable = captureService.queue_depthMapLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *visionLayersByCaptureDeviceCopiedMapTable = captureService.queue_visionLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *metadataObjectsLayersByCaptureDeviceCopiedMapTable = captureService.queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
@@ -428,7 +439,12 @@
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
                 BOOL isRemoved = YES;
-                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator) {
+#if TARGET_OS_VISION
+                for (__kindof CALayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator)
+#else
+                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator)
+#endif
+                {
                     if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
                         isRemoved = NO;
                         break;
@@ -445,7 +461,13 @@
             }
             
             for (AVCaptureDevice * captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
-                AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+#if TARGET_OS_VISION
+                __kindof CALayer *previewLayer;
+#else
+                AVCaptureVideoPreviewLayer *previewLayer;
+#endif
+                previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+                
                 __kindof CALayer * _Nullable depthMapLayer = [depthMapLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable visionLayer = [visionLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable metadataObjectsLayer = [metadataObjectsLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
@@ -544,7 +566,12 @@
     });
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer {
+#if TARGET_OS_VISION
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(__kindof CALayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer
+#else
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer
+#endif
+{
     CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithCaptureService:self.captureService captureDevice:captureDevice previewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
     
     return captureVideoPreviewView;

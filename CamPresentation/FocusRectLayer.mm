@@ -7,15 +7,26 @@
 
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface FocusRectLayer ()
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) __kindof CALayer *videoPreviewLayer;
+#else
 @property (retain, nonatomic, readonly) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+#endif
 @end
 
 @implementation FocusRectLayer
 
-- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(nonnull AVCaptureVideoPreviewLayer *)videoPreviewLayer {
+#if TARGET_OS_VISION
+- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(__kindof CALayer *)videoPreviewLayer
+#else
+- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(nonnull AVCaptureVideoPreviewLayer *)videoPreviewLayer
+#endif
+{
     if (self = [super init]) {
         _captureDevice = [captureDevice retain];
         _videoPreviewLayer = [videoPreviewLayer retain];
@@ -77,20 +88,37 @@
         
         CGColorRef color;
         switch (captureDevice.focusMode) {
+#if TARGET_OS_VISION
+            case 0:  
+#else
             case AVCaptureFocusModeLocked:
+#endif
                 color = CGColorCreateSRGB(1., 0., 0., 1.);
                 break;
+#if TARGET_OS_VISION
+            case 1:
+#else
             case AVCaptureFocusModeAutoFocus:
+#endif
                 color = CGColorCreateSRGB(0., 1., 0., 1.);
                 break;
+#if TARGET_OS_VISION
+            case 2:
+#else
             case AVCaptureFocusModeContinuousAutoFocus:
+#endif
                 color = CGColorCreateSRGB(0., 0., 1., 1.);
                 break;
             default:
                 abort();
         }
         
-        CGPoint point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.focusPointOfInterest];
+        CGPoint point;
+#if TARGET_OS_VISION
+        point = reinterpret_cast<CGPoint (*)(id, SEL, CGPoint)>(objc_msgSend)(self.videoPreviewLayer, sel_registerName("pointForCaptureDevicePointOfInterest:"), captureDevice.focusPointOfInterest);
+#else
+        point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.focusPointOfInterest];
+#endif
         
         CGRect rect = CGRectMake(point.x - 50., point.y - 50., 100., 100.);
         

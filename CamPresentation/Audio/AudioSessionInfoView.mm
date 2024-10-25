@@ -15,6 +15,7 @@
 #import <CamPresentation/NSStringFromAVAudioSessionInterruptionType.h>
 #import <CamPresentation/NSStringFromAVAudioSessionInterruptionOptions.h>
 #import <CamPresentation/NSStringFromAVAudioSessionPromptStyle.h>
+#import <TargetConditionals.h>
 
 @interface AudioSessionInfoView ()
 @property (retain, nonatomic, readonly) AVAudioSession *audioSession;
@@ -43,7 +44,9 @@
             [label.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
         
+#if !TARGET_OS_VISION
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRenderingModeChangeNotification:) name:AVAudioSessionRenderingModeChangeNotification object:audioSession];
+#endif
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveInterruptionNotification:) name:AVAudioSessionInterruptionNotification object:audioSession];
         
@@ -53,7 +56,9 @@
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveSpatialPlaybackCapabilitiesChangedNotification:) name:AVAudioSessionSpatialPlaybackCapabilitiesChangedNotification object:audioSession];
         
+#if !TARGET_OS_VISION
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didReceiveRenderingCapabilitiesChangeNotification:) name:AVAudioSessionRenderingCapabilitiesChangeNotification object:audioSession];
+#endif
         
         [audioSession addObserver:self forKeyPath:@"promptStyle" options:NSKeyValueObservingOptionNew context:nil];
         [audioSession addObserver:self forKeyPath:@"sampleRate" options:NSKeyValueObservingOptionNew context:nil];
@@ -126,12 +131,14 @@
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
+#if !TARGET_OS_VISION
 - (void)didReceiveRenderingModeChangeNotification:(NSNotification *)notification {
 //    AVAudioSessionRenderingModeNewRenderingModeKey
     dispatch_async(dispatch_get_main_queue(), ^{
         [self updateLabel];
     });
 }
+#endif
 
 - (void)didReceiveInterruptionNotification:(NSNotification *)notification {
     NSNumber *interruptionTypeNumber = notification.userInfo[AVAudioSessionInterruptionTypeKey];
@@ -169,11 +176,13 @@
     });
 }
 
+#if !TARGET_OS_VISION
 - (void)didReceiveRenderingCapabilitiesChangeNotification:(NSNotification *)notification {
     dispatch_async(dispatch_get_main_queue(), ^{
         [self updateLabel];
     });
 }
+#endif
 
 - (UILabel *)label {
     if (auto label = _label) return label;
@@ -192,9 +201,12 @@
 - (void)updateLabel {
     NSMutableString *string = [NSMutableString new];
     
+#if !TARGET_OS_VISION
     [string appendFormat:@"Rendering Mode : %@", NSStringFromAVAudioSessionRenderingMode(self.audioSession.renderingMode)];
     
     [string appendString:@"\n"];
+#endif
+    
     [string appendFormat:@"isOtherAudioPlaying : %d", self.audioSession.isOtherAudioPlaying];
     
     [string appendString:@"\n"];
@@ -224,8 +236,10 @@
     [string appendString:@"\n"];
     [string appendFormat:@"supportsMultichannelContent : %d", self.audioSession.supportsMultichannelContent];
     
+#if !TARGET_OS_VISION
     [string appendString:@"\n"];
     [string appendFormat:@"supportedOutputChannelLayouts count : %ld", self.audioSession.supportedOutputChannelLayouts.count];
+#endif
     
     [string appendString:@"\n"];
     [string appendFormat:@"currentRoute : %p (inputs : %ld, outputs : %ld)", self.audioSession.currentRoute, self.audioSession.currentRoute.inputs.count, self.audioSession.currentRoute.outputs.count];

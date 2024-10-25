@@ -9,10 +9,16 @@
 #import <CamPresentation/SVRunLoop.hpp>
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <objc/message.h>
 
 @interface MetadataObjectsLayer ()
+#if TARGET_OS_VISION
+@property (copy, atomic, nullable) NSArray<id> *metadataObjects;
+@property (retain, atomic, nullable) __kindof CALayer *previewLayer;
+#else
 @property (copy, atomic, nullable) NSArray<__kindof AVMetadataObject *> *metadataObjects;
 @property (retain, atomic, nullable) AVCaptureVideoPreviewLayer *previewLayer;
+#endif
 @end
 
 @implementation MetadataObjectsLayer
@@ -23,7 +29,12 @@
     [super dealloc];
 }
 
-- (void)updateWithMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+#if TARGET_OS_VISION
+- (void)updateWithMetadataObjects:(NSArray<id> *)metadataObjects previewLayer:(__kindof CALayer *)previewLayer
+#else
+- (void)updateWithMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer
+#endif
+{
     [SVRunLoop.globalRenderRunLoop runBlock:^{
         self.metadataObjects = metadataObjects;
         self.previewLayer = previewLayer;
@@ -39,13 +50,31 @@
     CGColorRef color = CGColorCreateSRGB(0., 1., 0., 1.);
     CGContextSetStrokeColorWithColor(ctx, color);
     
-    for (__kindof AVMetadataObject *metadataObject in self.metadataObjects) {
-        CGRect rect = [self.previewLayer rectForMetadataOutputRectOfInterest:metadataObject.bounds];
+#if TARGET_OS_VISION
+    for (id metadataObject in self.metadataObjects)
+#else
+    for (__kindof AVMetadataObject *metadataObject in self.metadataObjects)
+#endif
+    {
+        CGRect metadataObjectBounds;
+#if TARGET_OS_VISION
+        metadataObjectBounds = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(metadataObject, sel_registerName("bounds"));
+#else
+        metadataObjectBounds = metadataObject.bounds;
+#endif
+        
+        CGRect rect = [self.previewLayer rectForMetadataOutputRectOfInterest:metadataObjectBounds];
+        
+#if TARGET_OS_VISION
+        NSString *metadataObjectType = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(metadataObject, sel_registerName("type"));
+#else
+        AVMetadataObjectType metadataObjectType = metadataObject.type;
+#endif
         
         CGContextStrokeRectWithWidth(ctx, rect, 10.);
         
         CATextLayer *textLayer = [CATextLayer new];
-        textLayer.string = metadataObject.type;
+        textLayer.string = metadataObjectType;
         textLayer.foregroundColor = color;
         textLayer.fontSize = 30.;
         textLayer.alignmentMode = kCAAlignmentCenter;

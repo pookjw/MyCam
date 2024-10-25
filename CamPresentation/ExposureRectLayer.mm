@@ -7,15 +7,26 @@
 
 #import <CamPresentation/ExposureRectLayer.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface ExposureRectLayer ()
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) __kindof CALayer *videoPreviewLayer;
+#else
 @property (retain, nonatomic, readonly) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+#endif
 @end
 
 @implementation ExposureRectLayer
 
-- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(nonnull AVCaptureVideoPreviewLayer *)videoPreviewLayer {
+#if TARGET_OS_VISION
+- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(__kindof CALayer *)videoPreviewLayer
+#else
+- (instancetype)initWithCaptureDevice:(AVCaptureDevice *)captureDevice videoPreviewLayer:(nonnull AVCaptureVideoPreviewLayer *)videoPreviewLayer
+#endif
+{
     if (self = [super init]) {
         _captureDevice = [captureDevice retain];
         _videoPreviewLayer = [videoPreviewLayer retain];
@@ -77,23 +88,44 @@
         
         CGColorRef color;
         switch (captureDevice.exposureMode) {
+#if TARGET_OS_VISION
+            case 0:
+#else
             case AVCaptureExposureModeLocked:
+#endif
                 color = CGColorCreateSRGB(1., 0., 0., 1.);
                 break;
+#if TARGET_OS_VISION
+            case 1:
+#else
             case AVCaptureExposureModeAutoExpose:
+#endif
                 color = CGColorCreateSRGB(0., 1., 0., 1.);
                 break;
+#if TARGET_OS_VISION
+            case 2:
+#else
             case AVCaptureExposureModeContinuousAutoExposure:
+#endif
                 color = CGColorCreateSRGB(0., 0., 1., 1.);
                 break;
+#if TARGET_OS_VISION
+            case 3:
+#else
             case AVCaptureExposureModeCustom:
+#endif
                 color = CGColorCreateSRGB(0., 1., 1., 1.);
                 break;
             default:
                 abort();
         }
         
-        CGPoint point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.exposurePointOfInterest];
+        CGPoint point;
+#if TARGET_OS_VISION
+        point = reinterpret_cast<CGPoint (*)(id, SEL, CGPoint)>(objc_msgSend)(self.videoPreviewLayer, sel_registerName("pointForCaptureDevicePointOfInterest:"), captureDevice.exposurePointOfInterest);
+#else
+        point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.exposurePointOfInterest];
+#endif
         
         CGRect rect = CGRectMake(point.x - 50., point.y - 50., 100., 100.);
         

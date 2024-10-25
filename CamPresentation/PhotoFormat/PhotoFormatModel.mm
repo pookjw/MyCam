@@ -6,13 +6,19 @@
 //
 
 #import <CamPresentation/PhotoFormatModel.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @implementation PhotoFormatModel
 
 - (instancetype)init {
     if (self = [super init]) {
         _quality = 1.f;
+#if TARGET_OS_VISION
+        _photoQualityPrioritization = 3;
+#else
         _photoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+#endif
         _bracketedSettings = [NSArray new];
     }
     
@@ -140,11 +146,21 @@
     _processedFileType = [processedFileType copy];
 }
 
-- (void)setPhotoQualityPrioritization:(AVCapturePhotoQualityPrioritization)photoQualityPrioritization {
+#if TARGET_OS_VISION
+- (void)setPhotoQualityPrioritization:(NSInteger)photoQualityPrioritization
+#else
+- (void)setPhotoQualityPrioritization:(AVCapturePhotoQualityPrioritization)photoQualityPrioritization
+#endif
+{
     _photoQualityPrioritization = photoQualityPrioritization;
 }
 
-- (void)setFlashMode:(AVCaptureFlashMode)flashMode {
+#if TARGET_OS_VISION
+- (void)setFlashMode:(NSInteger)flashMode
+#else
+- (void)setFlashMode:(AVCaptureFlashMode)flashMode
+#endif
+{
     _flashMode = flashMode;
 }
 
@@ -152,7 +168,12 @@
     _cameraCalibrationDataDeliveryEnabled = cameraCalibrationDataDeliveryEnabled;
 }
 
-- (void)setBracketedSettings:(NSArray<__kindof AVCaptureBracketedStillImageSettings *> *)bracketedSettings {
+#if TARGET_OS_VISION
+- (void)setBracketedSettings:(NSArray<id> *)bracketedSettings
+#else
+- (void)setBracketedSettings:(NSArray<__kindof AVCaptureBracketedStillImageSettings *> *)bracketedSettings
+#endif
+{
     [_bracketedSettings release];
     _bracketedSettings = [bracketedSettings copy];
 }
@@ -162,7 +183,12 @@
     _livePhotoVideoCodecType = [livePhotoVideoCodecType copy];
 }
 
-- (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (void)updateAllWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     [self updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
     [self updateCodecTypeIfNeededWithPhotoOutput:photoOutput];
     [self updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:photoOutput];
@@ -171,13 +197,26 @@
     [self updateLivePhotoVideoCodecTypeWithPhotoOutput:photoOutput];
 }
 
-- (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updatePhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     NSArray<NSNumber *> *photoPixelFormatTypes;
+#if TARGET_OS_VISION
+    if (self.processedFileType == nil) {
+        photoPixelFormatTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availablePhotoPixelFormatTypes"));
+    } else {
+        photoPixelFormatTypes = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(photoOutput, sel_registerName("supportedPhotoPixelFormatTypesForFileType:"), self.processedFileType);
+    }
+#else
     if (self.processedFileType == nil) {
         photoPixelFormatTypes = photoOutput.availablePhotoPixelFormatTypes;
     } else {
         photoPixelFormatTypes = [photoOutput supportedPhotoPixelFormatTypesForFileType:self.processedFileType];
     }
+#endif
     
     BOOL shouldUpdate;
     if (self.photoPixelFormatType == nil) {
@@ -199,13 +238,26 @@
     return shouldUpdate;
 }
 
-- (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateCodecTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     NSArray<AVVideoCodecType> *photoCodecTypes;
+#if TARGET_OS_VISION
+    if (self.processedFileType == nil) {
+        photoCodecTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availablePhotoCodecTypes"));
+    } else {
+        photoCodecTypes = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(photoOutput, sel_registerName("supportedPhotoCodecTypesForFileType:"), self.processedFileType);
+    }
+#else
     if (self.processedFileType == nil) {
         photoCodecTypes = photoOutput.availablePhotoCodecTypes;
     } else {
         photoCodecTypes = [photoOutput supportedPhotoCodecTypesForFileType:self.processedFileType];
     }
+#endif
     
     BOOL shouldUpdate;
     if (self.codecType == nil) {
@@ -227,13 +279,26 @@
     return shouldUpdate;
 }
 
-- (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateRawPhotoPixelFormatTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     NSArray<NSNumber *> *rawPhotoPixelFormatTypes;
+#if TARGET_OS_VISION
+    if (self.processedFileType == nil) {
+        rawPhotoPixelFormatTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availableRawPhotoPixelFormatTypes"));
+    } else {
+        rawPhotoPixelFormatTypes = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(photoOutput, sel_registerName("supportedRawPhotoPixelFormatTypesForFileType:"), self.processedFileType);
+    }
+#else
     if (self.processedFileType == nil) {
         rawPhotoPixelFormatTypes = photoOutput.availableRawPhotoPixelFormatTypes;
     } else {
         rawPhotoPixelFormatTypes = [photoOutput supportedRawPhotoPixelFormatTypesForFileType:self.processedFileType];
     }
+#endif
     
     BOOL shouldUpdate;
     if (self.rawPhotoPixelFormatType == nil) {
@@ -251,8 +316,18 @@
     return shouldUpdate;
 }
 
-- (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
-    NSArray<AVFileType> *availableRawPhotoFileTypes = photoOutput.availableRawPhotoFileTypes;
+#if TARGET_OS_VISION
+- (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateRawFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
+    NSArray<AVFileType> *availableRawPhotoFileTypes;
+#if TARGET_OS_VISION
+    availableRawPhotoFileTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availableRawPhotoFileTypes"));
+#else
+    availableRawPhotoFileTypes = photoOutput.availableRawPhotoFileTypes;
+#endif
     
     BOOL shouldUpdate;
     if (self.rawFileType == nil) {
@@ -270,8 +345,18 @@
     return shouldUpdate;
 }
 
-- (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
-    NSArray<AVFileType> *availablePhotoFileTypes = photoOutput.availablePhotoFileTypes;
+#if TARGET_OS_VISION
+- (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateProcessedFileTypeIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
+    NSArray<AVFileType> *availablePhotoFileTypes;
+#if TARGET_OS_VISION
+    availablePhotoFileTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availablePhotoFileTypes"));
+#else
+    availablePhotoFileTypes = photoOutput.availablePhotoFileTypes;
+#endif
     
     BOOL shouldUpdate;
     if (self.processedFileType == nil) {
@@ -289,8 +374,20 @@
     return shouldUpdate;
 }
 
-- (BOOL)updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
-    if (!photoOutput.isCameraCalibrationDataDeliverySupported) {
+#if TARGET_OS_VISION
+- (BOOL)updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateCameraCalibrationDataDeliveryEnabledIfNeededWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
+    BOOL isCameraCalibrationDataDeliverySupported;
+#if TARGET_OS_VISION
+    isCameraCalibrationDataDeliverySupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isCameraCalibrationDataDeliverySupported"));
+#else
+    isCameraCalibrationDataDeliverySupported = photoOutput.isCameraCalibrationDataDeliverySupported;
+#endif
+    
+    if (!isCameraCalibrationDataDeliverySupported) {
         self.cameraCalibrationDataDeliveryEnabled = NO;
         return YES;
     }
@@ -298,8 +395,18 @@
     return NO;
 }
 
-- (BOOL)updateLivePhotoVideoCodecTypeWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
-    NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
+#if TARGET_OS_VISION
+- (BOOL)updateLivePhotoVideoCodecTypeWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (BOOL)updateLivePhotoVideoCodecTypeWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
+    NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes;
+#if TARGET_OS_VISION
+    availableLivePhotoVideoCodecTypes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("availableLivePhotoVideoCodecTypes"));
+#else
+    availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
+#endif
     
     BOOL shouldUpdate;
     if (self.livePhotoVideoCodecType == nil) {

@@ -6,6 +6,8 @@
 //
 
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface CaptureDeviceZoomInfoView ()
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
@@ -88,9 +90,19 @@
 - (void)updateLabel {
     AVCaptureDevice *captureDevice = self.captureDevice;
     
-    CGFloat videoZoomFactor = captureDevice.videoZoomFactor;
-    BOOL isRampingVideoZoom = captureDevice.isRampingVideoZoom;
-    CGFloat displayVideoZoomFactorMultiplier = captureDevice.displayVideoZoomFactorMultiplier;
+    CGFloat videoZoomFactor;
+    BOOL isRampingVideoZoom;
+    CGFloat displayVideoZoomFactorMultiplier;
+    
+#if TARGET_OS_VISION
+    videoZoomFactor = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("videoZoomFactor"));
+    isRampingVideoZoom = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isRampingVideoZoom"));
+    displayVideoZoomFactorMultiplier = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("displayVideoZoomFactorMultiplier"));
+#else
+    videoZoomFactor = captureDevice.videoZoomFactor;
+    isRampingVideoZoom = captureDevice.isRampingVideoZoom;
+    displayVideoZoomFactorMultiplier = captureDevice.displayVideoZoomFactorMultiplier;
+#endif
     
     self.label.text = [NSString stringWithFormat:@"Zoom Factor : %lf\nRamping : %d\nDisplay Video Zoom Factor Multiplier : %lf", videoZoomFactor, isRampingVideoZoom, displayVideoZoomFactorMultiplier];
 }

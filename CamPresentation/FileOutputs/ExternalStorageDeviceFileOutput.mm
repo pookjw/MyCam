@@ -8,6 +8,8 @@
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/BaseFileOutput+Private.h>
 
+#if !TARGET_OS_VISION
+
 @implementation ExternalStorageDeviceFileOutput
 
 - (instancetype)initWithExternalStorageDevice:(AVExternalStorageDevice *)externalStorageDevice {
@@ -35,3 +37,5 @@
 }
 
 @end
+
+#endif

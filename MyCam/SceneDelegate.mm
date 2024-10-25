@@ -13,6 +13,8 @@
 #import <CamPresentation/CameraRootViewController.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
+#if TARGET_OS_VISION
+#endif
 #import <AVFAudio/AVFAudio.h>
 
 @interface SceneDelegate () <CLLocationManagerDelegate>
@@ -85,6 +87,7 @@
 }
 
 - (void)requestAuthorizationsWithCompletionHandler:(void (^ _Nonnull)(BOOL granted))completionHandler {
+#if !TARGET_OS_VISION
     void (^requestLocationAuthorization)() = ^{
         dispatch_async(dispatch_get_main_queue(), ^{
             CLLocationManager *locationManager = self.locationManager;
@@ -124,6 +127,7 @@
             }
         });
     };
+#endif
     
     void (^requestRecordPermission)() = ^{
         AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
@@ -131,15 +135,23 @@
         switch (recordPermission) {
             case AVAudioApplicationRecordPermissionUndetermined:
                 [AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
+#if TARGET_OS_VISION
+                    completionHandler(granted);
+#else
                     if (granted) {
                         requestLocationAuthorization();
                     } else {
                         completionHandler(NO);
                     }
+#endif
                 }];
                 break;
             case AVAudioApplicationRecordPermissionGranted:
+#if TARGET_OS_VISION
+                completionHandler(YES);
+#else
                 requestLocationAuthorization();
+#endif
                 break;
             case AVAudioApplicationRecordPermissionDenied:
                 completionHandler(NO);

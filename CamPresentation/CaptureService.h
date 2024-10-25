@@ -32,14 +32,20 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
+#if !TARGET_OS_VISION
 @property (retain, nonatomic, readonly) AVExternalStorageDeviceDiscoverySession *externalStorageDeviceDiscoverySession;
+#endif
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedCaptureDevices;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedVideoCaptureDevices;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedAudioCaptureDevices;
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedPointCloudCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultVideoCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
+#if TARGET_OS_VISION
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
+#else
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
+#endif
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
@@ -51,21 +57,39 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 - (PhotoFormatModel * _Nullable)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_setPhotoFormatModel:(PhotoFormatModel * _Nullable)photoFormatModel forCaptureDevice:(AVCaptureDevice *)captureDevice;
 
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof AVCaptureOutput * _Nullable)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof AVCaptureOutput *)queue_visionDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof AVCaptureOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof CALayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(__kindof CALayer * _Nullable)previewLayer;
+#else
 - (AVCapturePhotoOutput * _Nullable)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureDepthDataOutput * _Nullable)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof AVCaptureOutput *)queue_visionDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureMetadataOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
+#endif
 - (__kindof CALayer * _Nullable)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+#if TARGET_OS_VISION
+- (id _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof AVCaptureOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+#else
 - (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureMovieFileOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+#endif
 
 - (NSSet<AVCaptureDevice *> *)queue_captureDevicesFromOutput:(AVCaptureOutput *)output;
 
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+#else
 - (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+#endif
 - (void)queue_removeMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
