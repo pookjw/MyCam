@@ -211,9 +211,9 @@
     //
     
     dispatch_async(captureService.captureSessionQueue, ^{
-//        if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
-//            [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
-//        }
+        if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
+            [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
+        }
     });
 }
 
