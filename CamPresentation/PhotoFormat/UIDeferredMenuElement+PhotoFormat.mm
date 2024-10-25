@@ -2232,7 +2232,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         }];
         
         action.attributes = UIMenuElementAttributesDisabled;
-        action.subtitle = @"Requires RAW";
+        
+#warning +photoBracketSettingsWithRawPixelFormatType:processedFormat:bracketedSettings: 쓰면 되는거 아님?
+        action.subtitle = @"Requires RAW (Really?)";
         
         return action;
     }
