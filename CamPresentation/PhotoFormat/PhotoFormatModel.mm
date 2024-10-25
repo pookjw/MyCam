@@ -112,6 +112,18 @@
 @end
 
 @implementation MutablePhotoFormatModel
+@dynamic photoPixelFormatType;
+@dynamic codecType;
+@dynamic quality;
+@dynamic isRAWEnabled;
+@dynamic rawPhotoPixelFormatType;
+@dynamic rawFileType;
+@dynamic processedFileType;
+@dynamic photoQualityPrioritization;
+@dynamic flashMode;
+@dynamic cameraCalibrationDataDeliveryEnabled;
+@dynamic bracketedSettings;
+@dynamic livePhotoVideoCodecType;
 
 - (void)setPhotoPixelFormatType:(NSNumber *)photoPixelFormatType {
     [_photoPixelFormatType release];
