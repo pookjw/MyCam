@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
+#import <TargetConditionals.h>
+#include <dlfcn.h>
 
 #warning TODO whitebalence (AVCaptureExposureDurationCurrent 같은 것들 모아보기)
 #warning timesacle 통일
@@ -172,7 +176,12 @@
         auto sender = static_cast<UISlider *>(action.sender);
         float value = sender.value;
         
+#if TARGET_OS_VISION
+        id systemRecommendedExposureBiasRange = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("systemRecommendedExposureBiasRange"));
+#else
         AVExposureBiasRange *systemRecommendedExposureBiasRange = captureDevice.activeFormat.systemRecommendedExposureBiasRange;
+#endif
+        
         if ([systemRecommendedExposureBiasRange containsExposureBias:value]) {
             sender.tintColor = UIColor.systemGreenColor;
         } else {
@@ -184,9 +193,13 @@
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
+#if TARGET_OS_VISION
+            reinterpret_cast<void (*)(id, SEL, float, id)>(objc_msgSend)(captureDevice, sel_registerName("setExposureTargetBias:completionHandler:"), value, ^(CMTime syncTime) {});
+#else
             [captureDevice setExposureTargetBias:value completionHandler:^(CMTime syncTime) {
                 
             }];
+#endif
             
             [captureDevice unlockForConfiguration];
         });
@@ -229,14 +242,29 @@
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
-            CMTime time = CMTimeMakeWithSeconds(value, captureDevice.activeMaxExposureDuration.timescale);
+            CMTime activeMaxExposureDuration;
+#if TARGET_OS_VISION
+            activeMaxExposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("activeMaxExposureDuration"));
+#else
+            activeMaxExposureDuration = captureDevice.activeMaxExposureDuration;
+#endif
+            
+            CMTime time = CMTimeMakeWithSeconds(value, activeMaxExposureDuration.timescale);
+            
+            CMTime minExposureDuration;
+#if TARGET_OS_VISION
+            minExposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("minExposureDuration"));
+#else
+            minExposureDuration = captureDevice.activeFormat.minExposureDuration;
+#endif
             
             // 소숫점을 상실해서 min 보다 작아짐
-            if (CMTimeCompare(time, captureDevice.activeFormat.minExposureDuration) == -1) {
-                time = captureDevice.activeFormat.minExposureDuration;
+            if (CMTimeCompare(time, minExposureDuration) == -1) {
+                time = minExposureDuration;
             }
             
-            captureDevice.activeMaxExposureDuration = time;
+            reinterpret_cast<void (*)(id, SEL, CMTime)>(objc_msgSend)(captureDevice, sel_registerName("setActiveMaxExposureDuration:"), time);
+            
             [captureDevice unlockForConfiguration];
         });
     }];
@@ -274,15 +302,28 @@
         float value = sender.value;
         
         dispatch_async(captureService.captureSessionQueue, ^{
-            CMTime time = CMTimeMakeWithSeconds(value, captureDevice.exposureDuration.timescale);
+            CMTime exposureDuration;
+#if TARGET_OS_VISION
+            exposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("exposureDuration"));
+#else
+            exposureDuration = captureDevice.exposureDuration;
+#endif
+            
+            CMTime time = CMTimeMakeWithSeconds(value, exposureDuration.timescale);
             
             NSError * _Nullable error = nil;
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
+#if TARGET_OS_VISION
+            void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
+            float AVCaptureISOCurrent = *reinterpret_cast<float *>(dlsym(handle, "AVCaptureISOCurrent"));
+            reinterpret_cast<void (*)(id, SEL, CMTime, float, id)>(objc_msgSend)(captureDevice, sel_registerName("setExposureModeCustomWithDuration:ISO:completionHandler:"), time, AVCaptureISOCurrent, ^(CMTime syncTime) {});
+#else
             [captureDevice setExposureModeCustomWithDuration:time ISO:AVCaptureISOCurrent completionHandler:^(CMTime syncTime) {
                 
             }];
+#endif
             
             [captureDevice unlockForConfiguration];
         });
@@ -325,9 +366,15 @@
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
             
+#if TARGET_OS_VISION
+            void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
+            CMTime AVCaptureExposureDurationCurrent = *reinterpret_cast<CMTime *>(dlsym(handle, "AVCaptureExposureDurationCurrent"));
+            reinterpret_cast<void (*)(id, SEL, CMTime, float, id)>(objc_msgSend)(captureDevice, sel_registerName("setExposureModeCustomWithDuration:ISO:completionHandler:"), AVCaptureExposureDurationCurrent, value, ^(CMTime syncTime) {});
+#else
             [captureDevice setExposureModeCustomWithDuration:AVCaptureExposureDurationCurrent ISO:value completionHandler:^(CMTime syncTime) {
                 
             }];
+#endif
             
             [captureDevice unlockForConfiguration];
         });
@@ -344,23 +391,57 @@
     
     AVCaptureDevice *captureDevice = self.captureDevice;
     AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    
+#if TARGET_OS_VISION
+    id systemRecommendedExposureBiasRange = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(activeFormat, sel_registerName("systemRecommendedExposureBiasRange"));
+    NSInteger exposureMode = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("exposureMode"));
+#else
     AVExposureBiasRange *systemRecommendedExposureBiasRange = activeFormat.systemRecommendedExposureBiasRange;
-    
     AVCaptureExposureMode exposureMode = captureDevice.exposureMode;
+#endif
     
-    float maxExposureTargetBias = captureDevice.maxExposureTargetBias;
-    float minExposureTargetBias = captureDevice.minExposureTargetBias;
-    float exposureTargetBias = captureDevice.exposureTargetBias;
+    float maxExposureTargetBias;
+    float minExposureTargetBias;
+    float exposureTargetBias;
     
-    CMTime activeMaxExposureDuration = captureDevice.activeMaxExposureDuration;
+    CMTime activeMaxExposureDuration;
     
-    CMTime maxExposureDuration = activeFormat.maxExposureDuration;
-    CMTime minExposureDuration = activeFormat.minExposureDuration;
-    CMTime exposureDuration = captureDevice.exposureDuration;
+    CMTime maxExposureDuration;
+    CMTime minExposureDuration;
+    CMTime exposureDuration;
     
-    float maxISO = activeFormat.maxISO;
-    float minISO = activeFormat.minISO;
-    float ISO = captureDevice.ISO;
+    float maxISO;
+    float minISO;
+    float ISO;
+    
+#if TARGET_OS_VISION
+    maxExposureTargetBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("maxExposureTargetBias"));
+    minExposureTargetBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("minExposureTargetBias"));
+    exposureTargetBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("exposureTargetBias"));
+    
+    activeMaxExposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("activeMaxExposureDuration"));
+    
+    maxExposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("maxExposureDuration"));
+    minExposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("minExposureDuration"));
+    exposureDuration = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("exposureDuration"));
+    
+    maxISO = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("maxISO"));
+    minISO = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("minISO"));
+    ISO = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("ISO"));
+#else
+    maxExposureTargetBias = captureDevice.maxExposureTargetBias;
+    minExposureTargetBias = captureDevice.minExposureTargetBias;
+    exposureTargetBias = captureDevice.exposureTargetBias;
+    
+    activeMaxExposureDuration = captureDevice.activeMaxExposureDuration;
+    maxExposureDuration = activeFormat.maxExposureDuration;
+    minExposureDuration = activeFormat.minExposureDuration;
+    exposureDuration = captureDevice.exposureDuration;
+    
+    maxISO = activeFormat.maxISO;
+    minISO = activeFormat.minISO;
+    ISO = captureDevice.ISO;
+#endif
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UILabel *exposureTargetBiasLabel = self.exposureTargetBiasLabel;
@@ -377,7 +458,11 @@
         } else {
             exposureTargetBiasSlider.tintColor = UIColor.systemRedColor;
         }
+#if TARGET_OS_VISION
+        exposureTargetBiasSlider.enabled = (exposureMode != 3);
+#else
         exposureTargetBiasSlider.enabled = (exposureMode != AVCaptureExposureModeCustom);
+#endif
         
         UILabel *activeMaxExposureDurationLabel = self.activeMaxExposureDurationLabel;
         activeMaxExposureDurationLabel.text = [NSString stringWithFormat:@"activeMaxExposureDuration : %lf", CMTimeGetSeconds(activeMaxExposureDuration)];
@@ -388,7 +473,11 @@
         if (!activeMaxExposureDurationSlider.isTracking) {
             activeMaxExposureDurationSlider.value = CMTimeGetSeconds(activeMaxExposureDuration);
         }
+#if TARGET_OS_VISION
+        activeMaxExposureDurationSlider.enabled = (exposureMode != 3);
+#else
         activeMaxExposureDurationSlider.enabled = (exposureMode != AVCaptureExposureModeCustom);
+#endif
         
         UILabel *exposureDurationLabel = self.exposureDurationLabel;
         exposureDurationLabel.text = [NSString stringWithFormat:@"exposureDuration : %lf", CMTimeGetSeconds(exposureDuration)];
@@ -399,7 +488,11 @@
         if (!exposureDurationSlider.isTracking) {
             exposureDurationSlider.value = CMTimeGetSeconds(exposureDuration);
         }
+#if TARGET_OS_VISION
+        exposureDurationSlider.enabled = (exposureMode == 3);
+#else
         exposureDurationSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
+#endif
         
         UILabel *ISOLabel = self.ISOLabel;
         ISOLabel.text = [NSString stringWithFormat:@"ISO : %lf", ISO];
@@ -410,7 +503,11 @@
         if (!ISOSlider.isTracking) {
             ISOSlider.value = ISO;
         }
+#if TARGET_OS_VISION
+        ISOSlider.enabled = (exposureMode == 3);
+#else
         ISOSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
+#endif
     });
     
 //    self.captureDevice.activeMaxExposureDuration;

@@ -14,8 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 #if !TARGET_OS_VISION
 
 @interface ExternalStorageDeviceFileOutput : BaseFileOutput
-@property (retain, nonatomic, readonly) id externalStorageDevice;
-- (instancetype)initWithExternalStorageDevice:(id)externalStorageDevice;
 @property (retain, nonatomic, readonly) AVExternalStorageDevice *externalStorageDevice;
 - (instancetype)initWithExternalStorageDevice:(AVExternalStorageDevice *)externalStorageDevice;
 @end

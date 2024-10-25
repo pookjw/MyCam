@@ -97,9 +97,9 @@
         
         BOOL canSetSessionPreset;
 #if TARGET_OS_VISION
-        canSetSessionPreset = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("canSetSessionPreset"));
+        canSetSessionPreset = reinterpret_cast<BOOL (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("canSetSessionPreset:"), sessionPreset);
 #else
-        canSetSessionPreset = captureSession.canSetSessionPreset;
+        canSetSessionPreset = [captureSession canSetSessionPreset:sessionPreset];
 #endif
         
         action.attributes = canSetSessionPreset ? 0 : UIMenuElementAttributesDisabled;

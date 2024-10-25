@@ -12,6 +12,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <CamPresentation/CameraRootViewController.h>
 #import <objc/runtime.h>
+#import <objc/message.h>
 #import <TargetConditionals.h>
 #if TARGET_OS_VISION
 #endif

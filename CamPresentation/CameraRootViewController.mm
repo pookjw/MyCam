@@ -92,8 +92,12 @@
     if (auto captureService = _captureService) {
         [captureService removeObserver:self forKeyPath:@"queue_captureSession"];
         [captureService removeObserver:self forKeyPath:@"queue_fileOutput"];
+        
+#if !TARGET_OS_VISION
         [captureService.captureDeviceDiscoverySession removeObserver:self forKeyPath:@"devices"];
         [captureService.externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
+#endif
+        
         [captureService release];
     }
     [_photoFormatModel release];
@@ -117,6 +121,7 @@
             });
             return;
         }
+#if !TARGET_OS_VISION
     } else if ([object isEqual:self.captureService.externalStorageDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"externalStorageDevices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -124,6 +129,7 @@
             });
             return;
         }
+#endif
     } else if ([object isEqual:self.captureService.captureDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"devices"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -364,8 +370,11 @@
     
     [captureService addObserver:self forKeyPath:@"queue_captureSession" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService addObserver:self forKeyPath:@"queue_fileOutput" options:NSKeyValueObservingOptionNew context:nullptr];
+    
+#if !TARGET_OS_VISION
     [captureService.externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
     [captureService.captureDeviceDiscoverySession addObserver:self forKeyPath:@"devices" options:NSKeyValueObservingOptionNew context:nullptr];
+#endif
     
     _captureService = [captureService retain];
     return [captureService autorelease];

@@ -11,6 +11,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if TARGET_OS_VISION
+CP_EXTERN NSString * NSStringFromAVCaptureVideoStabilizationMode(NSInteger videoStabilizationMode);
+#else
 CP_EXTERN NSString * NSStringFromAVCaptureVideoStabilizationMode(AVCaptureVideoStabilizationMode videoStabilizationMode);
+#endif
 
 NS_ASSUME_NONNULL_END

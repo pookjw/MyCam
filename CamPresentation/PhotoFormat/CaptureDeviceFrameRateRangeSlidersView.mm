@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CaptureDeviceFrameRateRangeSlidersView.h>
+#import <TargetConditionals.h>
+#import <objc/runtime.h>
+#import <objc/message.h>
 
 @interface CaptureDeviceFrameRateRangeSlidersView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -199,7 +202,13 @@
     CMTime activeVideoMaxFrameDuration = captureDevice.activeVideoMaxFrameDuration;
     
     AVFrameRateRange *frameRateRange = self.frameRateRange;
-    BOOL isAutoVideoFrameRateEnabled = captureDevice.isAutoVideoFrameRateEnabled;
+    
+    BOOL isAutoVideoFrameRateEnabled;
+#if TARGET_OS_VISION
+    isAutoVideoFrameRateEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isAutoVideoFrameRateEnabled"));
+#else
+    isAutoVideoFrameRateEnabled = captureDevice.isAutoVideoFrameRateEnabled;
+#endif
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UILabel *label = self.label;

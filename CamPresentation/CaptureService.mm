@@ -44,21 +44,37 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
+#if TARGET_OS_VISION
+@interface CaptureService () <CLLocationManagerDelegate, AVCaptureVideoDataOutputSampleBufferDelegate>
+#else
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
+#endif
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, __kindof CALayer *> *queue_previewLayersByCaptureDevice;
+#else
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
+#endif
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_visionLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *queue_metadataObjectsLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
+#if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, id> *queue_rotationCoordinatorsByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<__kindof AVCaptureOutput *, id> *queue_readinessCoordinatorByCapturePhotoOutput;
+@property (retain, nonatomic, readonly) NSMapTable<__kindof AVCaptureOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, __kindof AVCaptureInput *> *queue_metadataInputsByCaptureDevice;
+// Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
+@property (retain, nonatomic, readonly) NSMapTable<NSNumber *, id> *mainQueue_capturePhotosByUniqueID;
+#else
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
-
 // Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
+#endif
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, NSURL *> *mainQueue_livePhotoMovieFileURLsByUniqueID;
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @end
@@ -78,6 +94,32 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     Protocol *AVCaptureCameraCalibrationDataOutputDelegate = NSProtocolFromString(@"AVCaptureCameraCalibrationDataOutputDelegate");
     assert(AVCaptureCameraCalibrationDataOutputDelegate != nil);
     assert(class_addProtocol(self, AVCaptureCameraCalibrationDataOutputDelegate));
+    
+#if TARGET_OS_VISION
+    Protocol *AVCapturePhotoCaptureDelegate = NSProtocolFromString(@"AVCapturePhotoCaptureDelegate");
+    assert(AVCapturePhotoCaptureDelegate != nil);
+    assert(class_addProtocol(self, AVCapturePhotoCaptureDelegate));
+    
+    Protocol *AVCapturePhotoOutputReadinessCoordinatorDelegate = NSProtocolFromString(@"AVCapturePhotoOutputReadinessCoordinatorDelegate");
+    assert(AVCapturePhotoOutputReadinessCoordinatorDelegate != nil);
+    assert(class_addProtocol(self, AVCapturePhotoOutputReadinessCoordinatorDelegate));
+    
+    Protocol *AVCaptureFileOutputRecordingDelegate = NSProtocolFromString(@"AVCaptureFileOutputRecordingDelegate");
+    assert(AVCaptureFileOutputRecordingDelegate != nil);
+    assert(class_addProtocol(self, AVCaptureFileOutputRecordingDelegate));
+    
+    Protocol *AVCaptureDepthDataOutputDelegate = NSProtocolFromString(@"AVCaptureDepthDataOutputDelegate");
+    assert(AVCaptureDepthDataOutputDelegate != nil);
+    assert(class_addProtocol(self, AVCaptureDepthDataOutputDelegate));
+    
+    Protocol *AVCaptureAudioDataOutputSampleBufferDelegate = NSProtocolFromString(@"AVCaptureAudioDataOutputSampleBufferDelegate");
+    assert(AVCaptureAudioDataOutputSampleBufferDelegate != nil);
+    assert(class_addProtocol(self, AVCaptureAudioDataOutputSampleBufferDelegate));
+    
+    Protocol *AVCaptureMetadataOutputObjectsDelegate = NSProtocolFromString(@"AVCaptureMetadataOutputObjectsDelegate");
+    assert(AVCaptureMetadataOutputObjectsDelegate != nil);
+    assert(class_addProtocol(self, AVCaptureMetadataOutputObjectsDelegate));
+#endif
 }
 
 - (instancetype)init {
@@ -95,11 +137,27 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         //
         
+#if !TARGET_OS_VISION
         AVExternalStorageDeviceDiscoverySession *externalStorageDeviceDiscoverySession = AVExternalStorageDeviceDiscoverySession.sharedSession;
         [externalStorageDeviceDiscoverySession addObserver:self forKeyPath:@"externalStorageDevices" options:NSKeyValueObservingOptionNew context:nullptr];
+#endif
         
         //
         
+#if TARGET_OS_VISION
+        NSMapTable<AVCaptureDevice *, id> *rotationCoordinatorsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<__kindof AVCaptureOutput *, id> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, __kindof CALayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<__kindof AVCaptureOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, __kindof AVCaptureInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<NSNumber *, id> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
+        NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
+#else
         NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
@@ -112,6 +170,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
+#endif
         
         //
         
@@ -127,7 +186,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         _captureSessionQueue = captureSessionQueue;
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
+#if !TARGET_OS_VISION
         _externalStorageDeviceDiscoverySession = [externalStorageDeviceDiscoverySession retain];
+#endif
         _queue_photoFormatModelsByCaptureDevice = [photoFormatModelsByCaptureDevice retain];
         _locationManager = locationManager;
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
@@ -165,10 +226,17 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
     
     for (__kindof AVCaptureOutput *output in _queue_captureSession.outputs) {
+#if TARGET_OS_VISION
+        if ([output isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")]) {
+            auto photoOutput = output;
+            [self unregisterObserversForPhotoOutput:photoOutput];
+        }
+#else
         if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
             auto photoOutput = static_cast<AVCapturePhotoOutput *>(output);
             [self unregisterObserversForPhotoOutput:photoOutput];
         }
+#endif
     }
     
     if ([_queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
@@ -180,10 +248,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [_captureSessionQueue release];
     [_captureDeviceDiscoverySession release];
+    
+#if !TARGET_OS_VISION
     [_externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
     [_externalStorageDeviceDiscoverySession release];
+#endif
     
-    for (AVCaptureDeviceRotationCoordinator *rotationCoordinator in _queue_rotationCoordinatorsByCaptureDevice.objectEnumerator) {
+#if TARGET_OS_VISION
+    for (id rotationCoordinator in _queue_rotationCoordinatorsByCaptureDevice.objectEnumerator)
+#else
+    for (AVCaptureDeviceRotationCoordinator *rotationCoordinator in _queue_rotationCoordinatorsByCaptureDevice.objectEnumerator)
+#endif
+    {
         [rotationCoordinator removeObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview"];
     }
     [_queue_rotationCoordinatorsByCaptureDevice release];
@@ -225,7 +301,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isEqual:self.externalStorageDeviceDiscoverySession]) {
+    if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
+        if ([keyPath isEqualToString:@"hardwareCost"]) {
+            NSLog(@"hardwareCost: %@", change[NSKeyValueChangeNewKey]);
+            return;
+        } else if ([keyPath isEqualToString:@"systemPressureCost"]) {
+            NSLog(@"systemPressureCost: %@", change[NSKeyValueChangeNewKey]);
+            return;
+        }
+#if !TARGET_OS_VISION
+    } else if ([object isEqual:self.externalStorageDeviceDiscoverySession]) {
         if ([keyPath isEqualToString:@"externalStorageDevices"]) {
             dispatch_async(self.captureSessionQueue, ^{
                 __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
@@ -240,20 +325,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             });
             return;
         }
-    } else if ([object isKindOfClass:AVCaptureMultiCamSession.class]) {
-        if ([keyPath isEqualToString:@"hardwareCost"]) {
-            NSLog(@"hardwareCost: %@", change[NSKeyValueChangeNewKey]);
-            return;
-        } else if ([keyPath isEqualToString:@"systemPressureCost"]) {
-            NSLog(@"systemPressureCost: %@", change[NSKeyValueChangeNewKey]);
-            return;
-        }
     } else if ([object isKindOfClass:AVCaptureDeviceRotationCoordinator.class]) {
         if ([keyPath isEqualToString:@"videoRotationAngleForHorizonLevelPreview"]) {
             auto rotationCoordinator = static_cast<AVCaptureDeviceRotationCoordinator *>(object);
             static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer).connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
             return;
         }
+#endif
     } else if ([object isKindOfClass:AVCaptureDevice.class]) {
         auto captureDevice = static_cast<AVCaptureDevice *>(object);
         
@@ -274,7 +352,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"activeDepthDataFormat"]) {
             if (captureDevice != nil) {
-                if (captureDevice.activeDepthDataFormat == nil) {
+                AVCaptureDeviceFormat * _Nullable activeDepthDataFormat;
+#if TARGET_OS_VISION
+                activeDepthDataFormat = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("activeDepthDataFormat"));
+#else
+                activeDepthDataFormat = captureDevice.activeDepthDataFormat;
+#endif
+                
+                if (activeDepthDataFormat == nil) {
                     [self queue_setUpdatesDepthMapLayer:NO captureDevice:captureDevice];
                 }
                 
@@ -287,10 +372,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             }
             return;
         }
+#if TARGET_OS_VISION
+    } else if ([object isKindOfClass:objc_lookUpClass("AVCapturePhotoOutput")]) {
+        auto photoOutput = static_cast<__kindof AVCaptureOutput *>(object);
+#else
     } else if ([object isKindOfClass:AVCapturePhotoOutput.class]) {
+        auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
+#endif
+        
         if ([keyPath isEqualToString:@"availablePhotoPixelFormatTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -306,7 +397,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"availablePhotoCodecTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -322,7 +412,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoPixelFormatTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -338,7 +427,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"availableRawPhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -354,7 +442,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"availablePhotoFileTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -370,7 +457,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isSpatialPhotoCaptureSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -380,7 +466,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isAutoDeferredPhotoDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -390,7 +475,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"supportedFlashModes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -400,7 +484,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isZeroShutterLagSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -410,7 +493,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isResponsiveCaptureSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -420,7 +502,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isAppleProRAWSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -430,7 +511,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isFastCapturePrioritizationSupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -440,7 +520,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isCameraCalibrationDataDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -456,7 +535,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"isDepthDataDeliverySupported"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 
                 if (captureDevice != nil) {
@@ -466,7 +544,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             return;
         } else if ([keyPath isEqualToString:@"availableLivePhotoVideoCodecTypes"]) {
             dispatch_async(self.captureSessionQueue, ^{
-                auto photoOutput = static_cast<AVCapturePhotoOutput *>(object);
                 AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:photoOutput];
                 MutablePhotoFormatModel *copy = [[self queue_photoFormatModelForCaptureDevice:captureDevice] mutableCopy];
                 
@@ -481,17 +558,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             });
             return;
         }
-    } else if ([object isKindOfClass:AVCaptureMetadataOutput.class]) {
-        if ([keyPath isEqualToString:@"availableMetadataObjectTypes"]) {
-            auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(object);
-            metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
-            return;
-        }
     } else if ([object isEqual:AVCaptureDevice.class]) {
         if ([keyPath isEqualToString:@"centerStageEnabled"]) {
             dispatch_async(self.captureSessionQueue, ^{
 #warning TODO
-                NSLog(@"Hello World! %d", self.queue_addedVideoCaptureDevices.firstObject.isCenterStageActive);
+                
             });
             return;
         }
@@ -500,7 +571,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDevice {
+#if TARGET_OS_VISION
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_previewLayersByCaptureDevice
+#else
+- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     return _queue_previewLayersByCaptureDevice;
 }
@@ -567,7 +643,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (AVCaptureDevice *)defaultVideoCaptureDevice {
-    AVCaptureDevice * _Nullable captureDevice = AVCaptureDevice.userPreferredCamera;
+    AVCaptureDevice * _Nullable captureDevice;
+#if TARGET_OS_VISION
+    captureDevice = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("userPreferredCamera"));
+#else
+    captureDevice = AVCaptureDevice.userPreferredCamera;
+#endif
     
     if (captureDevice == nil) {
         captureDevice = AVCaptureDevice.systemPreferredCamera;
@@ -591,7 +672,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
-- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable {
+#if TARGET_OS_VISION
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable
+#else
+- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     return [[self.queue_previewLayersByCaptureDevice copy] autorelease];
 }
@@ -656,7 +742,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self registerObserversForVideoCaptureDevice:captureDevice];
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] == nil);
+    
+#if TARGET_OS_VISION
+    __kindof CALayer *captureVideoPreviewLayer = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureVideoPreviewLayer") alloc], sel_registerName("initWithSessionWithNoConnection:"), captureSession);
+#else
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
+#endif
+    
     [self.queue_previewLayersByCaptureDevice setObject:captureVideoPreviewLayer forKey:captureDevice];
     
     [captureSession beginConfiguration];
@@ -705,21 +797,45 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession addInputWithNoConnections:newInput];
     
+#if TARGET_OS_VISION
+    id videoInputPort = reinterpret_cast<NSArray * (*)(id, SEL, AVMediaType, AVCaptureDeviceType, AVCaptureDevicePosition)>(objc_msgSend)(newInput, sel_registerName("portsWithMediaType:sourceDeviceType:sourceDevicePosition:"), AVMediaTypeVideo, nil, AVCaptureDevicePositionUnspecified).firstObject;
+    assert(videoInputPort != nil);
+    
+    id _Nullable depthDataInputPort = reinterpret_cast<NSArray * (*)(id, SEL, AVMediaType, AVCaptureDeviceType, AVCaptureDevicePosition)>(objc_msgSend)(newInput, sel_registerName("portsWithMediaType:sourceDeviceType:sourceDevicePosition:"), AVMediaTypeDepthData, nil, AVCaptureDevicePositionUnspecified).firstObject;
+    
+    id _Nullable visionDataInputPort = reinterpret_cast<NSArray * (*)(id, SEL, AVMediaType, AVCaptureDeviceType, AVCaptureDevicePosition)>(objc_msgSend)(newInput, sel_registerName("portsWithMediaType:sourceDeviceType:sourceDevicePosition:"), AVMediaTypeVisionData, nil, AVCaptureDevicePositionUnspecified).firstObject;
+    
+    id _Nullable cameraCalibrationDataInputPort = reinterpret_cast<NSArray * (*)(id, SEL, AVMediaType, AVCaptureDeviceType, AVCaptureDevicePosition)>(objc_msgSend)(newInput, sel_registerName("portsWithMediaType:sourceDeviceType:sourceDevicePosition:"), AVMediaTypeCameraCalibrationData, nil, AVCaptureDevicePositionUnspecified).firstObject;
+    
+    id _Nullable metadataObjectInputPort = reinterpret_cast<NSArray * (*)(id, SEL, AVMediaType, AVCaptureDeviceType, AVCaptureDevicePosition)>(objc_msgSend)(newInput, sel_registerName("portsWithMediaType:sourceDeviceType:sourceDevicePosition:"), AVMediaTypeMetadataObject, nil, AVCaptureDevicePositionUnspecified).firstObject;
+#else
     AVCaptureInputPort *videoInputPort = [newInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     assert(videoInputPort != nil);
     AVCaptureInputPort * _Nullable depthDataInputPort = [newInput portsWithMediaType:AVMediaTypeDepthData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable visionDataInputPort = [newInput portsWithMediaType:AVMediaTypeVisionData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable cameraCalibrationDataInputPort = [newInput portsWithMediaType:AVMediaTypeCameraCalibrationData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable metadataObjectInputPort = [newInput portsWithMediaType:AVMediaTypeMetadataObject sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+#endif
     
-    AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:captureVideoPreviewLayer];
+    AVCaptureConnection *previewLayerConnection;
+#if TARGET_OS_VISION
+    previewLayerConnection = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([AVCaptureConnection alloc], sel_registerName("initWithInputPort:videoPreviewLayer:"), videoInputPort, captureVideoPreviewLayer);
+#else
+    previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:captureVideoPreviewLayer];
+#endif
+    assert([captureSession canAddConnection:previewLayerConnection]);
     [captureSession addConnection:previewLayerConnection];
     [previewLayerConnection release];
     
     //
     
+#if TARGET_OS_VISION
+    __kindof AVCaptureOutput *photoOutput = [objc_lookUpClass("AVCapturePhotoOutput") new];
+    reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(photoOutput, sel_registerName("setMaxPhotoQualityPrioritization:"), 3);
+#else
     AVCapturePhotoOutput *photoOutput = [AVCapturePhotoOutput new];
     photoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+#endif
     [self registerObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
@@ -732,10 +848,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     //
     
+#if TARGET_OS_VISION
+    __kindof AVCaptureOutput *videoDataOutput = [objc_lookUpClass("AVCaptureVideoDataOutput") new];
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(videoDataOutput, sel_registerName("setAutomaticallyConfiguresOutputBufferDimensions:"), NO);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(videoDataOutput, sel_registerName("setDeliversPreviewSizedOutputBuffers:"), YES);
+    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(videoDataOutput, sel_registerName("setSampleBufferDelegate:queue:"), self, self.captureSessionQueue);
+#else
     AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
     videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
     videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
     [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+#endif
+    
     assert([captureSession canAddOutput:videoDataOutput]);
     [captureSession addOutputWithNoConnections:videoDataOutput];
     
@@ -748,10 +872,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     if (depthDataInputPort != nil) {
+#if TARGET_OS_VISION
+        __kindof AVCaptureOutput *depthDataOutput = [objc_lookUpClass("AVCaptureDepthDataOutput") new];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(depthDataOutput, sel_registerName("setFilteringEnabled:"), YES);
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(depthDataOutput, sel_registerName("setAlwaysDiscardsLateDepthData:"), YES);
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(depthDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+#else
         AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
         depthDataOutput.filteringEnabled = YES;
         depthDataOutput.alwaysDiscardsLateDepthData = YES;
         [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
+#endif
+        
         assert([captureSession canAddOutput:depthDataOutput]);
         [captureSession addOutputWithNoConnections:depthDataOutput];
         
@@ -810,9 +942,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     if (metadataObjectInputPort != nil) {
+#if TARGET_OS_VISION
+        __kindof AVCaptureOutput *metadataOutput = [objc_lookUpClass("AVCaptureMetadataOutput") new];
+        [self registerObserversForMetadataOutput:metadataOutput];
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(metadataOutput, sel_registerName("setMetadataObjectsDelegate:queue:"), self, self.captureSessionQueue);
+#else
         AVCaptureMetadataOutput *metadataOutput = [AVCaptureMetadataOutput new];
         [self registerObserversForMetadataOutput:metadataOutput];
         [metadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
+#endif
         assert([captureSession canAddOutput:metadataOutput]);
         [captureSession addOutputWithNoConnections:metadataOutput];
         
@@ -926,7 +1064,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession commitConfiguration];
     
+#if TARGET_OS_VISION
+    reinterpret_cast<void (*)(Class, SEL, id)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("setUserPreferredCamera:"), captureDevice);
+#else
     AVCaptureDevice.userPreferredCamera = captureDevice;
+#endif
     
     //
     
@@ -1367,7 +1509,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
-- (AVCapturePhotoOutput *)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCapturePhotoOutput *)queue_photoOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -1389,7 +1536,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return nil;
 }
 
-- (AVCaptureDepthDataOutput *)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCaptureDepthDataOutput *)queue_depthDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -1433,7 +1585,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return nil;
 }
 
-- (AVCaptureMetadataOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCaptureMetadataOutput *)queue_metadataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -1503,12 +1660,22 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return connection.isEnabled;
 }
 
-- (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof CALayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
 }
 
-- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+#if TARGET_OS_VISION
+- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(__kindof CALayer *)previewLayer
+#else
+- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = self.queue_previewLayersByCaptureDevice;
@@ -1538,7 +1705,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
 }
 
-- (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (id)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromCaptureDevice:captureDevice];
@@ -1547,7 +1719,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
 }
 
-- (AVCaptureMovieFileOutput *)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCaptureMovieFileOutput *)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
@@ -1586,7 +1763,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [captureDevices autorelease];
 }
 
-- (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice
+#else
+- (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     assert([self queue_movieFileOutputFromCaptureDevice:captureDevice] == nil);
@@ -1776,7 +1958,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return nil;
 }
 
-- (AVCapturePhotoOutput *)queue_photoOutputFromReadinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)readinessCoordinator {
+#if TARGET_OS_VISION
+- (__kindof AVCaptureOutput *)queue_photoOutputFromReadinessCoordinator:(id)readinessCoordinator
+#else
+- (AVCapturePhotoOutput *)queue_photoOutputFromReadinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)readinessCoordinator
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = self.queue_readinessCoordinatorByCapturePhotoOutput;
@@ -2037,7 +2224,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureDevice unlockForConfiguration];
 }
 
-- (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (void)registerObserversForPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (void)registerObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     [photoOutput addObserver:self forKeyPath:@"availablePhotoPixelFormatTypes" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"availablePhotoCodecTypes" options:NSKeyValueObservingOptionNew context:nullptr];
     [photoOutput addObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes" options:NSKeyValueObservingOptionNew context:nullptr];
@@ -2055,7 +2247,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [photoOutput addObserver:self forKeyPath:@"availableLivePhotoVideoCodecTypes" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
-- (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput {
+#if TARGET_OS_VISION
+- (void)unregisterObserversForPhotoOutput:(__kindof AVCaptureOutput *)photoOutput
+#else
+- (void)unregisterObserversForPhotoOutput:(AVCapturePhotoOutput *)photoOutput
+#endif
+{
     [photoOutput removeObserver:self forKeyPath:@"availablePhotoPixelFormatTypes"];
     [photoOutput removeObserver:self forKeyPath:@"availablePhotoCodecTypes"];
     [photoOutput removeObserver:self forKeyPath:@"availableRawPhotoPixelFormatTypes"];
@@ -2073,12 +2270,22 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [photoOutput removeObserver:self forKeyPath:@"availableLivePhotoVideoCodecTypes"];
 }
 
-- (void)registerObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
-    [metadataOutput addObserver:self forKeyPath:@"availableMetadataObjectTypes" options:NSKeyValueObservingOptionNew context:nil];
+#if TARGET_OS_VISION
+- (void)registerObserversForMetadataOutput:(__kindof AVCaptureOutput *)metadataOutput
+#else
+- (void)registerObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput
+#endif
+{
+    
 }
 
-- (void)unregisterObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
-    [metadataOutput removeObserver:self forKeyPath:@"availableMetadataObjectTypes"];
+#if TARGET_OS_VISION
+- (void)unregisterObserversForMetadataOutput:(__kindof AVCaptureOutput *)metadataOutput
+#else
+- (void)unregisterObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput
+#endif
+{
+    
 }
 
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionByAddingDevice:(BOOL)addingDevice postNotification:(BOOL)postNotification {
@@ -2681,7 +2888,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return formatDescription;
 }
 
-- (void)mainQueue_savePhotoWithPhotoOutput:(AVCapturePhotoOutput *)photoOutqut uniqueID:(int64_t)uniqueID {
+#if TARGET_OS_VISION
+- (void)mainQueue_savePhotoWithPhotoOutput:(__kindof AVCaptureOutput *)photoOutqut uniqueID:(int64_t)uniqueID
+#else
+- (void)mainQueue_savePhotoWithPhotoOutput:(AVCapturePhotoOutput *)photoOutqut uniqueID:(int64_t)uniqueID
+#endif
+{
     AVCapturePhoto *photo = [self.mainQueue_capturePhotosByUniqueID objectForKey:@(uniqueID)];
     assert(photo != nil);
     
@@ -2773,7 +2985,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 //    
 //}
 
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didFinishProcessingPhoto:(id)photo error:(NSError *)error
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingPhoto:(AVCapturePhoto *)photo error:(NSError *)error
+#endif
+{
 #warning 직접 calibration 해보기
     assert(error == nil);
 #warning Capture depthData는 streaming과 다르게 해상도가 더 큼 configure 해보기
@@ -2784,7 +3001,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 #if !TARGET_OS_MACCATALYST
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
+
+#if TARGET_OS_VISION
+- (void)captureOutput:(id)output didFinishCapturingDeferredPhotoProxy:(id)deferredPhotoProxy error:(NSError *)error
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error
+#endif
+{
     assert(self.queue_fileOutput.class == PhotoLibraryFileOutput.class);
     
     BOOL isSpatialPhotoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(deferredPhotoProxy.resolvedSettings, sel_registerName("isSpatialPhotoCaptureEnabled"));
@@ -2807,16 +3030,31 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 #endif
 
-- (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didCapturePhotoForResolvedSettings:(id)resolvedSettings
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didCapturePhotoForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings
+#endif
+{
     
 }
 
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCaptureForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didFinishCaptureForResolvedSettings:(id)resolvedSettings error:(NSError *)error
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCaptureForResolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error
+#endif
+{
     assert(error == nil);
     [self mainQueue_savePhotoWithPhotoOutput:output uniqueID:resolvedSettings.uniqueID];
 }
 
-- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingLivePhotoToMovieFileAtURL:(NSURL *)outputFileURL duration:(CMTime)duration photoDisplayTime:(CMTime)photoDisplayTime resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didFinishProcessingLivePhotoToMovieFileAtURL:(NSURL *)outputFileURL duration:(CMTime)duration photoDisplayTime:(CMTime)photoDisplayTime resolvedSettings:(id)resolvedSettings error:(NSError *)error
+#else
+- (void)captureOutput:(AVCapturePhotoOutput *)output didFinishProcessingLivePhotoToMovieFileAtURL:(NSURL *)outputFileURL duration:(CMTime)duration photoDisplayTime:(CMTime)photoDisplayTime resolvedSettings:(AVCaptureResolvedPhotoSettings *)resolvedSettings error:(NSError *)error
+#endif
+{
     assert(error == nil);
     dispatch_assert_queue(dispatch_get_main_queue());
     [self.mainQueue_livePhotoMovieFileURLsByUniqueID setObject:outputFileURL forKey:@(resolvedSettings.uniqueID)];
@@ -2901,7 +3139,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 #pragma mark - AVCapturePhotoOutputReadinessCoordinatorDelegate
 
-- (void)readinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)coordinator captureReadinessDidChange:(AVCapturePhotoOutputCaptureReadiness)captureReadiness {
+#if TARGET_OS_VISION
+- (void)readinessCoordinator:(id)coordinator captureReadinessDidChange:(NSInteger)captureReadiness
+#else
+- (void)readinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)coordinator captureReadinessDidChange:(AVCapturePhotoOutputCaptureReadiness)captureReadiness
+#endif
+{
     dispatch_async(self.captureSessionQueue, ^{
         AVCapturePhotoOutput *photoOutput = [self queue_photoOutputFromReadinessCoordinator:coordinator];
         if (photoOutput == nil) return;
@@ -2921,11 +3164,21 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 #pragma mark - AVCaptureFileOutputRecordingDelegate
 
-- (void)captureOutput:(AVCaptureFileOutput *)output didStartRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didStartRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#else
+- (void)captureOutput:(AVCaptureFileOutput *)output didStartRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#endif
+{
     
 }
 
-- (void)captureOutput:(AVCaptureFileOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error
+#else
+- (void)captureOutput:(AVCaptureFileOutput *)output didFinishRecordingToOutputFileAtURL:(NSURL *)outputFileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections error:(NSError *)error
+#endif
+{
     [output.outputFileURL stopAccessingSecurityScopedResource];
     
     assert(error == nil);
@@ -2960,18 +3213,28 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
-- (void)captureOutput:(AVCaptureFileOutput *)output didPauseRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didPauseRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#else
+- (void)captureOutput:(AVCaptureFileOutput *)output didPauseRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#endif
+{
     
 }
 
-- (void)captureOutput:(AVCaptureFileOutput *)output didResumeRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didResumeRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#else
+- (void)captureOutput:(AVCaptureFileOutput *)output didResumeRecordingToOutputFileAtURL:(NSURL *)fileURL fromConnections:(NSArray<AVCaptureConnection *> *)connections
+#endif
+{
     
 }
 
 
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate
 
-- (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
 //    NSLog(@"%@", output.class);
     
     if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
@@ -2990,7 +3253,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 #pragma mark - AVCaptureDepthDataOutputDelegate
 
-- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection {
+#if TARGET_OS_VISION
+- (void)depthDataOutput:(__kindof AVCaptureOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection
+#else
+- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didOutputDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection
+#endif
+{
     dispatch_assert_queue(self.captureSessionQueue);
     
     if (!connection.isEnabled) return;
@@ -3009,7 +3277,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [ciImage release];
 }
 
-- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didDropDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection reason:(AVCaptureOutputDataDroppedReason)reason {
+#if TARGET_OS_VISION
+- (void)depthDataOutput:(__kindof AVCaptureOutput *)output didDropDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection reason:(AVCaptureOutputDataDroppedReason)reason
+#else
+- (void)depthDataOutput:(AVCaptureDepthDataOutput *)output didDropDepthData:(AVDepthData *)depthData timestamp:(CMTime)timestamp connection:(AVCaptureConnection *)connection reason:(AVCaptureOutputDataDroppedReason)reason
+#endif
+{
     
 }
 
@@ -3079,7 +3352,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 #pragma mark - AVCaptureMetadataOutputObjectsDelegate
 
-- (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
+#if TARGET_OS_VISION
+- (void)captureOutput:(__kindof AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<id> *)metadataObjects fromConnection:(AVCaptureConnection *)connection
+#else
+- (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection
+#endif
+{
     AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
     MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
     assert(metadataObjectsLayer != nil);
