@@ -481,18 +481,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             });
             return;
         }
-    } else if ([object isKindOfClass:AVCaptureMetadataOutput.class]) {
-        if ([keyPath isEqualToString:@"availableMetadataObjectTypes"]) {
-            auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(object);
-            metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
-            return;
-        }
     } else if ([object isEqual:AVCaptureDevice.class]) {
         if ([keyPath isEqualToString:@"centerStageEnabled"]) {
-            dispatch_async(self.captureSessionQueue, ^{
 #warning TODO
-                NSLog(@"Hello World! %d", self.queue_addedVideoCaptureDevices.firstObject.isCenterStageActive);
-            });
             return;
         }
     }
@@ -2074,11 +2065,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)registerObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
-    [metadataOutput addObserver:self forKeyPath:@"availableMetadataObjectTypes" options:NSKeyValueObservingOptionNew context:nil];
+    
 }
 
 - (void)unregisterObserversForMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput {
-    [metadataOutput removeObserver:self forKeyPath:@"availableMetadataObjectTypes"];
+    
 }
 
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionByAddingDevice:(BOOL)addingDevice postNotification:(BOOL)postNotification {
