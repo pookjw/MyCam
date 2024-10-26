@@ -50,6 +50,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingFocusBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingExposureActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingExposureBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingWhiteBalanceActivityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *adjustingWhiteBalanceBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *gestureModeMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
@@ -70,6 +72,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize adjustingFocusBarButtonItem = _adjustingFocusBarButtonItem;
 @synthesize adjustingExposureActivityIndicatorView = _adjustingExposureActivityIndicatorView;
 @synthesize adjustingExposureBarButtonItem = _adjustingExposureBarButtonItem;
+@synthesize adjustingWhiteBalanceActivityIndicatorView = _adjustingWhiteBalanceActivityIndicatorView;
+@synthesize adjustingWhiteBalanceBarButtonItem = _adjustingWhiteBalanceBarButtonItem;
 @synthesize gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem;
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
@@ -188,6 +192,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [captureDevice addObserver:self forKeyPath:@"reactionEffectsInProgress" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"adjustingExposure" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        [captureDevice addObserver:self forKeyPath:@"adjustingWhiteBalance" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
     }
     
     return self;
@@ -201,6 +206,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingExposure"];
+    [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
     [_captureDevice release];
     [_previewLayer release];
     [_depthMapLayer release];
@@ -218,6 +224,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_adjustingFocusBarButtonItem release];
     [_adjustingExposureActivityIndicatorView release];
     [_adjustingExposureBarButtonItem release];
+    [_adjustingWhiteBalanceActivityIndicatorView release];
+    [_adjustingWhiteBalanceBarButtonItem release];
     [_gestureModeMenuBarButtonItem release];
     [_toolbar release];
     [_blurView release];
@@ -246,6 +254,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         } else if ([keyPath isEqualToString:@"adjustingExposure"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self didChangeAdjustingExposure];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"adjustingWhiteBalance"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self didChangeAdjustingWhiteBalance];
             });
             return;
         }
@@ -388,6 +401,29 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     return [adjustingExposureBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)adjustingWhiteBalanceActivityIndicatorView {
+    if (auto adjustingWhiteBalanceActivityIndicatorView = _adjustingWhiteBalanceActivityIndicatorView) return adjustingWhiteBalanceActivityIndicatorView;
+    
+    UIActivityIndicatorView *adjustingWhiteBalanceActivityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+    adjustingWhiteBalanceActivityIndicatorView.hidesWhenStopped = YES;
+    adjustingWhiteBalanceActivityIndicatorView.color = UIColor.systemBlueColor;
+    
+    _adjustingWhiteBalanceActivityIndicatorView = [adjustingWhiteBalanceActivityIndicatorView retain];
+    return [adjustingWhiteBalanceActivityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)adjustingWhiteBalanceBarButtonItem {
+    if (auto adjustingWhiteBalanceBarButtonItem = _adjustingWhiteBalanceBarButtonItem) return adjustingWhiteBalanceBarButtonItem;
+    
+    UIActivityIndicatorView *adjustingWhiteBalanceActivityIndicatorView = self.adjustingWhiteBalanceActivityIndicatorView;
+    UIBarButtonItem *adjustingWhiteBalanceBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingWhiteBalanceActivityIndicatorView];
+    adjustingWhiteBalanceBarButtonItem.hidden = YES;
+    adjustingWhiteBalanceBarButtonItem.enabled = NO;
+    
+    _adjustingWhiteBalanceBarButtonItem = [adjustingWhiteBalanceBarButtonItem retain];
+    return [adjustingWhiteBalanceBarButtonItem autorelease];
+}
+
 - (UIBarButtonItem *)gestureModeMenuBarButtonItem {
     if (auto gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem) return gestureModeMenuBarButtonItem;
     
@@ -453,6 +489,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         self.reactionProgressBarButtonItem,
         self.adjustingFocusBarButtonItem,
         self.adjustingExposureBarButtonItem,
+        self.adjustingWhiteBalanceBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
         self.gestureModeMenuBarButtonItem,
         self.menuBarButtonItem
@@ -670,6 +707,18 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     } else {
         [self.adjustingExposureActivityIndicatorView stopAnimating];
         self.adjustingExposureBarButtonItem.hidden = YES;
+    }
+}
+
+- (void)didChangeAdjustingWhiteBalance {
+    BOOL adjustingWhiteBalance = self.captureDevice.adjustingWhiteBalance;
+    
+    if (adjustingWhiteBalance) {
+        [self.adjustingWhiteBalanceActivityIndicatorView startAnimating];
+        self.adjustingWhiteBalanceBarButtonItem.hidden = NO;
+    } else {
+        [self.adjustingWhiteBalanceActivityIndicatorView stopAnimating];
+        self.adjustingWhiteBalanceBarButtonItem.hidden = YES;
     }
 }
 

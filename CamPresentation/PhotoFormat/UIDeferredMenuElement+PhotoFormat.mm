@@ -18,9 +18,13 @@
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
 #import <CamPresentation/NSStringFromAVCaptureExposureMode.h>
 #import <CamPresentation/NSStringFromAVCaptureSystemUserInterface.h>
+#import <CamPresentation/NSStringFromAVCaptureWhiteBalanceMode.h>
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
-#import <CamPresentation/CaptureDeviceFrameRateRangeSlidersView.h>
+#import <CamPresentation/CaptureDeviceFrameRateRangeInfoView.h>
+#import <CamPresentation/CaptureDeviceWhiteBalanceInfoView.h>
+#import <CamPresentation/CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView.h>
+#import <CamPresentation/CaptureDeviceWhiteBalanceChromaticitySlidersView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -84,6 +88,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_whiteBalanceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_videoFrameRateMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -2981,7 +2987,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         for (AVFrameRateRange *frameRateRange in videoSupportedFrameRateRanges) {
             __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-                CaptureDeviceFrameRateRangeSlidersView *view = [[CaptureDeviceFrameRateRangeSlidersView alloc] initWithCaptureService:captureService captureDevice:captureDevice frameRateRange:frameRateRange];
+                CaptureDeviceFrameRateRangeInfoView *view = [[CaptureDeviceFrameRateRangeInfoView alloc] initWithCaptureService:captureService captureDevice:captureDevice frameRateRange:frameRateRange];
                 return [view autorelease];
             });
             
@@ -2993,6 +2999,92 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         completion(@[menu]);
     }];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_whiteBalanceMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"White Balance" children:@[
+        [UIDeferredMenuElement _cp_queue_setWhiteBalanceModeMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIMenu menuWithTitle:@"Info" children:@[
+            [UIDeferredMenuElement _cp_queue_whiteBalanceInfoViewElementWithCaptureService:captureService captureDevice:captureDevice]
+        ]],
+        [UIMenu menuWithTitle:@"Temperature And Tint Sliders" children:@[
+            [UIDeferredMenuElement _cp_queue_temperatureAndTintSlidersViewElementWithCaptureService:captureService captureDevice:captureDevice]
+        ]],
+        [UIMenu menuWithTitle:@"Chromaticity Sliders" children:@[
+            [UIDeferredMenuElement _cp_queue_chromaticitySlidersViewElementWithCaptureService:captureService captureDevice:captureDevice]
+        ]]
+    ]];
+}
+
++ (std::vector<AVCaptureWhiteBalanceMode>)_cp_allWhiteBalanceModes {
+    return {
+        AVCaptureWhiteBalanceModeLocked,
+        AVCaptureWhiteBalanceModeAutoWhiteBalance,
+        AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance
+    };
+}
+
++ (UIMenu *)_cp_queue_setWhiteBalanceModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureWhiteBalanceMode currentWhiteBalanceMode = captureDevice.whiteBalanceMode;
+    
+    auto actionsVec = [UIDeferredMenuElement _cp_allWhiteBalanceModes]
+    | std::views::transform([captureService, captureDevice, currentWhiteBalanceMode, didChangeHandler](AVCaptureWhiteBalanceMode whiteBalanceMode) -> UIAction * {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureWhiteBalanceMode(whiteBalanceMode)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                captureDevice.whiteBalanceMode = whiteBalanceMode;
+                [captureDevice unlockForConfiguration];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = (currentWhiteBalanceMode == whiteBalanceMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = ([captureDevice isWhiteBalanceModeSupported:whiteBalanceMode]) ? 0 : UIMenuElementAttributesDisabled;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"White Balance Mode" children:actions];
+    [actions release];
+    
+    menu.subtitle = NSStringFromAVCaptureWhiteBalanceMode(currentWhiteBalanceMode);
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_whiteBalanceInfoViewElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceWhiteBalanceInfoView *view = [[CaptureDeviceWhiteBalanceInfoView alloc] initWithCaptureService:captureService captureDevice:captureDevice];
+        return [view autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_temperatureAndTintSlidersViewElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView *view = [[CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView alloc] initWithCaptureService:captureService captureDevice:captureDevice];
+        return [view autorelease];
+    });
+    
+    return element;
+}
+
++ (__kindof UIMenuElement *)_cp_queue_chromaticitySlidersViewElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceWhiteBalanceChromaticitySlidersView *view = [[CaptureDeviceWhiteBalanceChromaticitySlidersView alloc] initWithCaptureService:captureService captureDevice:captureDevice];
+        return [view autorelease];
+    });
+    
+    return element;
 }
 
 #warning isWindNoiseRemovalEnabled

@@ -9,6 +9,7 @@
 #warning setPrefersNoInterruptionsByRingtonesAndAlerts
 
 #import <CamPresentation/AudioSessionInfoView.h>
+#import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRenderingMode.h>
 #import <CamPresentation/NSStringFromAVAudioSessionRouteChangeReason.h>
 #import <CamPresentation/NSStringFromAVAudioSessionInterruptionReason.h>
@@ -289,6 +290,8 @@
     
     self.label.text = string;
     [string release];
+    
+    [self _cp_updateMenuElementHeight];
 }
 
 @end

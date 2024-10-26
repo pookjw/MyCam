@@ -36,7 +36,7 @@
     copy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
     copy->_codecType = [_codecType copyWithZone:zone];
     copy->_quality = _quality;
-    copy->_isRAWEnabled = _isRAWEnabled;
+    copy->_rawEnabled = _rawEnabled;
     copy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
     copy->_rawFileType = [_rawFileType copyWithZone:zone];
     copy->_processedFileType = [_processedFileType copyWithZone:zone];
@@ -55,7 +55,7 @@
     mutableCopy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
     mutableCopy->_codecType = [_codecType copyWithZone:zone];
     mutableCopy->_quality = _quality;
-    mutableCopy->_isRAWEnabled = _isRAWEnabled;
+    mutableCopy->_rawEnabled = _rawEnabled;
     mutableCopy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
     mutableCopy->_rawFileType = [_rawFileType copyWithZone:zone];
     mutableCopy->_processedFileType = [_processedFileType copyWithZone:zone];
@@ -76,7 +76,7 @@
         return [_photoPixelFormatType isEqualToNumber:casted->_photoPixelFormatType] &&
         [_codecType isEqualToString:casted->_codecType] &&
         (_quality == casted->_quality) &&
-        (_isRAWEnabled == casted->_isRAWEnabled) &&
+        (_rawEnabled == casted->_rawEnabled) &&
         [_rawPhotoPixelFormatType isEqualToNumber:casted->_rawPhotoPixelFormatType] &&
         [_rawFileType isEqualToString:casted->_rawFileType] &&
         [_processedFileType isEqualToString:casted->_processedFileType] &&
@@ -92,7 +92,7 @@
     return _photoPixelFormatType.hash ^
     _codecType.hash ^
     static_cast<NSUInteger>(_quality) ^
-    _isRAWEnabled ^
+    _rawEnabled ^
     _rawPhotoPixelFormatType.hash ^
     _rawFileType.hash ^
     _processedFileType.hash ^

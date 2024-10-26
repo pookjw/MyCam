@@ -6,6 +6,7 @@
 //
 
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
+#import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 
 #warning TODO whitebalence (AVCaptureExposureDurationCurrent 같은 것들 모아보기)
 #warning timesacle 통일
@@ -411,6 +412,8 @@
             ISOSlider.value = ISO;
         }
         ISOSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
+        
+        [self _cp_updateMenuElementHeight];
     });
     
 //    self.captureDevice.activeMaxExposureDuration;

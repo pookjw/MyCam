@@ -1,13 +1,14 @@
 //
-//  CaptureDeviceFrameRateRangeSlidersView.m
+//  CaptureDeviceFrameRateRangeInfoView.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/25/24.
 //
 
-#import <CamPresentation/CaptureDeviceFrameRateRangeSlidersView.h>
+#import <CamPresentation/CaptureDeviceFrameRateRangeInfoView.h>
+#import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 
-@interface CaptureDeviceFrameRateRangeSlidersView ()
+@interface CaptureDeviceFrameRateRangeInfoView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) AVFrameRateRange *frameRateRange;
@@ -17,7 +18,7 @@
 @property (retain, nonatomic, readonly) UISlider *maxSlider;
 @end
 
-@implementation CaptureDeviceFrameRateRangeSlidersView
+@implementation CaptureDeviceFrameRateRangeInfoView
 @synthesize stackView = _stackView;
 @synthesize label = _label;
 @synthesize minSlider = _minSlider;
@@ -221,6 +222,8 @@
         if (!maxSlider.isTracking) {
             maxSlider.value = CMTimeGetSeconds(activeVideoMaxFrameDuration);
         }
+        
+        [self _cp_updateMenuElementHeight];
     });
 }
 

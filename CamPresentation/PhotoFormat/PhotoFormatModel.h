@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
     @package NSNumber *_photoPixelFormatType;
     @package AVVideoCodecType _codecType;
     @package float _quality;
-    @package BOOL _isRAWEnabled;
+    @package BOOL _rawEnabled;
     @package NSNumber *_rawPhotoPixelFormatType;
     @package AVFileType _rawFileType;
     @package AVFileType _processedFileType;
@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic, readonly, nullable) AVVideoCodecType codecType;
 @property (assign, nonatomic, readonly) float quality;
 
-@property (assign, nonatomic, nonatomic, readonly, getter=rawEnabled) BOOL isRAWEnabled;
+@property (assign, nonatomic, nonatomic, readonly, getter=isRAWEnabled) BOOL rawEnabled;
 @property (copy, nonatomic, readonly, nullable) NSNumber *rawPhotoPixelFormatType;
 @property (copy, nonatomic, readonly, nullable) AVFileType rawFileType;
 @property (copy, nonatomic, readonly, nullable) AVFileType processedFileType;
