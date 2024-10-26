@@ -30,6 +30,7 @@
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
 #import <TargetConditionals.h>
+#include <dlfcn.h>
 #include <vector>
 #include <ranges>
 
@@ -58,7 +59,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomSlidersElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
@@ -97,6 +98,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightBoostMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightVideoCaptureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoGreenGhostMitigationMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoHDRMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
@@ -1619,7 +1624,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
-        UIMenu *menu = [UIMenu menuWithTitle:@"Zoom" children:@[
+        UIMenu *menu = [UIMenu menuWithTitle:@"Zoom Sliders" children:@[
             infoViewElement,
             systemRecommendedVideoZoomRangeSliderMenu,
             secondaryNativeResolutionZoomFactorsMenu,
@@ -3121,6 +3126,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             assert(error == nil);
             captureDevice.automaticallyEnablesLowLightBoostWhenAvailable = !automaticallyEnablesLowLightBoostWhenAvailable;
             [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
         });
     }];
     
@@ -3162,6 +3169,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [captureDevice lockForConfiguration:&error];
             reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevice, sel_registerName("setLowLightVideoCaptureEnabled:"), !isLowLightVideoCaptureEnabled);
             [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
         });
     }];
     
@@ -3171,6 +3180,140 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
-#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isVideoZoomSmoothingSupported isResponsiveCaptureWithDepthSupported
++ (UIAction * _Nonnull)_cp_queue_setVideoZoomSmoothingForAllConnections:(BOOL)enabled title:(NSString *)title captureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL supported = NO;
+    for (AVCaptureConnection *connection in captureService.queue_captureSession.connections) {
+        BOOL isVideoZoomSmoothingSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoZoomSmoothingSupported"));
+        
+        if (isVideoZoomSmoothingSupported) {
+            supported = YES;
+            break;
+        }
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:title image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            for (AVCaptureConnection *connection in captureService.queue_captureSession.connections) {
+                BOOL isVideoZoomSmoothingSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoZoomSmoothingSupported"));
+                
+                if (isVideoZoomSmoothingSupported) {
+                    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(connection, sel_registerName("setVideoZoomSmoothingEnabled:"), enabled);
+                }
+            }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.attributes = supported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_zoomMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Zoom" children:@[
+        [UIDeferredMenuElement _cp_queue_zoomSlidersElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:YES title:@"Enable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:NO title:@"Disable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoGreenGhostMitigationSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Green Ghost Mitigation Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVideoGreenGhostMitigationSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_setVideoGreenGhostMitigationEnabledActionForAllConnections:(BOOL)enabled title:(NSString *)title captureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL supported = NO;
+    for (AVCaptureConnection *connection in captureService.queue_captureSession.connections) {
+        BOOL isVideoGreenGhostMitigationSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoGreenGhostMitigationSupported"));
+        
+        if (isVideoGreenGhostMitigationSupported) {
+            supported = YES;
+            break;
+        }
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:title image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            for (AVCaptureConnection *connection in captureService.queue_captureSession.connections) {
+                BOOL isVideoGreenGhostMitigationSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoGreenGhostMitigationSupported"));
+                
+                if (isVideoGreenGhostMitigationSupported) {
+                    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(connection, sel_registerName("setVideoGreenGhostMitigationEnabled:"), enabled);
+                }
+            }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.attributes = supported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoGreenGhostMitigationMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Video Green Ghost Mitigation" children:@[
+        [UIDeferredMenuElement _cp_queue_videoGreenGhostMitigationSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setVideoGreenGhostMitigationEnabledActionForAllConnections:YES title:@"Enable Video Green Ghost Mitigation for all Connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setVideoGreenGhostMitigationEnabledActionForAllConnections:NO title:@"Disable Video Green Ghost Mitigation for all Connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoHDRSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"HDR Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.isVideoHDRSupported;
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleVideoHDREnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isVideoHDREnabled = captureDevice.isVideoHDREnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Video HDR" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.videoHDREnabled = !isVideoHDREnabled;
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isVideoHDREnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    BOOL isVideoHDRSupported = captureDevice.activeFormat.isVideoHDRSupported;
+    BOOL automaticallyAdjustsVideoHDREnabled = captureDevice.automaticallyAdjustsVideoHDREnabled;
+    
+    void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
+    auto AVCaptureColorSpaceIsHDR = reinterpret_cast<BOOL (*)(AVCaptureColorSpace)>(dlsym(handle, "AVCaptureColorSpaceIsHDR"));
+    BOOL ColorSpaceIsHDR = AVCaptureColorSpaceIsHDR(captureDevice.activeColorSpace);
+    
+    action.attributes = (isVideoHDRSupported && !automaticallyAdjustsVideoHDREnabled && !ColorSpaceIsHDR) ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_videoHDRMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Video HDR" children:@[
+        [UIDeferredMenuElement _cp_queue_videoHDRSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleVideoHDREnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
+#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported videoHDRSupported isVideoBinned autoRedEyeReductionSupported
 
 @end
