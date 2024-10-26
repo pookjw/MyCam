@@ -109,7 +109,6 @@
     if (auto label = _label) return label;
     
     UILabel *label = [UILabel new];
-    label.text = @"\n\n";
     label.numberOfLines = 0;
     label.font = [UIFont monospacedDigitSystemFontOfSize:17.0 weight:UIFontWeightRegular];
     label.adjustsFontSizeToFitWidth = YES;

@@ -78,6 +78,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             UIMenu *multiCamMenu = [UIDeferredMenuElement _cp_queue_multiCamCaptureDevicesMenuWithCaptureService:captureService title:@"Multi Cam" filterHandler:nil selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
             menusVec.push_back(multiCamMenu);
             
+            UIMenu *lowLightSupportedDevicesMenu = [UIDeferredMenuElement _cp_queue_lowLightBoostSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+            menusVec.push_back(lowLightSupportedDevicesMenu);
+            
             //
             
             NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
@@ -208,6 +211,16 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     UIMenu *menu = [UIMenu menuWithTitle:title children:allMenuArray];
     return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_lowLightBoostSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
+    return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                           title:@"Low Boost Supported Devices"
+                                                                   filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+        return captureDevice.isLowLightBoostSupported;
+    }
+                                                                selectionHandler:selectionHandler
+                                                              deselectionHandler:deselectionHandler];
 }
 
 @end

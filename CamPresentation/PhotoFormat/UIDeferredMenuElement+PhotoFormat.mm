@@ -25,6 +25,7 @@
 #import <CamPresentation/CaptureDeviceWhiteBalanceInfoView.h>
 #import <CamPresentation/CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView.h>
 #import <CamPresentation/CaptureDeviceWhiteBalanceChromaticitySlidersView.h>
+#import <CamPresentation/CaptureDeviceLowLightBoostInfoView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -92,6 +93,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_whiteBalanceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_videoFrameRateMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightBoostMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightVideoCaptureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
@@ -3087,6 +3092,85 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return element;
 }
 
-#warning isWindNoiseRemovalEnabled
++ (UIMenu * _Nonnull)_cp_queue_lowLightBoostMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Low Light Boost" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleAutomaticallyEnablesLowLightBoostWhenAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_lowLightBoostInfoViewElementWithCaptureService:captureService captureDevice:captureDevice]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement * _Nonnull)_cp_queue_lowLightBoostInfoViewElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceLowLightBoostInfoView *view = [[CaptureDeviceLowLightBoostInfoView alloc] initWithCaptureService:captureService captureDevice:captureDevice];
+        return [view autorelease];
+    });
+    
+    return element;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAutomaticallyEnablesLowLightBoostWhenAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isLowLightBoostSupported = captureDevice.isLowLightBoostSupported;
+    BOOL automaticallyEnablesLowLightBoostWhenAvailable = captureDevice.automaticallyEnablesLowLightBoostWhenAvailable;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Automatically Enable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.automaticallyEnablesLowLightBoostWhenAvailable = !automaticallyEnablesLowLightBoostWhenAvailable;
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.state = automaticallyEnablesLowLightBoostWhenAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    if (!isLowLightBoostSupported) {
+        action.subtitle = @"Not Supported";
+        action.attributes = UIMenuElementAttributesDisabled;
+    }
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_lowLightVideoCaptureMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Low Light Video Capture" children:@[
+        [UIDeferredMenuElement _cp_queue_lowLightVideoCaptureSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleLowLightVideoCaptureEnabledWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_lowLightVideoCaptureSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Low Light Video Capture Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isLowLightVideoCaptureSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleLowLightVideoCaptureEnabledWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isLowLightVideoCaptureEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isLowLightVideoCaptureEnabled"));
+    BOOL isLowLightVideoCaptureSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("isLowLightVideoCaptureSupported"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Low Light Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevice, sel_registerName("setLowLightVideoCaptureEnabled:"), !isLowLightVideoCaptureEnabled);
+            [captureDevice unlockForConfiguration];
+        });
+    }];
+    
+    action.state = isLowLightVideoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isLowLightVideoCaptureSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
+#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isVideoZoomSmoothingSupported isResponsiveCaptureWithDepthSupported
 
 @end
