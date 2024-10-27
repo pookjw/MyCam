@@ -2600,7 +2600,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     }
     
     NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
-    NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:availableMetadataObjectTypes.count + 1];
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     for (AVMetadataObjectType metadataObjectType in availableMetadataObjectTypes) {
         BOOL contains = [metadataOutput.metadataObjectTypes containsObject:metadataObjectType];
@@ -2645,7 +2645,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     UIMenu *submenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
         selectAllAction,
-        deselectAllAction
+        deselectAllAction,
+        [UIDeferredMenuElement _cp_queue_additionalFaceDetectionFeaturesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
     
     [children addObject:submenu];
@@ -3359,11 +3360,106 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     UIAction *action = [UIAction actionWithTitle:@"Wind Noise Removal" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             deviceInput.windNoiseRemovalEnabled = !isWindNoiseRemovalEnabled;
+            
+            if (didChangeHandler) didChangeHandler();
         });
     }];
     
     action.attributes = windNoiseRemovalSupported ? 0 : UIMenuElementAttributesDisabled;
     action.state = isWindNoiseRemovalEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_additionalFaceDetectionFeaturesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Face Detection Features" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleSmileDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleEyeClosedDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleEyeDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleSmileDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isSmileDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isSmileDetectionSupported"));
+    BOOL smileDetectionEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("smileDetectionEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Smile Detection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevice, sel_registerName("setSmileDetectionEnabled:"), !smileDetectionEnabled);
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = smileDetectionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isSmileDetectionSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleEyeClosedDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isEyeClosedDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isEyeClosedDetectionSupported"));
+    BOOL eyeClosedDetectionEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("eyeClosedDetectionEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Eye Closed Detection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevice, sel_registerName("setEyeClosedDetectionEnabled:"), !eyeClosedDetectionEnabled);
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = eyeClosedDetectionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isEyeClosedDetectionSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleEyeDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isEyeDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isEyeDetectionSupported"));
+    BOOL eyeDetectionEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("eyeDetectionEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Eye Detection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureDevice, sel_registerName("setEyeDetectionEnabled:"), !eyeDetectionEnabled);
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = eyeDetectionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isEyeDetectionSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isAttentionDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isAttentionDetectionSupported"));
+    BOOL isAttentionDetectionEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isAttentionDetectionEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Attention Detection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setAttentionDetectionEnabled:"), !isAttentionDetectionEnabled);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isAttentionDetectionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isAttentionDetectionSupported ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
 }
