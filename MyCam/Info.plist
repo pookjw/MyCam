@@ -4,7 +4,13 @@
 <dict>
 	<key>AVInitialRouteSharingPolicy</key>
 	<string>LongFormVideo</string>
+	<key>NSCameraBackgroundReplacementEnabled</key>
+	<true/>
+	<key>NSCameraPortraitEffectEnabled</key>
+	<true/>
 	<key>NSCameraReactionEffectsEnabled</key>
+	<true/>
+	<key>NSCameraStudioLightEnabled</key>
 	<true/>
 	<key>NSUserActivityTypes</key>
 	<array>

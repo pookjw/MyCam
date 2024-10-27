@@ -19,7 +19,7 @@
 
 #warning HDR Format Filter
 #warning Zoom, Exposure
-#warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState
+#warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState AVControlCenterCaptureDeviceWatcher
 #warning 녹화할 때 connection에 audio도 추가해야함
 
 #warning AVCaptureFileOutput.maxRecordedDuration
