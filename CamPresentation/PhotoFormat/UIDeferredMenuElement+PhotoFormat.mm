@@ -30,7 +30,6 @@
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
 #import <TargetConditionals.h>
-#include <dlfcn.h>
 #include <vector>
 #include <ranges>
 
@@ -3298,11 +3297,41 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     BOOL isVideoHDRSupported = captureDevice.activeFormat.isVideoHDRSupported;
     BOOL automaticallyAdjustsVideoHDREnabled = captureDevice.automaticallyAdjustsVideoHDREnabled;
     
-    void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
-    auto AVCaptureColorSpaceIsHDR = reinterpret_cast<BOOL (*)(AVCaptureColorSpace)>(dlsym(handle, "AVCaptureColorSpaceIsHDR"));
-    BOOL ColorSpaceIsHDR = AVCaptureColorSpaceIsHDR(captureDevice.activeColorSpace);
+//    void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
+//    auto AVCaptureColorSpaceIsHDR = reinterpret_cast<BOOL (*)(AVCaptureColorSpace)>(dlsym(handle, "AVCaptureColorSpaceIsHDR"));
+//    BOOL ColorSpaceIsHDR = AVCaptureColorSpaceIsHDR(captureDevice.activeColorSpace);
+    BOOL ColorSpaceIsHDR = captureDevice.activeColorSpace == AVCaptureColorSpace_HLG_BT2020;
     
     action.attributes = (isVideoHDRSupported && !automaticallyAdjustsVideoHDREnabled && !ColorSpaceIsHDR) ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAutomaticallyAdjustsVideoHDREnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL automaticallyAdjustsVideoHDREnabled = captureDevice.automaticallyAdjustsVideoHDREnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Automatically Adjusts Video HDR" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            captureDevice.automaticallyAdjustsVideoHDREnabled = !automaticallyAdjustsVideoHDREnabled;
+            [captureDevice unlockForConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = automaticallyAdjustsVideoHDREnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    BOOL isVideoHDRSupported = captureDevice.activeFormat.isVideoHDRSupported;
+    
+//    void *handle = dlopen("/System/Library/PrivateFrameworks/AVFCapture.framework/AVFCapture", RTLD_NOW);
+//    auto AVCaptureColorSpaceIsHDR = reinterpret_cast<BOOL (*)(AVCaptureColorSpace)>(dlsym(handle, "AVCaptureColorSpaceIsHDR"));
+//    BOOL ColorSpaceIsHDR = AVCaptureColorSpaceIsHDR(captureDevice.activeColorSpace);
+    BOOL ColorSpaceIsHDR = captureDevice.activeColorSpace == AVCaptureColorSpace_HLG_BT2020;
+    
+    action.attributes = (isVideoHDRSupported && !ColorSpaceIsHDR) ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
 }
@@ -3310,10 +3339,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu * _Nonnull)_cp_queue_videoHDRMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Video HDR" children:@[
         [UIDeferredMenuElement _cp_queue_videoHDRSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_toggleVideoHDREnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_toggleVideoHDREnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleAutomaticallyAdjustsVideoHDREnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
-#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported videoHDRSupported isVideoBinned autoRedEyeReductionSupported
+#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 
 @end
