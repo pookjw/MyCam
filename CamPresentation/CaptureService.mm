@@ -1749,6 +1749,26 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession commitConfiguration];
 }
 
+- (NSSet<AVCaptureDeviceInput *> *)queue_audioDeviceInputsForOutput:(__kindof AVCaptureOutput *)output {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMutableSet<AVCaptureDeviceInput *> *inputs = [NSMutableSet new];
+    
+    for (AVCaptureConnection *connection in output.connections) {
+        for (AVCaptureInputPort *port in connection.inputPorts) {
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
+            
+            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                if ([port.mediaType isEqualToString:AVMediaTypeAudio]) {
+                    [inputs addObject:deviceInput];
+                }
+            }
+        }
+    }
+    
+    return [inputs autorelease];
+}
+
 - (AVCaptureDevice *)queue_captureDeviceFromOutput:(__kindof AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
     for (AVCaptureConnection *connection in self.queue_captureSession.connections) {

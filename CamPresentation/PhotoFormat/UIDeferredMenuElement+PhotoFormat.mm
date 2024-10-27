@@ -132,6 +132,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
     
+    for (AVCaptureDeviceInput *deviceInput in [captureService queue_audioDeviceInputsForOutput:photoOutput]) {
+        [elements addObject:[UIDeferredMenuElement _cp_queue_toggleWindNoiseRemovalEnabledWithDeviceInput:deviceInput captureService:captureService didChangeHandler:didChangeHandler]];
+    }
+    
     [elements addObject:[UIDeferredMenuElement _cp_queue_maxPhotoDimensionsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     [elements addObject:[UIDeferredMenuElement _cp_queue_photoPixelFormatTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     [elements addObject:[UIDeferredMenuElement _cp_queue_codecTypesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
@@ -191,6 +195,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         [elements addObject:[UIDeferredMenuElement _cp_queue_movieRecordingMenuWithCaptureService:captureService captureDevice:captureDevice movieFileOutput:movieFileOutput]];
         
         [elements addObject:[UIDeferredMenuElement _cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+        
+        for (AVCaptureDeviceInput *deviceInput in [captureService queue_audioDeviceInputsForOutput:movieFileOutput]) {
+            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleWindNoiseRemovalEnabledWithDeviceInput:deviceInput captureService:captureService didChangeHandler:didChangeHandler]];
+        }
         
         [elements addObject:[UIDeferredMenuElement _cp_queue_movieOutputSettingsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
         
@@ -3344,6 +3352,22 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     ]];
 }
 
-#warning isWindNoiseRemovalEnabled, isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
++ (UIAction * _Nonnull)_cp_queue_toggleWindNoiseRemovalEnabledWithDeviceInput:(AVCaptureDeviceInput *)deviceInput captureService:(CaptureService *)captureService didChangeHandler:(void (^)())didChangeHandler {
+    BOOL windNoiseRemovalSupported = deviceInput.windNoiseRemovalSupported;
+    BOOL isWindNoiseRemovalEnabled = deviceInput.isWindNoiseRemovalEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Wind Noise Removal" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            deviceInput.windNoiseRemovalEnabled = !isWindNoiseRemovalEnabled;
+        });
+    }];
+    
+    action.attributes = windNoiseRemovalSupported ? 0 : UIMenuElementAttributesDisabled;
+    action.state = isWindNoiseRemovalEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
+#warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 
 @end
