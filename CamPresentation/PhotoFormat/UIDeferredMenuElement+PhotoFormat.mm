@@ -108,6 +108,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
 #warning TODO: autoVideoFrameRateEnabled
@@ -3382,7 +3384,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         [UIDeferredMenuElement _cp_queue_toggleSmileDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleEyeClosedDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleEyeDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
@@ -3470,6 +3473,27 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
++ (UIAction * _Nonnull)_cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isHumanHandMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHumanHandMetadataSupported"));
+    BOOL isHumanHandMetadataObjectTypeAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHumanHandMetadataObjectTypeAvailable"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Human Hand Metadata Object Type Available" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setHumanHandMetadataObjectTypeAvailable:"), !isHumanHandMetadataObjectTypeAvailable);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isHumanHandMetadataObjectTypeAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isHumanHandMetadataSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
 + (UIMenu * _Nonnull)_cp_queue_portraitEffectSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
                                                             captureDevice:captureDevice
@@ -3501,6 +3525,21 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         return format.isBackgroundReplacementSupported;
     }
                                                          didChangeHandler:didChangeHandler];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Smart Style Rendering Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+    
+    menu.subtitle = @"com.apple.avfoundation.allow-capture-filter-rendering";
+    
+    return menu;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
