@@ -9,6 +9,7 @@
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/ExposureRectLayer.h>
+#import <CamPresentation/PixelBufferLayer.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #include <array>
@@ -55,6 +56,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) UIBarButtonItem *gestureModeMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
+@property (retain, nonatomic, readonly) PixelBufferLayer *pixelBufferPreviewLayer;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
 @property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
@@ -78,11 +80,12 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer pixelBufferPreviewLayer:(CALayer *)pixelBufferPreviewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
     if (self = [super init]) {
         _captureService = [captureService retain];
         _captureDevice = [captureDevice retain];
         _previewLayer = [previewLayer retain];
+        _pixelBufferPreviewLayer = [pixelBufferPreviewLayer retain];
         _depthMapLayer = [depthMapLayer retain];
         _visionLayer = [visionLayer retain];
         _metadataObjectsLayer = [metadataObjectsLayer retain];
@@ -94,6 +97,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         previewLayer.frame = bounds;
         [layer addSublayer:previewLayer];
+        [layer addSublayer:pixelBufferPreviewLayer];
         
         if (depthMapLayer != nil) {
             depthMapLayer.frame = bounds;
@@ -209,6 +213,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
     [_captureDevice release];
     [_previewLayer release];
+    [_pixelBufferPreviewLayer release];
     [_depthMapLayer release];
     [_visionLayer release];
     [_metadataObjectsLayer release];
@@ -272,6 +277,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     CGRect bounds = self.layer.bounds;
     self.previewLayer.frame = bounds;
+    self.pixelBufferPreviewLayer.frame = bounds;
     self.depthMapLayer.frame = bounds;
     self.visionLayer.frame = bounds;
     self.metadataObjectsLayer.frame = bounds;

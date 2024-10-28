@@ -417,6 +417,7 @@
     
     dispatch_async(captureService.captureSessionQueue, ^{
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
+        NSMapTable<AVCaptureDevice *, __kindof CALayer *> *pixelBufferPreviewLayersByCaptureDeviceCopiedMapTable = captureService.queue_pixelBufferPreviewLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *depthMapLayersByCaptureDeviceCopiedMapTable = captureService.queue_depthMapLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *visionLayersByCaptureDeviceCopiedMapTable = captureService.queue_visionLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *metadataObjectsLayersByCaptureDeviceCopiedMapTable = captureService.queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
@@ -446,11 +447,12 @@
             
             for (AVCaptureDevice * captureDevice in previewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
                 AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+                __kindof CALayer * _Nullable pixelBufferPreviewLayer = [pixelBufferPreviewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable depthMapLayer = [depthMapLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable visionLayer = [visionLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable metadataObjectsLayer = [metadataObjectsLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 
-                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithCaptureDevice:captureDevice previewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
+                CaptureVideoPreviewView *previewView = [self newCaptureVideoPreviewViewWithCaptureDevice:captureDevice previewLayer:previewLayer pixelBufferPreviewLayer:pixelBufferPreviewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
             }
@@ -544,8 +546,8 @@
     });
 }
 
-- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer {
-    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithCaptureService:self.captureService captureDevice:captureDevice previewLayer:previewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
+- (CaptureVideoPreviewView *)newCaptureVideoPreviewViewWithCaptureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer pixelBufferPreviewLayer:(CALayer *)pixelBufferPreviewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer {
+    CaptureVideoPreviewView *captureVideoPreviewView = [[CaptureVideoPreviewView alloc] initWithCaptureService:self.captureService captureDevice:captureDevice previewLayer:previewLayer pixelBufferPreviewLayer:pixelBufferPreviewLayer depthMapLayer:depthMapLayer visionLayer:visionLayer metadataObjectsLayer:metadataObjectsLayer];
     
     return captureVideoPreviewView;
 }

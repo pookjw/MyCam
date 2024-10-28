@@ -10,6 +10,9 @@
 #import <CamPresentation/lock_private.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <objc/message.h>
+#import <objc/runtime.h>
+#import <CoreImage/CIFilterBuiltins.h>
 
 @interface PixelBufferLayer ()
 @property (class, retain, nonatomic, readonly) CIContext *ciContext;
@@ -88,6 +91,57 @@
     [SVRunLoop.globalRenderRunLoop runBlock:^{
         // retained
         CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:ciImage fromRect:ciImage.extent];
+        
+        os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
+        
+        if (CGImageRef oldCGImage = _cgImageIsolated) {
+            CGImageRelease(oldCGImage);
+        }
+        
+        _cgImageIsolated = cgImage;
+        _fillIsolated = fill;
+        
+        os_unfair_recursive_lock_unlock(&_lock);
+        
+        [self setNeedsDisplay];
+    }];
+}
+
+- (void)updateWithCIImage:(CIImage *)ciImage filterName:(NSString *)filterName depthDataImage:(CIImage *)depthDataImage rotationAngle:(float)rotationAngle fill:(BOOL)fill mirrored:(BOOL)mirrored {
+    [SVRunLoop.globalRenderRunLoop runBlock:^{
+        CIFilter *invertFilter = [CIFilter maskToAlphaFilter];
+//        invertFilter.inputImage = depthDataImage;
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(invertFilter, sel_registerName("setInputImage:"), depthDataImage);
+        CIImage *invertedDepthDataImage = invertFilter.outputImage;
+        
+        CGAffineTransform ci_transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(ciImage.extent), CGRectGetMidY(ciImage.extent)), rotationAngle * M_PI / 180.f);
+        
+//        if (!mirrored) {
+//            ci_transform = CGAffineTransformScale(ci_transform, -1.f, 1.f);
+//        }
+        
+        CIImage *rotatedCIImage = [[ciImage imageByApplyingOrientation:kCGImagePropertyOrientationUpMirrored] imageByApplyingTransform:ci_transform highQualityDownsample:NO];
+        
+        
+        CGAffineTransform dp_transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(depthDataImage.extent), CGRectGetMidY(depthDataImage.extent)), rotationAngle * M_PI / 180.f);
+        
+//        if (!mirrored) {
+//            dp_transform = CGAffineTransformScale(dp_transform, -1.f, 1.f);
+//        }
+        
+        CIImage *rotatedDepthDataImage = [invertedDepthDataImage imageByApplyingTransform:dp_transform highQualityDownsample:NO];
+        
+        CIFilter *filter = [CIFilter filterWithName:filterName];
+        
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputImage:"), rotatedCIImage);
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputDisparity:"), rotatedDepthDataImage);
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputMatte:"), rotatedDepthDataImage);
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputBlurMap:"), rotatedDepthDataImage);
+        
+        CIImage *outputImage = [reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(filter, sel_registerName("outputImage")) imageByApplyingOrientation:kCGImagePropertyOrientationDownMirrored];
+        
+        // retained
+        CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:outputImage fromRect:outputImage.extent];
         
         os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
         

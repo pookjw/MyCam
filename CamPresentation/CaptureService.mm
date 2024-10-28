@@ -46,9 +46,10 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pixelBufferPreviewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_visionLayersByCaptureDevice;
@@ -58,6 +59,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NSString *> *queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice;
+
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NSSet<AVCaptureDataOutputSynchronizer *> *> *queue_dataOutputSynchronizersByCaptureDevice;
 
 // Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
@@ -106,12 +110,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pixelBufferPreviewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, NSString *> *pixelBufferPreviewLayerFilterNamesByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, NSSet<AVCaptureDataOutputSynchronizer *> *> *dataOutputSynchronizersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         
@@ -135,12 +142,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
         _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
+        _queue_pixelBufferPreviewLayersByCaptureDevice = [pixelBufferPreviewLayersByCaptureDevice retain];
         _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
         _queue_visionLayersByCaptureDevice = [visionLayersByCaptureDevice retain];
         _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
+        _queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice = [pixelBufferPreviewLayerFilterNamesByCaptureDevice retain];
+        _queue_dataOutputSynchronizersByCaptureDevice = [dataOutputSynchronizersByCaptureDevice retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
         self.queue_fileOutput = nil;
@@ -192,12 +202,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_photoFormatModelsByCaptureDevice release];
     [_queue_readinessCoordinatorByCapturePhotoOutput release];
     [_queue_previewLayersByCaptureDevice release];
+    [_queue_pixelBufferPreviewLayersByCaptureDevice release];
     [_queue_depthMapLayersByCaptureDevice release];
     [_queue_pointCloudLayersByCaptureDevice release];
     [_queue_visionLayersByCaptureDevice release];
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
+    [_queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice release];
+    [_queue_dataOutputSynchronizersByCaptureDevice release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
     [_locationManager stopUpdatingLocation];
@@ -589,6 +602,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [[self.queue_previewLayersByCaptureDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_pixelBufferPreviewLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_pixelBufferPreviewLayersByCaptureDevice copy] autorelease];
+}
+
 - (NSMapTable<AVCaptureDevice *,__kindof CALayer *> *)queue_depthMapLayersByCaptureDeviceCopiedMapTable {
     dispatch_assert_queue(self.captureSessionQueue);
     return [[self.queue_depthMapLayersByCaptureDevice copy] autorelease];
@@ -651,6 +669,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     AVCaptureVideoPreviewLayer *captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
     [self.queue_previewLayersByCaptureDevice setObject:captureVideoPreviewLayer forKey:captureDevice];
+    
+    assert([self.queue_pixelBufferPreviewLayersByCaptureDevice objectForKey:captureDevice] == nil);
+    PixelBufferLayer *pixelBufferPreviewLayer = [PixelBufferLayer new];
+    [self.queue_pixelBufferPreviewLayersByCaptureDevice setObject:pixelBufferPreviewLayer forKey:captureDevice];
+    [pixelBufferPreviewLayer release];
     
     [captureSession beginConfiguration];
     
@@ -735,7 +758,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:videoDataOutput];
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
-    [videoDataOutput release];
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     [videoDataOutputConnection release];
@@ -752,7 +774,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
         depthDataOutputConnection.videoMirrored = YES;
-        [depthDataOutput release];
         assert([captureSession canAddConnection:depthDataOutputConnection]);
         [captureSession addConnection:depthDataOutputConnection];
         [depthDataOutputConnection release];
@@ -761,7 +782,17 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         depthMapLayer.opacity = 0.75f;
         [self.queue_depthMapLayersByCaptureDevice setObject:depthMapLayer forKey:captureDevice];
         [depthMapLayer release];
+        
+        AVCaptureDataOutputSynchronizer *videoDataAndDepthDataSynchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:@[videoDataOutput, depthDataOutput]];
+        [depthDataOutput release];
+        [videoDataAndDepthDataSynchronizer setDelegate:self queue:self.captureSessionQueue];
+        [self queue_addDataOutputSyncrhonizer:videoDataAndDepthDataSynchronizer captureDevice:captureDevice];
+        [videoDataAndDepthDataSynchronizer release];
+        
+        [self.queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice setObject:@"CIPortraitEffectStageMonoV2" forKey:captureDevice];
     }
+    
+    [videoDataOutput release];
     
     //
     
@@ -1098,6 +1129,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [self unregisterObserversForVideoCaptureDevice:captureDevice];
     
+//    if (AVCaptureDataOutputSynchronizer *)
+    [self.queue_dataOutputSynchronizersByCaptureDevice removeObjectForKey:captureDevice];
+    
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     assert(captureSession != nil);
     
@@ -1200,7 +1234,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+    
+    assert([self.queue_pixelBufferPreviewLayersByCaptureDevice objectForKey:captureDevice] != nil);
+    [self.queue_pixelBufferPreviewLayersByCaptureDevice removeObjectForKey:captureDevice];
+    
     [self.queue_metadataInputsByCaptureDevice removeObjectForKey:captureDevice];
+    [self.queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice removeObjectForKey:captureDevice];
     
     [captureSession removeInput:deviceInput];
     
@@ -1496,6 +1535,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(connection != nil);
     
     return connection.isEnabled;
+}
+
+- (NSString *)queue_pixelBufferPreviewLayerFilterNameFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [self.queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice objectForKey:captureDevice];
+}
+
+- (void)queue_setPixelBufferPreviewLayerFilterName:(NSString *)filterName captureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    [self.queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice setObject:filterName forKey:captureDevice];
 }
 
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2151,6 +2200,22 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
+- (void)queue_addDataOutputSyncrhonizer:(AVCaptureDataOutputSynchronizer *)dataOutputSynchronizer captureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSSet<AVCaptureDataOutputSynchronizer *> * _Nullable dataOutputSynchronizers = [self.queue_dataOutputSynchronizersByCaptureDevice objectForKey:captureDevice];
+    
+    if (dataOutputSynchronizers == nil) {
+        [self.queue_dataOutputSynchronizersByCaptureDevice setObject:[NSSet setWithObject:dataOutputSynchronizer] forKey:captureDevice];
+    } else {
+        assert(![dataOutputSynchronizers containsObject:dataOutputSynchronizer]);
+        NSMutableSet<AVCaptureDataOutputSynchronizer *> *mutableSet = [dataOutputSynchronizers mutableCopy];
+        [mutableSet addObject:dataOutputSynchronizer];
+        [self.queue_dataOutputSynchronizersByCaptureDevice setObject:mutableSet forKey:captureDevice];
+        [mutableSet release];
+    }
+}
+
 - (__kindof AVCaptureSession *)queue_switchCaptureSessionWithClass:(Class)captureSessionClass postNotification:(BOOL)postNotification {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureSessionClass == AVCaptureSession.class || [captureSessionClass isSubclassOfClass:AVCaptureSession.class]);
@@ -2160,6 +2225,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     BOOL wasRunning;
     if (__kindof AVCaptureSession *currentCaptureSession = _queue_captureSession) {
+        abort(); // TOOD: Syncrhonizer
+        
         [NSNotificationCenter.defaultCenter removeObserver:self name:AVCaptureSessionRuntimeErrorNotification object:currentCaptureSession];
         
         wasRunning = currentCaptureSession.isRunning;
@@ -2311,8 +2378,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                         abort();
                     }
                     
-                    assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice]);
+                    assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] != nil);
                     [self.queue_previewLayersByCaptureDevice removeObjectForKey:captureDevice];
+                    
+                    assert([self.queue_pixelBufferPreviewLayersByCaptureDevice objectForKey:captureDevice] != nil);
+                    [self.queue_pixelBufferPreviewLayersByCaptureDevice removeObjectForKey:captureDevice];
                     
                     // AVCaptureSession <-> AVCaptureMultiCamSession 전환이 될 경우 Preview Layer는 0개 및 1개일 것이며, 1개는 위에서 지워질 것이다.
                     assert(self.queue_previewLayersByCaptureDevice.count == 0);
@@ -2349,6 +2419,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(oldDeviceInput.device.activeFormat, sel_registerName("isCameraCalibrationDataDeliverySupported"))) {
                     BOOL isCameraCalibrationDataDeliveryEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(input, sel_registerName("isCameraCalibrationDataDeliveryEnabled"));
                     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newDeviceInput, sel_registerName("setCameraCalibrationDataDeliveryEnabled:"), isCameraCalibrationDataDeliveryEnabled);
+                }
+                
+                NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
+                if ([allVideoDeviceTypes containsObject:oldDeviceInput.device.deviceType]) {
+                    assert([self.queue_pixelBufferPreviewLayersByCaptureDevice objectForKey:oldDeviceInput.device] == nil);
+                    PixelBufferLayer *pixelBufferPreviewLayer = [PixelBufferLayer new];
+                    [self.queue_pixelBufferPreviewLayersByCaptureDevice setObject:pixelBufferPreviewLayer forKey:oldDeviceInput.device];
+                    [pixelBufferPreviewLayer release];
                 }
                 
                 assert([captureSession canAddInput:newDeviceInput]);
@@ -2991,9 +3069,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
 #warning Intrinsic
-    
-//    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-//    NSLog(@"%@", imageBuffer);
         
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
 //        NSLog(@"%@", output.class);
@@ -3133,6 +3208,92 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     NSLog(@"%s: %@", sel_getName(_cmd), error);
                 }
             }
+        }
+    }
+}
+
+
+#pragma mark - AVCaptureDataOutputSynchronizerDelegate
+
+- (void)dataOutputSynchronizer:(AVCaptureDataOutputSynchronizer *)synchronizer didOutputSynchronizedDataCollection:(AVCaptureSynchronizedDataCollection *)synchronizedDataCollection {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMapTable<AVCaptureDevice *, NSSet<AVCaptureDataOutputSynchronizer *> *> *dataOutputSynchronizersByCaptureDevice = self.queue_dataOutputSynchronizersByCaptureDevice;
+    
+    for (AVCaptureDevice *captureDevice in dataOutputSynchronizersByCaptureDevice.keyEnumerator) {
+        NSSet<AVCaptureDataOutputSynchronizer *> *synchronizers = [dataOutputSynchronizersByCaptureDevice objectForKey:captureDevice];
+        
+        if ([synchronizers containsObject:synchronizer]) {
+            AVCaptureSynchronizedSampleBufferData *sampleBufferData = nil;
+            AVCaptureSynchronizedDepthData *depthData = nil;
+            
+            for (__kindof AVCaptureOutput *output in synchronizer.dataOutputs) {
+                if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                    sampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:output]);
+                } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
+                    depthData = static_cast<AVCaptureSynchronizedDepthData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:output]);
+                }
+            }
+            
+            if ((sampleBufferData == nil) || (depthData == nil)) return;
+            
+            NSString * _Nullable filterName = [self.queue_pixelBufferPreviewLayerFilterNamesByCaptureDevice objectForKey:captureDevice];
+            
+            if (filterName == nil) return;
+        
+            CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBufferData.sampleBuffer);
+            CIImage *image = [[CIImage alloc] initWithCVPixelBuffer:imageBuffer options:@{kCIImageAuxiliaryDisparity: @YES}];
+            
+            CIImage *depthDataImage = [[CIImage alloc] initWithCVImageBuffer:depthData.depthData.depthDataMap options:@{kCIImageAuxiliaryDisparity: @YES}];
+            
+            /*
+             CIPhotoEffectChrome
+             CIPhotoEffectFade
+             CIPhotoEffectInstant
+             CIPhotoEffectMono
+             CIPhotoEffectNoir
+             CIPhotoEffectProcess
+             CIPhotoEffectTonal
+             CIPhotoEffectTransfer
+             CIPhotoEffect3DVivid
+             CIPhotoEffect3DVividWarm
+             CIPhotoEffect3DVividCool
+             CIPhotoEffect3DDramatic
+             CIPhotoEffect3DDramaticWarm
+             CIPhotoEffect3DDramaticCool
+             CIPhotoEffect3DSilverplate
+             CIPhotoEffect3DNoir
+             CIDepthEffect
+             CIPhotoEffect3DCommercial
+             CIPortraitEffectLight
+             CIPortraitEffectCommercial
+             CIPortraitEffectStudio
+             CIPortraitEffectContour
+             CIPortraitEffectBlack
+             CIPortraitEffectStage
+             CIPortraitEffectBlackoutMono
+             CIPortraitEffectStageMono
+             CIPortraitEffectStudioV2
+             CIPortraitEffectContourV2
+             CIPortraitEffectStageV2
+             CIPortraitEffectStageMonoV2
+             CIPortraitEffectStageWhite
+             */
+            
+            PixelBufferLayer *pixelBufferPreviewLayer = [self.queue_pixelBufferPreviewLayersByCaptureDevice objectForKey:captureDevice];
+            assert(pixelBufferPreviewLayer != nil);
+            
+            AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice];
+            assert(rotationCoordinator != nil);
+            
+            
+            
+            [pixelBufferPreviewLayer updateWithCIImage:image filterName:filterName depthDataImage:depthDataImage rotationAngle:180.f - rotationCoordinator.videoRotationAngleForHorizonLevelCapture fill:NO mirrored:YES];
+            
+            [image release];
+            [depthDataImage release];
+            
+            break;
         }
     }
 }

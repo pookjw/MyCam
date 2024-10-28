@@ -40,6 +40,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultVideoCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pixelBufferPreviewLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
@@ -78,6 +79,9 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 
 - (void)queue_setUpdatesVisionLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice;
 - (BOOL)queue_updatesVisionLayer:(AVCaptureDevice *)captureDevice;
+
+- (NSString * _Nullable)queue_pixelBufferPreviewLayerFilterNameFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_setPixelBufferPreviewLayerFilterName:(NSString * _Nullable)filterName captureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice;

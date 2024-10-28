@@ -110,6 +110,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_portraitFiltersMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
 #warning TODO: autoVideoFrameRateEnabled
@@ -3630,6 +3632,50 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
++ (NSArray<NSString *> *)_cp_portraitFilterNames {
+    return @[
+        @"CIPortraitEffectLight",
+        @"CIPortraitEffectCommercial",
+        @"CIPortraitEffectStudio",
+        @"CIPortraitEffectContour",
+        @"CIPortraitEffectBlack",
+        @"CIPortraitEffectStage",
+        @"CIPortraitEffectLight",
+        @"CIPortraitEffectBlackoutMono",
+        @"CIPortraitEffectStageMono",
+        @"CIPortraitEffectStudioV2",
+        @"CIPortraitEffectContourV2",
+        @"CIPortraitEffectStageV2",
+        @"CIPortraitEffectStageMonoV2",
+        @"CIPortraitEffectStageWhite"
+    ];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_portraitFiltersMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    NSArray<NSString *> *portraitFilterNames = [UIDeferredMenuElement _cp_portraitFilterNames];
+    NSString * _Nullable selectedFilterName = [captureService queue_pixelBufferPreviewLayerFilterNameFromCaptureDevice:captureDevice];
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:portraitFilterNames.count];
+    
+    for (NSString *filterName in portraitFilterNames) {
+        UIAction *action = [UIAction actionWithTitle:filterName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_setPixelBufferPreviewLayerFilterName:filterName captureDevice:captureDevice];
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = ([filterName isEqualToString:selectedFilterName]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [actions addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Portrait Filters" children:actions];
+    [actions release];
+    
+    return menu;
+}
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 
