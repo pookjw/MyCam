@@ -49,7 +49,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     UIDeferredMenuElement *result = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
             PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
-            AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+            AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
             assert(photoOutput != nil);
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
@@ -57,6 +57,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_assetWriterMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_zoomMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -127,7 +129,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 + (UIMenu * _Nonnull)_cp_queue_photoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
-    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
@@ -1885,7 +1887,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_depthDataOutputFromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     
     if (depthDataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"No Depth Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -1946,7 +1948,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapFilteringActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_depthDataOutputFromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
     assert((depthDataOutput == nil && connection == nil) || (depthDataOutput != nil && connection != nil));
     
@@ -2529,14 +2531,14 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleVisionVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    __kindof AVCaptureOutput * _Nullable visionDataOutput = [captureService queue_visionDataOutputFromCaptureDevice:captureDevice];
+    __kindof AVCaptureOutput * _Nullable visionDataOutput = [captureService queue_outputClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
     
     if (visionDataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"No Vision Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             
         }];
         
-        if ([captureService queue_depthDataOutputFromCaptureDevice:captureDevice] != nil) {
+        if ([captureService queue_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice] != nil) {
             action.subtitle = @"Not Supported with Device which has Depth Port";
         }
         
@@ -2594,7 +2596,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (__kindof UIMenuElement * _Nonnull)_cp_queue_metadataObjectTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
-    AVCaptureMetadataOutput * _Nullable metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput * _Nullable metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     
     if (metadataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"Metadata Object Types" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2707,14 +2709,14 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
     
     for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
-        AVCapturePhotoOutput * _Nullable connectedPhotoOutput = [captureService queue_photoOutputFromCaptureDevice:audioDevice];
+        AVCapturePhotoOutput * _Nullable connectedPhotoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
         
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -2787,7 +2789,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleLivePhotoCaptureSuspendedActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     BOOL isLivePhotoCaptureSuspended = photoOutput.isLivePhotoCaptureSuspended;
     BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
     
@@ -2804,7 +2806,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleLivePhotoAutoTrimmingEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     BOOL isLivePhotoAutoTrimmingEnabled = photoOutput.isLivePhotoAutoTrimmingEnabled;
     BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
@@ -2822,7 +2824,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_livePhotoVideoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_photoOutputFromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
@@ -3457,7 +3459,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isAttentionDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isAttentionDetectionSupported"));
@@ -3478,7 +3480,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isHumanHandMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHumanHandMetadataSupported"));
@@ -3547,7 +3549,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isHeadMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHeadMetadataSupported"));
@@ -3568,7 +3570,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isTextRegionMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isTextRegionMetadataSupported"));
@@ -3589,7 +3591,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isSceneClassificationMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isSceneClassificationMetadataSupported"));
@@ -3610,7 +3612,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isVisualIntelligenceMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isVisualIntelligenceMetadataSupported"));
@@ -3630,6 +3632,55 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
++ (UIMenu * _Nonnull)_cp_queue_assetWriterMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIMenu menuWithTitle:@"Asset Writer" children:@[
+        [UIDeferredMenuElement _cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+    ]];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    NSArray<AVCaptureDevice *> *addedAudioDevices = captureService.queue_addedAudioCaptureDevices;
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioDevices.count];
+    
+    AVCaptureDevice * _Nullable connectedAudioDevice = nil;
+    
+    for (AVCaptureDevice *audioDevice in addedAudioDevices) {
+        BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
+        BOOL isConnectedSomewhere = [captureService queue_isAssetWriterConnectedWithAudioDevice:audioDevice];
+        
+        UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
+                
+                if (isConnected) {
+                    [captureService queue_disconnectAudioDevice:audioDevice forAssetWriterVideoDevice:videoDevice];
+                } else {
+                    [captureService queue_connectAudioDevice:audioDevice forAssetWriterVideoDevice:videoDevice];
+                }
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.state = isConnected ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.attributes = (!isConnected && isConnectedSomewhere) ? UIMenuElementAttributesDisabled : 0;
+        
+        [actions addObject:action];
+        
+        if (isConnected) {
+            assert(connectedAudioDevice == nil);
+            connectedAudioDevice = audioDevice;
+        }
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Configure Audio Device" children:actions];
+    [actions release];
+    
+    menu.subtitle = connectedAudioDevice.localizedName;
+    
+    return menu;
+}
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 
