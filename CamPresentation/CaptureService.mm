@@ -659,6 +659,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(error == nil);
     assert([captureSession canAddInput:newInput]);
     
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newInput, sel_registerName("setBackgroundReplacementAllowed:"), YES);
+    
     // -addInputWithNoConnections: 전에 해야함 -addInputWithNoConnections:에서 changeSeed에 KVO를 시켜야 하기 때문. 안하면 remove 할 때 문제됨
     if (reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice.activeFormat, sel_registerName("isVisionDataDeliverySupported"))) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(newInput, sel_registerName("setVisionDataDeliveryEnabled:"), YES);
