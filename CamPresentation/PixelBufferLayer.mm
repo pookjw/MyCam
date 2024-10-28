@@ -111,7 +111,7 @@
     [SVRunLoop.globalRenderRunLoop runBlock:^{
         CIFilter<CIColorCurves> *invertFilter = [CIFilter colorCurvesFilter];
         NSLog(@"%lf %lf %lf", invertFilter.curvesDomain.X, invertFilter.curvesDomain.Y, invertFilter.curvesDomain.Z);
-        invertFilter.curvesDomain = [CIVector vectorWithX:0. Y:4.];
+        invertFilter.curvesDomain = [CIVector vectorWithX:0. Y:3.];
 //        invertFilter.inputImage = depthDataImage;
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(invertFilter, sel_registerName("setInputImage:"), depthDataImage);
         CIImage *invertedDepthDataImage = invertFilter.outputImage;
@@ -140,7 +140,7 @@
 //        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputDisparity:"), rotatedDepthDataImage);
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputMatte:"), rotatedDepthDataImage);
 //        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputBlurMap:"), rotatedDepthDataImage);
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputFaceMask:"), rotatedDepthDataImage);
+//        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputFaceMask:"), rotatedDepthDataImage);
         
         CIImage *outputImage = [reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(filter, sel_registerName("outputImage")) imageByApplyingOrientation:kCGImagePropertyOrientationUpMirrored];
         
