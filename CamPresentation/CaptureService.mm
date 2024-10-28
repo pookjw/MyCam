@@ -15,6 +15,7 @@
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CamPresentation/PixelBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
+#import <CamPresentation/NSURL+CP.h>
 #import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
@@ -1964,20 +1965,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (capturePhotoOutput.isLivePhotoCaptureEnabled) {
         capturePhotoSettings.livePhotoVideoCodecType = photoModel.livePhotoVideoCodecType;
         
-        NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
-        NSString *processName = NSProcessInfo.processInfo.processName;
-        NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
-        
-        BOOL isDirectory;
-        if (![NSFileManager.defaultManager fileExistsAtPath:processDirectoryURL.path isDirectory:&isDirectory]) {
-            NSError * _Nullable error = nil;
-            [NSFileManager.defaultManager createDirectoryAtURL:processDirectoryURL withIntermediateDirectories:YES attributes:nil error:&error];
-            assert(error == nil);
-            isDirectory = YES;
-        }
-        assert(isDirectory);
-        
-        NSURL *livePhotoMovieFileURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+        NSURL *tmpURL = [NSURL cp_processTemporaryURLByCreatingDirectoryIfNeeded:YES];
+        NSURL *livePhotoMovieFileURL = [tmpURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
         
         capturePhotoSettings.livePhotoMovieFileURL = livePhotoMovieFileURL;
     }
@@ -2036,20 +2025,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NSURL *outputURL;
     
     if (fileOutput.class == PhotoLibraryFileOutput.class) {
-        NSURL *tmpURL = [NSURL fileURLWithPath:NSTemporaryDirectory()];
-        NSString *processName = NSProcessInfo.processInfo.processName;
-        NSURL *processDirectoryURL = [tmpURL URLByAppendingPathComponent:processName isDirectory:YES];
-        
-        BOOL isDirectory;
-        if (![NSFileManager.defaultManager fileExistsAtPath:processDirectoryURL.path isDirectory:&isDirectory]) {
-            NSError * _Nullable error = nil;
-            [NSFileManager.defaultManager createDirectoryAtURL:processDirectoryURL withIntermediateDirectories:YES attributes:nil error:&error];
-            assert(error == nil);
-            isDirectory = YES;
-        }
-        assert(isDirectory);
-        
-        outputURL = [processDirectoryURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+        NSURL *tmpURL = [NSURL cp_processTemporaryURLByCreatingDirectoryIfNeeded:YES];
+        outputURL = [tmpURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
     } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
         auto output = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
         AVExternalStorageDevice *externalStorageDevice = output.externalStorageDevice;
