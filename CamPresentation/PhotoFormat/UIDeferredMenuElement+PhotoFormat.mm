@@ -2607,7 +2607,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         return action;
     }
     
-    NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = [metadataOutput.availableMetadataObjectTypes arrayByAddingObject:@"eyeReliefStatus"];
+    NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     for (AVMetadataObjectType metadataObjectType in availableMetadataObjectTypes) {

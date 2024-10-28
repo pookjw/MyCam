@@ -46,7 +46,7 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -58,6 +58,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
+
+@property (retain, nonatomic, readonly) NSMutableSet<AVCaptureDataOutputSynchronizer *> *queue_dataOutputSynchronizers;
 
 // Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
@@ -114,6 +116,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
+        NSMutableSet<AVCaptureDataOutputSynchronizer *> *dataOutputSynchronizers = [NSMutableSet new];
         
         //
         
@@ -143,6 +146,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
+        _queue_dataOutputSynchronizers = dataOutputSynchronizers;
         self.queue_fileOutput = nil;
         
         //
@@ -200,6 +204,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_metadataInputsByCaptureDevice release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
+    [_queue_dataOutputSynchronizers release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [_queue_fileOutput release];
@@ -735,7 +740,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:videoDataOutput];
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
-    [videoDataOutput release];
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     [videoDataOutputConnection release];
@@ -817,12 +821,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         [captureSession addConnection:metadataOutputConnection];
         [metadataOutputConnection release];
         
-        [metadataOutput release];
-        
         MetadataObjectsLayer *metadataObjectsLayer = [MetadataObjectsLayer new];
         [self.queue_metadataObjectsLayersByCaptureDevice setObject:metadataObjectsLayer forKey:captureDevice];
         [metadataObjectsLayer release];
+        
+        AVCaptureDataOutputSynchronizer *synchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:@[videoDataOutput, metadataOutput]];
+        [metadataOutput release];
+        [synchronizer setDelegate:self queue:self.captureSessionQueue];
+        [self.queue_dataOutputSynchronizers addObject:synchronizer];
+        [synchronizer release];
     }
+    
+    [videoDataOutput release];
     
     //
     
@@ -1063,6 +1073,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     dispatch_assert_queue(self.captureSessionQueue);
     assert(captureDevice != nil);
     assert([self.queue_addedCaptureDevices containsObject:captureDevice]);
+    
+#warning Syncrhonizer
     
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
 
@@ -2241,6 +2253,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (__kindof AVCaptureSession *oldCaptureSession = _queue_captureSession) {
         [oldCaptureSession beginConfiguration];
         
+        for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
+            [synchronizer setDelegate:nil queue:nil];
+        }
+        
         NSArray<AVCaptureConnection *> *connections = oldCaptureSession.connections;
         
         // AVCaptureMovieFileOutput 처럼 여러 Connection (Video, Audio)이 하나의 Output을 가지는 경우가 있어, 배열에 중복을 피하기 위해 Set을 사용
@@ -2472,6 +2488,34 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         }
         assert(outputs.count == addedOutputsByOutputs.count);
         [outputs release];
+        
+        // Synchonizer 설정
+        NSMutableSet<AVCaptureDataOutputSynchronizer *> *oldSynchronizers = _queue_dataOutputSynchronizers;
+        NSMutableSet<AVCaptureDataOutputSynchronizer *> *newSynchronizers = [[NSMutableSet alloc] initWithCapacity:oldSynchronizers.count];
+        
+        for (AVCaptureDataOutputSynchronizer *oldSynchronizer in oldSynchronizers) {
+            NSMutableArray<__kindof AVCaptureOutput *> *newOutputs = [[NSMutableArray alloc] initWithCapacity:oldSynchronizer.dataOutputs.count];
+            
+            for (__kindof AVCaptureOutput *oldOutput in oldSynchronizer.dataOutputs) {
+                __kindof AVCaptureOutput *newInput = [addedOutputsByOutputs objectForKey:oldOutput];
+                assert(newInput != nil);
+                [newOutputs addObject:newInput];
+            }
+            
+            assert(oldSynchronizer.dataOutputs.count == newOutputs.count);
+            
+            AVCaptureDataOutputSynchronizer *newSynchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:newOutputs];
+            [newOutputs release];
+            [newSynchronizer setDelegate:self queue:self.captureSessionQueue];
+            
+            [newSynchronizers addObject:newSynchronizer];
+            [newSynchronizer release];
+        }
+        
+        assert(oldSynchronizers.count == newSynchronizers.count);
+        
+        [_queue_dataOutputSynchronizers release];
+        _queue_dataOutputSynchronizers = [newSynchronizers retain];
         
         // AVCaptureDeviceInput과 연결된 AVCaptureConnection들 처리
         for (AVCaptureConnection *connection in connections) {
@@ -2777,6 +2821,56 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self.mainQueue_livePhotoMovieFileURLsByUniqueID removeObjectForKey:@(uniqueID)];
 }
 
+- (void)queue_handleMetadataOutput:(AVCaptureMetadataOutput *)depthDataOutput didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:depthDataOutput];
+    MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
+    assert(metadataObjectsLayer != nil);
+    
+    AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+    
+    [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
+    
+    //
+    
+    AVCaptureMetadataInput * _Nullable metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
+    
+    if (metadataInput != nil) {
+        for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
+            if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
+                AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
+                metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataDetectedFace;
+                metadataItem.dataType = (id)kCMMetadataBaseDataType_RectF32;
+                metadataItem.value = @[
+                    @(CGRectGetMinX(metadataObject.bounds)),
+                    @(CGRectGetMinY(metadataObject.bounds)),
+                    @(CGRectGetWidth(metadataObject.bounds)),
+                    @(CGRectGetHeight(metadataObject.bounds))
+                ];
+                
+                CMTimeRange timeRange = CMTimeRangeMake(metadataObject.time, metadataObject.duration);
+                
+                AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:timeRange];
+                [metadataItem release];
+                
+                NSError * _Nullable error = nil;
+                [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
+                [metadataGroup release];
+                //            assert(error == nil);
+                if (error != nil) {
+                    NSLog(@"%s: %@", sel_getName(_cmd), error);
+                }
+            }
+        }
+    }
+}
+
+- (void)queue_handleVideoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
+#warning Intrinsic
+    dispatch_assert_queue(self.captureSessionQueue);
+}
+
 
 #pragma mark - AVCapturePhotoCaptureDelegate
 
@@ -2987,16 +3081,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-//    NSLog(@"%@", output.class);
-    
     if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
-#warning Intrinsic
-    
-//    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-//    NSLog(@"%@", imageBuffer);
-        
+        [self queue_handleVideoDataOutput:static_cast<AVCaptureVideoDataOutput *>(output) didOutputSampleBuffer:sampleBuffer];
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-//        NSLog(@"%@", output.class);
+#warning TODO - Syncrhonize
     } else {
         abort();
     }
@@ -3095,45 +3183,39 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 #pragma mark - AVCaptureMetadataOutputObjectsDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
-    AVCaptureDevice *captureDevice = [self queue_captureDeviceFromOutput:output];
-    MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
-    assert(metadataObjectsLayer != nil);
+    [self queue_handleMetadataOutput:static_cast<AVCaptureMetadataOutput *>(output) didOutputMetadataObjects:metadataObjects];
+}
+
+
+#pragma mark - AVCaptureDataOutputSynchronizerDelegate
+
+- (void)dataOutputSynchronizer:(AVCaptureDataOutputSynchronizer *)synchronizer didOutputSynchronizedDataCollection:(AVCaptureSynchronizedDataCollection *)synchronizedDataCollection {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self.queue_dataOutputSynchronizers containsObject:synchronizer]);
     
-    AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+    AVCaptureVideoDataOutput * _Nullable videoDataOutput = nil;
+    AVCaptureMetadataOutput * _Nullable metadataOutput = nil;
     
-    [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
-    
-    //
-    
-    AVCaptureMetadataInput * _Nullable metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
-    
-    if (metadataInput != nil) {
-        for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
-            if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
-                AVMutableMetadataItem *metadataItem = [AVMutableMetadataItem new];
-                metadataItem.identifier = AVMetadataIdentifierQuickTimeMetadataDetectedFace;
-                metadataItem.dataType = (id)kCMMetadataBaseDataType_RectF32;
-                metadataItem.value = @[
-                    @(CGRectGetMinX(metadataObject.bounds)),
-                    @(CGRectGetMinY(metadataObject.bounds)),
-                    @(CGRectGetWidth(metadataObject.bounds)),
-                    @(CGRectGetHeight(metadataObject.bounds))
-                ];
-                
-                CMTimeRange timeRange = CMTimeRangeMake(metadataObject.time, metadataObject.duration);
-                
-                AVTimedMetadataGroup *metadataGroup = [[AVTimedMetadataGroup alloc] initWithItems:@[metadataItem] timeRange:timeRange];
-                [metadataItem release];
-                
-                NSError * _Nullable error = nil;
-                [metadataInput appendTimedMetadataGroup:metadataGroup error:&error];
-                [metadataGroup release];
-                //            assert(error == nil);
-                if (error != nil) {
-                    NSLog(@"%s: %@", sel_getName(_cmd), error);
-                }
-            }
+    for (__kindof AVCaptureOutput *output in synchronizer.dataOutputs) {
+        if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+            videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
+        } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
+            metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
         }
+    }
+    
+    assert(videoDataOutput != nil);
+    assert(metadataOutput != nil);
+    
+    auto _Nullable synchronizedSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:videoDataOutput]);
+    auto _Nullable synchronizedMetadataObjectData = static_cast<AVCaptureSynchronizedMetadataObjectData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:metadataOutput]);
+    
+    if (synchronizedSampleBufferData != nil) {
+        [self queue_handleVideoDataOutput:videoDataOutput didOutputSampleBuffer:synchronizedSampleBufferData.sampleBuffer];
+    }
+    
+    if (synchronizedMetadataObjectData != nil) {
+        [self queue_handleMetadataOutput:metadataOutput didOutputMetadataObjects:synchronizedMetadataObjectData.metadataObjects];
     }
 }
 
