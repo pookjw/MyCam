@@ -109,10 +109,13 @@
 
 - (void)updateWithCIImage:(CIImage *)ciImage filterName:(NSString *)filterName depthDataImage:(CIImage *)depthDataImage rotationAngle:(float)rotationAngle fill:(BOOL)fill mirrored:(BOOL)mirrored {
     [SVRunLoop.globalRenderRunLoop runBlock:^{
-        CIFilter *invertFilter = [CIFilter maskToAlphaFilter];
+        CIFilter<CIColorCurves> *invertFilter = [CIFilter colorCurvesFilter];
+        NSLog(@"%lf %lf %lf", invertFilter.curvesDomain.X, invertFilter.curvesDomain.Y, invertFilter.curvesDomain.Z);
+        invertFilter.curvesDomain = [CIVector vectorWithX:0. Y:4.];
 //        invertFilter.inputImage = depthDataImage;
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(invertFilter, sel_registerName("setInputImage:"), depthDataImage);
         CIImage *invertedDepthDataImage = invertFilter.outputImage;
+//        invertedDepthDataImage = depthDataImage;
         
         CGAffineTransform ci_transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(CGRectGetMidX(ciImage.extent), CGRectGetMidY(ciImage.extent)), rotationAngle * M_PI / 180.f);
         
@@ -134,11 +137,12 @@
         CIFilter *filter = [CIFilter filterWithName:filterName];
         
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputImage:"), rotatedCIImage);
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputDisparity:"), rotatedDepthDataImage);
+//        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputDisparity:"), rotatedDepthDataImage);
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputMatte:"), rotatedDepthDataImage);
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputBlurMap:"), rotatedDepthDataImage);
+//        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputBlurMap:"), rotatedDepthDataImage);
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(filter, sel_registerName("setInputFaceMask:"), rotatedDepthDataImage);
         
-        CIImage *outputImage = [reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(filter, sel_registerName("outputImage")) imageByApplyingOrientation:kCGImagePropertyOrientationDownMirrored];
+        CIImage *outputImage = [reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(filter, sel_registerName("outputImage")) imageByApplyingOrientation:kCGImagePropertyOrientationUpMirrored];
         
         // retained
         CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:outputImage fromRect:outputImage.extent];
