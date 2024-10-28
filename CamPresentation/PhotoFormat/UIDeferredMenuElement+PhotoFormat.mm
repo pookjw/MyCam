@@ -2607,7 +2607,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         return action;
     }
     
-    NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+    NSArray<AVMetadataObjectType> *availableMetadataObjectTypes = [metadataOutput.availableMetadataObjectTypes arrayByAddingObject:@"eyeReliefStatus"];
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     for (AVMetadataObjectType metadataObjectType in availableMetadataObjectTypes) {
@@ -3385,7 +3385,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         [UIDeferredMenuElement _cp_queue_toggleEyeClosedDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleEyeDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
@@ -3541,6 +3545,91 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     return menu;
 }
+
++ (UIAction * _Nonnull)_cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isHeadMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHeadMetadataSupported"));
+    BOOL isHeadMetadataObjectTypesAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHeadMetadataObjectTypesAvailable"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Head Metadata Object Type Available" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setHeadMetadataObjectTypesAvailable:"), !isHeadMetadataObjectTypesAvailable);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isHeadMetadataObjectTypesAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isHeadMetadataSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isTextRegionMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isTextRegionMetadataSupported"));
+    BOOL isTextRegionMetadataObjectTypeAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isTextRegionMetadataObjectTypeAvailable"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Text Region Metadata Object Type Available" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setTextRegionMetadataObjectTypeAvailable:"), !isTextRegionMetadataObjectTypeAvailable);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isTextRegionMetadataObjectTypeAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isTextRegionMetadataSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isSceneClassificationMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isSceneClassificationMetadataSupported"));
+    BOOL isSceneClassificationMetadataObjectTypeAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isSceneClassificationMetadataObjectTypeAvailable"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Scene Classification Metadata Object Type Available" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setSceneClassificationMetadataObjectTypeAvailable:"), !isSceneClassificationMetadataObjectTypeAvailable);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isSceneClassificationMetadataObjectTypeAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isSceneClassificationMetadataSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_metadataOutputFromCaptureDevice:captureDevice];
+    assert(metadataOutput != nil);
+    
+    BOOL isVisualIntelligenceMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isVisualIntelligenceMetadataSupported"));
+    BOOL isVisualIntelligenceMetadataObjectTypeAvailable = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isVisualIntelligenceMetadataObjectTypeAvailable"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Visual Intelligence Metadata Object Type Available" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(metadataOutput, sel_registerName("setVisualIntelligenceMetadataObjectTypeAvailable:"), !isVisualIntelligenceMetadataObjectTypeAvailable);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isVisualIntelligenceMetadataObjectTypeAvailable ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isVisualIntelligenceMetadataSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 

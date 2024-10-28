@@ -29,6 +29,8 @@
 
 #warning isShutterSoundSuppressionEnabled
 
+#warning CIPortraitEffectContour
+
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
 AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
