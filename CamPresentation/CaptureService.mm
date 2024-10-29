@@ -48,7 +48,7 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate, AVAssetWriterDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -489,6 +489,19 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     } else if ([object isEqual:AVCaptureDevice.class]) {
         if ([keyPath isEqualToString:@"centerStageEnabled"]) {
 #warning TODO
+            return;
+        }
+    } else if ([object isKindOfClass:AVAssetWriter.class]) {
+        auto assetWriter = static_cast<AVAssetWriter *>(object);
+        
+        if ([keyPath isEqualToString:@"status"]) {
+            [self didChangeStatusForAssetWriter:assetWriter];
+            return;
+        } else if ([keyPath isEqualToString:@"error"]) {
+            if (NSError *error = assetWriter.error) {
+                NSLog(@"%@", error);
+                abort();
+            }
             return;
         }
     }
@@ -2082,8 +2095,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
     [movieAssetWriter release];
 #warning status KVO하고 Map에서 지워주는 처리
-    
-    assetWriter.delegate = self;
+    [self registerObserversForAssetWriter:assetWriter];
     
     BOOL started = [assetWriter startWriting];
     if (!started) {
@@ -2098,6 +2110,30 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     MovieAssetWriter * _Nullable movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice];
     if (movieAssetWriter == nil) return nil;
     return movieAssetWriter.assetWriter;
+}
+
+- (void)registerObserversForAssetWriter:(AVAssetWriter *)assetWriter {
+    [assetWriter addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nullptr];
+    [assetWriter addObserver:self forKeyPath:@"error" options:NSKeyValueObservingOptionNew context:nullptr];
+}
+
+- (void)unregisterObserversForAssetWriter:(AVAssetWriter *)assetWriter {
+    [assetWriter removeObserver:self forKeyPath:@"status"];
+    [assetWriter removeObserver:self forKeyPath:@"error"];
+}
+
+- (void)didChangeStatusForAssetWriter:(AVAssetWriter *)assetWriter {
+    switch (assetWriter.status) {
+        case AVAssetWriterStatusCompleted:
+            NSLog(@"%@", assetWriter.outputURL);
+            // fallthough
+        case AVAssetWriterStatusFailed:
+        case AVAssetWriterStatusCancelled:
+            [self unregisterObserversForAssetWriter:assetWriter];
+            break;
+        default:
+            break;
+    }
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
@@ -2987,6 +3023,38 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (void)queue_handleVideoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
 #warning Intrinsic
     dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSSet<AVCaptureDevice *> *videoDevices = [self queue_videoCaptureDevicesFromOutput:videoDataOutput];
+    assert(videoDevices.count == 1);
+    AVCaptureDevice *videoDevice = videoDevices.allObjects[0];
+    
+    if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
+        AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
+        
+        if (assetWriter.status == AVAssetWriterStatusWriting) {
+            static BOOL ff = NO;
+            if (!ff) {
+                [assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
+                ff = YES;
+            }
+            
+            if (movieAssetWriter.videoPixelBufferAdaptor.assetWriterInput.isReadyForMoreMediaData) {
+                CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+                if (imageBuffer != nullptr) {
+                    BOOL success = [movieAssetWriter.videoPixelBufferAdaptor appendPixelBuffer:imageBuffer withPresentationTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
+                    if (!success) {
+                        NSLog(@"%@", assetWriter.error);
+                        abort();
+                    }
+                }
+            }
+        }
+    }
+}
+
+- (void)queue_handleAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
+#warning 파형 그려보기
+    dispatch_assert_queue(self.captureSessionQueue);
 }
 
 
@@ -3202,7 +3270,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
         [self queue_handleVideoDataOutput:static_cast<AVCaptureVideoDataOutput *>(output) didOutputSampleBuffer:sampleBuffer];
     } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-#warning TODO - Syncrhonize
+        [self queue_handleAudioDataOutput:static_cast<AVCaptureAudioDataOutput *>(output) didOutputSampleBuffer:sampleBuffer];
     } else {
         abort();
     }
@@ -3332,11 +3400,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(videoDataOutput != nil);
     assert(metadataOutput != nil);
     
-    auto _Nullable synchronizedSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:videoDataOutput]);
+    auto _Nullable synchronizedVideoSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:videoDataOutput]);
     auto _Nullable synchronizedMetadataObjectData = static_cast<AVCaptureSynchronizedMetadataObjectData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:metadataOutput]);
     
-    if (synchronizedSampleBufferData != nil) {
-        [self queue_handleVideoDataOutput:videoDataOutput didOutputSampleBuffer:synchronizedSampleBufferData.sampleBuffer];
+    if (synchronizedVideoSampleBufferData != nil) {
+        [self queue_handleVideoDataOutput:videoDataOutput didOutputSampleBuffer:synchronizedVideoSampleBufferData.sampleBuffer];
     }
     
     if (synchronizedMetadataObjectData != nil) {
@@ -3344,18 +3412,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
     
     if (audioDataOutput != nil) {
-        NSLog(@"%@", [synchronizedDataCollection synchronizedDataForCaptureOutput:audioDataOutput]);
+        auto _Nullable synchronizedAudioSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:audioDataOutput]);
+        
+        if (synchronizedAudioSampleBufferData != nil) {
+            [self queue_handleAudioDataOutput:audioDataOutput didOutputSampleBuffer:synchronizedAudioSampleBufferData.sampleBuffer];
+        }
     }
-}
-
-#pragma AVAssetWriterDelegate
-
-- (void)assetWriter:(AVAssetWriter *)writer didOutputSegmentData:(NSData *)segmentData segmentType:(AVAssetSegmentType)segmentType {
-    
-}
-
-- (void)assetWriter:(AVAssetWriter *)writer didOutputSegmentData:(NSData *)segmentData segmentType:(AVAssetSegmentType)segmentType segmentReport:(AVAssetSegmentReport *)segmentReport {
-    
 }
 
 @end
