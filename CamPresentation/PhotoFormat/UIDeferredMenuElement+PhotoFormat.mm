@@ -3699,7 +3699,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     } else {
         UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
+                dispatch_suspend(captureService.captureSessionQueue);
+                
                 [assetWriter finishWritingWithCompletionHandler:^{
+                    dispatch_resume(captureService.captureSessionQueue);
                     if (didChangeHandler) didChangeHandler();
                 }];
             });
