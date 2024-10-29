@@ -16,6 +16,7 @@
 #import <CamPresentation/PixelBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
+#import <CamPresentation/MovieAssetWriter.h>
 #import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
@@ -47,7 +48,7 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate, AVAssetWriterDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -59,6 +60,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *queue_movieAssetWritersByVideoDevice;
 
 @property (retain, nonatomic, readonly) NSMutableSet<AVCaptureDataOutputSynchronizer *> *queue_dataOutputSynchronizers;
 
@@ -115,6 +117,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *movieAssetWritersByVideoDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMutableSet<AVCaptureDataOutputSynchronizer *> *dataOutputSynchronizers = [NSMutableSet new];
@@ -145,6 +148,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
+        _queue_movieAssetWritersByVideoDevice = [movieAssetWritersByVideoDevice retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
         _queue_dataOutputSynchronizers = dataOutputSynchronizers;
@@ -203,6 +207,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
+    [_queue_movieAssetWritersByVideoDevice release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
     [_queue_dataOutputSynchronizers release];
@@ -2044,6 +2049,57 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
 }
 
+- (AVAssetWriter *)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self queue_recordingAssetWriterWithVideoDevice:videoDevice] == nil);
+    
+    AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
+    assert(videoDataOutput != nil);
+    
+    AVCaptureDevice * _Nullable audioDevice = nil;
+    for (AVCaptureDevice *_audioDevice in self.queue_addedAudioCaptureDevices) {
+        if ([self queue_isAudioDeviceConnected:_audioDevice forAssetWriterVideoDevice:videoDevice]) {
+            assert(audioDevice == nil); // debug
+            audioDevice = _audioDevice;
+        }
+    }
+    
+    AVCaptureAudioDataOutput * _Nullable audioDataOutput = nil;
+    if (audioDevice != nil) {
+        audioDataOutput = [self queue_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
+        assert(audioDataOutput != nil);
+    }
+    
+#warning Configure Codec, File Type
+#warning Metadata
+    MovieAssetWriter *movieAssetWriter = [[MovieAssetWriter alloc] initWithFileOutput:self.queue_fileOutput
+                                                                  videoOutputSettings:[videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie]
+                                                                  audioOutputSettings:[audioDataOutput recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie]
+                                                               metadataOutputSettings:nil];
+    
+    [self.queue_movieAssetWritersByVideoDevice setObject:movieAssetWriter forKey:videoDevice];
+    
+    AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
+    [movieAssetWriter release];
+#warning status KVO하고 Map에서 지워주는 처리
+    
+    assetWriter.delegate = self;
+    
+    BOOL started = [assetWriter startWriting];
+    if (!started) {
+        NSLog(@"%@", assetWriter.error);
+        abort();
+    }
+    
+    return assetWriter;
+}
+
+- (AVAssetWriter *)queue_recordingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
+    MovieAssetWriter * _Nullable movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice];
+    if (movieAssetWriter == nil) return nil;
+    return movieAssetWriter.assetWriter;
+}
+
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
     auto captureDevice = static_cast<AVCaptureDevice * _Nullable>(notification.object);
     if (captureDevice == nil) return;
@@ -3290,6 +3346,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (audioDataOutput != nil) {
         NSLog(@"%@", [synchronizedDataCollection synchronizedDataForCaptureOutput:audioDataOutput]);
     }
+}
+
+#pragma AVAssetWriterDelegate
+
+- (void)assetWriter:(AVAssetWriter *)writer didOutputSegmentData:(NSData *)segmentData segmentType:(AVAssetSegmentType)segmentType {
+    
+}
+
+- (void)assetWriter:(AVAssetWriter *)writer didOutputSegmentData:(NSData *)segmentData segmentType:(AVAssetSegmentType)segmentType segmentReport:(AVAssetSegmentReport *)segmentReport {
+    
 }
 
 @end

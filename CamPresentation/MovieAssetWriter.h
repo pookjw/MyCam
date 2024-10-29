@@ -10,11 +10,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#warning TODO https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
+
 @interface MovieAssetWriter : NSObject
 @property (retain, nonatomic, readonly) AVAssetWriter *assetWriter;
+@property (retain, nonatomic, readonly) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
+@property (retain, nonatomic, readonly, nullable) AVAssetWriterInput *audioWriterInput;
+@property (retain, nonatomic, readonly, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput;
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoOutputSettings:(NSDictionary<NSString *, id> *)videoOutputSettings audioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings;
 @end
 
 NS_ASSUME_NONNULL_END

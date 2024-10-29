@@ -3634,7 +3634,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 + (UIMenu * _Nonnull)_cp_queue_assetWriterMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Asset Writer" children:@[
-        [UIDeferredMenuElement _cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
@@ -3680,6 +3681,32 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     menu.subtitle = connectedAudioDevice.localizedName;
     
     return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVAssetWriter * _Nullable assetWriter = [captureService queue_recordingAssetWriterWithVideoDevice:videoDevice];
+    
+#warning Pause Recording
+    if (assetWriter == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"Start Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_startRecordingUsingAssetWriterWithVideoDevice:videoDevice];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        return action;
+    } else {
+        UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [assetWriter finishWritingWithCompletionHandler:^{
+                    if (didChangeHandler) didChangeHandler();
+                }];
+            });
+        }];
+        
+        return action;
+    }
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

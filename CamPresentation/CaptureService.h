@@ -84,6 +84,8 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 
 - (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVAssetWriter *)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)captureDevice;
+- (AVAssetWriter * _Nullable)queue_recordingAssetWriterWithVideoDevice:(AVCaptureDevice *)captureDevice;
 @end
 
 NS_ASSUME_NONNULL_END
