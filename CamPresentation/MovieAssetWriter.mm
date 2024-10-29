@@ -36,6 +36,7 @@
         }
         
         assert(url != nil);
+        NSLog(@"%@", url);
         
         AVAssetWriter *assetWriter = [[AVAssetWriter alloc] initWithURL:url fileType:AVFileTypeQuickTimeMovie error:&error];
         assert(error == nil);
