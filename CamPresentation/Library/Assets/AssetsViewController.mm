@@ -85,4 +85,8 @@
     return [dataSource autorelease];
 }
 
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    NSLog(@"TODO");
+}
+
 @end
