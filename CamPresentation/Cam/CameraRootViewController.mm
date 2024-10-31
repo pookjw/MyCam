@@ -149,6 +149,9 @@
     
 #if !TARGET_OS_TV
     [self.navigationController setToolbarHidden:YES animated:YES];
+    
+    // 이거 안해주면 UIBarButtonItem이 계속 살아 있음. -[UIViewController setToolbarItems:]도 소용 없음
+    self.navigationController.toolbar.items = @[];
 #endif
 }
 
