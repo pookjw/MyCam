@@ -18,9 +18,10 @@
 
 @implementation MovieAssetWriter
 
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoOutputSettings:(NSDictionary<NSString *, id> *)videoOutputSettings audioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings locationHandler:(CLLocation * _Nullable (^)(void))locationHandler {
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoOutputSettings:(NSDictionary<NSString *, id> *)videoOutputSettings audioOutputSettings:(NSDictionary<NSString *, id> *)audioOutputSettings metadataOutputSettings:(NSDictionary<NSString *, id> *)metadataOutputSettings videoSourceFormatHint:(nullable CMVideoFormatDescriptionRef)videoSourceFormatHint audioSourceFormatHint:(nullable CMAudioFormatDescriptionRef)audioSourceFormatHint metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint locationHandler:(CLLocation * _Nullable (^)(void))locationHandler {
     if (self = [super init]) {
         _fileOutput = [fileOutput retain];
+        _locationHandler = [locationHandler copy];
         
         NSError * _Nullable error = nil;
         
@@ -48,52 +49,40 @@
         
         //
         
-        NSMutableArray<AVAssetWriterInput *> *inputs = [NSMutableArray new];
-        
-        AVAssetWriterInput *videoPixelBufferInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoOutputSettings sourceFormatHint:nil];
+        AVAssetWriterInput *videoPixelBufferInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoOutputSettings sourceFormatHint:videoSourceFormatHint];
         videoPixelBufferInput.expectsMediaDataInRealTime = YES;
         assert([assetWriter canAddInput:videoPixelBufferInput]);
         [assetWriter addInput:videoPixelBufferInput];
-        [inputs addObject:videoPixelBufferInput];
         
         AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:videoPixelBufferInput sourcePixelBufferAttributes:nil];
         _videoPixelBufferAdaptor = videoPixelBufferAdaptor;
         
         //
         
-        if (audioOutputSettings != nil) {
-            AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:nil];
-            audioWriterInput.expectsMediaDataInRealTime = YES;
-            assert([assetWriter canAddInput:audioWriterInput]);
-            [assetWriter addInput:audioWriterInput];
-            [inputs addObject:audioWriterInput];
-            _audioWriterInput = audioWriterInput;
-        }
+        AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:audioSourceFormatHint];
+        audioWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:audioWriterInput]);
+        [assetWriter addInput:audioWriterInput];
+        _audioWriterInput = audioWriterInput;
         
-        if (metadataOutputSettings != nil) {
-            AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:metadataOutputSettings sourceFormatHint:nil];
-            metadataWriterInput.expectsMediaDataInRealTime = YES;
-            assert([assetWriter canAddInput:metadataWriterInput]);
-            [assetWriter addInput:metadataWriterInput];
-            [inputs addObject:metadataWriterInput];
-            
-            AVAssetWriterInputMetadataAdaptor *metadataAdaptor = [[AVAssetWriterInputMetadataAdaptor alloc] initWithAssetWriterInput:metadataWriterInput];
-            [metadataWriterInput release];
-            
-            _metadataAdaptor = metadataAdaptor;
-        }
+        AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:metadataOutputSettings sourceFormatHint:metadataSourceFormatHint];
+        metadataWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:metadataWriterInput]);
+        [assetWriter addInput:metadataWriterInput];
+        
+        AVAssetWriterInputMetadataAdaptor *metadataAdaptor = [[AVAssetWriterInputMetadataAdaptor alloc] initWithAssetWriterInput:metadataWriterInput];
+        
+        _metadataAdaptor = metadataAdaptor;
         
         //
         
-//        AVAssetWriterInputGroup *inputGroup = [[AVAssetWriterInputGroup alloc] initWithInputs:inputs defaultInput:videoPixelBufferInput];
-//        [inputs release];
-//        [videoPixelBufferInput release];
-//        
-//        assert([assetWriter canAddInputGroup:inputGroup]);
-//        [assetWriter addInputGroup:inputGroup];
-//        [inputGroup release];
+        AVAssetWriterInputGroup *inputGroup = [[AVAssetWriterInputGroup alloc] initWithInputs:@[videoPixelBufferInput, audioWriterInput, metadataWriterInput] defaultInput:videoPixelBufferInput];
+        [videoPixelBufferInput release];
+        [metadataWriterInput release];
         
-        _locationHandler = [locationHandler copy];
+        assert([assetWriter canAddInputGroup:inputGroup]);
+        [assetWriter addInputGroup:inputGroup];
+        [inputGroup release];
     }
     
     return self;

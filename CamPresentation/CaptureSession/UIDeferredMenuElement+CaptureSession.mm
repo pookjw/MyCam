@@ -19,9 +19,13 @@
             
             UIAction *toggleConfiguresApplicationAudioSessionToMixWithOthersAction = [UIDeferredMenuElement _cp_queue_toggleConfiguresApplicationAudioSessionToMixWithOthersActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
             UIMenu *sessionPresetsMenu = [UIDeferredMenuElement _cp_queue_sessionPresetsMenuWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
+            UIAction *toggleUsesApplicationAudioSessionAction = [UIDeferredMenuElement _cp_queue_toggleUsesApplicationAudioSessionActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
+            UIAction *toggleAutomaticallyConfiguresApplicationAudioSessionAction = [UIDeferredMenuElement _cp_queue_toggleAutomaticallyConfiguresApplicationAudioSessionActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
             UIAction *toggleMultitaskingCameraAccessEnabledAction = [UIDeferredMenuElement _cp_queue_toggleMultitaskingCameraAccessEnabledActionWithCaptureService:captureService captureSession:captureSession didChangeHandler:didChangeHandler];
             
             NSArray<__kindof UIMenuElement *> *children = @[
+                toggleUsesApplicationAudioSessionAction,
+                toggleAutomaticallyConfiguresApplicationAudioSessionAction,
                 toggleConfiguresApplicationAudioSessionToMixWithOthersAction,
                 sessionPresetsMenu,
                 toggleMultitaskingCameraAccessEnabledAction
@@ -93,6 +97,38 @@
     
     action.state = isMultitaskingCameraAccessEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     action.attributes = captureSession.isMultitaskingCameraAccessSupported ? 0 : UIMenuElementAttributesDisabled;
+    
+    return action;
+}
+
++ (UIAction *)_cp_queue_toggleUsesApplicationAudioSessionActionWithCaptureService:(CaptureService *)captureService captureSession:(AVCaptureSession *)captureSession didChangeHandler:(void (^)())didChangeHandler {
+    BOOL usesApplicationAudioSession = captureSession.usesApplicationAudioSession;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Uses Application Audio Session" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            captureSession.usesApplicationAudioSession = !usesApplicationAudioSession;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = usesApplicationAudioSession ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIAction *)_cp_queue_toggleAutomaticallyConfiguresApplicationAudioSessionActionWithCaptureService:(CaptureService *)captureService captureSession:(AVCaptureSession *)captureSession didChangeHandler:(void (^)())didChangeHandler {
+    BOOL usesApplicationAudioSession = captureSession.usesApplicationAudioSession;
+    BOOL automaticallyConfiguresApplicationAudioSession = captureSession.automaticallyConfiguresApplicationAudioSession;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Automatically Configures Application Audio Session" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            captureSession.automaticallyConfiguresApplicationAudioSession = !automaticallyConfiguresApplicationAudioSession;
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = automaticallyConfiguresApplicationAudioSession ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = usesApplicationAudioSession ? 0 : UIMenuElementAttributesDisabled;
     
     return action;
 }
