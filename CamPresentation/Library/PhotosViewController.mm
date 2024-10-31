@@ -6,6 +6,7 @@
 //
 
 #import <CamPresentation/PhotosViewController.h>
+#import <CamPresentation/AssetsViewController.h>
 
 @interface PhotosViewController ()
 
@@ -16,16 +17,20 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.systemGreenColor;
+    
+    UIBarButtonItem *fooBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"ladybug.fill"] style:UIBarButtonItemStylePlain target:self action:@selector(foo:)];
+    self.navigationItem.rightBarButtonItem = fooBarButtonItem;
+    [fooBarButtonItem release];
+    
+    [self foo:nil];
 }
 
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
+- (void)foo:(UIBarButtonItem *)sender {
+    PHFetchResult<PHAssetCollection *> *fetchResult = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeAny options:nil];
+    AssetsViewController *assetsViewController = [AssetsViewController new];
+    [self.navigationController pushViewController:assetsViewController animated:YES];
+    assetsViewController.collection = fetchResult[0];
+    [assetsViewController release];
 }
-*/
 
 @end

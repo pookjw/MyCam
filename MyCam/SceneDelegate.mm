@@ -29,8 +29,6 @@
     //
     
 #if !TARGET_OS_TV
-    [navigationController setToolbarHidden:NO animated:NO];
-    
     UIToolbarAppearance *toolbarAppearance = [UIToolbarAppearance new];
 //    toolbarAppearance.backgroundEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterialDark];
     UIToolbar *toolbar = navigationController.toolbar;

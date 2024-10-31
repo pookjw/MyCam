@@ -136,30 +136,20 @@
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-- (void)viewIsAppearing:(BOOL)animated {
-    [super viewIsAppearing:animated];
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
     
-    AuthorizationsService *authorizationsService = [AuthorizationsService new];
+#if !TARGET_OS_TV
+    [self.navigationController setToolbarHidden:NO animated:YES];
+#endif
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
     
-    [authorizationsService requestAuthorizationsWithCompletionHandler:^(BOOL authorized) {
-        if (authorized) {
-            CaptureService *captureService = self.captureService;
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
-                    [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
-                }
-            });
-        } else {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.view.window.windowScene openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:nil completionHandler:^(BOOL success) {
-                    exit(EXIT_FAILURE);
-                }];
-            });
-        }
-    }];
-    
-    [authorizationsService release];
+#if !TARGET_OS_TV
+    [self.navigationController setToolbarHidden:YES animated:YES];
+#endif
 }
 
 - (void)viewDidLoad {
@@ -233,6 +223,30 @@
         self.captureDevicesBarButtonItem
     ]];
 #endif
+    
+    //
+    
+    AuthorizationsService *authorizationsService = [AuthorizationsService new];
+    
+    [authorizationsService requestAuthorizationsWithCompletionHandler:^(BOOL authorized) {
+        if (authorized) {
+            CaptureService *captureService = self.captureService;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
+                    [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
+                }
+            });
+        } else {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.view.window.windowScene openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:nil completionHandler:^(BOOL success) {
+                    exit(EXIT_FAILURE);
+                }];
+            });
+        }
+    }];
+    
+    [authorizationsService release];
 }
 
 - (UIStackView *)stackView {
