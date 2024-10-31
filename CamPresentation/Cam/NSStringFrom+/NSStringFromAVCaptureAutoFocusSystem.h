@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 CP_EXTERN NSString * NSStringFromAVCaptureAutoFocusSystem(AVCaptureAutoFocusSystem focusSystem);
 
 NS_ASSUME_NONNULL_END

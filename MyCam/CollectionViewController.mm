@@ -7,6 +7,7 @@
 
 #import "CollectionViewController.h"
 #import <CamPresentation/CamPresentation.h>
+#import <TargetConditionals.h>
 
 @interface CollectionViewController ()
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
@@ -18,7 +19,9 @@
 
 + (NSArray<Class> *)viewControllerClasses {
     return @[
+#if !TARGET_OS_VISION
         CameraRootViewController.class,
+#endif
         PhotosViewController.class
     ];
 }

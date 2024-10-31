@@ -9,6 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface AVCaptureSession (CP_Private)
 @property (retain, nonatomic, readonly) id cp_controlsOverlay;
 @end

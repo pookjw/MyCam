@@ -9,6 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface AVCaptureDevice (ValidWhiteBalanceGains)
 - (BOOL)cp_isValidWhiteBalanceGains:(AVCaptureWhiteBalanceGains)gains;
 @end

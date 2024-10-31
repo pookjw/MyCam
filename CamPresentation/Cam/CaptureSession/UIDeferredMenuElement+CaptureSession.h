@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface UIDeferredMenuElement (CaptureSession)
 + (instancetype)cp_captureSessionConfigurationElementWithCaptureService:(CaptureService *)captureService didChangeHandler:(void (^ _Nullable)())didChangeHandler;
 @end

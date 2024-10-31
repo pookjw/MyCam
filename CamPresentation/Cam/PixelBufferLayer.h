@@ -11,6 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface PixelBufferLayer : CALayer
 - (void)updateWithCIImage:(CIImage * _Nullable)ciImage rotationAngle:(float)rotationAngle fill:(BOOL)fill;
 - (void)updateWithCIImage:(CIImage * _Nullable)ciImage fill:(BOOL)fill;

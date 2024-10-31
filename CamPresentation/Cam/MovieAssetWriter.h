@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 #warning TODO https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
 
+API_UNAVAILABLE(visionos)
 @interface MovieAssetWriter : NSObject
 @property (retain, nonatomic, readonly) AVAssetWriter *assetWriter;
 @property (retain, nonatomic, readonly) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;

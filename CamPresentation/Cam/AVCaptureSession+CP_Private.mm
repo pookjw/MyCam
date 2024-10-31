@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/AVCaptureSession+CP_Private.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -22,3 +26,5 @@
 }
 
 @end
+
+#endif

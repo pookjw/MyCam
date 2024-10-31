@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface PhotoLibraryFileOutput : BaseFileOutput
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 - (instancetype)initWithPhotoLibrary:(PHPhotoLibrary *)photoLibrary;

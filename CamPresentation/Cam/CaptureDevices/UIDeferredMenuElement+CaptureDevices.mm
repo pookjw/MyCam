@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
@@ -224,3 +228,5 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 @end
+
+#endif

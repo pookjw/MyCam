@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface FocusRectLayer : CALayer
 + (instancetype)layer NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;

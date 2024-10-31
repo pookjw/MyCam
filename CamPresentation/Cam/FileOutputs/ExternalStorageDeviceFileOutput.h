@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface ExternalStorageDeviceFileOutput : BaseFileOutput
 @property (retain, nonatomic, readonly) AVExternalStorageDevice *externalStorageDevice;
 - (instancetype)initWithExternalStorageDevice:(AVExternalStorageDevice *)externalStorageDevice;

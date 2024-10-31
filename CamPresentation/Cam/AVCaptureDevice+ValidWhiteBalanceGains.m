@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/AVCaptureDevice+ValidWhiteBalanceGains.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 @implementation AVCaptureDevice (ValidWhiteBalanceGains)
 
@@ -20,3 +23,5 @@
 }
 
 @end
+
+#endif

@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/PointCloudPreviewView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 @implementation PointCloudPreviewView
 
@@ -35,3 +38,5 @@
 }
 
 @end
+
+#endif

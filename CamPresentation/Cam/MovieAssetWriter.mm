@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/MovieAssetWriter.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/NSURL+CP.h>
@@ -147,3 +151,5 @@
 }
 
 @end
+
+#endif

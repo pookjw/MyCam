@@ -9,6 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface PhotoFormatModel : NSObject <NSCopying, NSMutableCopying> {
     @package NSNumber *_photoPixelFormatType;
     @package AVVideoCodecType _codecType;
@@ -43,6 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 
+API_UNAVAILABLE(visionos)
 @interface MutablePhotoFormatModel : PhotoFormatModel
 @property (copy, nonatomic, nullable) NSNumber *photoPixelFormatType;
 @property (copy, nonatomic, nullable) AVVideoCodecType codecType;

@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureVideoPreviewView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/ExposureRectLayer.h>
@@ -723,3 +727,5 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 }
 
 @end
+
+#endif

@@ -12,6 +12,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface UIDeferredMenuElement (FileOutputs)
 + (instancetype)cp_fileOutputsElementWithCaptureService:(CaptureService *)captureService;
 @end

@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/FocusRectLayer.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/SVRunLoop.hpp>
 
 @interface FocusRectLayer ()
@@ -114,3 +118,5 @@
 }
 
 @end
+
+#endif

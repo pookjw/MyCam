@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/NSStringFromAVCaptureAutoFocusRangeRestriction.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 NSString * NSStringFromAVCaptureAutoFocusRangeRestriction(AVCaptureAutoFocusRangeRestriction autoFocusRangeRestriction) {
     switch (autoFocusRangeRestriction) {
@@ -19,3 +22,5 @@ NSString * NSStringFromAVCaptureAutoFocusRangeRestriction(AVCaptureAutoFocusRang
             abort();
     }
 }
+
+#endif

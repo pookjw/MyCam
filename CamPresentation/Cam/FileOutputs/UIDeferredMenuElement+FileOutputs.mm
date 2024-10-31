@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <objc/message.h>
 
 #warning +[AVExternalStorageDevice requestAccessWithCompletionHandler:]
@@ -84,3 +88,5 @@
 }
 
 @end
+
+#endif

@@ -29,7 +29,7 @@
     PHFetchResult<PHAssetCollection *> *fetchResult = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeAny options:nil];
     AssetsViewController *assetsViewController = [AssetsViewController new];
     [self.navigationController pushViewController:assetsViewController animated:YES];
-    assetsViewController.collection = fetchResult[0];
+    assetsViewController.collection = fetchResult.firstObject;
     [assetsViewController release];
 }
 

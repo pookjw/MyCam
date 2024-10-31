@@ -30,7 +30,7 @@
 
 @implementation UIDeferredMenuElement (Audio)
 
-+ (instancetype)cp_audioElementWithCaptureService:(CaptureService *)captureService didChangeHandler:(void (^ _Nullable)())didChangeHandler {
++ (instancetype)cp_audioElementWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(dispatch_get_global_queue(0, 0), ^{
             // auxiliarySession primarySession
@@ -44,11 +44,19 @@
             __kindof UIMenuElement *preferredInputElement = [UIDeferredMenuElement _cp_setPreferredInputElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *inputDataSourcesMenu = [UIDeferredMenuElement _cp_inputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *outputDataSourcesMenu = [UIDeferredMenuElement _cp_outputDataSourcesMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            
+#if !TARGET_OS_VISION
             __kindof UIMenuElement *routePickerViewElement = [UIDeferredMenuElement _cp_routePickerViewElement];
+#endif
+            
             UIAction *routePickerAction = [UIDeferredMenuElement _cp_routePickerAction];
             __kindof UIMenuElement *audioSessionInfoViewElement = [UIDeferredMenuElement _cp_infoViewElementWithAudioSession:audioSession];
             UIAction *allowHapticsAndSystemSoundsDuringRecordingAction = [UIDeferredMenuElement _cp_allowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            
+#if !TARGET_OS_VISION
             UIAction *generateImpactFeecbackAction = [UIDeferredMenuElement _cp_generateImpactFeecbackAction];
+#endif
+            
             UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_prepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *setPrefersNoInterruptionsFromSystemAlertsAction = [UIDeferredMenuElement _cp_setPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *setPrefersInterruptionOnRouteDisconnectAction = [UIDeferredMenuElement _cp_setPrefersInterruptionOnRouteDisconnectActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
@@ -72,11 +80,15 @@
                 preferredInputElement,
                 inputDataSourcesMenu,
                 outputDataSourcesMenu,
+#if !TARGET_OS_VISION
                 routePickerViewElement,
+#endif
                 routePickerAction,
                 audioSessionInfoViewElement,
                 allowHapticsAndSystemSoundsDuringRecordingAction,
+#if !TARGET_OS_VISION
                 generateImpactFeecbackAction,
+#endif
                 prepareRouteSelectionForPlaybackAction,
                 setPrefersNoInterruptionsFromSystemAlertsAction,
                 setPrefersInterruptionOnRouteDisconnectAction,
@@ -381,6 +393,8 @@
     return menu;
 }
 
+#if !TARGET_OS_VISION
+
 + (__kindof UIMenuElement * _Nonnull)_cp_routePickerViewElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         AVRoutePickerView *view = [AVRoutePickerView new];
@@ -391,6 +405,7 @@
     
     return element;
 }
+#endif
 
 + (UIAction * _Nonnull)_cp_routePickerAction {
     UIAction *action = [UIAction actionWithTitle:@"Present Route Picker" image:[UIImage systemImageNamed:@"airplay.audio"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -444,6 +459,7 @@
     return action;
 }
 
+#if !TARGET_OS_VISION
 + (UIAction * _Nonnull)_cp_generateImpactFeecbackAction {
     UIAction *action = [UIAction actionWithTitle:@"Impact Feedback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         auto barButtonItem = static_cast<UIBarButtonItem *>(action.sender);
@@ -457,6 +473,7 @@
     
     return action;
 }
+#endif
 
 + (UIAction * _Nonnull)_cp_prepareRouteSelectionForPlaybackActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIAction *action = [UIAction actionWithTitle:@"Prepare Route Selection For Playback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {

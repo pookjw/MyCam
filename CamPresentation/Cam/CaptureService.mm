@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureService.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/AVCaptureSession+CP_Private.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -3527,3 +3531,5 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 @end
+
+#endif

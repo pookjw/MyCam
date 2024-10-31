@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/BaseFileOutput.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/BaseFileOutput+Private.h>
 
 @implementation BaseFileOutput
@@ -19,3 +23,5 @@
 }
 
 @end
+
+#endif

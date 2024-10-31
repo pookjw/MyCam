@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/MetadataObjectsLayer.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/SVRunLoop.hpp>
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
@@ -156,3 +160,5 @@
 }
 
 @end
+
+#endif

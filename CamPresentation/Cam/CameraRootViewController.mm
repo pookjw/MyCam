@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CameraRootViewController.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PointCloudPreviewView.h>
@@ -21,8 +25,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <CamPresentation/AuthorizationsService.h>
 #import <objc/message.h>
-#import <objc/runtime.h>
-#import <TargetConditionals.h>
+#import <objc/runtime.h>=
 
 #warning AVCaptureDeviceSubjectAreaDidChangeNotification, +[AVCaptureDevice cinematicFramingControlMode], Memory Leak Test, exposureMode
 
@@ -335,7 +338,7 @@
     if (auto audioBarButtonItem = _audioBarButtonItem) return audioBarButtonItem;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_audioElementWithCaptureService:self.captureService didChangeHandler:nil]
+        [UIDeferredMenuElement cp_audioElementWithDidChangeHandler:nil]
     ]];
     
     UIBarButtonItem *audioBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"music.note"] menu:menu];
@@ -606,3 +609,5 @@
 #endif
 
 @end
+
+#endif

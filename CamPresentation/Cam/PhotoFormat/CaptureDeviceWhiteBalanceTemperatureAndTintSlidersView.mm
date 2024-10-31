@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/AVCaptureDevice+ValidWhiteBalanceGains.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -206,3 +210,5 @@
 }
 
 @end
+
+#endif

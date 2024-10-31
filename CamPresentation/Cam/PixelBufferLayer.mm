@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/PixelBufferLayer.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CoreImage/CoreImage.h>
 #import <CamPresentation/lock_private.h>
 #import <AVFoundation/AVFoundation.h>
@@ -159,3 +163,5 @@
 }
 
 @end
+
+#endif

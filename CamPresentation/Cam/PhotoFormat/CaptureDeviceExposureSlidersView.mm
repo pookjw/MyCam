@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureDeviceExposureSlidersView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 
 #warning TODO whitebalence (AVCaptureExposureDurationCurrent 같은 것들 모아보기)
@@ -422,3 +426,5 @@
 }
 
 @end
+
+#endif

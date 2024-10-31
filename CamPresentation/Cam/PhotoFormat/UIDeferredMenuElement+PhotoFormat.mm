@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CamPresentation/NSStringFromCMVideoDimensions.h>
 #import <CamPresentation/NSStringFromAVCapturePhotoQualityPrioritization.h>
@@ -29,7 +33,6 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
-#import <TargetConditionals.h>
 #include <vector>
 #include <ranges>
 
@@ -3766,3 +3769,5 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 
 @end
+
+#endif

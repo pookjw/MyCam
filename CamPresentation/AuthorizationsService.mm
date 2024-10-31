@@ -10,26 +10,36 @@
 #import <Photos/Photos.h>
 #import <CoreLocation/CoreLocation.h>
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
 
 @interface AuthorizationsService () <CLLocationManagerDelegate>
+#if !TARGET_OS_VISION
 @property (retain, nonatomic, readonly) CLLocationManager *locationManager;
 @property (class, nonatomic, readonly) void *didChangeAuthorizationKey;
+#endif
 @end
 
 @implementation AuthorizationsService
+#if !TARGET_OS_VISION
 @synthesize locationManager = _locationManager;
+#endif
 
+#if !TARGET_OS_VISION
 + (void *)didChangeAuthorizationKey {
     static void *key = &key;
     return key;
 }
+#endif
 
 - (void)dealloc {
+#if !TARGET_OS_VISION
     [_locationManager release];
+#endif
     [super dealloc];
 }
 
 - (void)requestAuthorizationsWithCompletionHandler:(void (^)(BOOL authorized))completionHandler {
+#if !TARGET_OS_VISION
     void (^requestLocationAuthorization)() = ^{
         dispatch_async(dispatch_get_main_queue(), ^{
             CLLocationManager *locationManager = self.locationManager;
@@ -69,6 +79,7 @@
             }
         });
     };
+#endif
     
     void (^requestRecordPermission)() = ^{
         AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
@@ -76,15 +87,23 @@
         switch (recordPermission) {
             case AVAudioApplicationRecordPermissionUndetermined:
                 [AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
+#if TARGET_OS_VISION
+                    completionHandler(granted);
+#else
                     if (granted) {
                         requestLocationAuthorization();
                     } else {
                         completionHandler(NO);
                     }
+#endif
                 }];
                 break;
             case AVAudioApplicationRecordPermissionGranted:
+#if TARGET_OS_VISION
+                completionHandler(YES);
+#else
                 requestLocationAuthorization();
+#endif
                 break;
             case AVAudioApplicationRecordPermissionDenied:
                 completionHandler(NO);
@@ -145,6 +164,7 @@
     requestCameraAuthorization();
 }
 
+#if !TARGET_OS_VISION
 - (CLLocationManager *)locationManager {
     if (auto locationManager = _locationManager) return locationManager;
     
@@ -162,5 +182,6 @@
         block(manager);
     }
 }
+#endif
 
 @end

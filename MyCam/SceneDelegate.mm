@@ -9,6 +9,11 @@
 #import "CollectionViewController.h"
 #import <TargetConditionals.h>
 
+#if !TARGET_OS_VISION
+
+
+#endif
+
 @interface SceneDelegate ()
 @end
 

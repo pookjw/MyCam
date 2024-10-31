@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureDeviceFrameRateRangeInfoView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 
 @interface CaptureDeviceFrameRateRangeInfoView ()
@@ -229,3 +233,5 @@
 #warning videoMinFrameDurationOverride
 
 @end
+
+#endif

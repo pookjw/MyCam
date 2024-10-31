@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CaptureDeviceZoomInfoView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 @interface CaptureDeviceZoomInfoView ()
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
@@ -96,3 +99,5 @@
 }
 
 @end
+
+#endif

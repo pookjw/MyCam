@@ -6,12 +6,11 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <CamPresentation/CaptureService.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface UIDeferredMenuElement (Audio)
-+ (instancetype)cp_audioElementWithCaptureService:(CaptureService *)captureService didChangeHandler:(void (^ _Nullable)())didChangeHandler;
++ (instancetype)cp_audioElementWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler;
 @end
 
 NS_ASSUME_NONNULL_END

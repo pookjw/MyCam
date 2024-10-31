@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/CaptureDeviceWhiteBalanceInfoView.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -110,3 +114,5 @@
 }
 
 @end
+
+#endif

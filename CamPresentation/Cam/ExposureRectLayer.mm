@@ -6,6 +6,10 @@
 //
 
 #import <CamPresentation/ExposureRectLayer.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/SVRunLoop.hpp>
 
 @interface ExposureRectLayer ()
@@ -117,3 +121,5 @@
 }
 
 @end
+
+#endif

@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/PhotoFormatModel.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 @implementation PhotoFormatModel
 
@@ -318,3 +321,5 @@
 }
 
 @end
+
+#endif
