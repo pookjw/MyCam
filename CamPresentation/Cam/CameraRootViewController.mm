@@ -159,6 +159,7 @@
     [super viewDidLoad];
     
     UIView *view = self.view;
+    view.backgroundColor = UIColor.systemBackgroundColor;
     
     UIStackView *stackView = self.stackView;
     stackView.translatesAutoresizingMaskIntoConstraints = NO;
