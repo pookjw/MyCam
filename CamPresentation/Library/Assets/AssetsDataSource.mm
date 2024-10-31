@@ -6,15 +6,17 @@
 //
 
 #import <CamPresentation/AssetsDataSource.h>
+#import <CamPresentation/AssetItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface AssetsDataSource () <UICollectionViewDataSource, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
+@interface AssetsDataSource () <UICollectionViewDataSource, UICollectionViewDataSourcePrefetching, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic) PHFetchResult<PHAsset *> *mainQueue_assetsFetchResult;
+@property (retain, nonatomic) NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath;
 @end
 
 @implementation AssetsDataSource
@@ -22,8 +24,10 @@
 - (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration {
     if (self = [super init]) {
         assert(collectionView.dataSource == nil);
+        assert(collectionView.prefetchDataSource == nil);
         
         collectionView.dataSource = self;
+        collectionView.prefetchDataSource = self;
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Assets Data Source Queue", attr);
@@ -36,6 +40,8 @@
         assert(photoLibrary.unavailabilityReason == nil);
         [photoLibrary registerAvailabilityObserver:self];
         _photoLibrary = [photoLibrary retain];
+        
+        _prefetchingModelsByIndexPath = [NSMutableDictionary<NSIndexPath *, AssetItemModel *> new];
     }
     
     return self;
@@ -49,6 +55,7 @@
     [_photoLibrary unregisterAvailabilityObserver:self];
     [_photoLibrary release];
     [_mainQueue_assetsFetchResult release];
+    [_prefetchingModelsByIndexPath release];
     [super dealloc];
 }
 
@@ -86,8 +93,46 @@
 }
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
-    PHAsset *asset = self.mainQueue_assetsFetchResult[indexPath.item];
-    return [collectionView dequeueConfiguredReusableCellWithRegistration:self.cellRegistration forIndexPath:indexPath item:asset];
+    AssetItemModel *model = [[self.prefetchingModelsByIndexPath[indexPath] retain] autorelease];
+    [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
+    
+    if (model == nil) {
+        PHAsset *asset = self.mainQueue_assetsFetchResult[indexPath.item];
+        model = [AssetItemModel modelWithAsset:asset];
+    }
+    
+    return [collectionView dequeueConfiguredReusableCellWithRegistration:self.cellRegistration forIndexPath:indexPath item:model];
+}
+
+- (void)collectionView:(UICollectionView *)collectionView prefetchItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
+    __kindof UICollectionViewCell * _Nullable firstVisibleCell = collectionView.visibleCells.firstObject;
+    if (firstVisibleCell == nil) return;
+    
+    PHFetchResult<PHAsset *> *assetsFetchResult = self.mainQueue_assetsFetchResult;
+    CGSize targetSize = firstVisibleCell.bounds.size;
+    CGFloat displayScale = firstVisibleCell.traitCollection.displayScale;
+    targetSize.width *= displayScale;
+    targetSize.height *= displayScale;
+    
+    NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    
+    for (NSIndexPath *indexPath in indexPaths) {
+        assert(prefetchingModelsByIndexPath[indexPath] == nil);
+        
+        AssetItemModel *model = [AssetItemModel prefetchingModelWithWithAsset:assetsFetchResult[indexPath.item] targetSize:targetSize];
+        prefetchingModelsByIndexPath[indexPath] = model;
+    }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView cancelPrefetchingForItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
+    NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    
+    for (NSIndexPath *indexPath in indexPaths) {
+        AssetItemModel *model = prefetchingModelsByIndexPath[indexPath];
+        assert(model != nil);
+        [model cancelPrefetchingRequest];
+        [prefetchingModelsByIndexPath removeObjectForKey:indexPath];
+    }
 }
 
 - (void)photoLibraryDidBecomeUnavailable:(PHPhotoLibrary *)photoLibrary {

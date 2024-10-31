@@ -15,6 +15,7 @@
 @property (assign, nonatomic) PHImageRequestID requestID;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (assign, nonatomic) CGSize requestedTargetSize;
+@property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
@@ -23,6 +24,7 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         _imageManager = [PHImageManager.defaultManager retain];
+        _requestID = static_cast<PHImageRequestID>(NSNotFound);
         
         UIImageView *imageView = self.imageView;
         [self addSubview:imageView];
@@ -33,16 +35,35 @@
 }
 
 - (void)dealloc {
-    [_asset release];
+    [_model release];
     [_imageView release];
     [_imageManager release];
     [super dealloc];
 }
 
-- (void)setAsset:(PHAsset *)asset {
-    [_asset release];
-    _asset = [asset retain];
-    [self requestImage];
+- (void)setModel:(AssetItemModel *)model {
+    [_model release];
+    _model = [model retain];
+    
+    if (model.prefetchingModel) {
+        if (CGSizeEqualToSize(self.targetSize, model.targetSize)) {
+            UIImageView *imageView = self.imageView;
+            imageView.image = nil;
+            imageView.alpha = 0.;
+            
+            CGSize targetSize = model.targetSize;
+            self.requestedTargetSize = targetSize;
+            
+            self.requestID = model.requestID;
+            
+            model.resultHandler = self.resultHandler;
+        } else {
+            [model cancelPrefetchingRequest];
+            [self requestImage];
+        }
+    } else {
+        [self requestImage];
+    }
 }
 
 - (void)layoutSubviews {
@@ -75,11 +96,14 @@
 }
 
 - (void)requestImage {
-    PHAsset * _Nullable asset = self.asset;
+    PHAsset * _Nullable asset = self.model.asset;
     if (asset == nil) return;
     
     PHImageManager *imageManager = self.imageManager;
-    [imageManager cancelImageRequest:self.requestID];
+    
+    if (self.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+        [imageManager cancelImageRequest:self.requestID];
+    }
     
     UIImageView *imageView = self.imageView;
     imageView.image = nil;
@@ -104,13 +128,20 @@
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
     
-    __weak auto weakSelf = self;
-    
     self.requestID = [imageManager requestImageForAsset:asset
                                              targetSize:targetSize
                                             contentMode:PHImageContentModeAspectFill
                                                 options:options
-                                          resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                          resultHandler:self.resultHandler];
+    
+    [options release];
+}
+
+- (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
+    __weak auto weakSelf = self;
+    UIImageView *imageView = self.imageView;
+    
+    return [[^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
         dispatch_assert_queue(dispatch_get_main_queue());
         
         if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
@@ -147,9 +178,7 @@
         [UIView animateWithDuration:0.2 animations:^{
             imageView.alpha = 1.;
         }];
-    }];
-    
-    [options release];
+    } copy] autorelease];
 }
 
 @end

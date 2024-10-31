@@ -27,15 +27,15 @@
 }
 
 - (void)dealloc {
-    [_asset release];
+    [_model release];
     [super dealloc];
 }
 
-- (void)setAsset:(PHAsset *)asset {
-    [_asset release];
-    _asset = [asset retain];
+- (void)setModel:(AssetItemModel *)model {
+    [_model release];
+    _model = [model retain];
     
-    static_cast<AssetContentView *>(self.contentView).asset = asset;
+    static_cast<AssetContentView *>(self.contentView).model = model;
 }
 
 @end
