@@ -179,13 +179,14 @@
 				Audio/VolumeSlider.mm,
 				Audio/VolumeStepper.h,
 				Audio/VolumeStepper.mm,
+				AuthorizationsService.h,
+				AuthorizationsService.mm,
 				"Cam/AVCaptureDevice+ValidWhiteBalanceGains.h",
 				"Cam/AVCaptureDevice+ValidWhiteBalanceGains.m",
 				"Cam/AVCaptureSession+CP_Private.h",
 				"Cam/AVCaptureSession+CP_Private.mm",
 				Cam/CameraRootViewController.h,
 				Cam/CameraRootViewController.mm,
-				Cam/CamPresentation.h,
 				"Cam/CaptureDevices/UIDeferredMenuElement+CaptureDevices.h",
 				"Cam/CaptureDevices/UIDeferredMenuElement+CaptureDevices.mm",
 				Cam/CaptureService.h,
@@ -281,7 +282,10 @@
 				Cam/PixelBufferLayer.mm,
 				Cam/PointCloudPreviewView.h,
 				Cam/PointCloudPreviewView.mm,
+				CamPresentation.h,
 				Extern.h,
+				Library/PhotosViewController.h,
+				Library/PhotosViewController.mm,
 				lock_private.h,
 				"NSObject+Foundation_IvarDescription.h",
 				"NSObject+Foundation_IvarDescription.mm",
@@ -299,6 +303,7 @@
 				"Audio/UIDeferredMenuElement+Audio.h",
 				Audio/VolumeSlider.h,
 				Audio/VolumeStepper.h,
+				AuthorizationsService.h,
 				"Cam/AVCaptureDevice+ValidWhiteBalanceGains.h",
 				"Cam/AVCaptureSession+CP_Private.h",
 				"Cam/CaptureDevices/UIDeferredMenuElement+CaptureDevices.h",
@@ -357,7 +362,8 @@
 			);
 			publicHeaders = (
 				Cam/CameraRootViewController.h,
-				Cam/CamPresentation.h,
+				CamPresentation.h,
+				Library/PhotosViewController.h,
 			);
 			target = 4F2A41912C98148000726F2F /* CamPresentation */;
 		};

@@ -1,0 +1,166 @@
+//
+//  AuthorizationsService.mm
+//  CamPresentation
+//
+//  Created by Jinwoo Kim on 10/31/24.
+//
+
+#import <CamPresentation/AuthorizationsService.h>
+#import <AVFoundation/AVFoundation.h>
+#import <Photos/Photos.h>
+#import <CoreLocation/CoreLocation.h>
+#import <objc/runtime.h>
+
+@interface AuthorizationsService () <CLLocationManagerDelegate>
+@property (retain, nonatomic, readonly) CLLocationManager *locationManager;
+@property (class, nonatomic, readonly) void *didChangeAuthorizationKey;
+@end
+
+@implementation AuthorizationsService
+@synthesize locationManager = _locationManager;
+
++ (void *)didChangeAuthorizationKey {
+    static void *key = &key;
+    return key;
+}
+
+- (void)dealloc {
+    [_locationManager release];
+    [super dealloc];
+}
+
+- (void)requestAuthorizationsWithCompletionHandler:(void (^)(BOOL authorized))completionHandler {
+    void (^requestLocationAuthorization)() = ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            CLLocationManager *locationManager = self.locationManager;
+            
+            switch (locationManager.authorizationStatus) {
+                case kCLAuthorizationStatusNotDetermined:
+                    locationManager.delegate = self;
+                    
+                    // https://x.com/_silgen_name/status/1845680145451065794
+                    objc_setAssociatedObject(locationManager,
+                                             AuthorizationsService.didChangeAuthorizationKey,
+                                             ^(CLLocationManager *locationManager) {
+                        switch (locationManager.authorizationStatus) {
+                            case kCLAuthorizationStatusAuthorizedAlways:
+                            case kCLAuthorizationStatusAuthorizedWhenInUse:
+                                objc_setAssociatedObject(locationManager, AuthorizationsService.didChangeAuthorizationKey, nil, OBJC_ASSOCIATION_ASSIGN);
+                                completionHandler(YES);
+                                break;
+                            case kCLAuthorizationStatusNotDetermined:
+                                break;
+                            default:
+                                objc_setAssociatedObject(locationManager, AuthorizationsService.didChangeAuthorizationKey, nil, OBJC_ASSOCIATION_ASSIGN);
+                                completionHandler(NO);
+                                break;
+                        }
+                    },
+                                             static_cast<objc_AssociationPolicy>(OBJC_ASSOCIATION_COPY_NONATOMIC | (1 << 8) | (2 << 8)));
+                    [locationManager requestWhenInUseAuthorization];
+                    break;
+                case kCLAuthorizationStatusAuthorizedAlways:
+                case kCLAuthorizationStatusAuthorizedWhenInUse:
+                    completionHandler(YES);
+                    break;
+                default:
+                    completionHandler(NO);
+                    break;
+            }
+        });
+    };
+    
+    void (^requestRecordPermission)() = ^{
+        AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
+        
+        switch (recordPermission) {
+            case AVAudioApplicationRecordPermissionUndetermined:
+                [AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
+                    if (granted) {
+                        requestLocationAuthorization();
+                    } else {
+                        completionHandler(NO);
+                    }
+                }];
+                break;
+            case AVAudioApplicationRecordPermissionGranted:
+                requestLocationAuthorization();
+                break;
+            case AVAudioApplicationRecordPermissionDenied:
+                completionHandler(NO);
+                break;
+        }
+    };
+    
+    void (^requestPhotoLibraryAuthorization)() = ^{
+        switch ([PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelReadWrite]) {
+            case PHAuthorizationStatusNotDetermined:
+                [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelReadWrite handler:^(PHAuthorizationStatus status) {
+                    switch (status) {
+                        case PHAuthorizationStatusAuthorized:
+                        case PHAuthorizationStatusLimited:
+                            requestRecordPermission();
+                            break;
+                        default:
+                            completionHandler(NO);
+                            break;
+                    }
+                }];
+                break;
+            case PHAuthorizationStatusAuthorized:
+            case PHAuthorizationStatusLimited:
+                requestRecordPermission();
+                break;
+            default:
+                completionHandler(NO);
+                break;
+        }
+        
+       
+    };
+    
+    void (^requestCameraAuthorization)() = ^{
+        switch ([AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo]) {
+            case AVAuthorizationStatusAuthorized: {
+                requestPhotoLibraryAuthorization();
+                break;
+            }
+            case AVAuthorizationStatusNotDetermined: {
+                [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+                    if (!granted) {
+                        completionHandler(NO);
+                        return;
+                    }
+                    
+                    requestPhotoLibraryAuthorization();
+                }];
+                break;
+            }
+            default:
+                completionHandler(NO);
+                break;
+        }
+    };
+    
+    requestCameraAuthorization();
+}
+
+- (CLLocationManager *)locationManager {
+    if (auto locationManager = _locationManager) return locationManager;
+    
+    CLLocationManager *locationManager = [CLLocationManager new];
+    locationManager.delegate = self;
+    
+    _locationManager = [locationManager retain];
+    return [locationManager autorelease];
+}
+
+- (void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager {
+    auto block = (void (^ _Nullable)(id))(objc_getAssociatedObject(manager, AuthorizationsService.didChangeAuthorizationKey));
+    
+    if (block) {
+        block(manager);
+    }
+}
+
+@end

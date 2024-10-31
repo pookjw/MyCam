@@ -19,7 +19,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
-#import <Symbols/Symbols.h>
+#import <CamPresentation/AuthorizationsService.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
@@ -136,6 +136,32 @@
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
+- (void)viewIsAppearing:(BOOL)animated {
+    [super viewIsAppearing:animated];
+    
+    AuthorizationsService *authorizationsService = [AuthorizationsService new];
+    
+    [authorizationsService requestAuthorizationsWithCompletionHandler:^(BOOL authorized) {
+        if (authorized) {
+            CaptureService *captureService = self.captureService;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
+                    [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
+                }
+            });
+        } else {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.view.window.windowScene openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:nil completionHandler:^(BOOL success) {
+                    exit(EXIT_FAILURE);
+                }];
+            });
+        }
+    }];
+    
+    [authorizationsService release];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     
@@ -183,9 +209,9 @@
     [captureEventInteraction release];
 #endif
     
+#if TARGET_OS_TV
     UINavigationItem *navigationItem = self.navigationItem;
     
-#if TARGET_OS_TV
     navigationItem.rightBarButtonItems = @[
         self.captureProgressBarButtonItem,
         self.reactionProgressBarButtonItem,
@@ -207,14 +233,6 @@
         self.captureDevicesBarButtonItem
     ]];
 #endif
-    
-    //
-    
-    dispatch_async(captureService.captureSessionQueue, ^{
-        if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
-            [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
-        }
-    });
 }
 
 - (UIStackView *)stackView {
