@@ -3232,7 +3232,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return [UIMenu menuWithTitle:@"Zoom" children:@[
         [UIDeferredMenuElement _cp_queue_zoomSlidersElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:YES title:@"Enable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:NO title:@"Disable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:NO title:@"Disable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_quuee_minimumSizeZoomMenuWithCaptureService:captureService videoDevice:captureDevice]
     ]];
 }
 
@@ -3710,6 +3711,56 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         return action;
     }
+}
+
++ (UIMenu * _Nonnull)_cp_quuee_minimumSizeZoomMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice {
+    // https://developer.apple.com/videos/play/wwdc2021/10047?time=327
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        /*
+              b
+         ------------
+              |    /
+              |   /
+             a|  /
+              |θ/
+              |/
+         
+         a = minimumFocusDistance
+         θ = videoFieldOfView * 0.5
+         b = a * tan(θ) * 2 = 1배수 기준 초점을 맞출 수 있는 거리에서 볼 수 있는 길이
+         */
+        float dist = 2.f * videoDevice.minimumFocusDistance * tan((videoDevice.activeFormat.videoFieldOfView / 180.f) * M_PI_2);
+        
+        slider.minimumValue = dist / videoDevice.maxAvailableVideoZoomFactor; // mm
+        slider.maximumValue = dist / videoDevice.minAvailableVideoZoomFactor; // mm
+        slider.value = dist / videoDevice.videoZoomFactor;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            dispatch_async(captureService.captureSessionQueue, ^{
+                float zoomFactor = dist / value;
+                
+                NSError * _Nullable error = nil;
+                [videoDevice lockForConfiguration:&error];
+                assert(error == nil);
+                videoDevice.videoZoomFactor = zoomFactor;
+                [videoDevice unlockForConfiguration];
+            });
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        return [slider autorelease];
+    });
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Minimum Size" children:@[element]];
+    
+    return menu;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
