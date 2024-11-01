@@ -101,12 +101,13 @@
 }
 
 - (void)requestImageWithTargetSize:(CGSize)targetSize {
-    assert(self.requestID == static_cast<PHImageRequestID>(NSNotFound));
+    [self cancelRequest];
+    
     _targetSize = targetSize;
     
     PHImageRequestOptions *options = [PHImageRequestOptions new];
     options.synchronous = NO;
-    options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+    options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
     options.resizeMode = PHImageRequestOptionsResizeModeFast;
     options.networkAccessAllowed = YES;
     options.allowSecondaryDegradedImage = YES;
@@ -130,10 +131,6 @@
             
             if (auto resultHandler = unretained.resultHandler) {
                 resultHandler(result, info);
-            }
-            
-            if ([AssetItemModel didCompleteForInfo:info]) {
-                unretained->_requestID = static_cast<PHImageRequestID>(NSNotFound);
             }
         }
     }];

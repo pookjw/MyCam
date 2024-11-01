@@ -107,7 +107,7 @@
         if (unretained == nil) return;
         
         if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-            if (unretained.model.requestID != requestIDNumber.integerValue && unretained.model.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+            if (unretained.model.requestID != requestIDNumber.integerValue) {
                 NSLog(@"Request ID does not equal.");
                 return;
             }
