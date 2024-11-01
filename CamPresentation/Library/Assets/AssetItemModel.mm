@@ -19,20 +19,13 @@
 @implementation AssetItemModel
 @synthesize imageManager = _imageManager;
 
-+ (instancetype)modelWithAsset:(PHAsset *)asset {
-    AssetItemModel *model = [AssetItemModel new];
-    model->_asset = [asset retain];
-    model->_requestID = static_cast<PHImageRequestID>(NSNotFound);
-    return [model autorelease];
-}
-
-+ (instancetype)prefetchingModelWithWithAsset:(PHAsset *)asset targetSize:(CGSize)targetSize {
-    AssetItemModel *model = [AssetItemModel new];
-    model->_asset = [asset retain];
-    model->_prefetchingModel = YES;
-    model->_requestID = static_cast<PHImageRequestID>(NSNotFound);
+- (instancetype)initWithAsset:(PHAsset *)asset {
+    if (self = [super init]) {
+        _asset = [asset retain];
+        _requestID = static_cast<PHImageRequestID>(NSNotFound);
+    }
     
-    return [model autorelease];
+    return self;
 }
 
 - (void)dealloc {

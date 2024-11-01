@@ -45,17 +45,12 @@
     imageView.image = nil;
     imageView.alpha = 0.;
     
-    if (model.prefetchingModel) {
-        if (CGSizeEqualToSize(self.targetSize, model.targetSize)) {
-            model.resultHandler = self.resultHandler;
-        } else {
-            [model cancelRequest];
-            model.resultHandler = self.resultHandler;
-            [model requestImageWithTargetSize:self.targetSize];
-        }
-    } else {
+    if (CGSizeEqualToSize(self.targetSize, model.targetSize)) {
         model.resultHandler = self.resultHandler;
-        [model requestImageWithTargetSize:self.targetSize];;
+    } else {
+        [model cancelRequest];
+        model.resultHandler = self.resultHandler;
+        [model requestImageWithTargetSize:self.targetSize];
     }
 }
 

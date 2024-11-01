@@ -18,15 +18,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetItemModel : NSObject
 @property (retain, nonatomic, readonly) PHAsset *asset;
-@property (assign, nonatomic, readonly, getter=isPrefetchingModel) BOOL prefetchingModel;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (assign, nonatomic, readonly) PHImageRequestID requestID;
 @property (copy, nonatomic, nullable) void (^resultHandler)(UIImage *result, NSDictionary *info);
 
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-+ (instancetype)modelWithAsset:(PHAsset *)asset;
-+ (instancetype)prefetchingModelWithWithAsset:(PHAsset *)asset targetSize:(CGSize)targetSize;
+- (instancetype)initWithAsset:(PHAsset *)asset;
 - (void)cancelRequest;
 - (void)requestImageWithTargetSize:(CGSize)targetSize;
 @end

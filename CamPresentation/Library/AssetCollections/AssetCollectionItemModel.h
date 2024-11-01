@@ -5,7 +5,7 @@
 //  Created by Jinwoo Kim on 11/2/24.
 //
 
-#import <Foundation/Foundation.h>
+#import <Photos/Photos.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -92,15 +92,18 @@
 }
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
-    AssetItemModel *model = [[self.prefetchingModelsByIndexPath[indexPath] retain] autorelease];
+    AssetItemModel *model = [self.prefetchingModelsByIndexPath[indexPath] retain];
     [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
     
     if (model == nil) {
         PHAsset *asset = self.mainQueue_assetsFetchResult[indexPath.item];
-        model = [AssetItemModel modelWithAsset:asset];
+        model = [[AssetItemModel alloc] initWithAsset:asset];
     }
     
-    return [collectionView dequeueConfiguredReusableCellWithRegistration:self.cellRegistration forIndexPath:indexPath item:model];
+    __kindof UICollectionViewCell *cell = [collectionView dequeueConfiguredReusableCellWithRegistration:self.cellRegistration forIndexPath:indexPath item:model];
+    [model release];
+    
+    return cell;
 }
 
 - (void)collectionView:(UICollectionView *)collectionView prefetchItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
@@ -118,7 +121,7 @@
     for (NSIndexPath *indexPath in indexPaths) {
         assert(prefetchingModelsByIndexPath[indexPath] == nil);
         
-        AssetItemModel *model = [AssetItemModel prefetchingModelWithWithAsset:assetsFetchResult[indexPath.item] targetSize:targetSize];
+        AssetItemModel *model = [[AssetItemModel alloc] initWithAsset:assetsFetchResult[indexPath.item]];
         prefetchingModelsByIndexPath[indexPath] = model;
         [model requestImageWithTargetSize:targetSize];
     }

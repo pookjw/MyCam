@@ -5,7 +5,7 @@
 //  Created by Jinwoo Kim on 11/2/24.
 //
 
-#import "AssetCollectionItemModel.h"
+#import <CamPresentation/AssetCollectionItemModel.h>
 
 @implementation AssetCollectionItemModel
 
