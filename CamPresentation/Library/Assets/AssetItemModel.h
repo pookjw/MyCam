@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (assign, nonatomic, readonly) PHImageRequestID requestID;
-@property (copy, nonatomic, nullable) void (^resultHandler)(UIImage *result, NSDictionary *info);
+@property (copy, nonatomic, nullable) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
