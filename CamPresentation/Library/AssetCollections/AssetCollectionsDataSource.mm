@@ -103,8 +103,8 @@
 
 - (std::vector<PHAssetCollectionType>)allCollectionTypesSet {
     return {
-        PHAssetCollectionTypeAlbum,
-        PHAssetCollectionTypeSmartAlbum
+        PHAssetCollectionTypeSmartAlbum,
+        PHAssetCollectionTypeAlbum
     };
 }
 

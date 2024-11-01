@@ -120,6 +120,7 @@
         
         AssetItemModel *model = [AssetItemModel prefetchingModelWithWithAsset:assetsFetchResult[indexPath.item] targetSize:targetSize];
         prefetchingModelsByIndexPath[indexPath] = model;
+        [model requestImageWithTargetSize:targetSize];
     }
 }
 
@@ -128,8 +129,8 @@
     
     for (NSIndexPath *indexPath in indexPaths) {
         AssetItemModel *model = prefetchingModelsByIndexPath[indexPath];
-        assert(model != nil);
-        [model cancelPrefetchingRequest];
+//        assert(model != nil);
+        [model cancelRequest];
         [prefetchingModelsByIndexPath removeObjectForKey:indexPath];
     }
 }
