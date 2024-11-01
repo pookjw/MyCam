@@ -296,8 +296,8 @@
 				Library/Assets/AssetsDataSource.mm,
 				Library/Assets/AssetsViewController.h,
 				Library/Assets/AssetsViewController.mm,
-				Library/PhotosViewController.h,
-				Library/PhotosViewController.mm,
+				Library/CollectionsViewController.h,
+				Library/CollectionsViewController.mm,
 				lock_private.h,
 				"NSObject+Foundation_IvarDescription.h",
 				"NSObject+Foundation_IvarDescription.mm",
@@ -381,7 +381,7 @@
 			publicHeaders = (
 				Cam/CameraRootViewController.h,
 				CamPresentation.h,
-				Library/PhotosViewController.h,
+				Library/CollectionsViewController.h,
 			);
 			target = 4F2A41912C98148000726F2F /* CamPresentation */;
 		};

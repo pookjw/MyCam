@@ -1,18 +1,18 @@
 //
-//  PhotosViewController.mm
+//  CollectionsViewController.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/31/24.
 //
 
-#import <CamPresentation/PhotosViewController.h>
+#import <CamPresentation/CollectionsViewController.h>
 #import <CamPresentation/AssetsViewController.h>
 
-@interface PhotosViewController ()
+@interface CollectionsViewController ()
 
 @end
 
-@implementation PhotosViewController
+@implementation CollectionsViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];

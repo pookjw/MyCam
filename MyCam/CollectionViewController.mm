@@ -22,7 +22,7 @@
 #if !TARGET_OS_VISION
         CameraRootViewController.class,
 #endif
-        PhotosViewController.class
+        CollectionsViewController.class
     ];
 }
 
@@ -66,7 +66,7 @@
     [super viewDidLoad];
     [self cellRegistration];
     
-    PhotosViewController *photosViewController = [PhotosViewController new];
+    CollectionsViewController *photosViewController = [CollectionsViewController new];
     [self.navigationController pushViewController:photosViewController animated:YES];
     [photosViewController release];
 }
