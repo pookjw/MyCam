@@ -75,9 +75,10 @@
 
 - (void)cancelRequest {
     PHImageRequestID requestID = self.requestID;
-    assert(requestID != static_cast<PHImageRequestID>(NSNotFound));
-    [self.imageManager cancelImageRequest:requestID];
-    self.requestID = static_cast<PHImageRequestID>(NSNotFound);
+    if (requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+        [self.imageManager cancelImageRequest:requestID];
+        self.requestID = static_cast<PHImageRequestID>(NSNotFound);
+    }
 }
 
 - (void)setResultHandler:(void (^)(UIImage * _Nonnull, NSDictionary * _Nonnull))resultHandler {
@@ -129,11 +130,10 @@
             
             if (auto resultHandler = unretained.resultHandler) {
                 resultHandler(result, info);
-                
-                if ([AssetItemModel didCompleteForInfo:info]) {
-                    [unretained->_resultHandler release];
-                    unretained->_resultHandler = nil;
-                }
+            }
+            
+            if ([AssetItemModel didCompleteForInfo:info]) {
+                unretained->_requestID = static_cast<PHImageRequestID>(NSNotFound);
             }
         }
     }];

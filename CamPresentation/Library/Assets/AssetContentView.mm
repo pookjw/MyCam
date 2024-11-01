@@ -35,6 +35,8 @@
 }
 
 - (void)setModel:(AssetItemModel *)model {
+    if (CGSizeEqualToSize(_model.targetSize, model.targetSize) && [_model.asset isEqual:model.asset]) return;
+    
     [_model cancelRequest];
     [_model release];
     _model = [model retain];
@@ -61,6 +63,7 @@
     [super layoutSubviews];
     
     if (!CGSizeEqualToSize(self.targetSize, self.model.targetSize)) {
+        [self.model cancelRequest];
         [self.model requestImageWithTargetSize:self.targetSize];
     }
 }
@@ -104,7 +107,7 @@
         if (unretained == nil) return;
         
         if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-            if (unretained.model.requestID != requestIDNumber.integerValue) {
+            if (unretained.model.requestID != requestIDNumber.integerValue && unretained.model.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
                 NSLog(@"Request ID does not equal.");
                 return;
             }
