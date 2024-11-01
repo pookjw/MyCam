@@ -15,7 +15,7 @@
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
-@property (retain, nonatomic) PHFetchResult<PHAsset *> *mainQueue_assetsFetchResult;
+@property (retain, nonatomic, nullable) PHFetchResult<PHAsset *> *mainQueue_assetsFetchResult;
 @property (retain, nonatomic) NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath;
 @end
 
@@ -38,6 +38,7 @@
         
         PHPhotoLibrary *photoLibrary = PHPhotoLibrary.sharedPhotoLibrary;
         assert(photoLibrary.unavailabilityReason == nil);
+        [photoLibrary registerChangeObserver:self];
         [photoLibrary registerAvailabilityObserver:self];
         _photoLibrary = [photoLibrary retain];
         
@@ -61,8 +62,6 @@
 
 - (void)updateCollection:(PHAssetCollection *)collection {
     dispatch_async(self.queue, ^{
-        [self.photoLibrary registerChangeObserver:self];
-        
         PHFetchOptions *options = [PHFetchOptions new];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setReverseSortOrder:"), YES);
         options.wantsIncrementalChangeDetails = YES; // NO로 하면?

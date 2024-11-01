@@ -16,4 +16,4 @@ FOUNDATION_EXPORT const unsigned char CamPresentationVersionString[];
 // In this header, you should import all the public headers of your framework using statements like #import <CamPresentation/PublicHeader.h>
 
 #import <CamPresentation/CameraRootViewController.h>
-#import <CamPresentation/CollectionsViewController.h>
+#import <CamPresentation/AssetCollectionsViewController.h>

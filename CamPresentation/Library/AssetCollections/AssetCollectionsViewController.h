@@ -1,5 +1,5 @@
 //
-//  CollectionsViewController.h
+//  AssetCollectionsViewController.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/31/24.
@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CollectionsViewController : UIViewController
+@interface AssetCollectionsViewController : UIViewController
 
 @end
 

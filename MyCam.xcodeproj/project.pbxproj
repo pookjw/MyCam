@@ -284,6 +284,14 @@
 				Cam/PointCloudPreviewView.mm,
 				CamPresentation.h,
 				Extern.h,
+				Library/AssetCollections/AssetCollectionCell.h,
+				Library/AssetCollections/AssetCollectionCell.mm,
+				Library/AssetCollections/AssetCollectionContentView.h,
+				Library/AssetCollections/AssetCollectionContentView.mm,
+				Library/AssetCollections/AssetCollectionsDataSource.h,
+				Library/AssetCollections/AssetCollectionsDataSource.mm,
+				Library/AssetCollections/AssetCollectionsViewController.h,
+				Library/AssetCollections/AssetCollectionsViewController.mm,
 				Library/Assets/AssetCollectionViewCell.h,
 				Library/Assets/AssetCollectionViewCell.mm,
 				Library/Assets/AssetContentView.h,
@@ -296,8 +304,6 @@
 				Library/Assets/AssetsDataSource.mm,
 				Library/Assets/AssetsViewController.h,
 				Library/Assets/AssetsViewController.mm,
-				Library/CollectionsViewController.h,
-				Library/CollectionsViewController.mm,
 				lock_private.h,
 				"NSObject+Foundation_IvarDescription.h",
 				"NSObject+Foundation_IvarDescription.mm",
@@ -365,6 +371,9 @@
 				Cam/PixelBufferLayer.h,
 				Cam/PointCloudPreviewView.h,
 				Extern.h,
+				Library/AssetCollections/AssetCollectionCell.h,
+				Library/AssetCollections/AssetCollectionContentView.h,
+				Library/AssetCollections/AssetCollectionsDataSource.h,
 				Library/Assets/AssetCollectionViewCell.h,
 				Library/Assets/AssetContentView.h,
 				Library/Assets/AssetItemModel.h,
@@ -381,7 +390,7 @@
 			publicHeaders = (
 				Cam/CameraRootViewController.h,
 				CamPresentation.h,
-				Library/CollectionsViewController.h,
+				Library/AssetCollections/AssetCollectionsViewController.h,
 			);
 			target = 4F2A41912C98148000726F2F /* CamPresentation */;
 		};

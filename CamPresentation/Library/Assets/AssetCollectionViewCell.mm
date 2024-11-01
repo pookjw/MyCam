@@ -17,14 +17,6 @@
     return AssetContentView.class;
 }
 
-- (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        
-    }
-    return self;
-}
-
 - (void)dealloc {
     [_model release];
     [super dealloc];
