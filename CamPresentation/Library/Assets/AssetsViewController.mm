@@ -9,6 +9,7 @@
 #import <CamPresentation/AssetsDataSource.h>
 #import <CamPresentation/AssetCollectionViewCell.h>
 #import <CamPresentation/AssetItemModel.h>
+#import <CamPresentation/AssetsCollectionViewLayout.h>
 
 @interface AssetsViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
@@ -41,28 +42,7 @@
 - (UICollectionView *)collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
-    UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
-    configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
-    
-    UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
-        NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1. / 3.f]
-                                                                          heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.f]];
-        
-        NSCollectionLayoutItem *item = [NSCollectionLayoutItem itemWithLayoutSize:itemSize supplementaryItems:@[]];
-        
-        NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
-                                                                           heightDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1. / 3.f]];
-        
-        NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
-        
-        NSCollectionLayoutSection *section = [NSCollectionLayoutSection sectionWithGroup:group];
-        
-        return section;
-    }
-                                                                                                                       configuration:configuration];
-    
-    [configuration release];
-    
+    AssetsCollectionViewLayout *collectionViewLayout = [AssetsCollectionViewLayout new];
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     
