@@ -14,13 +14,14 @@
 #include <algorithm>
 #include <iterator>
 
-@interface AssetCollectionsDataSource () <UICollectionViewDataSource, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
+@interface AssetCollectionsDataSource () <UICollectionViewDataSource, UICollectionViewDataSourcePrefetching, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @property (retain, nonatomic, readonly) UICollectionViewSupplementaryRegistration *supplementaryRegistration;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic, nullable) NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *mainQueue_fetchResultsByCollectionType;
+@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath;
 @property (nonatomic, readonly) std::vector<PHAssetCollectionType> allCollectionTypesSet;
 @end
 
@@ -32,6 +33,7 @@
         assert(collectionView.prefetchDataSource == nil);
         
         collectionView.dataSource = self;
+        collectionView.prefetchDataSource = self;
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Collections Data Source Queue", attr);
@@ -45,6 +47,8 @@
         assert(photoLibrary.unavailabilityReason == nil);
         [photoLibrary registerAvailabilityObserver:self];
         _photoLibrary = [photoLibrary retain];
+        
+        _prefetchingModelsByIndexPath = [NSMutableDictionary new];
         
         dispatch_async(queue, ^{
             [photoLibrary registerChangeObserver:self];
@@ -90,6 +94,7 @@
     [_photoLibrary unregisterAvailabilityObserver:self];
     [_photoLibrary release];
     [_mainQueue_fetchResultsByCollectionType release];
+    [_prefetchingModelsByIndexPath release];
     [super dealloc];
 }
 
@@ -159,7 +164,12 @@
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     PHAssetCollection *collection = [self collectionAtIndexPath:indexPath];
     assert(collection != nil);
-    AssetCollectionItemModel *model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
+    AssetCollectionItemModel *model = [self.prefetchingModelsByIndexPath[indexPath] retain];
+    if (model == nil) {
+        model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
+    } else {
+        [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
+    }
     
     __kindof UICollectionViewCell *cell = [collectionView dequeueConfiguredReusableCellWithRegistration:_cellRegistration forIndexPath:indexPath item:model];
     [model release];
@@ -169,6 +179,40 @@
 
 - (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath {
     return [collectionView dequeueConfiguredReusableSupplementaryViewWithRegistration:_supplementaryRegistration forIndexPath:indexPath];
+}
+
+- (void)collectionView:(UICollectionView *)collectionView prefetchItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
+    __kindof UICollectionViewCell * _Nullable firstVisibleCell = collectionView.visibleCells.firstObject;
+    if (firstVisibleCell == nil) return;
+    
+    CGSize targetSize = firstVisibleCell.bounds.size;
+    CGFloat displayScale = firstVisibleCell.traitCollection.displayScale;
+    targetSize.width *= displayScale;
+    targetSize.height *= displayScale;
+    
+    NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    
+    for (NSIndexPath *indexPath in indexPaths) {
+        assert(prefetchingModelsByIndexPath[indexPath] == nil);
+        
+        PHAssetCollection *collection = [self collectionAtIndexPath:indexPath];
+        assert(collection != nil);
+        AssetCollectionItemModel *model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
+        prefetchingModelsByIndexPath[indexPath] = model;
+        [model requestImageWithTargetSize:targetSize];
+        [model release];
+    }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView cancelPrefetchingForItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
+    NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    
+    for (NSIndexPath *indexPath in indexPaths) {
+        AssetCollectionItemModel *model = prefetchingModelsByIndexPath[indexPath];
+//        assert(model != nil);
+        [model cancelRequest];
+        [prefetchingModelsByIndexPath removeObjectForKey:indexPath];
+    }
 }
 
 - (void)photoLibraryDidBecomeUnavailable:(PHPhotoLibrary *)photoLibrary {

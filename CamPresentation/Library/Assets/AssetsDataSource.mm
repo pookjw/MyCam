@@ -16,7 +16,7 @@
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic, nullable) PHFetchResult<PHAsset *> *mainQueue_assetsFetchResult;
-@property (retain, nonatomic) NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath;
+@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetItemModel *> *prefetchingModelsByIndexPath;
 @end
 
 @implementation AssetsDataSource
@@ -93,11 +93,12 @@
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     AssetItemModel *model = [self.prefetchingModelsByIndexPath[indexPath] retain];
-    [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
     
     if (model == nil) {
         PHAsset *asset = self.mainQueue_assetsFetchResult[indexPath.item];
         model = [[AssetItemModel alloc] initWithAsset:asset];
+    } else {
+        [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
     }
     
     __kindof UICollectionViewCell *cell = [collectionView dequeueConfiguredReusableCellWithRegistration:self.cellRegistration forIndexPath:indexPath item:model];

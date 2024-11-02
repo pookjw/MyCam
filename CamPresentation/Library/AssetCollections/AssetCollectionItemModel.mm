@@ -9,18 +9,19 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
-#import <os/lock.h>
+
+#warning TODO: Observer
 
 @interface AssetCollectionItemModel ()
 @property (assign, nonatomic) PHImageRequestID requestID;
 @property (assign, nonatomic) CGSize targetSize;
 @property (copy, nonatomic, nullable) NSString *localizedTitle;
+@property (assign, nonatomic) NSInteger assetsCount;
 @property (retain, nonatomic, readonly) PHImageManager *imageManager;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, nullable) UIImage *result;
 @property (copy, nonatomic, nullable) NSDictionary *info;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
-@property (assign, nonatomic, readonly) os_unfair_lock lock;
 @end
 
 @implementation AssetCollectionItemModel
@@ -36,7 +37,6 @@
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Asset Collection Item Model Queue", attr);
         _queue = queue;
-        _lock = OS_UNFAIR_LOCK_INIT;
     }
     
     return self;
@@ -69,25 +69,29 @@
         PHAssetCollection *collection = self.collection;
         NSString *localizedTitle = collection.localizedTitle;
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self.localizedTitle = localizedTitle;
-            
-            if (auto resultHandler = self.resultHandler) {
-                resultHandler(nil, nil, localizedTitle);
-            }
-        });
-        
         PHFetchOptions *fetchOptions = [PHFetchOptions new];
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(fetchOptions, sel_registerName("setReverseSortOrder:"), YES);
+//        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(fetchOptions, sel_registerName("setReverseSortOrder:"), YES);
+//        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(fetchOptions, sel_registerName("setShouldPrefetchCount:"), YES);
         fetchOptions.wantsIncrementalChangeDetails = YES;
         fetchOptions.includeHiddenAssets = NO;
-        fetchOptions.fetchLimit = 1;
+//        fetchOptions.fetchLimit = 1;
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(fetchOptions, sel_registerName("setPhotoLibrary:"), self.photoLibrary);
         
         PHFetchResult<PHAsset *> *assetFetchResult = [PHAsset fetchAssetsInAssetCollection:collection options:fetchOptions];
         [fetchOptions release];
         
-        PHAsset * _Nullable asset = assetFetchResult.firstObject;
+        NSUInteger assetsCount = assetFetchResult.count;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.localizedTitle = localizedTitle;
+            self.assetsCount = assetsCount;
+            
+            if (auto resultHandler = self.resultHandler) {
+                resultHandler(nil, nil, localizedTitle, assetsCount);
+            }
+        });
+        
+        PHAsset * _Nullable asset = assetFetchResult.lastObject;
         if (asset == nil) return;
         
         PHImageRequestOptions *options = [PHImageRequestOptions new];
@@ -103,31 +107,29 @@
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), self.queue);
         
-        __weak auto weakModel = self;
+        __weak auto weakSelf = self;
         
         PHImageManager *imageManager = self.imageManager;
         
-        self.requestID = [self.imageManager requestImageForAsset:asset
-                                                      targetSize:targetSize
-                                                     contentMode:PHImageContentModeAspectFill
-                                                         options:options
-                                                   resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-            if (auto unretained = weakModel) {
-                if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-                    if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
-                        NSLog(@"Request ID does not equal.");
-                        [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
-                        return;
-                    }
-                } else {
+        self.requestID = [imageManager requestImageForAsset:asset
+                                                 targetSize:targetSize
+                                                contentMode:PHImageContentModeAspectFill
+                                                    options:options
+                                              resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+            if (auto unretained = weakSelf) {
+                if ([AssetCollectionItemModel didFailForInfo:info]) {
                     return;
                 }
                 
                 [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        if (auto unretained = weakModel) {
+                        if (auto unretained = weakSelf) {
+                            if ([AssetCollectionItemModel didFailForInfo:info]) {
+                                return;
+                            }
+                            
                             if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-                                if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+                                if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID) {
                                     NSLog(@"Request ID does not equal.");
                                     [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
                                     return;
@@ -140,7 +142,7 @@
                             unretained.info = info;
                             
                             if (auto resultHandler = unretained.resultHandler) {
-                                resultHandler(result, info, localizedTitle);
+                                resultHandler(result, info, localizedTitle, assetsCount);
                             }
                         }
                     });
@@ -168,17 +170,24 @@
     _targetSize = targetSize;
 }
 
-- (PHImageRequestID)requestID {
-    os_unfair_lock_lock_with_flags(&_lock, OS_UNFAIR_LOCK_FLAG_ADAPTIVE_SPIN);
-    PHImageRequestID requestID = _requestID;
-    os_unfair_lock_unlock(&_lock);
-    return requestID;
-}
-
-- (void)setRequestID:(PHImageRequestID)requestID {
-    os_unfair_lock_lock_with_flags(&_lock, OS_UNFAIR_LOCK_FLAG_ADAPTIVE_SPIN);
-    _requestID = requestID;
-    os_unfair_lock_unlock(&_lock);
++ (BOOL)didFailForInfo:(NSDictionary *)info {
+    if (info == nil) {
+        return NO;
+    }
+    
+    if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
+        if (cancelledNumber.boolValue) {
+            return YES;
+        }
+    }
+    
+    if (NSError *error = info[PHImageErrorKey]) {
+        if (error != nil) {
+            return YES;
+        }
+    }
+    
+    return NO;
 }
 
 @end

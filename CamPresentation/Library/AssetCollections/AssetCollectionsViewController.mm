@@ -93,8 +93,8 @@
 - (UICollectionView *)collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
-//    __kindof UICollectionViewLayout *collectionViewLayout = [self newCollectionViewCompositionalLayout];
-    __kindof UICollectionViewLayout *collectionViewLayout = [self newCustomCollectionViewLayout];
+    __kindof UICollectionViewLayout *collectionViewLayout = [self newCollectionViewCompositionalLayout];
+//    __kindof UICollectionViewLayout *collectionViewLayout = [self newCustomCollectionViewLayout];
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     

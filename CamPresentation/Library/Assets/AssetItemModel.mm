@@ -44,7 +44,7 @@
     [super dealloc];
 }
 
-+ (BOOL)didCompleteForInfo:(NSDictionary *)info {
++ (BOOL)didFailForInfo:(NSDictionary *)info {
     if (info == nil) {
         return NO;
     }
@@ -59,10 +59,6 @@
         if (error != nil) {
             return YES;
         }
-    }
-    
-    if (NSNumber *isDegraded = info[PHImageResultIsDegradedKey]) {
-        return !isDegraded.boolValue;
     }
     
     return NO;
@@ -82,15 +78,10 @@
     dispatch_assert_queue(dispatch_get_main_queue());
     
     [_resultHandler release];
+    _resultHandler = [resultHandler copy];
     
     UIImage * _Nullable result = self.result;
     NSDictionary * _Nullable info = self.info;
-    
-    if ([AssetItemModel didCompleteForInfo:info]) {
-        _resultHandler = nil;
-    } else {
-        _resultHandler = [resultHandler copy];
-    }
     
     if (result != nil || info != nil) {
         resultHandler(result, info);
@@ -120,27 +111,25 @@
     
     PHImageManager *imageManager = self.imageManager;
     
-    __weak auto weakModel = self;
+    __weak auto weakSelf = self;
     
     self.requestID = [imageManager requestImageForAsset:self.asset
                                              targetSize:targetSize
                                             contentMode:PHImageContentModeAspectFill
                                                 options:options
                                           resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-        if (auto unretained = weakModel) {
-            if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-                if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
-                    NSLog(@"Request ID does not equal.");
-                    [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
-                    return;
-                }
-            } else {
+        if (auto unretained = weakSelf) {
+            if ([AssetItemModel didFailForInfo:info]) {
                 return;
             }
             
             [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (auto unretained = weakModel) {
+                    if (auto unretained = weakSelf) {
+                        if ([AssetItemModel didFailForInfo:info]) {
+                            return;
+                        }
+                        
                         if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
                             if (unretained.requestID != requestIDNumber.integerValue) {
                                 NSLog(@"Request ID does not equal.");
