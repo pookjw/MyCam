@@ -84,7 +84,6 @@
 - (void)dealloc {
     dispatch_release(_queue);
     [_collectionView release];
-    [_collectionView release];
     [_cellRegistration release];
     [_supplementaryRegistration release];
     [_photoLibrary unregisterChangeObserver:self];

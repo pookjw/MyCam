@@ -53,6 +53,7 @@
         [_imageManager cancelImageRequest:_requestID];
     }
     [_imageManager release];
+    [_photoLibrary release];
     
     [_result release];
     [_info release];
