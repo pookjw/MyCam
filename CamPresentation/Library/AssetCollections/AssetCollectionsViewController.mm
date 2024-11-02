@@ -148,7 +148,7 @@
     
     [configuration release];
     
-    return [collectionViewLayout autorelease];
+    return collectionViewLayout;
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
