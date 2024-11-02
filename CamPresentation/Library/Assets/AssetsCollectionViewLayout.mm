@@ -97,9 +97,12 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     NSInteger firstIndex = viewPortFirstRow * itemsPerRow;
     NSInteger lastIndex;
     if (totalLastRow == viewPortLastRow) {
-        lastIndex = viewPortLastRow * itemsPerRow + (numberOfItems % itemsPerRow) - 1;
+        lastIndex = viewPortLastRow * itemsPerRow + (numberOfItems % itemsPerRow);
+        if (numberOfItems % itemsPerRow == 0) {
+            lastIndex += itemsPerRow;
+        }
     } else {
-        lastIndex = (viewPortLastRow + 1) * itemsPerRow - 1;
+        lastIndex = (viewPortLastRow + 1) * itemsPerRow;
     }
     
     firstIndex = MAX(firstIndex, 0);
