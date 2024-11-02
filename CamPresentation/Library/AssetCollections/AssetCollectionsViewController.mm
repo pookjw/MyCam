@@ -10,6 +10,7 @@
 #import <CamPresentation/AssetCollectionsDataSource.h>
 #import <CamPresentation/AssetCollectionCell.h>
 #import <CamPresentation/AssetCollectionsHeaderView.h>
+#import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -92,7 +93,8 @@
 - (UICollectionView *)collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
-    __kindof UICollectionViewLayout *collectionViewLayout = [self newCollectionViewCompositionalLayout];
+//    __kindof UICollectionViewLayout *collectionViewLayout = [self newCollectionViewCompositionalLayout];
+    __kindof UICollectionViewLayout *collectionViewLayout = [self newCustomCollectionViewLayout];
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     
@@ -103,7 +105,28 @@
 }
 
 - (void)didTriggerSwitchLayoutBarButtonItem:(UIBarButtonItem *)sender {
+    UICollectionView *collectionView = self.collectionView;
+    __kindof UICollectionViewLayout *currentLayout = collectionView.collectionViewLayout;
     
+    __kindof UICollectionViewLayout *nextLayout;
+    if (currentLayout.class == UICollectionViewCompositionalLayout.class) {
+        nextLayout = [self newCustomCollectionViewLayout];
+    } else if (currentLayout.class == AssetCollectionsCollectionViewLayout.class) {
+        nextLayout = [self newCollectionViewCompositionalLayout];
+    } else if (currentLayout.class == UICollectionViewTransitionLayout.class) {
+        // TODO: Cancel and re-create
+        return;
+    } else {
+        abort();
+    }
+    
+    UICollectionViewTransitionLayout *transitionLayout = [collectionView startInteractiveTransitionToCollectionViewLayout:nextLayout completion:^(BOOL completed, BOOL finished) {
+        
+    }];
+    
+    [nextLayout release];
+    
+    [collectionView finishInteractiveTransition];
 }
 
 - (UICollectionViewCompositionalLayout *)newCollectionViewCompositionalLayout {
@@ -151,12 +174,20 @@
     return collectionViewLayout;
 }
 
+- (AssetCollectionsCollectionViewLayout *)newCustomCollectionViewLayout {
+    return [AssetCollectionsCollectionViewLayout new];
+}
+
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
     PHAssetCollection *collection = [self.dataSource collectionAtIndexPath:indexPath];
     AssetsViewController *assetsViewController = [AssetsViewController new];
     assetsViewController.collection = collection;
     [self.navigationController pushViewController:assetsViewController animated:YES];
     [assetsViewController release];
+}
+
+- (UICollectionViewTransitionLayout *)collectionView:(UICollectionView *)collectionView transitionLayoutForOldLayout:(UICollectionViewLayout *)fromLayout newLayout:(UICollectionViewLayout *)toLayout {
+    return [[[UICollectionViewTransitionLayout alloc] initWithCurrentLayout:fromLayout nextLayout:toLayout] autorelease];
 }
 
 @end
