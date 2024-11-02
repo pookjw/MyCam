@@ -145,8 +145,6 @@
 }
 
 - (void)photoLibraryDidChange:(PHChange *)changeInstance {
-#warning changeDetailsForObject
-    
     dispatch_async(self.queue, ^{
         __block PHFetchResult<PHAsset *> * _Nullable assetsFetchResult;
         dispatch_sync(dispatch_get_main_queue(), ^{
@@ -156,9 +154,9 @@
         if (assetsFetchResult == nil) return;
         
         PHFetchResultChangeDetails *changeDetails = [changeInstance changeDetailsForFetchResult:assetsFetchResult];
-        PHFetchResult<PHAsset *> *fetchResultAfterChanges = changeDetails.fetchResultAfterChanges;
-        
         if (!changeDetails.hasIncrementalChanges) return;
+        
+        PHFetchResult<PHAsset *> *fetchResultAfterChanges = changeDetails.fetchResultAfterChanges;
         
         NSIndexSet *removedIndexes = changeDetails.removedIndexes;
         NSMutableArray<NSIndexPath *> *removedIndexPaths = [[NSMutableArray alloc] initWithCapacity:removedIndexes.count];

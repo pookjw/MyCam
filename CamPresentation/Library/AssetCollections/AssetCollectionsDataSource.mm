@@ -20,12 +20,13 @@
 @property (retain, nonatomic, readonly) UICollectionViewSupplementaryRegistration *supplementaryRegistration;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
-@property (retain, nonatomic, nullable) NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *mainQueue_fetchResultsByCollectionType;
+@property (retain, nonatomic, nullable, setter=mainQueue_setFetchResultsByCollectionType:) NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *mainQueue_fetchResultsByCollectionType;
 @property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath;
 @property (nonatomic, readonly) std::vector<PHAssetCollectionType> allCollectionTypesSet;
 @end
 
 @implementation AssetCollectionsDataSource
+@synthesize mainQueue_fetchResultsByCollectionType = _mainQueue_fetchResultsByCollectionType;
 
 - (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration supplementaryRegistration:(UICollectionViewSupplementaryRegistration *)supplementaryRegistration {
     if (self = [super init]) {
@@ -66,7 +67,8 @@
             std::ranges::for_each(allCollectionTypesSet, [options, fetchResultsByCollectionType](PHAssetCollectionType type) {
                 PHFetchResult<PHAssetCollection *> *albumsFetchResult = [PHAssetCollection fetchAssetCollectionsWithType:type subtype:PHAssetCollectionSubtypeAny options:options];
                 
-                if (albumsFetchResult.count == 0) return;
+                // diff에서 0개 -> 1개 및 1개 -> 0개 될 때 Section Insert/Delete 처리가 까다로워, 항상 Section은 존재하게
+//                if (albumsFetchResult.count == 0) return;
                 
                 fetchResultsByCollectionType[@(type)] = albumsFetchResult;
             });
@@ -116,11 +118,23 @@
     };
 }
 
+- (NSMutableDictionary<NSNumber *,PHFetchResult<PHAssetCollection *> *> *)mainQueue_fetchResultsByCollectionType {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    return [[_mainQueue_fetchResultsByCollectionType retain] autorelease];
+}
+
+- (void)mainQueue_setFetchResultsByCollectionType:(NSMutableDictionary<NSNumber *,PHFetchResult<PHAssetCollection *> *> *)mainQueue_fetchResultsByCollectionType {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    [_mainQueue_fetchResultsByCollectionType release];
+    _mainQueue_fetchResultsByCollectionType = [mainQueue_fetchResultsByCollectionType retain];
+}
+
 - (NSInteger)sectionIndexOfCollectionType:(PHAssetCollectionType)collectionType {
     dispatch_assert_queue(dispatch_get_main_queue());
-    
-    NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *fetchResultsByCollectionType = self.mainQueue_fetchResultsByCollectionType;
-    
+    return [self _sectionIndexOfCollectionType:collectionType fetchResultsByCollectionType:self.mainQueue_fetchResultsByCollectionType];
+}
+
+- (NSInteger)_sectionIndexOfCollectionType:(PHAssetCollectionType)collectionType fetchResultsByCollectionType:(NSDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *)fetchResultsByCollectionType {
     auto allCollectionTypesFilteredVector = self.allCollectionTypesSet
     | std::views::filter([fetchResultsByCollectionType](PHAssetCollectionType collectionType) -> BOOL {
         return [fetchResultsByCollectionType.allKeys containsObject:@(collectionType)];
@@ -129,10 +143,10 @@
     auto iterator = std::find(allCollectionTypesFilteredVector.begin(), allCollectionTypesFilteredVector.end(), collectionType);
     
     if (iterator == allCollectionTypesFilteredVector.end()) {
+        return NSNotFound;
+    } else {
         auto index = std::distance(allCollectionTypesFilteredVector.begin(), iterator);
         return index;
-    } else {
-        return NSNotFound;
     }
 }
 
@@ -220,7 +234,74 @@
 }
 
 - (void)photoLibraryDidChange:(PHChange *)changeInstance {
-    // TODO
+    dispatch_async(self.queue, ^{
+        __block NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *fetchResultsByCollectionType;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            fetchResultsByCollectionType = [self.mainQueue_fetchResultsByCollectionType mutableCopy];
+        });
+        
+        NSMutableArray<NSIndexPath *> *removedIndexPaths = [NSMutableArray new];
+        NSMutableArray<NSIndexPath *> *insertedIndexPaths = [NSMutableArray new];
+        NSMutableArray<NSIndexPath *> *changedIndexPaths = [NSMutableArray new];
+        
+        for (NSNumber *collectionTypeNumber in fetchResultsByCollectionType.allKeys) {
+            PHFetchResult<PHAssetCollection *> *fetchResult = fetchResultsByCollectionType[collectionTypeNumber];
+            
+            PHFetchResultChangeDetails *changeDetails = [changeInstance changeDetailsForFetchResult:fetchResult];
+            if (!changeDetails.hasIncrementalChanges) continue;
+            
+            NSInteger sectionIndex = [self _sectionIndexOfCollectionType:static_cast<PHAssetCollectionType>(collectionTypeNumber.integerValue) fetchResultsByCollectionType:fetchResultsByCollectionType];
+            assert(sectionIndex != NSNotFound);
+            
+            NSIndexSet *removedIndexes = changeDetails.removedIndexes;
+            [removedIndexes enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL * _Nonnull stop) {
+                NSIndexPath *indexPath = [NSIndexPath indexPathForItem:idx inSection:sectionIndex];
+                [removedIndexPaths addObject:indexPath];
+            }];
+            
+            NSIndexSet *insertedIndexes = changeDetails.insertedIndexes;
+            [insertedIndexes enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL * _Nonnull stop) {
+                NSIndexPath *indexPath = [NSIndexPath indexPathForItem:idx inSection:sectionIndex];
+                [insertedIndexPaths addObject:indexPath];
+            }];
+            
+            NSIndexSet *changedIndexes = changeDetails.changedIndexes;
+            [changedIndexes enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL * _Nonnull stop) {
+                NSIndexPath *indexPath = [NSIndexPath indexPathForItem:idx inSection:sectionIndex];
+                [changedIndexPaths addObject:indexPath];
+            }];
+            
+            fetchResultsByCollectionType[collectionTypeNumber] = changeDetails.fetchResultAfterChanges;
+        }
+        
+        if (removedIndexPaths.count == 0 && insertedIndexPaths.count == 0 && changedIndexPaths.count == 0) {
+            [fetchResultsByCollectionType release];
+            [removedIndexPaths release];
+            [insertedIndexPaths release];
+            [changedIndexPaths release];
+            return;
+        }
+        
+        // __block을 capture
+        NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *final_fetchResultsByCollectionType = [[fetchResultsByCollectionType retain] autorelease];
+        [fetchResultsByCollectionType release];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UICollectionView *collectionView = self.collectionView;
+            
+            [collectionView performBatchUpdates:^{
+                self.mainQueue_fetchResultsByCollectionType = final_fetchResultsByCollectionType;
+                [collectionView deleteItemsAtIndexPaths:removedIndexPaths];
+                [collectionView insertItemsAtIndexPaths:insertedIndexPaths];
+                [collectionView reconfigureItemsAtIndexPaths:changedIndexPaths];
+            }
+                                          completion:nil];
+        });
+        
+        [removedIndexPaths release];
+        [insertedIndexPaths release];
+        [changedIndexPaths release];
+    });
 }
 
 @end
