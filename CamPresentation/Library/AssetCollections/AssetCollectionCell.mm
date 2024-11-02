@@ -15,15 +15,15 @@
 }
 
 - (void)dealloc {
-    [_collection release];
+    [_model release];
     [super dealloc];
 }
 
-- (void)setCollection:(PHAssetCollection *)collection {
-    [_collection release];
-    _collection = [collection retain];
+- (void)setModel:(AssetCollectionItemModel *)model {
+    [_model release];
+    _model = [model retain];
     
-    static_cast<AssetCollectionContentView *>(self.contentView).collection = collection;
+    static_cast<AssetCollectionContentView *>(self.contentView).model = model;
 }
 
 @end

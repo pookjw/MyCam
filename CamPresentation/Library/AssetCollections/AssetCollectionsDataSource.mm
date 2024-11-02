@@ -6,6 +6,7 @@
 //
 
 #import <CamPresentation/AssetCollectionsDataSource.h>
+#import <CamPresentation/AssetCollectionItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -16,6 +17,7 @@
 @interface AssetCollectionsDataSource () <UICollectionViewDataSource, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
+@property (retain, nonatomic, readonly) UICollectionViewSupplementaryRegistration *supplementaryRegistration;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic, nullable) NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *mainQueue_fetchResultsByCollectionType;
@@ -24,7 +26,7 @@
 
 @implementation AssetCollectionsDataSource
 
-- (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration {
+- (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration supplementaryRegistration:(UICollectionViewSupplementaryRegistration *)supplementaryRegistration {
     if (self = [super init]) {
         assert(collectionView.dataSource == nil);
         assert(collectionView.prefetchDataSource == nil);
@@ -36,6 +38,7 @@
         
         _collectionView = [collectionView retain];
         _cellRegistration = [cellRegistration retain];
+        _supplementaryRegistration = [supplementaryRegistration retain];
         _queue = queue;
         
         PHPhotoLibrary *photoLibrary = PHPhotoLibrary.sharedPhotoLibrary;
@@ -83,6 +86,7 @@
     [_collectionView release];
     [_collectionView release];
     [_cellRegistration release];
+    [_supplementaryRegistration release];
     [_photoLibrary unregisterChangeObserver:self];
     [_photoLibrary unregisterAvailabilityObserver:self];
     [_photoLibrary release];
@@ -93,7 +97,7 @@
 - (PHAssetCollection *)collectionAtIndexPath:(NSIndexPath *)indexPath {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    PHAssetCollectionType collectionType = [self mainQueue_collectionTypeOfSectionIndex:indexPath.section];
+    PHAssetCollectionType collectionType = [self collectionTypeOfSectionIndex:indexPath.section];
     PHFetchResult<PHAssetCollection *> *collectionsFetchResult = self.mainQueue_fetchResultsByCollectionType[@(collectionType)];
     assert(collectionsFetchResult != nil);
     PHAssetCollection *collection = collectionsFetchResult[indexPath.item];
@@ -108,7 +112,9 @@
     };
 }
 
-- (NSInteger)mainQueue_sectionIndexOfCollectionType:(PHAssetCollectionType)collectionType {
+- (NSInteger)sectionIndexOfCollectionType:(PHAssetCollectionType)collectionType {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *fetchResultsByCollectionType = self.mainQueue_fetchResultsByCollectionType;
     
     auto allCollectionTypesFilteredVector = self.allCollectionTypesSet
@@ -126,7 +132,9 @@
     }
 }
 
-- (PHAssetCollectionType)mainQueue_collectionTypeOfSectionIndex:(NSInteger)sectionIndex {
+- (PHAssetCollectionType)collectionTypeOfSectionIndex:(NSInteger)sectionIndex {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *fetchResultsByCollectionType = self.mainQueue_fetchResultsByCollectionType;
     
     auto allCollectionTypesFilteredVector = self.allCollectionTypesSet
@@ -143,7 +151,7 @@
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    PHAssetCollectionType collectionType = [self mainQueue_collectionTypeOfSectionIndex:section];
+    PHAssetCollectionType collectionType = [self collectionTypeOfSectionIndex:section];
     PHFetchResult<PHAssetCollection *> *collectionsFetchResult = self.mainQueue_fetchResultsByCollectionType[@(collectionType)];
     assert(collectionsFetchResult != nil);
     return collectionsFetchResult.count;
@@ -152,8 +160,16 @@
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     PHAssetCollection *collection = [self collectionAtIndexPath:indexPath];
     assert(collection != nil);
+    AssetCollectionItemModel *model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
     
-    return [collectionView dequeueConfiguredReusableCellWithRegistration:_cellRegistration forIndexPath:indexPath item:collection];
+    __kindof UICollectionViewCell *cell = [collectionView dequeueConfiguredReusableCellWithRegistration:_cellRegistration forIndexPath:indexPath item:model];
+    [model release];
+    
+    return cell;
+}
+
+- (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath {
+    return [collectionView dequeueConfiguredReusableSupplementaryViewWithRegistration:_supplementaryRegistration forIndexPath:indexPath];
 }
 
 - (void)photoLibraryDidBecomeUnavailable:(PHPhotoLibrary *)photoLibrary {

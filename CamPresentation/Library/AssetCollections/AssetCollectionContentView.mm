@@ -13,7 +13,7 @@
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (retain, nonatomic, readonly) UILabel *label;
-@property (retain, nonatomic, readonly) dispatch_queue_t queue;
+@property (assign, nonatomic, readonly) CGSize targetSize;
 @end
 
 @implementation AssetCollectionContentView
@@ -27,11 +27,8 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
-        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
-        dispatch_queue_t queue = dispatch_queue_create("Asset Collection Content View Queue", attr);
-        _queue = queue;
-        
         UIStackView *stackView = self.stackView;
+        [self addSubview:stackView];
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), stackView);
     }
     
@@ -39,12 +36,29 @@
 }
 
 - (void)dealloc {
-    dispatch_release(_queue);
-    [_collection release];
+    [_model release];
     [_stackView release];
     [_imageView release];
     [_label release];
     [super dealloc];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+    if (!CGSizeEqualToSize(self.targetSize, self.model.targetSize)) {
+        [self.model cancelRequest];
+        [self.model requestImageWithTargetSize:self.targetSize];
+    }
+}
+
+- (CGSize)targetSize {
+    CGSize targetSize = self.bounds.size;
+    CGFloat displayScale = self.traitCollection.displayScale;
+    targetSize.width *= displayScale;
+    targetSize.height *= displayScale;
+    
+    return targetSize;
 }
 
 - (UIStackView *)stackView {
@@ -58,6 +72,7 @@
     stackView.axis = UILayoutConstraintAxisVertical;
     stackView.distribution = UIStackViewDistributionFill;
     stackView.alignment = UIStackViewAlignmentFill;
+    stackView.spacing = 10.;
     
     _stackView = [stackView retain];
     return [stackView autorelease];
@@ -69,6 +84,8 @@
     UIImageView *imageView = [UIImageView new];
     imageView.contentMode = UIViewContentModeScaleAspectFill;
     imageView.clipsToBounds = YES;
+    imageView.layer.cornerRadius = 20.;
+    imageView.layer.cornerCurve = kCACornerCurveContinuous;
     
     _imageView = [imageView retain];
     return [imageView autorelease];
@@ -78,7 +95,7 @@
     if (auto label = _label) return label;
     
     UILabel *label = [UILabel new];
-    label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleTitle3];
+    label.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
     label.textAlignment = NSTextAlignmentCenter;
     label.numberOfLines = 1;
     
@@ -86,9 +103,10 @@
     return [label autorelease];
 }
 
-- (void)setCollection:(PHAssetCollection *)collection {
-    [_collection release];
-    _collection = [collection retain];
+- (void)setModel:(AssetCollectionItemModel *)model {
+    [_model cancelRequest];
+    [_model release];
+    _model = [model retain];
     
     UIImageView *imageView = self.imageView;
     UILabel *label = self.label;
@@ -96,24 +114,12 @@
     imageView.image = nil;
     label.text = nil;
     
-    dispatch_async(self.queue, ^{
-        NSString *localizedTitle = collection.localizedTitle;
-        
-        PHFetchOptions *options = [PHFetchOptions new];
-        options.wantsIncrementalChangeDetails = NO;
-        options.fetchLimit = 1;
-        
-        PHFetchResult<PHAsset *> * assetFetchResult = [PHAsset fetchAssetsInAssetCollection:collection options:options];
-        [options release];
-        
-        PHAsset * _Nullable asset = assetFetchResult.firstObject;
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (![self.collection isEqual:collection]) return;
-            
-            label.text = localizedTitle;
-        });
-    });
+    model.resultHandler = ^(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle) {
+        imageView.image = result;
+        label.text = localizedTitle;
+    };
+    
+    [model requestImageWithTargetSize:self.targetSize];
 }
 
 @end

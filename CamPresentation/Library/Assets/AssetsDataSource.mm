@@ -124,6 +124,7 @@
         AssetItemModel *model = [[AssetItemModel alloc] initWithAsset:assetsFetchResult[indexPath.item]];
         prefetchingModelsByIndexPath[indexPath] = model;
         [model requestImageWithTargetSize:targetSize];
+        [model release];
     }
 }
 

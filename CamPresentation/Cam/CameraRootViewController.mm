@@ -25,7 +25,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <CamPresentation/AuthorizationsService.h>
 #import <objc/message.h>
-#import <objc/runtime.h>=
+#import <objc/runtime.h>
 
 #warning AVCaptureDeviceSubjectAreaDidChangeNotification, +[AVCaptureDevice cinematicFramingControlMode], Memory Leak Test, exposureMode
 

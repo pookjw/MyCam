@@ -8,9 +8,11 @@
 #import <CamPresentation/AssetItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <UIKit/UIKit.h>
 
 @interface AssetItemModel ()
 @property (assign, nonatomic) PHImageRequestID requestID;
+@property (assign, nonatomic) CGSize targetSize;
 @property (retain, nonatomic, readonly) PHImageManager *imageManager;
 @property (retain, nonatomic, nullable) UIImage *result;
 @property (copy, nonatomic, nullable) NSDictionary *info;
@@ -67,6 +69,8 @@
 }
 
 - (void)cancelRequest {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     PHImageRequestID requestID = self.requestID;
     if (requestID != static_cast<PHImageRequestID>(NSNotFound)) {
         [self.imageManager cancelImageRequest:requestID];
@@ -94,9 +98,11 @@
 }
 
 - (void)requestImageWithTargetSize:(CGSize)targetSize {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     [self cancelRequest];
     
-    _targetSize = targetSize;
+    self.targetSize = targetSize;
     
     PHImageRequestOptions *options = [PHImageRequestOptions new];
     options.synchronous = NO;
@@ -111,20 +117,49 @@
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
     
+    
+    PHImageManager *imageManager = self.imageManager;
+    
     __weak auto weakModel = self;
     
-    self.requestID = [self.imageManager requestImageForAsset:self.asset
-                                                  targetSize:targetSize
-                                                 contentMode:PHImageContentModeAspectFill
-                                                     options:options
-                                               resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+    self.requestID = [imageManager requestImageForAsset:self.asset
+                                             targetSize:targetSize
+                                            contentMode:PHImageContentModeAspectFill
+                                                options:options
+                                          resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
         if (auto unretained = weakModel) {
-            unretained.result = result;
-            unretained.info = info;
-            
-            if (auto resultHandler = unretained.resultHandler) {
-                resultHandler(result, info);
+            if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
+                if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+                    NSLog(@"Request ID does not equal.");
+                    [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
+                    return;
+                }
+            } else {
+                return;
             }
+            
+            [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (auto unretained = weakModel) {
+                        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
+                            if (unretained.requestID != requestIDNumber.integerValue) {
+                                NSLog(@"Request ID does not equal.");
+                                [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
+                                return;
+                            }
+                        } else {
+                            return;
+                        }
+                        
+                        unretained.result = result;
+                        unretained.info = info;
+                        
+                        if (auto resultHandler = unretained.resultHandler) {
+                            resultHandler(result, info);
+                        }
+                    }
+                });
+            }];
         }
     }];
     
