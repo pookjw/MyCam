@@ -34,7 +34,7 @@
         assert(collectionView.prefetchDataSource == nil);
         
         collectionView.dataSource = self;
-        collectionView.prefetchDataSource = self;
+//        collectionView.prefetchDataSource = self;
         
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Collections Data Source Queue", attr);
@@ -200,7 +200,7 @@
     if (firstVisibleCell == nil) return;
     
     CGSize targetSize = firstVisibleCell.bounds.size;
-    CGFloat displayScale = firstVisibleCell.traitCollection.displayScale;
+    CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(firstVisibleCell, sel_registerName("_currentScreenScale"));
     targetSize.width *= displayScale;
     targetSize.height *= displayScale;
     

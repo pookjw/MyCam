@@ -113,7 +113,7 @@
     
     PHFetchResult<PHAsset *> *assetsFetchResult = self.mainQueue_assetsFetchResult;
     CGSize targetSize = firstVisibleCell.bounds.size;
-    CGFloat displayScale = firstVisibleCell.traitCollection.displayScale;
+    CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(firstVisibleCell, sel_registerName("_currentScreenScale"));
     targetSize.width *= displayScale;
     targetSize.height *= displayScale;
     

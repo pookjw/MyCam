@@ -77,7 +77,7 @@
 
 - (CGSize)targetSize {
     CGSize targetSize = self.bounds.size;
-    CGFloat displayScale = self.traitCollection.displayScale;
+    CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
     targetSize.width *= displayScale;
     targetSize.height *= displayScale;
     

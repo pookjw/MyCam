@@ -13,6 +13,7 @@
 #import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import "MyCompositionalLayout.h"
 
 @interface AssetCollectionsViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) AssetCollectionsDataSource *dataSource;
@@ -133,14 +134,14 @@
     UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
     configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
     
-    UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
+    UICollectionViewCompositionalLayout *collectionViewLayout = [[MyCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
         NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
-                                                                          heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
+                                                                          heightDimension:[NSCollectionLayoutDimension estimatedDimension:100.]];
         
         NSCollectionLayoutItem *item = [NSCollectionLayoutItem itemWithLayoutSize:itemSize supplementaryItems:@[]];
         
         NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension absoluteDimension:200.]
-                                                                           heightDimension:[NSCollectionLayoutDimension estimatedDimension:218.]];
+                                                                           heightDimension:[NSCollectionLayoutDimension estimatedDimension:100.]];
         
         NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
         

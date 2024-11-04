@@ -39,6 +39,14 @@
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), stackView);
         
         UIImageView *imageView = self.imageView;
+        NSLayoutConstraint *squareConstraint = [imageView.widthAnchor constraintEqualToAnchor:imageView.heightAnchor];
+//        squareConstraint.priority = UILayoutPriorityRequired;
+        squareConstraint.priority = UILayoutPriorityDefaultHigh;
+        [NSLayoutConstraint activateConstraints:@[
+            [imageView.widthAnchor constraintEqualToAnchor:stackView.widthAnchor],
+            squareConstraint
+        ]];
+        
         UIImageView *symbolImageView = self.symbolImageView;
         [imageView addSubview:symbolImageView];
         symbolImageView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -49,6 +57,9 @@
             [symbolImageView.widthAnchor constraintEqualToConstant:40.],
             [symbolImageView.heightAnchor constraintEqualToConstant:40.]
         ]];
+        
+        UILabel *label = self.label;
+        [label setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisVertical];
     }
     
     return self;
@@ -74,7 +85,7 @@
 
 - (CGSize)targetSize {
     CGSize targetSize = self.bounds.size;
-    CGFloat displayScale = self.traitCollection.displayScale;
+    CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
     targetSize.width *= displayScale;
     targetSize.height *= displayScale;
     
@@ -187,6 +198,8 @@
         
         label.text = [NSString stringWithFormat:@"%@ (%ld)", localizedTitle, assetsCount];
         imageView.image = result;
+        
+        [self invalidateIntrinsicContentSize];
     };
     
     [model requestImageWithTargetSize:self.targetSize];
