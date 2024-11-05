@@ -459,12 +459,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             
             delete ivars;
             
-            //                if (originalHeight != maxHeight) {
-            //                    id copy = [self copySectionDescriptor:sectionDescriptor];
-            //                    sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)] = copy;
-            //                    [copy release];
-            //                }
-            
             diff = maxHeight - originalHeight;
             
             headerAdjustmentIndex = preferredAttributes.indexPath.section + 1;
@@ -557,10 +551,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     [super invalidateLayoutWithContext:context];
 }
-
-/*
- _orthogonalSectionsWithContentSizeChanges
- */
 
 - (NSIndexSet *)_orthogonalScrollingSections {
     UICollectionView * _Nullable collectionView = self.collectionView;
