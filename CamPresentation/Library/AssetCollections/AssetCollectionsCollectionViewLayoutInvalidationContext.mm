@@ -9,6 +9,14 @@
 
 @implementation AssetCollectionsCollectionViewLayoutInvalidationContext
 
+- (instancetype)init {
+    if (self = [super init]) {
+        _newBounds = CGRectNull;
+    }
+    
+    return self;
+}
+
 - (void)dealloc {
     [_preferredAttributes release];
     [_originalAttributes release];

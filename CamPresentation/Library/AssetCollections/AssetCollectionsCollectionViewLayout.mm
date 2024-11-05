@@ -316,15 +316,18 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
-//    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
-    return NO;
+    /*
+     _orthogonalSectionsWithContentSizeChanges
+     */
+    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
 }
 
-- (UICollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
-    UICollectionViewLayoutInvalidationContext *context = [UICollectionViewLayoutInvalidationContext new];
+- (AssetCollectionsCollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
+    auto context = static_cast<AssetCollectionsCollectionViewLayoutInvalidationContext *>([super invalidationContextForBoundsChange:newBounds]);
+    
+    context.newBounds = newBounds;
     
     [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
-    [context invalidateItemsAtIndexPaths:self.itemAttributesByIndexPath.allKeys];
     
     NSMutableIndexSet *_orthogonalSectionsWithContentSizeChanges = [NSMutableIndexSet new];
     for (NSNumber *sectionIndexNumber in self.sectionDescriptorsBySectionIndex.allKeys) {
@@ -333,7 +336,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
     
-    return [context autorelease];
+    return context;
 }
 
 - (void)invalidateLayoutWithContext:(AssetCollectionsCollectionViewLayoutInvalidationContext *)context {
@@ -341,181 +344,211 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         [self.sectionDescriptorsBySectionIndex removeAllObjects];
         [self.headerAttributesByIndexPath removeAllObjects];
         [self.itemAttributesByIndexPath removeAllObjects];
-    } else {
-        if (UICollectionViewLayoutAttributes *preferredAttributes = context.preferredAttributes) {
-            UICollectionViewLayoutAttributes *originalAttributes = context.originalAttributes;
-            assert(originalAttributes != nil);
+    } else if (!CGRectIsNull(context.newBounds)) {
+        CGFloat width = CGRectGetWidth(context.newBounds);
+        
+        for (UICollectionViewLayoutAttributes *attributes in self.headerAttributesByIndexPath.allValues) {
+            attributes.frame = CGRectMake(CGRectGetMinX(attributes.frame),
+                                          CGRectGetMinY(attributes.frame),
+                                          width,
+                                          CGRectGetHeight(attributes.frame));
+        }
+        
+        unsigned int ivarsCount;
+        Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
+        
+        for (NSNumber *sectionIndex in self.sectionDescriptorsBySectionIndex.allKeys) {
+            id copy = [self copySectionDescriptor:self.sectionDescriptorsBySectionIndex[sectionIndex]];
             
-            NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
-            NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
-            NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
-            
-            CGFloat diff;
-            NSInteger headerAdjustmentIndex;
-            NSInteger sectionAdjustmentIndex;
-            NSInteger itemAdjustmentIndex;
-            
-            if ([preferredAttributes.representedElementKind isEqualToString:UICollectionElementKindSectionHeader]) {
-                UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[preferredAttributes.indexPath] copy];
+            std::for_each(ivars, ivars + ivarsCount, [copy, width](Ivar ivar) {
+                const char *ivarName = ivar_getName(ivar);
+                uintptr_t base = (uintptr_t)(copy);
+                ptrdiff_t offset = ivar_getOffset(ivar);
+                void *location = (void *)(base + offset);
                 
-                copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
-                                                    CGRectGetMinY(copiedAttributes.frame),
-                                                    CGRectGetWidth(copiedAttributes.frame),
-                                                    CGRectGetHeight(preferredAttributes.frame));
-                
-                diff = CGRectGetHeight(preferredAttributes.frame) - CGRectGetHeight(originalAttributes.frame);
-                assert(diff != 0.);
-                
-                headerAttributesByIndexPath[preferredAttributes.indexPath] = copiedAttributes;
-                [copiedAttributes release];
-                
-                [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:@[preferredAttributes.indexPath]];
-                
-                headerAdjustmentIndex = preferredAttributes.indexPath.section + 1;
-                sectionAdjustmentIndex = preferredAttributes.indexPath.section;
-                itemAdjustmentIndex = preferredAttributes.indexPath.section;
-            } else if (preferredAttributes.representedElementKind == nil) {
-                UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[preferredAttributes.indexPath] copy];
-                
-                copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
-                                                    CGRectGetMinY(copiedAttributes.frame),
-                                                    CGRectGetWidth(copiedAttributes.frame),
-                                                    CGRectGetHeight(preferredAttributes.frame));
-                
-                itemAttributesByIndexPath[preferredAttributes.indexPath] = copiedAttributes;
-                [copiedAttributes release];
-                
-                [context invalidateItemsAtIndexPaths:@[preferredAttributes.indexPath]];
-                
-                CGFloat maxHeight = 0.;
-                for (UICollectionViewLayoutAttributes *attributes in itemAttributesByIndexPath.allValues) {
-                    if (attributes.indexPath.section == preferredAttributes.indexPath.section) {
-                        maxHeight = MAX(maxHeight, CGRectGetHeight(attributes.frame));
-                    }
+                if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
+                    reinterpret_cast<CGRect *>(location)->size.width = width;
                 }
-                
-                //
-                
-                /*
-                 필요할 때만 (값이 다를 떄만 복사해야함)
-                 -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
-                 안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
-                 */
-                id sectionDescriptor = sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)];
-                assert(sectionDescriptor != nil);
-                
-                unsigned int ivarsCount;
-                Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
-                
-                CGFloat originalHeight;
-                
-                std::for_each(ivars, ivars + ivarsCount, [sectionDescriptor, maxHeight, &originalHeight](Ivar ivar) {
-                    const char *ivarName = ivar_getName(ivar);
-                    uintptr_t base = (uintptr_t)(sectionDescriptor);
-                    ptrdiff_t offset = ivar_getOffset(ivar);
-                    void *location = (void *)(base + offset);
-                    
-                    if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
-                        originalHeight = CGRectGetHeight(*reinterpret_cast<CGRect *>(location));
-                        reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
-                    } else if (!std::strcmp(ivarName, "_contentFrame")) {
-                        reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
-                    }
-                });
-                
-                delete ivars;
-                
-//                if (originalHeight != maxHeight) {
-//                    id copy = [self copySectionDescriptor:sectionDescriptor];
-//                    sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)] = copy;
-//                    [copy release];
-//                }
-                
-                diff = maxHeight - originalHeight;
-                
-                headerAdjustmentIndex = preferredAttributes.indexPath.section + 1;
-                sectionAdjustmentIndex = preferredAttributes.indexPath.section + 1;
-                itemAdjustmentIndex = preferredAttributes.indexPath.section + 1;
-            } else {
-                abort();
+            });
+            
+            self.sectionDescriptorsBySectionIndex[sectionIndex] = copy;
+            [copy release];
+        }
+        
+        delete ivars;
+    } else if (UICollectionViewLayoutAttributes *preferredAttributes = context.preferredAttributes) {
+        UICollectionViewLayoutAttributes *originalAttributes = context.originalAttributes;
+        assert(originalAttributes != nil);
+        
+        NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+        NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
+        NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
+        
+        CGFloat diff;
+        NSInteger headerAdjustmentIndex;
+        NSInteger sectionAdjustmentIndex;
+        NSInteger itemAdjustmentIndex;
+        
+        if ([preferredAttributes.representedElementKind isEqualToString:UICollectionElementKindSectionHeader]) {
+            UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[preferredAttributes.indexPath] copy];
+            
+            copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
+                                                CGRectGetMinY(copiedAttributes.frame),
+                                                CGRectGetWidth(copiedAttributes.frame),
+                                                CGRectGetHeight(preferredAttributes.frame));
+            
+            diff = CGRectGetHeight(preferredAttributes.frame) - CGRectGetHeight(originalAttributes.frame);
+            assert(diff != 0.);
+            
+            headerAttributesByIndexPath[preferredAttributes.indexPath] = copiedAttributes;
+            [copiedAttributes release];
+            
+            [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:@[preferredAttributes.indexPath]];
+            
+            headerAdjustmentIndex = preferredAttributes.indexPath.section + 1;
+            sectionAdjustmentIndex = preferredAttributes.indexPath.section;
+            itemAdjustmentIndex = preferredAttributes.indexPath.section;
+        } else if (preferredAttributes.representedElementKind == nil) {
+            UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[preferredAttributes.indexPath] copy];
+            
+            copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
+                                                CGRectGetMinY(copiedAttributes.frame),
+                                                CGRectGetWidth(copiedAttributes.frame),
+                                                CGRectGetHeight(preferredAttributes.frame));
+            
+            itemAttributesByIndexPath[preferredAttributes.indexPath] = copiedAttributes;
+            [copiedAttributes release];
+            
+            [context invalidateItemsAtIndexPaths:@[preferredAttributes.indexPath]];
+            
+            CGFloat maxHeight = 0.;
+            for (UICollectionViewLayoutAttributes *attributes in itemAttributesByIndexPath.allValues) {
+                if (attributes.indexPath.section == preferredAttributes.indexPath.section) {
+                    maxHeight = MAX(maxHeight, CGRectGetHeight(attributes.frame));
+                }
             }
             
             //
             
-            if (diff != 0.) {
-                {
-                    for (NSInteger sectionIndex : std::views::iota(headerAdjustmentIndex, self.collectionView.numberOfSections)) {
-                        NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:sectionIndex];
-                        UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[indexPath] copy];
-                        assert(copiedAttributes != nil);
+            /*
+             필요할 때만 (값이 다를 떄만 복사해야함)
+             -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
+             안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
+             */
+            id sectionDescriptor = sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)];
+            assert(sectionDescriptor != nil);
+            
+            unsigned int ivarsCount;
+            Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
+            
+            CGFloat originalHeight;
+            
+            std::for_each(ivars, ivars + ivarsCount, [sectionDescriptor, maxHeight, &originalHeight](Ivar ivar) {
+                const char *ivarName = ivar_getName(ivar);
+                uintptr_t base = (uintptr_t)(sectionDescriptor);
+                ptrdiff_t offset = ivar_getOffset(ivar);
+                void *location = (void *)(base + offset);
+                
+                if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
+                    originalHeight = CGRectGetHeight(*reinterpret_cast<CGRect *>(location));
+                    reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
+                } else if (!std::strcmp(ivarName, "_contentFrame")) {
+                    reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
+                }
+            });
+            
+            delete ivars;
+            
+            //                if (originalHeight != maxHeight) {
+            //                    id copy = [self copySectionDescriptor:sectionDescriptor];
+            //                    sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)] = copy;
+            //                    [copy release];
+            //                }
+            
+            diff = maxHeight - originalHeight;
+            
+            headerAdjustmentIndex = preferredAttributes.indexPath.section + 1;
+            sectionAdjustmentIndex = preferredAttributes.indexPath.section + 1;
+            itemAdjustmentIndex = preferredAttributes.indexPath.section + 1;
+        } else {
+            abort();
+        }
+        
+        //
+        
+        if (diff != 0.) {
+            {
+                for (NSInteger sectionIndex : std::views::iota(headerAdjustmentIndex, self.collectionView.numberOfSections)) {
+                    NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:sectionIndex];
+                    UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[indexPath] copy];
+                    assert(copiedAttributes != nil);
+                    
+                    copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
+                                                        CGRectGetMinY(copiedAttributes.frame) + diff,
+                                                        CGRectGetWidth(copiedAttributes.frame),
+                                                        CGRectGetHeight(copiedAttributes.frame));
+                    
+                    headerAttributesByIndexPath[indexPath] = copiedAttributes;
+                    [copiedAttributes release];
+                    
+                    [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:@[indexPath]];
+                    
+                    //
+                    
+                }
+            }
+            
+            {
+                unsigned int ivarsCount;
+                Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
+                
+                for (NSInteger sectionIndex : std::views::iota(sectionAdjustmentIndex, self.collectionView.numberOfSections)) {
+                    id copiedSectionDescriptor = [self copySectionDescriptor:sectionDescriptorsBySectionIndex[@(sectionIndex)]];
+                    assert(copiedSectionDescriptor != nil);
+                    
+                    std::for_each(ivars, ivars + ivarsCount, [copiedSectionDescriptor, diff](Ivar ivar) {
+                        const char *ivarName = ivar_getName(ivar);
                         
-                        copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
-                                                            CGRectGetMinY(copiedAttributes.frame) + diff,
-                                                            CGRectGetWidth(copiedAttributes.frame),
-                                                            CGRectGetHeight(copiedAttributes.frame));
-                        
-                        headerAttributesByIndexPath[indexPath] = copiedAttributes;
-                        [copiedAttributes release];
-                        
-                        [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:@[indexPath]];
-                        
-                        //
-                        
-                    }
+                        if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
+                            uintptr_t base = (uintptr_t)(copiedSectionDescriptor);
+                            ptrdiff_t offset = ivar_getOffset(ivar);
+                            void *location = (void *)(base + offset);
+                            
+                            reinterpret_cast<CGRect *>(location)->origin.y += diff;
+                        }
+                    });
+                    
+                    sectionDescriptorsBySectionIndex[@(sectionIndex)] = copiedSectionDescriptor;
+                    [copiedSectionDescriptor release];
                 }
                 
-                {
-                    unsigned int ivarsCount;
-                    Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
+                delete ivars;
+            }
+            
+            {
+                NSInteger numberOfSection = self.collectionView.numberOfSections;
+                for (NSInteger sectionIndex : std::views::iota(itemAdjustmentIndex, numberOfSection)) {
+                    NSInteger numberOfItems = [self.collectionView numberOfItemsInSection:sectionIndex];
                     
-                    for (NSInteger sectionIndex : std::views::iota(sectionAdjustmentIndex, self.collectionView.numberOfSections)) {
-                        id copiedSectionDescriptor = [self copySectionDescriptor:sectionDescriptorsBySectionIndex[@(sectionIndex)]];
-                        assert(copiedSectionDescriptor != nil);
-                                                      
-                        std::for_each(ivars, ivars + ivarsCount, [copiedSectionDescriptor, diff](Ivar ivar) {
-                            const char *ivarName = ivar_getName(ivar);
-                            
-                            if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
-                                uintptr_t base = (uintptr_t)(copiedSectionDescriptor);
-                                ptrdiff_t offset = ivar_getOffset(ivar);
-                                void *location = (void *)(base + offset);
-                                
-                                reinterpret_cast<CGRect *>(location)->origin.y += diff;
-                            }
-                        });
+                    for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
+                        NSIndexPath *indexPath = [NSIndexPath indexPathForItem:itemIndex inSection:sectionIndex];
                         
-                        sectionDescriptorsBySectionIndex[@(sectionIndex)] = copiedSectionDescriptor;
-                        [copiedSectionDescriptor release];
-                    }
-                    
-                    delete ivars;
-                }
-                 
-                {
-                    NSInteger numberOfSection = self.collectionView.numberOfSections;
-                    for (NSInteger sectionIndex : std::views::iota(itemAdjustmentIndex, numberOfSection)) {
-                        NSInteger numberOfItems = [self.collectionView numberOfItemsInSection:sectionIndex];
+                        /*
+                         필요할 때만 (값이 다를 떄만 복사해야함)
+                         -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
+                         안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
+                         `diff != 0.`이 방지해줄 것
+                         */
                         
-                        for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
-                            NSIndexPath *indexPath = [NSIndexPath indexPathForItem:itemIndex inSection:sectionIndex];
-                            
-                            /*
-                             필요할 때만 (값이 다를 떄만 복사해야함)
-                             -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
-                             안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
-                             `diff != 0.`이 방지해줄 것
-                             */
-                            
-                            UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[indexPath] copy];
-                            CGRect frame = copiedAttributes.frame;
-                            frame.origin.y += diff;
-                            copiedAttributes.frame = frame;
-                            
-                            itemAttributesByIndexPath[indexPath] = copiedAttributes;
-                            [copiedAttributes release];
-                            
-                            [context invalidateItemsAtIndexPaths:@[indexPath]];
-                        }
+                        UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[indexPath] copy];
+                        CGRect frame = copiedAttributes.frame;
+                        frame.origin.y += diff;
+                        copiedAttributes.frame = frame;
+                        
+                        itemAttributesByIndexPath[indexPath] = copiedAttributes;
+                        [copiedAttributes release];
+                        
+                        [context invalidateItemsAtIndexPaths:@[indexPath]];
                     }
                 }
             }
@@ -528,10 +561,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 /*
  _orthogonalSectionsWithContentSizeChanges
  */
-
-//- (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
-//    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
-//}
 
 - (NSIndexSet *)_orthogonalScrollingSections {
     UICollectionView * _Nullable collectionView = self.collectionView;

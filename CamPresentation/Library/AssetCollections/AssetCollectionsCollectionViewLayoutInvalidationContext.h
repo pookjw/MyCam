@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface AssetCollectionsCollectionViewLayoutInvalidationContext : UICollectionViewLayoutInvalidationContext
 @property (copy, nonatomic, nullable) UICollectionViewLayoutAttributes *preferredAttributes;
 @property (copy, nonatomic, nullable) UICollectionViewLayoutAttributes *originalAttributes;
+@property (assign, nonatomic) CGRect newBounds;
 @end
 
 NS_ASSUME_NONNULL_END
