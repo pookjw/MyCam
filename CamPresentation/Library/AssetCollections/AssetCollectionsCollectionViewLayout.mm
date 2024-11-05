@@ -68,8 +68,15 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 - (void)prepareLayout {
     [super prepareLayout];
     
-    [self reloadSectionAndHeaderAttributes];
-    [self reloadItemAttributes];
+    assert(self.sectionDescriptorsBySectionIndex.count == self.headerAttributesByIndexPath.count);
+    
+    if (self.sectionDescriptorsBySectionIndex.count == 0) {
+        [self reloadSectionAndHeaderAttributes];
+    }
+    
+    if (self.itemAttributesByIndexPath.count == 0) {
+        [self reloadItemAttributes];
+    }
 }
 
 - (NSArray<__kindof UICollectionViewLayoutAttributes *> *)layoutAttributesForElementsInRect:(CGRect)rect {
@@ -94,11 +101,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)reloadSectionAndHeaderAttributes {
     NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
-    
-    if (headerAttributesByIndexPath.count > 0) {
-        return;
-    }
-    
     NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
     
     UICollectionView * _Nullable collectionView = self.collectionView;
@@ -178,8 +180,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 #warning Size Changes
 - (void)reloadItemAttributes {
     NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
-    
-    if (itemAttributesByIndexPath.count > 0) return;
     
     [itemAttributesByIndexPath removeAllObjects];
     
@@ -290,7 +290,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (UICollectionViewLayoutInvalidationContext *)invalidationContextForPreferredLayoutAttributes:(UICollectionViewLayoutAttributes *)preferredAttributes withOriginalAttributes:(UICollectionViewLayoutAttributes *)originalAttributes {
-    UICollectionViewLayoutInvalidationContext *context = [UICollectionViewLayoutInvalidationContext new];
+    UICollectionViewLayoutInvalidationContext *context = [super invalidationContextForPreferredLayoutAttributes:preferredAttributes withOriginalAttributes:originalAttributes];
     
     CGFloat diff;
     NSInteger headerAdjustmentIndex;
@@ -464,12 +464,12 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     //
     
-    return [context autorelease];
+    return context;
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
-    return NO;
 //    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
+    return NO;
 }
 
 - (UICollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
@@ -490,12 +490,16 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)invalidateLayoutWithContext:(UICollectionViewLayoutInvalidationContext *)context {
 //    if (context.invalidateEverything) {
-        // TODO: Remove All
-//        [self reloadSectionAndHeaderAttributesForce:YES];
-//        [self reloadItemAttributesForce:YES];
+//        [self.sectionDescriptorsBySectionIndex removeAllObjects];
+//        [self.headerAttributesByIndexPath removeAllObjects];
+//        [self.itemAttributesByIndexPath removeAllObjects];
 //    } else {
-//        for (NSIndexPath *indexPath in context.invalidatedItemIndexPaths) {
-//            [self]
+//        NSMutableIndexSet * _Nullable _orthogonalSectionsWithContentSizeChanges;
+//        assert(object_getInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void **>(&_orthogonalSectionsWithContentSizeChanges)) != NULL);
+//        
+//        if ((_orthogonalSectionsWithContentSizeChanges.count > 0) && (context.invalidatedItemIndexPaths.count > 0) && (context.invalidatedSupplementaryIndexPaths.count > 0)) {
+//            [self reloadSectionAndHeaderAttributes];
+//            [self reloadItemAttributes];
 //        }
 //    }
     

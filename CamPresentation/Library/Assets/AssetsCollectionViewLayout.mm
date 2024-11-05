@@ -20,6 +20,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
 
 @implementation AssetsCollectionViewLayout
 
++ (Class)invalidationContextClass {
+    return UICollectionViewLayoutInvalidationContext.class;
+}
+
 - (instancetype)init {
     if (self = [super init]) {
         _itemsPerRow = 4;
@@ -203,12 +207,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
 }
 
 - (UICollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
-    UICollectionViewLayoutInvalidationContext *context = [UICollectionViewLayoutInvalidationContext new];
+    UICollectionViewLayoutInvalidationContext *context = [super invalidationContextForBoundsChange:newBounds];
     
     [context invalidateItemsAtIndexPaths:self.cachedFrameValuesByIndexPath.allKeys];
-    [self.cachedFrameValuesByIndexPath removeAllObjects];
     
-    return [context autorelease];
+    return context;
 }
 
 - (void)invalidateLayoutWithContext:(UICollectionViewLayoutInvalidationContext *)context {
