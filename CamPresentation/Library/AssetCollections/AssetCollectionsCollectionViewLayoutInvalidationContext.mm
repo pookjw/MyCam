@@ -11,6 +11,7 @@
 
 - (instancetype)init {
     if (self = [super init]) {
+        _oldBounds = CGRectNull;
         _newBounds = CGRectNull;
     }
     

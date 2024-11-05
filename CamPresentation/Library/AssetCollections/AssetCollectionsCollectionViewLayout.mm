@@ -7,6 +7,7 @@
 
 #import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
 #import <CamPresentation/AssetCollectionsCollectionViewLayoutInvalidationContext.h>
+#import <CamPresentation/AssetCollectionsCollectionViewLayoutAttributes.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <algorithm>
@@ -20,8 +21,8 @@
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
 @interface AssetCollectionsCollectionViewLayout ()
-@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath;
-@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath;
+@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *itemAttributesByIndexPath;
+@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath;
 @property (retain, nonatomic, readonly) NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex;
 @end
 
@@ -29,6 +30,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 + (Class)invalidationContextClass {
     return AssetCollectionsCollectionViewLayoutInvalidationContext.class;
+}
+
++ (Class)layoutAttributesClass {
+    return AssetCollectionsCollectionViewLayoutAttributes.class;
 }
 
 - (instancetype)init {
@@ -108,7 +113,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)reloadSectionAndHeaderAttributes {
-    NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+    NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
     NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
     
     UICollectionView * _Nullable collectionView = self.collectionView;
@@ -141,9 +146,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:sectionIndex];
         NSInteger numberOfItems = [collectionView numberOfItemsInSection:sectionIndex];
         
-        UICollectionViewLayoutAttributes *attributes = [UICollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:indexPath];
+        AssetCollectionsCollectionViewLayoutAttributes *attributes = [AssetCollectionsCollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:indexPath];
         
         attributes.frame = CGRectMake(0., lastY, CGRectGetWidth(bounds), ESTIMATED_HEADER_HEIGHT);
+        attributes.originalY = lastY;
+        
         lastY += ESTIMATED_HEADER_HEIGHT;
         headerAttributesByIndexPath[indexPath] = attributes;
         
@@ -185,9 +192,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     assert(headerAttributesByIndexPath.count == sectionDescriptorsBySectionIndex.count);
 }
 
-#warning Size Changes
 - (void)reloadItemAttributes {
-    NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
+    NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
     
     [itemAttributesByIndexPath removeAllObjects];
     
@@ -226,7 +232,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
             NSIndexPath *indexPath = [NSIndexPath indexPathForItem:itemIndex inSection:sectionIndex];
             
-            UICollectionViewLayoutAttributes *attributes = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
+            AssetCollectionsCollectionViewLayoutAttributes *attributes = [AssetCollectionsCollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
             
             attributes.frame = CGRectMake(CGRectGetMinX(_containerLayoutFrame) + 200. * itemIndex,
                                           CGRectGetMinY(_containerLayoutFrame),
@@ -316,25 +322,29 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
-    /*
-     _orthogonalSectionsWithContentSizeChanges
-     */
-    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
+    return (CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds)) || (CGRectGetMinY(newBounds) != CGRectGetMinY(self.collectionView.bounds));
 }
 
 - (AssetCollectionsCollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
     auto context = static_cast<AssetCollectionsCollectionViewLayoutInvalidationContext *>([super invalidationContextForBoundsChange:newBounds]);
     
+    CGRect oldBounds = self.collectionView.bounds;
+    
+    context.oldBounds = oldBounds;
     context.newBounds = newBounds;
     
-    [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
-    
-    NSMutableIndexSet *_orthogonalSectionsWithContentSizeChanges = [NSMutableIndexSet new];
-    for (NSNumber *sectionIndexNumber in self.sectionDescriptorsBySectionIndex.allKeys) {
-        [_orthogonalSectionsWithContentSizeChanges addIndex:sectionIndexNumber.unsignedIntegerValue];
+    if (CGRectGetWidth(oldBounds) != CGRectGetWidth(newBounds)) {
+        [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
+        
+        NSMutableIndexSet *_orthogonalSectionsWithContentSizeChanges = [NSMutableIndexSet new];
+        for (NSNumber *sectionIndexNumber in self.sectionDescriptorsBySectionIndex.allKeys) {
+            [_orthogonalSectionsWithContentSizeChanges addIndex:sectionIndexNumber.unsignedIntegerValue];
+        }
+        
+        assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
+    } else if (CGRectGetMinY(oldBounds) != CGRectGetMinY(newBounds)) {
+        [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
     }
-    
-    assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
     
     return context;
 }
@@ -345,44 +355,96 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         [self.headerAttributesByIndexPath removeAllObjects];
         [self.itemAttributesByIndexPath removeAllObjects];
     } else if (!CGRectIsNull(context.newBounds)) {
-        CGFloat width = CGRectGetWidth(context.newBounds);
+        CGRect oldBounds = context.oldBounds;
+        CGRect newBounds = context.newBounds;
         
-        for (UICollectionViewLayoutAttributes *attributes in self.headerAttributesByIndexPath.allValues) {
-            attributes.frame = CGRectMake(CGRectGetMinX(attributes.frame),
-                                          CGRectGetMinY(attributes.frame),
-                                          width,
-                                          CGRectGetHeight(attributes.frame));
-        }
-        
-        unsigned int ivarsCount;
-        Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
-        
-        for (NSNumber *sectionIndex in self.sectionDescriptorsBySectionIndex.allKeys) {
-            id copy = [self copySectionDescriptor:self.sectionDescriptorsBySectionIndex[sectionIndex]];
+        if (CGRectGetWidth(oldBounds) != CGRectGetWidth(newBounds)) {
+            CGFloat width = CGRectGetWidth(context.newBounds);
             
-            std::for_each(ivars, ivars + ivarsCount, [copy, width](Ivar ivar) {
-                const char *ivarName = ivar_getName(ivar);
-                uintptr_t base = (uintptr_t)(copy);
-                ptrdiff_t offset = ivar_getOffset(ivar);
-                void *location = (void *)(base + offset);
+            NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+            
+            for (NSIndexPath *indexPath in headerAttributesByIndexPath.allKeys) {
+                AssetCollectionsCollectionViewLayoutAttributes *copy = [headerAttributesByIndexPath[indexPath] copy];
                 
-                if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
-                    reinterpret_cast<CGRect *>(location)->size.width = width;
-                }
-            });
+                copy.frame = CGRectMake(CGRectGetMinX(copy.frame),
+                                        CGRectGetMinY(copy.frame),
+                                        width,
+                                        CGRectGetHeight(copy.frame));
+                
+                headerAttributesByIndexPath[indexPath] = copy;
+                [copy release];
+            }
             
-            self.sectionDescriptorsBySectionIndex[sectionIndex] = copy;
-            [copy release];
+            unsigned int ivarsCount;
+            Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
+            
+            NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
+            
+            for (NSNumber *sectionIndex in sectionDescriptorsBySectionIndex.allKeys) {
+                id copy = [self copySectionDescriptor:sectionDescriptorsBySectionIndex[sectionIndex]];
+                
+                std::for_each(ivars, ivars + ivarsCount, [copy, width](Ivar ivar) {
+                    const char *ivarName = ivar_getName(ivar);
+                    uintptr_t base = (uintptr_t)(copy);
+                    ptrdiff_t offset = ivar_getOffset(ivar);
+                    void *location = (void *)(base + offset);
+                    
+                    if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
+                        reinterpret_cast<CGRect *>(location)->size.width = width;
+                    }
+                });
+                
+                sectionDescriptorsBySectionIndex[sectionIndex] = copy;
+                [copy release];
+            }
+            
+            delete ivars;
+        } else if (CGRectGetMinY(oldBounds) != CGRectGetMinY(newBounds)) {
+            UIEdgeInsets _effectiveContentInset = reinterpret_cast<UIEdgeInsets (*)(id, SEL)>(objc_msgSend)(self.collectionView, sel_registerName("_effectiveContentInset"));
+            
+            NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+            
+            for (NSIndexPath *indexPath in headerAttributesByIndexPath.allKeys) {
+                AssetCollectionsCollectionViewLayoutAttributes *copy = [headerAttributesByIndexPath[indexPath] copy];
+                
+                //
+                
+                id sectionDescriptor = self.sectionDescriptorsBySectionIndex[@(indexPath.section)];
+                
+                Ivar ivar = object_getInstanceVariable(sectionDescriptor, "_containerLayoutFrame", NULL);
+                assert(ivar != NULL);
+                
+                CGRect _containerLayoutFrame = *reinterpret_cast<CGRect *>((uintptr_t)sectionDescriptor + ivar_getOffset(ivar));
+                
+                //
+                
+                CGFloat adjustedContentOffsetY = CGRectGetMinY(newBounds) + _effectiveContentInset.top;
+                
+                CGFloat y;
+                if (CGRectGetMaxY(_containerLayoutFrame) - CGRectGetHeight(copy.frame) <= adjustedContentOffsetY) {
+                    y = CGRectGetMaxY(_containerLayoutFrame) - CGRectGetHeight(copy.frame);
+                } else if ((CGRectGetMinY(_containerLayoutFrame) - CGRectGetHeight(copy.frame)) <= adjustedContentOffsetY) {
+                    y = CGRectGetMinY(newBounds) + _effectiveContentInset.top;
+                } else {
+                    y = copy.originalY;
+                }
+                
+                copy.frame = CGRectMake(CGRectGetMinX(copy.frame),
+                                        y,
+                                        CGRectGetWidth(copy.frame),
+                                        CGRectGetHeight(copy.frame));
+                
+                headerAttributesByIndexPath[indexPath] = copy;
+                [copy release];
+            }
         }
-        
-        delete ivars;
     } else if (UICollectionViewLayoutAttributes *preferredAttributes = context.preferredAttributes) {
         UICollectionViewLayoutAttributes *originalAttributes = context.originalAttributes;
         assert(originalAttributes != nil);
         
-        NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+        NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
         NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
-        NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
+        NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
         
         CGFloat diff;
         NSInteger headerAdjustmentIndex;
@@ -390,7 +452,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         NSInteger itemAdjustmentIndex;
         
         if ([preferredAttributes.representedElementKind isEqualToString:UICollectionElementKindSectionHeader]) {
-            UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[preferredAttributes.indexPath] copy];
+            AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[preferredAttributes.indexPath] copy];
             
             copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
                                                 CGRectGetMinY(copiedAttributes.frame),
@@ -409,7 +471,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             sectionAdjustmentIndex = preferredAttributes.indexPath.section;
             itemAdjustmentIndex = preferredAttributes.indexPath.section;
         } else if (preferredAttributes.representedElementKind == nil) {
-            UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[preferredAttributes.indexPath] copy];
+            AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[preferredAttributes.indexPath] copy];
             
             copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
                                                 CGRectGetMinY(copiedAttributes.frame),
@@ -474,13 +536,14 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             {
                 for (NSInteger sectionIndex : std::views::iota(headerAdjustmentIndex, self.collectionView.numberOfSections)) {
                     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:sectionIndex];
-                    UICollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[indexPath] copy];
+                    AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[indexPath] copy];
                     assert(copiedAttributes != nil);
                     
                     copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
                                                         CGRectGetMinY(copiedAttributes.frame) + diff,
                                                         CGRectGetWidth(copiedAttributes.frame),
                                                         CGRectGetHeight(copiedAttributes.frame));
+                    copiedAttributes.originalY = CGRectGetMinY(copiedAttributes.frame);
                     
                     headerAttributesByIndexPath[indexPath] = copiedAttributes;
                     [copiedAttributes release];
@@ -534,7 +597,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                          `diff != 0.`이 방지해줄 것
                          */
                         
-                        UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[indexPath] copy];
+                        AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[indexPath] copy];
                         CGRect frame = copiedAttributes.frame;
                         frame.origin.y += diff;
                         copiedAttributes.frame = frame;
