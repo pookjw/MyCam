@@ -334,6 +334,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     context.newBounds = newBounds;
     
     if (CGRectGetWidth(oldBounds) != CGRectGetWidth(newBounds)) {
+        // Width가 바뀌었을 때
         [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
         
         NSMutableIndexSet *_orthogonalSectionsWithContentSizeChanges = [NSMutableIndexSet new];
@@ -343,6 +344,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         
         assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
     } else if (CGRectGetMinY(oldBounds) != CGRectGetMinY(newBounds)) {
+        // 상하로 스크롤 했을 때 Header만 갱신
         [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
     }
     
@@ -359,6 +361,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         CGRect newBounds = context.newBounds;
         
         if (CGRectGetWidth(oldBounds) != CGRectGetWidth(newBounds)) {
+            // width가 바뀌었다면 Header, Section Frame 업데이트
             CGFloat width = CGRectGetWidth(context.newBounds);
             
             NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
@@ -400,6 +403,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             
             delete ivars;
         } else if (CGRectGetMinY(oldBounds) != CGRectGetMinY(newBounds)) {
+            // 상하로 스크롤하면 Header 업데이트
             UIEdgeInsets _effectiveContentInset = reinterpret_cast<UIEdgeInsets (*)(id, SEL)>(objc_msgSend)(self.collectionView, sel_registerName("_effectiveContentInset"));
             
             NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
@@ -422,10 +426,13 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 
                 CGFloat y;
                 if (CGRectGetMaxY(_containerLayoutFrame) - CGRectGetHeight(copy.frame) <= adjustedContentOffsetY) {
+                    // 맨 위로 이동할 떄
                     y = CGRectGetMaxY(_containerLayoutFrame) - CGRectGetHeight(copy.frame);
                 } else if ((CGRectGetMinY(_containerLayoutFrame) - CGRectGetHeight(copy.frame)) <= adjustedContentOffsetY) {
+                    // Section을 스크롤 중일 때
                     y = CGRectGetMinY(newBounds) + _effectiveContentInset.top;
                 } else {
+                    // 아래에 있을 때
                     y = copy.originalY;
                 }
                 
@@ -442,6 +449,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         UICollectionViewLayoutAttributes *originalAttributes = context.originalAttributes;
         assert(originalAttributes != nil);
         
+        // Estimated 업데이트
+        
         NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
         NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
         NSMutableDictionary<NSIndexPath *, AssetCollectionsCollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
@@ -452,6 +461,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         NSInteger itemAdjustmentIndex;
         
         if ([preferredAttributes.representedElementKind isEqualToString:UICollectionElementKindSectionHeader]) {
+            // Header 크기가 바뀌었다면
             AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [headerAttributesByIndexPath[preferredAttributes.indexPath] copy];
             
             copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
@@ -471,6 +481,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             sectionAdjustmentIndex = preferredAttributes.indexPath.section;
             itemAdjustmentIndex = preferredAttributes.indexPath.section;
         } else if (preferredAttributes.representedElementKind == nil) {
+            // Item 크기가 바뀌었다면
             AssetCollectionsCollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[preferredAttributes.indexPath] copy];
             
             copiedAttributes.frame = CGRectMake(CGRectGetMinX(copiedAttributes.frame),
@@ -533,6 +544,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         //
         
         if (diff != 0.) {
+            // Header 위치 업데이트
             {
                 for (NSInteger sectionIndex : std::views::iota(headerAdjustmentIndex, self.collectionView.numberOfSections)) {
                     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:0 inSection:sectionIndex];
@@ -555,6 +567,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 }
             }
             
+            // Section Scroll View 업데이트
             {
                 unsigned int ivarsCount;
                 Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
@@ -582,6 +595,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 delete ivars;
             }
             
+            // Item 위치 업데이트
             {
                 NSInteger numberOfSection = self.collectionView.numberOfSections;
                 for (NSInteger sectionIndex : std::views::iota(itemAdjustmentIndex, numberOfSection)) {

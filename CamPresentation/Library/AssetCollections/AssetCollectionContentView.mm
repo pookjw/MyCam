@@ -48,7 +48,7 @@
         ]];
         
         UIImageView *symbolImageView = self.symbolImageView;
-        [imageView addSubview:symbolImageView];
+        [self addSubview:symbolImageView];
         symbolImageView.translatesAutoresizingMaskIntoConstraints = NO;
         
         [NSLayoutConstraint activateConstraints:@[
@@ -167,6 +167,9 @@
     imageView.image = nil;
     label.text = nil;
     
+    imageView.alpha = 0.;
+    label.alpha = 0.;
+    
     __weak auto weakSelf = self;
     
     model.resultHandler = ^(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount) {
@@ -198,6 +201,16 @@
         
         label.text = [NSString stringWithFormat:@"%@ (%ld)", localizedTitle, assetsCount];
         imageView.image = result;
+        
+        [UIView animateWithDuration:0.2 animations:^{
+            if (imageView.image != nil) {
+                imageView.alpha = 1.;
+            }
+            
+            if (label.text != nil) {
+                label.alpha = 1.;
+            }
+        }];
         
         [self invalidateIntrinsicContentSize];
     };
