@@ -43,15 +43,32 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [super dealloc];
 }
 
-#warning TODO
+- (void)_setCollectionView:(UICollectionView *)collectionView {
+    objc_super superInfo = { self, [self class] };
+    reinterpret_cast<void (*)(objc_super *, SEL, id)>(objc_msgSendSuper2)(&superInfo, _cmd, collectionView);
+    
+    reinterpret_cast<void (*)(id, SEL, BOOL, BOOL)>(objc_msgSend)(collectionView, sel_registerName("_setDefaultAlwaysBounceVertical:horizontal:"), YES, NO);
+}
+
 - (CGSize)collectionViewContentSize {
-    return self.collectionView.frame.size;
+    NSInteger numberOfSections = self.collectionView.numberOfSections;
+    if (numberOfSections == 0) return CGSizeZero;
+    
+    id sectionDescriptor = self.sectionDescriptorsBySectionIndex[@(numberOfSections - 1)];
+    
+    CGRect _containerLayoutFrame;
+    assert(object_getInstanceVariable(sectionDescriptor, "_containerLayoutFrame", reinterpret_cast<void **>(&_containerLayoutFrame)));
+    
+    CGSize contentSize = CGSizeMake(CGRectGetWidth(self.collectionView.bounds),
+                                    CGRectGetMaxY(_containerLayoutFrame));
+    
+    return contentSize;
 }
 
 - (void)prepareLayout {
     [super prepareLayout];
     
-    [self reloadAttributesIfNeeded];
+    [self reloadSectionAndHeaderAttributes];
     [self reloadItemAttributes];
 }
 
@@ -75,15 +92,20 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return self.itemAttributesByIndexPath[indexPath];
 }
 
-- (BOOL)reloadAttributesIfNeeded {
+- (void)reloadSectionAndHeaderAttributes {
     NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *headerAttributesByIndexPath = self.headerAttributesByIndexPath;
+    
+    if (headerAttributesByIndexPath.count > 0) {
+        return;
+    }
+    
     NSMutableDictionary<NSNumber *, id> *sectionDescriptorsBySectionIndex = self.sectionDescriptorsBySectionIndex;
     
     UICollectionView * _Nullable collectionView = self.collectionView;
     if (collectionView == nil) {
         [headerAttributesByIndexPath removeAllObjects];
         [sectionDescriptorsBySectionIndex removeAllObjects];
-        return NO;
+        return;
     }
     
     NSInteger numberOfSections = collectionView.numberOfSections;
@@ -91,14 +113,13 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     if (numberOfSections == 0) {
         [headerAttributesByIndexPath removeAllObjects];
         [sectionDescriptorsBySectionIndex removeAllObjects];
-        return NO;
+        return;
     }
     
     assert(headerAttributesByIndexPath.count == sectionDescriptorsBySectionIndex.count);
     
-    if (headerAttributesByIndexPath.count > 0) {
-        return NO;
-    }
+    [headerAttributesByIndexPath removeAllObjects];
+    [sectionDescriptorsBySectionIndex removeAllObjects];
     
     CGRect bounds = collectionView.bounds;
     CGFloat lastY = 0.;
@@ -152,11 +173,9 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     delete ivars;
     
     assert(headerAttributesByIndexPath.count == sectionDescriptorsBySectionIndex.count);
-    
-    return YES;
 }
 
-#warning Diff, Size Changes
+#warning Size Changes
 - (void)reloadItemAttributes {
     NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *itemAttributesByIndexPath = self.itemAttributesByIndexPath;
     
@@ -193,6 +212,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         if (numberOfItems == 0) continue;
         
         id sectionDescriptor = sectionDescriptorsBySectionIndex[@(sectionIndex)];
+        assert(sectionDescriptor != nil);
         CGRect _containerLayoutFrame = *reinterpret_cast<CGRect *>((uintptr_t)sectionDescriptor + _containerLayoutFrameIffset);
         
         for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
@@ -210,7 +230,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     }
 }
 
-- (id)copySetionDescriptor:(id)oldDescriptor {
+- (id)copySectionDescriptor:(id)oldDescriptor {
     if (oldDescriptor == nil) return nil;
     
     /*
@@ -351,16 +371,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         
         delete ivars;
         
-        if (originalHeight != maxHeight) {
-            /*
-             필요할 때만 (값이 다를 떄만 복사해야함)
-             -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
-             안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
-             */
-            id copy = [self copySetionDescriptor:sectionDescriptor];
-            sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)] = copy;
-            [copy release];
-        }
+//        if (originalHeight != maxHeight) {
+//            id copy = [self copySectionDescriptor:sectionDescriptor];
+//            sectionDescriptorsBySectionIndex[@(preferredAttributes.indexPath.section)] = copy;
+//            [copy release];
+//        }
         
         diff = maxHeight - originalHeight;
         
@@ -398,7 +413,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             Ivar *ivars = class_copyIvarList(objc_lookUpClass("_UICollectionLayoutSectionDescriptor"), &ivarsCount);
             
             NSIndexPath *nextIndexPath = [NSIndexPath indexPathForItem:preferredAttributes.indexPath.item inSection:sectionAdjustmentIndex];
-            while (id copiedSectionDescriptor = [self copySetionDescriptor:sectionDescriptorsBySectionIndex[@(nextIndexPath.section)]]) {
+            while (id copiedSectionDescriptor = [self copySectionDescriptor:sectionDescriptorsBySectionIndex[@(nextIndexPath.section)]]) {
                 std::for_each(ivars, ivars + ivarsCount, [copiedSectionDescriptor, diff](Ivar ivar) {
                     const char *ivarName = ivar_getName(ivar);
                     
@@ -426,6 +441,13 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
                     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:itemIndex inSection:sectionIndex];
                     
+                    /*
+                     필요할 때만 (값이 다를 떄만 복사해야함)
+                     -[_UICollectionViewOrthogonalScrollView configureForDescriptor:]
+                     안 그러면 -[UIScrollView setContentOffset:]이 계속 불려서 Scroll이 안 됨
+                     `diff != 0.`이 방지해줄 것
+                     */
+                    
                     UICollectionViewLayoutAttributes *copiedAttributes = [itemAttributesByIndexPath[indexPath] copy];
                     CGRect frame = copiedAttributes.frame;
                     frame.origin.y += diff;
@@ -444,6 +466,49 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     return [context autorelease];
 }
+
+- (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
+    return NO;
+//    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
+}
+
+- (UICollectionViewLayoutInvalidationContext *)invalidationContextForBoundsChange:(CGRect)newBounds {
+    UICollectionViewLayoutInvalidationContext *context = [UICollectionViewLayoutInvalidationContext new];
+    
+    [context invalidateSupplementaryElementsOfKind:UICollectionElementKindSectionHeader atIndexPaths:self.headerAttributesByIndexPath.allKeys];
+    [context invalidateItemsAtIndexPaths:self.itemAttributesByIndexPath.allKeys];
+    
+    NSMutableIndexSet *_orthogonalSectionsWithContentSizeChanges = [NSMutableIndexSet new];
+    for (NSNumber *sectionIndexNumber in self.sectionDescriptorsBySectionIndex.allKeys) {
+        [_orthogonalSectionsWithContentSizeChanges addIndex:sectionIndexNumber.unsignedIntegerValue];
+    }
+    
+    assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
+    
+    return [context autorelease];
+}
+
+- (void)invalidateLayoutWithContext:(UICollectionViewLayoutInvalidationContext *)context {
+//    if (context.invalidateEverything) {
+        // TODO: Remove All
+//        [self reloadSectionAndHeaderAttributesForce:YES];
+//        [self reloadItemAttributesForce:YES];
+//    } else {
+//        for (NSIndexPath *indexPath in context.invalidatedItemIndexPaths) {
+//            [self]
+//        }
+//    }
+    
+    [super invalidateLayoutWithContext:context];
+}
+
+/*
+ _orthogonalSectionsWithContentSizeChanges
+ */
+
+//- (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds {
+//    return CGRectGetWidth(newBounds) != CGRectGetWidth(self.collectionView.bounds);
+//}
 
 - (NSIndexSet *)_orthogonalScrollingSections {
     UICollectionView * _Nullable collectionView = self.collectionView;
@@ -530,8 +595,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(view, sel_registerName("_setShouldConstrainWidth:"), YES);
 }
 
-- (UIColor *)_preferredBackgroundColor {
-    return UIColor.systemOrangeColor;
+- (BOOL)_preparedForBoundsChanges {
+    return YES;
 }
 
 @end

@@ -22,10 +22,6 @@
 }
 
 - (void)invalidateLayoutWithContext:(UICollectionViewLayoutInvalidationContext *)context {
-    if (context.invalidatedItemIndexPaths.count > 0) {
-        pause();
-    }
-    NSLog(@"%@", [context invalidatedItemIndexPaths]);
     [super invalidateLayoutWithContext:context];
 }
 

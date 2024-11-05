@@ -43,11 +43,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     }
 }
 
-- (void)prepareLayout {
-    [super prepareLayout];
-    
-}
-
 - (CGSize)collectionViewContentSize {
     UICollectionView * _Nullable collectionView = self.collectionView;
     if (collectionView == nil) return CGSizeZero;
@@ -214,6 +209,20 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     [self.cachedFrameValuesByIndexPath removeAllObjects];
     
     return [context autorelease];
+}
+
+- (void)invalidateLayoutWithContext:(UICollectionViewLayoutInvalidationContext *)context {
+    NSMutableDictionary<NSIndexPath *, NSValue *> *cachedFrameValuesByIndexPath = self.cachedFrameValuesByIndexPath;
+    
+    if (context.invalidateEverything) {
+        [cachedFrameValuesByIndexPath removeAllObjects];
+    } else {
+        for (NSIndexPath *indexPath in context.invalidatedItemIndexPaths) {
+            [cachedFrameValuesByIndexPath removeObjectForKey:indexPath];
+        }
+    }
+    
+    [super invalidateLayoutWithContext:context];
 }
 
 - (void)invalidateLayout {
