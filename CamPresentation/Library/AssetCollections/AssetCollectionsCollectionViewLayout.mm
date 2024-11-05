@@ -167,13 +167,13 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             } else if (!std::strcmp(ivarName, "_orthogonalScrollingBehavior")) {
                 *reinterpret_cast<UICollectionLayoutSectionOrthogonalScrollingBehavior *>(location) = UICollectionLayoutSectionOrthogonalScrollingBehaviorContinuousGroupLeadingBoundary;
             } else if (!std::strcmp(ivarName, "_groupDimension")) {
-                *reinterpret_cast<CGFloat *>(location) = 200.;
+                *reinterpret_cast<CGFloat *>(location) = 208.;
             } else if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
                 *reinterpret_cast<CGRect *>(location) = CGRectMake(0., lastY, CGRectGetWidth(bounds), ESTIMATED_ITEM_HEIGHT);
             } else if (!std::strcmp(ivarName, "_contentFrame")) {
-                *reinterpret_cast<CGRect *>(location) = CGRectMake(0., 0., 200. * numberOfItems, ESTIMATED_ITEM_HEIGHT);
+                *reinterpret_cast<CGRect *>(location) = CGRectMake(8., 0., 200. * numberOfItems + 8. * (numberOfItems + 1), ESTIMATED_ITEM_HEIGHT);
             } else if (!std::strcmp(ivarName, "_contentInsets")) {
-                *reinterpret_cast<NSDirectionalEdgeInsets *>(location) = NSDirectionalEdgeInsetsZero;
+                *reinterpret_cast<NSDirectionalEdgeInsets *>(location) = NSDirectionalEdgeInsetsMake(0., 8., 0., 8.);
             } else if (!std::strcmp(ivarName, "_cornerRadius")) {
                 *reinterpret_cast<CGFloat *>(location) = 20.;
             } else if (!std::strcmp(ivarName, "_clipsContentToBounds")) {
@@ -234,7 +234,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             
             AssetCollectionsCollectionViewLayoutAttributes *attributes = [AssetCollectionsCollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
             
-            attributes.frame = CGRectMake(CGRectGetMinX(_containerLayoutFrame) + 200. * itemIndex,
+            attributes.frame = CGRectMake(CGRectGetMinX(_containerLayoutFrame) + (200. * itemIndex) + (8. * (itemIndex + 1)),
                                           CGRectGetMinY(_containerLayoutFrame),
                                           200.,
                                           ESTIMATED_ITEM_HEIGHT);
