@@ -169,11 +169,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             } else if (!std::strcmp(ivarName, "_groupDimension")) {
                 *reinterpret_cast<CGFloat *>(location) = 208.;
             } else if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
-                *reinterpret_cast<CGRect *>(location) = CGRectMake(0., lastY, CGRectGetWidth(bounds), ESTIMATED_ITEM_HEIGHT);
+                *reinterpret_cast<CGRect *>(location) = CGRectMake(0., lastY, CGRectGetWidth(bounds), ESTIMATED_ITEM_HEIGHT + 8. * 2.);
             } else if (!std::strcmp(ivarName, "_contentFrame")) {
-                *reinterpret_cast<CGRect *>(location) = CGRectMake(8., 0., 200. * numberOfItems + 8. * (numberOfItems + 1), ESTIMATED_ITEM_HEIGHT);
+                *reinterpret_cast<CGRect *>(location) = CGRectMake(8., 8., 200. * numberOfItems + 8. * (numberOfItems + 1), ESTIMATED_ITEM_HEIGHT);
             } else if (!std::strcmp(ivarName, "_contentInsets")) {
-                *reinterpret_cast<NSDirectionalEdgeInsets *>(location) = NSDirectionalEdgeInsetsMake(0., 8., 0., 8.);
+                *reinterpret_cast<NSDirectionalEdgeInsets *>(location) = NSDirectionalEdgeInsetsMake(8., 8., 8., 8.);
             } else if (!std::strcmp(ivarName, "_cornerRadius")) {
                 *reinterpret_cast<CGFloat *>(location) = 20.;
             } else if (!std::strcmp(ivarName, "_clipsContentToBounds")) {
@@ -181,7 +181,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             }
         });
         
-        lastY += 100.;
+        lastY += ESTIMATED_ITEM_HEIGHT + 8. * 2.;
         
         sectionDescriptorsBySectionIndex[@(sectionIndex)] = sectionDescriptor;
         [sectionDescriptor release];
@@ -235,7 +235,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             AssetCollectionsCollectionViewLayoutAttributes *attributes = [AssetCollectionsCollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
             
             attributes.frame = CGRectMake(CGRectGetMinX(_containerLayoutFrame) + (200. * itemIndex) + (8. * (itemIndex + 1)),
-                                          CGRectGetMinY(_containerLayoutFrame),
+                                          CGRectGetMinY(_containerLayoutFrame) + 8.,
                                           200.,
                                           ESTIMATED_ITEM_HEIGHT);
             
@@ -512,9 +512,9 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 void *location = (void *)(base + offset);
                 
                 if (!std::strcmp(ivarName, "_layoutFrame") || !std::strcmp(ivarName, "_orthogonalScrollViewLayoutFrame") || !std::strcmp(ivarName, "_containerLayoutFrame")) {
-                    originalHeight = CGRectGetHeight(*reinterpret_cast<CGRect *>(location));
-                    reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
+                    reinterpret_cast<CGRect *>(location)->size.height = maxHeight + 8. * 2.;
                 } else if (!std::strcmp(ivarName, "_contentFrame")) {
+                    originalHeight = CGRectGetHeight(*reinterpret_cast<CGRect *>(location));
                     reinterpret_cast<CGRect *>(location)->size.height = maxHeight;
                 }
             });
