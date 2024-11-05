@@ -92,6 +92,36 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     }
 }
 
+- (void)prepareForCollectionViewUpdates:(NSArray<UICollectionViewUpdateItem *> *)updateItems {
+    BOOL hasUpdate = NO;
+    for (UICollectionViewUpdateItem *updateItem in updateItems) {
+        switch (updateItem.updateAction) {
+            case UICollectionUpdateActionInsert:
+                hasUpdate = YES;
+                break;
+            case UICollectionUpdateActionDelete:
+                hasUpdate = YES;
+                break;
+            default:
+                break;
+        }
+        
+        if (hasUpdate) {
+            break;
+        }
+    }
+    
+    if (hasUpdate) {
+        [self.sectionDescriptorsBySectionIndex removeAllObjects];
+        [self.headerAttributesByIndexPath removeAllObjects];
+        [self.itemAttributesByIndexPath removeAllObjects];
+        [self reloadSectionAndHeaderAttributes];
+        [self reloadItemAttributes];
+    }
+    
+    [super prepareForCollectionViewUpdates:updateItems];
+}
+
 - (NSArray<__kindof UICollectionViewLayoutAttributes *> *)layoutAttributesForElementsInRect:(CGRect)rect {
     NSMutableArray<__kindof UICollectionViewLayoutAttributes *> *results = [NSMutableArray new];
     
