@@ -329,10 +329,10 @@
 				"NSURL+CP.mm",
 				SVRunLoop.hpp,
 				SVRunLoop.mm,
-				"UIGestureRecognizer+CP_Category.h",
-				"UIGestureRecognizer+CP_Category.mm",
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIMenuElement+CP_NumberOfLines.mm",
+				"UIScreenEdgePanGestureRecognizer+CP_Category.h",
+				"UIScreenEdgePanGestureRecognizer+CP_Category.mm",
 				"UIView+MenuElementDynamicHeight.h",
 				"UIView+MenuElementDynamicHeight.mm",
 			);
@@ -413,8 +413,8 @@
 				"NSObject+Foundation_IvarDescription.h",
 				"NSURL+CP.h",
 				SVRunLoop.hpp,
-				"UIGestureRecognizer+CP_Category.h",
 				"UIMenuElement+CP_NumberOfLines.h",
+				"UIScreenEdgePanGestureRecognizer+CP_Category.h",
 				"UIView+MenuElementDynamicHeight.h",
 			);
 			publicHeaders = (

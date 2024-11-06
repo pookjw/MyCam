@@ -7,12 +7,7 @@
 
 #import "SceneDelegate.h"
 #import "CollectionViewController.h"
-#import <TargetConditionals.h>
-
-#if !TARGET_OS_VISION
-
-
-#endif
+#import <objc/runtime.h>
 
 @interface SceneDelegate ()
 @end
@@ -51,6 +46,8 @@
     navigationBar.standardAppearance = navigationBarAppearance;
     navigationBar.scrollEdgeAppearance = navigationBarAppearance;
     [navigationBarAppearance release];
+    
+    assert(object_setInstanceVariable(navigationController.interactivePopGestureRecognizer, "_recognizesWithoutEdge", reinterpret_cast<void *>(YES)));
 #endif
     
     window.rootViewController = navigationController;
