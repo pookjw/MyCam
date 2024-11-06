@@ -9,29 +9,51 @@
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <dlfcn.h>
 
-#warning Double Tap
+namespace cp_PUUserTransformView {
+namespace doubleTapZoomScaleForContentSize {
+CGFloat (*original)(Class, SEL, CGSize, CGSize, CGFloat, BOOL);
+CGFloat custom(Class self, SEL _cmd, CGSize contentSize, CGSize boundsSize, CGFloat defaultScale, BOOL preferToFillOnDoubleTap) {
+    return original(self, _cmd, contentSize, boundsSize, defaultScale, preferToFillOnDoubleTap);
+}
+void swizzle() {
+    Method method = class_getClassMethod(objc_lookUpClass("PUUserTransformView"), sel_registerName("doubleTapZoomScaleForContentSize:inBoundsSize:defaultScale:preferToFillOnDoubleTap:"));
+    original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
+    method_setImplementation(method, reinterpret_cast<IMP>(custom));
+}
+}
+}
 
-@interface AssetContentView () <UIScrollViewDelegate>
+@interface AssetContentView ()
 @property (retain, nonatomic, readonly) UIImageView *imageView;
-@property (retain, nonatomic, readonly) UIView *hostedView;
-@property (retain, nonatomic, readonly) UIScrollView *scrollView;
+@property (retain, nonatomic, readonly) __kindof UIView *userTransformView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
 @synthesize imageView = _imageView;
-@synthesize hostedView = _hostedView;
-@synthesize scrollView = _scrollView;
+@synthesize userTransformView = _userTransformView;
+
++ (void)load {
+    assert(dlopen("/System/Library/PrivateFrameworks/PhotosUIPrivate.framework/PhotosUIPrivate", RTLD_NOW) != NULL);
+    
+    Protocol * _Nullable PUUserTransformViewDelegate = NSProtocolFromString(@"PUUserTransformViewDelegate");
+    if (PUUserTransformViewDelegate) {
+        assert(class_addProtocol(self, PUUserTransformViewDelegate));
+    }
+    
+    cp_PUUserTransformView::doubleTapZoomScaleForContentSize::swizzle();
+}
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         UIImageView *imageView = self.imageView;
         [self addSubview:imageView];
         
-        UIScrollView *scrollView = self.scrollView;
-        [self addSubview:scrollView];
-        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), scrollView);
+        __kindof UIView *userTransformView = self.userTransformView;
+        [self addSubview:userTransformView];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), userTransformView);
     }
     
     return self;
@@ -39,9 +61,8 @@
 
 - (void)dealloc {
     [_model release];
-    [_scrollView release];
     [_imageView release];
-    [_hostedView release];
+    [_userTransformView release];
     [super dealloc];
 }
 
@@ -57,9 +78,6 @@
     imageView.alpha = 0.;
     imageView.frame = CGRectZero;
     
-    self.hostedView.frame = CGRectZero;
-    self.scrollView.contentSize = CGSizeZero;
-    
     if (CGSizeEqualToSize(PHImageManagerMaximumSize, model.targetSize)) {
         model.resultHandler = self.resultHandler;
     } else {
@@ -70,7 +88,7 @@
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {
-    self.scrollView.zoomScale = 1.;
+//    self.scrollView.zoomScale = 1.;
 }
 
 - (UIImageView *)imageView {
@@ -85,29 +103,22 @@
     return [imageView autorelease];
 }
 
-- (UIView *)hostedView {
-    if (auto hostedView = _hostedView) return hostedView;
+- (__kindof UIView *)userTransformView {
+    if (auto userTransformView = _userTransformView) return userTransformView;
     
-    UIView *hostedView = [UIView new];
-    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
+    __kindof UIView *userTransformView = [objc_lookUpClass("PUUserTransformView") new];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(userTransformView, sel_registerName("setDelegate:"), self);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setPreferToFillOnDoubleTap:"), YES);
+    reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(userTransformView, sel_registerName("setEnabledInteractions:"), 7);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setNeedsUpdateEnabledInteractions:"), YES);
     
-    _hostedView = [hostedView retain];
-    return [hostedView autorelease];
-}
-
-- (UIScrollView *)scrollView {
-    if (auto scrollView = _scrollView) return scrollView;
+    UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerTapGestureRecognizer:)];
+    tapGestureRecognizer.numberOfTapsRequired = 2;
+    [self addGestureRecognizer:tapGestureRecognizer];
+    [tapGestureRecognizer release];
     
-    UIScrollView *scrollView = [UIScrollView new];
-    UIView *hostedView = self.hostedView;
-    
-    [scrollView addSubview:hostedView];
-    
-    scrollView.maximumZoomScale = 13.636;
-    scrollView.delegate = self;
-    
-    _scrollView = [scrollView retain];
-    return [scrollView autorelease];
+    _userTransformView = [userTransformView retain];
+    return [userTransformView autorelease];
 }
 
 - (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
@@ -153,31 +164,30 @@
         }];
         
         if (result) {
-            UIScrollView *scrollView = self.scrollView;
-            UIView *hostedView = self.hostedView;
+            CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, self.userTransformView.frame);
+            imageView.frame = frame;
             
-            CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, scrollView.frame);
-            self.scrollView.contentSize = frame.size;
-            hostedView.frame = frame;
-            
-            CGRect frame_2 = [hostedView convertRect:hostedView.bounds toView:self];
-            imageView.frame = frame_2;
+            reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(self.userTransformView, sel_registerName("setContentPixelSize:"), result.size);
+            reinterpret_cast<void (*)(id, SEL, CGRect)>(objc_msgSend)(self.userTransformView, sel_registerName("setUntransformedContentFrame:"), frame);
         }
     } copy] autorelease];
 }
 
-- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
-    return self.hostedView;
+
+- (void)userTransformView:(id)arg1 didChangeUserAffineTransform:(struct CGAffineTransform)arg2 isUserInteracting:(_Bool)arg3 {
+    self.imageView.transform = arg2;
 }
 
-- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
-    CGRect frame = [self.hostedView convertRect:self.hostedView.bounds toView:self];
-    self.imageView.frame = frame;
+- (void)userTransformView:(id)arg1 didChangeIsUserInteracting:(_Bool)arg2 {
+    
 }
 
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    CGRect frame = [self.hostedView convertRect:self.hostedView.bounds toView:self];
-    self.imageView.frame = frame;
+- (void)userTransformViewDidChangeIsZoomedIn:(id)arg1 {
+    
+}
+
+- (void)didTriggerTapGestureRecognizer:(UITapGestureRecognizer *)sender {
+    reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomInOnLocationFromProvider:animated:"), sender, YES);
 }
 
 @end
