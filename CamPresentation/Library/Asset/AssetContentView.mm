@@ -10,18 +10,25 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+#warning Double Tap
+
 @interface AssetContentView () <UIScrollViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
+@property (retain, nonatomic, readonly) UIView *hostedView;
 @property (retain, nonatomic, readonly) UIScrollView *scrollView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
 @synthesize imageView = _imageView;
+@synthesize hostedView = _hostedView;
 @synthesize scrollView = _scrollView;
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
+        UIImageView *imageView = self.imageView;
+        [self addSubview:imageView];
+        
         UIScrollView *scrollView = self.scrollView;
         [self addSubview:scrollView];
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), scrollView);
@@ -34,6 +41,7 @@
     [_model release];
     [_scrollView release];
     [_imageView release];
+    [_hostedView release];
     [super dealloc];
 }
 
@@ -47,6 +55,10 @@
     UIImageView *imageView = self.imageView;
     imageView.image = nil;
     imageView.alpha = 0.;
+    imageView.frame = CGRectZero;
+    
+    self.hostedView.frame = CGRectZero;
+    self.scrollView.contentSize = CGSizeZero;
     
     if (CGSizeEqualToSize(PHImageManagerMaximumSize, model.targetSize)) {
         model.resultHandler = self.resultHandler;
@@ -73,13 +85,23 @@
     return [imageView autorelease];
 }
 
+- (UIView *)hostedView {
+    if (auto hostedView = _hostedView) return hostedView;
+    
+    UIView *hostedView = [UIView new];
+    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
+    
+    _hostedView = [hostedView retain];
+    return [hostedView autorelease];
+}
+
 - (UIScrollView *)scrollView {
     if (auto scrollView = _scrollView) return scrollView;
     
     UIScrollView *scrollView = [UIScrollView new];
-    UIImageView *imageView = self.imageView;
+    UIView *hostedView = self.hostedView;
     
-    [scrollView addSubview:imageView];
+    [scrollView addSubview:hostedView];
     
     scrollView.maximumZoomScale = 13.636;
     scrollView.delegate = self;
@@ -129,11 +151,33 @@
         [UIView animateWithDuration:0.2 animations:^{
             imageView.alpha = 1.;
         }];
+        
+        if (result) {
+            UIScrollView *scrollView = self.scrollView;
+            UIView *hostedView = self.hostedView;
+            
+            CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, scrollView.frame);
+            self.scrollView.contentSize = frame.size;
+            hostedView.frame = frame;
+            
+            CGRect frame_2 = [hostedView convertRect:hostedView.bounds toView:self];
+            imageView.frame = frame_2;
+        }
     } copy] autorelease];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
-    return self.imageView;
+    return self.hostedView;
+}
+
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
+    CGRect frame = [self.hostedView convertRect:self.hostedView.bounds toView:self];
+    self.imageView.frame = frame;
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    CGRect frame = [self.hostedView convertRect:self.hostedView.bounds toView:self];
+    self.imageView.frame = frame;
 }
 
 @end
