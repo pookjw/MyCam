@@ -57,7 +57,7 @@ void swizzle() {
         return number.boolValue;
     }
     
-    return cp_UIParallaxTransitionPanGestureRecognizer::_recognizesWithoutEdge::original(self, sel_registerName("_recognizesWithoutEdge"));
+    return cp_UIParallaxTransitionPanGestureRecognizer::_recognizesWithoutEdge::original(static_cast<__kindof UIScreenEdgePanGestureRecognizer *>(self), sel_registerName("_recognizesWithoutEdge"));
 }
 
 - (void)cp_setRecognizesWithoutEdge:(BOOL)cp_recognizesWithoutEdge {
