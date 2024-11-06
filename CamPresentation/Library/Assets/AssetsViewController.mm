@@ -11,6 +11,11 @@
 #import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetsCollectionViewLayout.h>
 #import <CamPresentation/AssetViewController.h>
+#import <CamPresentation/UIGestureRecognizer+RecognizesWithoutEdge.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
+
+OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
 @interface AssetsViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
@@ -34,6 +39,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.navigationController.interactivePopGestureRecognizer.cp_recognizesWithoutEdge = YES;;
 }
 
 - (void)setCollection:(PHAssetCollection *)collection {

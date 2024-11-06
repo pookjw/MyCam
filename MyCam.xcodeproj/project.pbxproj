@@ -329,6 +329,8 @@
 				"NSURL+CP.mm",
 				SVRunLoop.hpp,
 				SVRunLoop.mm,
+				"UIGestureRecognizer+RecognizesWithoutEdge.h",
+				"UIGestureRecognizer+RecognizesWithoutEdge.mm",
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIMenuElement+CP_NumberOfLines.mm",
 				"UIView+MenuElementDynamicHeight.h",
@@ -411,6 +413,7 @@
 				"NSObject+Foundation_IvarDescription.h",
 				"NSURL+CP.h",
 				SVRunLoop.hpp,
+				"UIGestureRecognizer+RecognizesWithoutEdge.h",
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIView+MenuElementDynamicHeight.h",
 			);
