@@ -1,18 +1,18 @@
 //
-//  AssetCollectionItemModel.m
+//  AssetCollectionsItemModel.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/2/24.
 //
 
-#import <CamPresentation/AssetCollectionItemModel.h>
+#import <CamPresentation/AssetCollectionsItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 
 #warning TODO: Observer
 
-@interface AssetCollectionItemModel () <PHPhotoLibraryChangeObserver>
+@interface AssetCollectionsItemModel () <PHPhotoLibraryChangeObserver>
 @property (assign, nonatomic) PHImageRequestID requestID;
 @property (assign, nonatomic) CGSize targetSize;
 @property (copy, nonatomic, nullable) NSString *localizedTitle;
@@ -25,7 +25,7 @@
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @end
 
-@implementation AssetCollectionItemModel
+@implementation AssetCollectionsItemModel
 @synthesize targetSize = _targetSize;
 @synthesize requestID = _requestID;
 
@@ -191,14 +191,14 @@
                                                 options:options
                                           resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
         if (auto unretained = weakSelf) {
-            if ([AssetCollectionItemModel didFailForInfo:info]) {
+            if ([AssetCollectionsItemModel didFailForInfo:info]) {
                 return;
             }
             
             [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (auto unretained = weakSelf) {
-                        if ([AssetCollectionItemModel didFailForInfo:info]) {
+                        if ([AssetCollectionsItemModel didFailForInfo:info]) {
                             return;
                         }
                         

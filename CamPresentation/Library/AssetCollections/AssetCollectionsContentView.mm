@@ -1,16 +1,16 @@
 //
-//  AssetCollectionContentView.m
+//  AssetCollectionsContentView.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/1/24.
 //
 
-#import <CamPresentation/AssetCollectionContentView.h>
+#import <CamPresentation/AssetCollectionsContentView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
 
-@interface AssetCollectionContentView ()
+@interface AssetCollectionsContentView ()
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (retain, nonatomic, readonly) UIImageView *symbolImageView;
@@ -18,7 +18,7 @@
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @end
 
-@implementation AssetCollectionContentView
+@implementation AssetCollectionsContentView
 @synthesize stackView = _stackView;
 @synthesize imageView = _imageView;
 @synthesize symbolImageView = _symbolImageView;
@@ -151,7 +151,7 @@
     return [label autorelease];
 }
 
-- (void)setModel:(AssetCollectionItemModel *)model {
+- (void)setModel:(AssetCollectionsItemModel *)model {
     if (CGSizeEqualToSize(_model.targetSize, model.targetSize) && [_model.collection isEqual:model.collection]) return;
     
     [_model cancelRequest];

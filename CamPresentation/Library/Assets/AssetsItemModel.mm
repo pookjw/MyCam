@@ -1,16 +1,16 @@
 //
-//  AssetItemModel.m
+//  AssetsItemModel.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/1/24.
 //
 
-#import <CamPresentation/AssetItemModel.h>
+#import <CamPresentation/AssetsItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 
-@interface AssetItemModel ()
+@interface AssetsItemModel ()
 @property (assign, nonatomic) PHImageRequestID requestID;
 @property (assign, nonatomic) CGSize targetSize;
 @property (retain, nonatomic, readonly) PHImageManager *imageManager;
@@ -18,7 +18,7 @@
 @property (copy, nonatomic, nullable) NSDictionary *info;
 @end
 
-@implementation AssetItemModel
+@implementation AssetsItemModel
 @synthesize imageManager = _imageManager;
 
 - (instancetype)initWithAsset:(PHAsset *)asset {
@@ -119,14 +119,14 @@
                                                 options:options
                                           resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
         if (auto unretained = weakSelf) {
-            if ([AssetItemModel didFailForInfo:info]) {
+            if ([AssetsItemModel didFailForInfo:info]) {
                 return;
             }
             
             [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (auto unretained = weakSelf) {
-                        if ([AssetItemModel didFailForInfo:info]) {
+                        if ([AssetsItemModel didFailForInfo:info]) {
                             return;
                         }
                         

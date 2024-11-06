@@ -1,5 +1,5 @@
 //
-//  AssetCollectionItemModel.h
+//  AssetCollectionsItemModel.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/2/24.
@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AssetCollectionItemModel : NSObject
+@interface AssetCollectionsItemModel : NSObject
 @property (retain, nonatomic, readonly) PHAssetCollection *collection;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (assign, nonatomic, readonly) PHImageRequestID requestID;

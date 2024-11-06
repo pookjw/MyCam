@@ -6,7 +6,7 @@
 //
 
 #import <CamPresentation/AssetCollectionsDataSource.h>
-#import <CamPresentation/AssetCollectionItemModel.h>
+#import <CamPresentation/AssetCollectionsItemModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <vector>
@@ -21,7 +21,7 @@
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic, nullable, setter=mainQueue_setFetchResultsByCollectionType:) NSMutableDictionary<NSNumber *, PHFetchResult<PHAssetCollection *> *> *mainQueue_fetchResultsByCollectionType;
-@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath;
+@property (retain, nonatomic, readonly) NSMutableDictionary<NSIndexPath *, AssetCollectionsItemModel *> *prefetchingModelsByIndexPath;
 @property (nonatomic, readonly) std::vector<PHAssetCollectionType> allCollectionTypesSet;
 @end
 
@@ -178,9 +178,9 @@
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     PHAssetCollection *collection = [self collectionAtIndexPath:indexPath];
     assert(collection != nil);
-    AssetCollectionItemModel *model = [self.prefetchingModelsByIndexPath[indexPath] retain];
+    AssetCollectionsItemModel *model = [self.prefetchingModelsByIndexPath[indexPath] retain];
     if (model == nil) {
-        model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
+        model = [[AssetCollectionsItemModel alloc] initWithCollection:collection];
     } else {
         [self.prefetchingModelsByIndexPath removeObjectForKey:indexPath];
     }
@@ -204,14 +204,14 @@
     targetSize.width *= displayScale;
     targetSize.height *= displayScale;
     
-    NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    NSMutableDictionary<NSIndexPath *, AssetCollectionsItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
     
     for (NSIndexPath *indexPath in indexPaths) {
         assert(prefetchingModelsByIndexPath[indexPath] == nil);
         
         PHAssetCollection *collection = [self collectionAtIndexPath:indexPath];
         assert(collection != nil);
-        AssetCollectionItemModel *model = [[AssetCollectionItemModel alloc] initWithCollection:collection];
+        AssetCollectionsItemModel *model = [[AssetCollectionsItemModel alloc] initWithCollection:collection];
         prefetchingModelsByIndexPath[indexPath] = model;
         [model requestImageWithTargetSize:targetSize];
         [model release];
@@ -219,10 +219,10 @@
 }
 
 - (void)collectionView:(UICollectionView *)collectionView cancelPrefetchingForItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths {
-    NSMutableDictionary<NSIndexPath *, AssetCollectionItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
+    NSMutableDictionary<NSIndexPath *, AssetCollectionsItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
     
     for (NSIndexPath *indexPath in indexPaths) {
-        AssetCollectionItemModel *model = prefetchingModelsByIndexPath[indexPath];
+        AssetCollectionsItemModel *model = prefetchingModelsByIndexPath[indexPath];
 //        assert(model != nil);
         [model cancelRequest];
         [prefetchingModelsByIndexPath removeObjectForKey:indexPath];

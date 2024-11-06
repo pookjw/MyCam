@@ -1,21 +1,21 @@
 //
-//  AssetContentView.m
+//  AssetsContentView.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/1/24.
 //
 
-#import <CamPresentation/AssetContentView.h>
+#import <CamPresentation/AssetsContentView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface AssetContentView ()
+@interface AssetsContentView ()
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
-@implementation AssetContentView
+@implementation AssetsContentView
 @synthesize imageView = _imageView;
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -34,7 +34,7 @@
     [super dealloc];
 }
 
-- (void)setModel:(AssetItemModel *)model {
+- (void)setModel:(AssetsItemModel *)model {
     if (CGSizeEqualToSize(_model.targetSize, model.targetSize) && [_model.asset isEqual:model.asset]) return;
     
     [_model cancelRequest];

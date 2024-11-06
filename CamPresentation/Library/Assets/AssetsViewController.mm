@@ -7,8 +7,8 @@
 
 #import <CamPresentation/AssetsViewController.h>
 #import <CamPresentation/AssetsDataSource.h>
-#import <CamPresentation/AssetCollectionViewCell.h>
-#import <CamPresentation/AssetItemModel.h>
+#import <CamPresentation/AssetsCollectionViewCell.h>
+#import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetsCollectionViewLayout.h>
 
 @interface AssetsViewController () <UICollectionViewDelegate>
@@ -55,7 +55,7 @@
 - (AssetsDataSource *)dataSource {
     if (auto dataSource = _dataSource) return dataSource;
     
-    UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetCollectionViewCell.class configurationHandler:^(AssetCollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetItemModel * _Nonnull model) {
+    UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetsCollectionViewCell.class configurationHandler:^(AssetsCollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetsItemModel * _Nonnull model) {
         cell.model = model;
     }];
     

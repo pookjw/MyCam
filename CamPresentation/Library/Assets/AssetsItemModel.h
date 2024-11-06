@@ -1,5 +1,5 @@
 //
-//  AssetItemModel.h
+//  AssetsItemModel.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/1/24.
@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
  - Degraded Image가 나오고 Full Image를 요청하는 중에 Cell이 떠야 할 떄
  */
 
-@interface AssetItemModel : NSObject
+@interface AssetsItemModel : NSObject
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (assign, nonatomic, readonly) PHImageRequestID requestID;

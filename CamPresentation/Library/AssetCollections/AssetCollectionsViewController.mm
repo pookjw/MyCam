@@ -8,7 +8,7 @@
 #import <CamPresentation/AssetCollectionsViewController.h>
 #import <CamPresentation/AssetsViewController.h>
 #import <CamPresentation/AssetCollectionsDataSource.h>
-#import <CamPresentation/AssetCollectionCell.h>
+#import <CamPresentation/AssetCollectionsCell.h>
 #import <CamPresentation/AssetCollectionsHeaderView.h>
 #import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
 #import <objc/message.h>
@@ -48,7 +48,7 @@
 - (AssetCollectionsDataSource *)dataSource {
     if (auto dataSource = _dataSource) return dataSource;
     
-    UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetCollectionCell.class configurationHandler:^(AssetCollectionCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetCollectionItemModel * _Nonnull item) {
+    UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetCollectionsCell.class configurationHandler:^(AssetCollectionsCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetCollectionsItemModel * _Nonnull item) {
         cell.model = item;
     }];
     
