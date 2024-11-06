@@ -9,20 +9,27 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface AssetContentView ()
+@interface AssetContentView () <UIScrollViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
+@property (retain, nonatomic, readonly) UIScrollView *scrollView;
+@property (retain, nonatomic, readonly) UIView *hostedView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
-
 @synthesize imageView = _imageView;
+@synthesize scrollView = _scrollView;
+@synthesize hostedView = _hostedView;
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         UIImageView *imageView = self.imageView;
         [self addSubview:imageView];
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), imageView);
+        
+        UIScrollView *scrollView = self.scrollView;
+        [self addSubview:scrollView];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), scrollView);
     }
     
     return self;
@@ -30,7 +37,9 @@
 
 - (void)dealloc {
     [_model release];
+    [_scrollView release];
     [_imageView release];
+    [_hostedView release];
     [super dealloc];
 }
 
@@ -54,8 +63,8 @@
     }
 }
 
-- (void)layoutSubviews {
-    [super layoutSubviews];
+- (void)didChangeIsDisplaying:(BOOL)isDisplaying {
+    self.scrollView.zoomScale = 1.;
 }
 
 - (UIImageView *)imageView {
@@ -68,6 +77,39 @@
     
     _imageView = [imageView retain];
     return [imageView autorelease];
+}
+
+- (UIScrollView *)scrollView {
+    if (auto scrollView = _scrollView) return scrollView;
+    
+    UIScrollView *scrollView = [UIScrollView new];
+    UIView *hostedView = self.hostedView;
+    UIImageView *imageView = self.imageView;
+    
+    [scrollView addSubview:hostedView];
+    hostedView.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [scrollView.centerXAnchor constraintEqualToAnchor:hostedView.centerXAnchor],
+        [scrollView.centerYAnchor constraintEqualToAnchor:hostedView.centerYAnchor],
+        [scrollView.widthAnchor constraintEqualToAnchor:hostedView.widthAnchor],
+        [scrollView.heightAnchor constraintEqualToAnchor:hostedView.heightAnchor],
+    ]];
+    
+    scrollView.maximumZoomScale = 5.;
+    scrollView.delegate = self;
+    
+    _scrollView = [scrollView retain];
+    return [scrollView autorelease];
+}
+
+- (UIView *)hostedView {
+    if (auto hostedView = _hostedView) return hostedView;
+    
+    UIView *hostedView = [UIView new];
+    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
+    
+    _hostedView = [hostedView retain];
+    return [hostedView autorelease];
 }
 
 - (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
@@ -113,4 +155,13 @@
         }];
     } copy] autorelease];
 }
+
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    return self.hostedView;
+}
+
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
+    NSLog(@"%lf", scrollView.zoomScale);
+}
+
 @end

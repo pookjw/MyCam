@@ -51,7 +51,7 @@
     if (auto collectionView = _collectionView) return collectionView;
     
     UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
-    configuration.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
     
     UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
         NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
@@ -66,7 +66,7 @@
         
         NSCollectionLayoutSection *section = [NSCollectionLayoutSection sectionWithGroup:group];
         section.contentInsetsReference = UIContentInsetsReferenceNone;
-//        section.orthogonalScrollingBehavior = UICollectionLayoutSectionOrthogonalScrollingBehaviorGroupPaging;
+        section.orthogonalScrollingBehavior = UICollectionLayoutSectionOrthogonalScrollingBehaviorGroupPaging;
         
         return section;
     }
@@ -76,8 +76,7 @@
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     collectionView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-//    collectionView.bouncesVertically = NO;
-//    collectionView.maximumZoomScale = 3.;
+    collectionView.bouncesVertically = NO;
     collectionView.delegate = self;
     
     _collectionView = [collectionView retain];
