@@ -10,6 +10,7 @@
 #import <CamPresentation/AssetsCollectionViewCell.h>
 #import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetsCollectionViewLayout.h>
+#import <CamPresentation/AssetViewController.h>
 
 @interface AssetsViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
@@ -59,14 +60,20 @@
         cell.model = model;
     }];
     
-    AssetsDataSource *dataSource = [[AssetsDataSource alloc] initWithCollectionView:self.collectionView cellRegistration:cellRegistration];
+    AssetsDataSource *dataSource = [[AssetsDataSource alloc] initWithCollectionView:self.collectionView cellRegistration:cellRegistration requestMaximumSize:NO];
     
     _dataSource = [dataSource retain];
     return [dataSource autorelease];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
-    NSLog(@"TODO");
+    PHAssetCollection *collection = self.collection;
+    PHAsset *asset = [self.dataSource assetAtIndexPath:indexPath];
+    assert(asset != nil);
+    
+    AssetViewController *assetViewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
+    [self.navigationController pushViewController:assetViewController animated:YES];
+    [assetViewController release];
 }
 
 @end

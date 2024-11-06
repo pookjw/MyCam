@@ -8,9 +8,6 @@
 #import <CamPresentation/AssetsCollectionViewCell.h>
 #import <CamPresentation/AssetsContentView.h>
 
-@interface AssetsCollectionViewCell ()
-@end
-
 @implementation AssetsCollectionViewCell
 
 + (Class)_contentViewClass {

@@ -13,6 +13,7 @@
 @interface AssetsDataSource () <UICollectionViewDataSource, UICollectionViewDataSourcePrefetching, PHPhotoLibraryAvailabilityObserver, PHPhotoLibraryChangeObserver>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
+@property (assign, nonatomic, readonly) BOOL requestMaximumSize;
 @property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (retain, nonatomic, nullable) PHFetchResult<PHAsset *> *mainQueue_assetsFetchResult;
@@ -21,7 +22,7 @@
 
 @implementation AssetsDataSource
 
-- (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration {
+- (instancetype)initWithCollectionView:(UICollectionView *)collectionView cellRegistration:(UICollectionViewCellRegistration *)cellRegistration requestMaximumSize:(BOOL)requestMaximumSize {
     if (self = [super init]) {
         assert(collectionView.dataSource == nil);
         assert(collectionView.prefetchDataSource == nil);
@@ -34,6 +35,7 @@
         
         _collectionView = [collectionView retain];
         _cellRegistration = [cellRegistration retain];
+        _requestMaximumSize = requestMaximumSize;
         _queue = queue;
         
         PHPhotoLibrary *photoLibrary = PHPhotoLibrary.sharedPhotoLibrary;
@@ -83,6 +85,11 @@
     });
 }
 
+- (PHAsset *)assetAtIndexPath:(NSIndexPath *)indexPath {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    return self.mainQueue_assetsFetchResult[indexPath.item];
+}
+
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
     return 1;
 }
@@ -112,10 +119,15 @@
     if (firstVisibleCell == nil) return;
     
     PHFetchResult<PHAsset *> *assetsFetchResult = self.mainQueue_assetsFetchResult;
-    CGSize targetSize = firstVisibleCell.bounds.size;
-    CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(firstVisibleCell, sel_registerName("_currentScreenScale"));
-    targetSize.width *= displayScale;
-    targetSize.height *= displayScale;
+    CGSize targetSize;
+    if (self.requestMaximumSize) {
+        targetSize = PHImageManagerMaximumSize;
+    } else {
+        targetSize = firstVisibleCell.bounds.size;
+        CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(firstVisibleCell, sel_registerName("_currentScreenScale"));
+        targetSize.width *= displayScale;
+        targetSize.height *= displayScale;
+    }
     
     NSMutableDictionary<NSIndexPath *, AssetsItemModel *> *prefetchingModelsByIndexPath = self.prefetchingModelsByIndexPath;
     
