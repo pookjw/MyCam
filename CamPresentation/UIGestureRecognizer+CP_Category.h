@@ -1,5 +1,5 @@
 //
-//  UIGestureRecognizer+RecognizesWithoutEdge.h
+//  UIGestureRecognizer+CP_Category.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/6/24.
@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface UIGestureRecognizer (RecognizesWithoutEdge)
+@interface UIGestureRecognizer (CP_Category)
 @property (assign, nonatomic, setter=cp_setRecognizesWithoutEdge:) BOOL cp_recognizesWithoutEdge;
 @end
 

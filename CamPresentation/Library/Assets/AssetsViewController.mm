@@ -11,7 +11,7 @@
 #import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetsCollectionViewLayout.h>
 #import <CamPresentation/AssetViewController.h>
-#import <CamPresentation/UIGestureRecognizer+RecognizesWithoutEdge.h>
+#import <CamPresentation/UIGestureRecognizer+CP_Category.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 

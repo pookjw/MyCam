@@ -1,11 +1,11 @@
 //
-//  UIGestureRecognizer+RecognizesWithoutEdge.m
+//  UIGestureRecognizer+CP_Category.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/6/24.
 //
 
-#import <CamPresentation/UIGestureRecognizer+RecognizesWithoutEdge.h>
+#import <CamPresentation/UIGestureRecognizer+CP_Category.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -43,7 +43,7 @@ void swizzle() {
 }
 }
 
-@implementation UIGestureRecognizer (RecognizesWithoutEdge)
+@implementation UIGestureRecognizer (CP_Category)
 
 + (void)load {
     cp_UIParallaxTransitionPanGestureRecognizer::_recognizesWithoutEdge::swizzle();
