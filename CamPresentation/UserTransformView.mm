@@ -73,6 +73,7 @@
     scrollView.minimumZoomScale = 1.;
 #warning Dynamic
     scrollView.maximumZoomScale = 13.636;
+    scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
 //    scrollView.contentAlignmentPoint = CGPointMake(0.5, 0.5);
     
     _scrollView = [scrollView retain];
