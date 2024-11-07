@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F14FFFD2CDC74EB00EAA5D0 /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; };
+		4F14FFFE2CDC74EB00EAA5D0 /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */; };
 		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; platformFilter = ios; };
 		4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
@@ -78,6 +80,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
+				4F14FFFE2CDC74EB00EAA5D0 /* RevealServer.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +121,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2V82U7HN27:Itty Bitty Labs Pty Ltd"; lastKnownFileType = wrapper.xcframework; path = RevealServer.xcframework; sourceTree = "<group>"; };
 		4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS18.1.sdk/System/Library/Frameworks/AVFAudio.framework; sourceTree = DEVELOPER_DIR; };
 		4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LockedCameraCapture.framework; path = System/Library/Frameworks/LockedCameraCapture.framework; sourceTree = SDKROOT; };
 		4F2A41922C98148000726F2F /* CamPresentation.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CamPresentation.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -335,6 +339,8 @@
 				"UIScreenEdgePanGestureRecognizer+CP_Category.mm",
 				"UIView+MenuElementDynamicHeight.h",
 				"UIView+MenuElementDynamicHeight.mm",
+				UserTransformView.h,
+				UserTransformView.mm,
 			);
 			privateHeaders = (
 				Audio/AudioSessionInfoView.h,
@@ -416,6 +422,7 @@
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIScreenEdgePanGestureRecognizer+CP_Category.h",
 				"UIView+MenuElementDynamicHeight.h",
+				UserTransformView.h,
 			);
 			publicHeaders = (
 				Cam/CameraRootViewController.h,
@@ -531,6 +538,7 @@
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
 				4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */,
+				4F14FFFD2CDC74EB00EAA5D0 /* RevealServer.xcframework in Frameworks */,
 				4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */,
 				4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */,
 			);
@@ -592,6 +600,7 @@
 		4F69053B2C949D4D00CD2C22 = {
 			isa = PBXGroup;
 			children = (
+				4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */,
 				4FFA40242CBF5EC800940200 /* MyWidgetExtension.entitlements */,
 				4F6905462C949D4D00CD2C22 /* MyCam */,
 				4FA73E4A2C97132400F17348 /* MyCaptureExtension-Swift */,

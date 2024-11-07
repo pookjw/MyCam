@@ -6,6 +6,7 @@
 //
 
 #import <CamPresentation/AssetContentView.h>
+#import <CamPresentation/UserTransformView.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -25,7 +26,7 @@ void swizzle() {
 }
 }
 
-@interface AssetContentView ()
+@interface AssetContentView () <UserTransformViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (retain, nonatomic, readonly) __kindof UIView *userTransformView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
@@ -106,11 +107,14 @@ void swizzle() {
 - (__kindof UIView *)userTransformView {
     if (auto userTransformView = _userTransformView) return userTransformView;
     
-    __kindof UIView *userTransformView = [objc_lookUpClass("PUUserTransformView") new];
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(userTransformView, sel_registerName("setDelegate:"), self);
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setPreferToFillOnDoubleTap:"), YES);
-    reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(userTransformView, sel_registerName("setEnabledInteractions:"), 7);
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setNeedsUpdateEnabledInteractions:"), YES);
+//    __kindof UIView *userTransformView = [objc_lookUpClass("PUUserTransformView") new];
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(userTransformView, sel_registerName("setDelegate:"), self);
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setPreferToFillOnDoubleTap:"), YES);
+//    reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(userTransformView, sel_registerName("setEnabledInteractions:"), 7);
+//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setNeedsUpdateEnabledInteractions:"), YES);
+    
+    UserTransformView *userTransformView = [UserTransformView new];
+    userTransformView.delegate = self;
     
     UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerTapGestureRecognizer:)];
     tapGestureRecognizer.numberOfTapsRequired = 2;
