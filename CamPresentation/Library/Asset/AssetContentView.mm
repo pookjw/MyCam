@@ -41,6 +41,17 @@
     [super dealloc];
 }
 
+- (void)setFrame:(CGRect)frame {
+    [super setFrame:frame];
+    
+    if (!CGSizeEqualToSize(self.imageView.image.size, CGSizeZero)) {
+        CGRect frame = AVMakeRectWithAspectRatioInsideRect(self.imageView.image.size, self.userTransformView.frame);
+        self.imageView.transform = CGAffineTransformIdentity;
+        self.imageView.frame = frame;
+        self.userTransformView.untransformedContentFrame = frame;
+    }
+}
+
 - (void)setModel:(AssetsItemModel *)model {
     if ([_model.asset isEqual:model.asset]) return;
     
@@ -154,9 +165,9 @@
     BOOL hasUserZoomedIn = self.userTransformView.hasUserZoomedIn;
     
     if (hasUserZoomedIn) {
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), YES);
+        [self.userTransformView zoomOut:YES];
     } else {
-        reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomInOnLocationFromProvider:animated:"), sender, YES);
+        [self.userTransformView zoomInOnLocationFromProvider:sender animated:YES];
     }
 }
 

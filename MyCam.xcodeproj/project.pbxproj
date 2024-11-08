@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4F14FFFD2CDC74EB00EAA5D0 /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; };
-		4F14FFFE2CDC74EB00EAA5D0 /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F1F92F22CBCD3FA002C1B90 /* AVFAudio.framework */; };
 		4F2A416C2C9751F900726F2F /* LockedCameraCapture.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A416B2C9751F900726F2F /* LockedCameraCapture.framework */; platformFilter = ios; };
 		4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; };
@@ -80,7 +78,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
-				4F14FFFE2CDC74EB00EAA5D0 /* RevealServer.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -541,7 +538,6 @@
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
 				4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */,
-				4F14FFFD2CDC74EB00EAA5D0 /* RevealServer.xcframework in Frameworks */,
 				4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */,
 				4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */,
 			);

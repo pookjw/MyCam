@@ -60,9 +60,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [super dealloc];
 }
 
-- (void)layoutSubviews {
-    [super layoutSubviews];
+- (void)setBounds:(CGRect)bounds {
+    [super setBounds:bounds];
     [self updateScrollViewContentSize];
+    [self notifyUserAffineTransform];
 }
 
 - (void)zoomOut:(BOOL)animated {
@@ -100,19 +101,24 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     if (auto hostedView = _hostedView) return hostedView;
     
     UIView *hostedView = [UIView new];
-//    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
+    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
     
     _hostedView = [hostedView retain];
     return [hostedView autorelease];
 }
 
 - (void)setContentPixelSize:(CGSize)contentPixelSize {
+    if (CGSizeEqualToSize(_contentPixelSize, contentPixelSize)) return;
+    
     _contentPixelSize = contentPixelSize;
     [self updateScrollViewContentSize];
 }
 
 - (void)setUntransformedContentFrame:(struct CGRect)untransformedContentFrame {
+    if (CGRectEqualToRect(_untransformedContentFrame, untransformedContentFrame)) return;
+    
     _untransformedContentFrame = untransformedContentFrame;
+    [self updateScrollViewContentSize];
 }
 
 - (void)updateScrollViewContentSize {
@@ -128,9 +134,19 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     zeroOriginBounds.origin = CGPointZero;
     
     CGRect fitBounds = [UserTransformView rectWithAspectFit:YES rect:zeroOriginBounds size:contentPixelSize];
+    CGFloat zoomScale = scrollView.zoomScale;
+    CGPoint contentOffset = scrollView.contentOffset;
     
+    //
+    
+    [scrollView setZoomScale:1. animated:NO];
     scrollView.contentSize = fitBounds.size;
     self.hostedView.frame = fitBounds;
+    
+    //
+    
+    [scrollView setZoomScale:zoomScale animated:NO];
+    [scrollView setContentOffset:contentOffset animated:NO];
 }
 
 - (void)notifyUserAffineTransform {
@@ -209,7 +225,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    if (!_zoomingOut) {
+    if (!_zoomingOut and !scrollView.isZoomBouncing) {
         [self notifyUserAffineTransform];
     }
 }
