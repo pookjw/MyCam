@@ -61,8 +61,30 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)setBounds:(CGRect)bounds {
+    CGRect rect = CGRectMake(self.scrollView.contentOffset.x,
+                             self.scrollView.contentOffset.y,
+                             CGRectGetWidth(self.scrollView.bounds),
+                             CGRectGetHeight(self.scrollView.bounds));
+    
+    rect = [self.hostedView convertRect:rect fromView:self.scrollView];
+    NSLog(@"%@", NSStringFromCGRect(rect));
+    
+    
     [super setBounds:bounds];
+    
     [self updateScrollViewContentSize];
+    
+//    center.x *= CGRectGetWidth(self.hostedView.frame);
+//    center.y *= CGRectGetHeight(self.hostedView.frame);
+//    center = [self.scrollView convertPoint:center fromView:self.hostedView];
+//    
+//    center.x -= CGRectGetWidth(self.scrollView.bounds) * 0.5;
+//    center.y -= CGRectGetHeight(self.scrollView.bounds) * 0.5;
+//    
+//    if (!isnan(center.x) and !isnan(center.y) and !CGPointEqualToPoint(center, CGPointZero)) {
+//            [self.scrollView setContentOffset:center animated:NO];
+//    }
+    
     [self notifyUserAffineTransform];
 }
 
@@ -135,7 +157,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     CGRect fitBounds = [UserTransformView rectWithAspectFit:YES rect:zeroOriginBounds size:contentPixelSize];
     CGFloat zoomScale = scrollView.zoomScale;
-    CGPoint contentOffset = scrollView.contentOffset;
     
     //
     
@@ -146,7 +167,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     //
     
     [scrollView setZoomScale:zoomScale animated:NO];
-    [scrollView setContentOffset:contentOffset animated:NO];
 }
 
 - (void)notifyUserAffineTransform {
