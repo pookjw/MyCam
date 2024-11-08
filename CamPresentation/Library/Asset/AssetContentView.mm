@@ -193,11 +193,11 @@ void swizzle() {
 - (void)didTriggerTapGestureRecognizer:(UITapGestureRecognizer *)sender {
     BOOL hasUserZoomedIn = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.userTransformView, sel_registerName("hasUserZoomedIn"));
     
-//    if (hasUserZoomedIn) {
-//        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), NO);
-//    } else {
+    if (hasUserZoomedIn) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), YES);
+    } else {
         reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomInOnLocationFromProvider:animated:"), sender, YES);
-//    }
+    }
 }
 
 @end

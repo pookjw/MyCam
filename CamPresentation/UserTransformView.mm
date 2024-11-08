@@ -11,7 +11,9 @@
 
 // reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
 
-@interface UserTransformView () <UIScrollViewDelegate>
+@interface UserTransformView () <UIScrollViewDelegate> {
+    BOOL _zoomingOut;
+}
 @property (retain, nonatomic, readonly) UIScrollView *scrollView;
 @property (retain, nonatomic, readonly) UIView *hostedView;
 @end
@@ -64,13 +66,13 @@
 }
 
 - (void)zoomOut:(BOOL)animated {
+    _zoomingOut = YES;
     [self.scrollView setZoomScale:1. animated:animated];
+    _zoomingOut = NO;
 }
 
 - (BOOL)hasUserZoomedIn {
-//    NSLog(@"%@ %@", NSStringFromCGRect(self.hostedView.frame), NSStringFromCGRect(self.untransformedContentFrame));
-    return !CGRectEqualToRect(self.hostedView.frame, self.untransformedContentFrame);
-//    return self.scrollView.zoomScale != 1.;
+    return self.scrollView.zoomScale != 1.;
 }
 
 - (UIScrollView *)scrollView {
@@ -135,17 +137,20 @@
     UIView *hostedView = self.hostedView;
     CGRect frame = [hostedView convertRect:hostedView.bounds toView:self];
     
-    CGRect zeroOriginBounds = self.scrollView.bounds;
-    zeroOriginBounds.origin = CGPointZero;
-    CGRect fitBounds = [UserTransformView rectWithAspectFit:YES rect:zeroOriginBounds size:_contentPixelSize];
+    CGRect fitBounds = _untransformedContentFrame;
     
-    CGSize scale = CGSizeMake(CGRectGetWidth(frame) / CGRectGetWidth(fitBounds),
-                              CGRectGetHeight(frame) / CGRectGetHeight(fitBounds));
-    
-    CGPoint offset = CGPointMake(CGRectGetMidX(frame) - CGRectGetMidX(fitBounds),
-                                 CGRectGetMidY(frame) - CGRectGetMidY(fitBounds));
-    
-    CGAffineTransform userAffineTransform = CGAffineTransformMake(scale.width, 0., 0., scale.height, offset.x, offset.y);
+    CGAffineTransform userAffineTransform;
+    if (CGRectGetWidth(fitBounds) == 0. or CGRectGetHeight(fitBounds) == 0.) {
+        userAffineTransform = CGAffineTransformIdentity;
+    } else {
+        CGSize scale = CGSizeMake(CGRectGetWidth(frame) / CGRectGetWidth(fitBounds),
+                                  CGRectGetHeight(frame) / CGRectGetHeight(fitBounds));
+        
+        CGPoint offset = CGPointMake(CGRectGetMidX(frame) - CGRectGetMidX(fitBounds),
+                                     CGRectGetMidY(frame) - CGRectGetMidY(fitBounds));
+        
+        userAffineTransform = CGAffineTransformMake(scale.width, 0., 0., scale.height, offset.x, offset.y);
+    }
 
     [self.delegate userTransformView:self didChangeUserAffineTransform:userAffineTransform isUserInteracting:self.scrollView.isTracking];
 }
@@ -165,9 +170,25 @@
     CGPoint origin;
     if (ratio_1 < ratio_2) {
         origin.x = CGRectGetMinX(untransformedContentFrame);
+        
         origin.y = location.y - scaledSize.height * 0.5;
+        
+        if (origin.y < 0.) {
+            origin.y = 0.;
+        }
+        if ((CGRectGetHeight(untransformedContentFrame) - scaledSize.height) < origin.y) {
+            origin.y = CGRectGetHeight(untransformedContentFrame) - scaledSize.height;
+        }
     } else {
         origin.x = location.x - scaledSize.width * 0.5;
+        
+        if (origin.x < 0.) {
+            origin.x = 0.;
+        }
+        if ((CGRectGetWidth(untransformedContentFrame) - scaledSize.width) < origin.x) {
+            origin.x = CGRectGetWidth(untransformedContentFrame) - scaledSize.width;
+        } 
+        
         origin.y = CGRectGetMinY(untransformedContentFrame);
     }
     
@@ -188,7 +209,9 @@
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    [self notifyUserAffineTransform];
+    if (!_zoomingOut) {
+        [self notifyUserAffineTransform];
+    }
 }
 
 @end
