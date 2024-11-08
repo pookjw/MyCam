@@ -41,7 +41,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)setCollection:(PHAssetCollection *)collection {
-    [self.dataSource updateCollection:collection];
+    if ([_collection isEqual:collection]) return;
+    
+    _collection = [collection retain];
+    [self.dataSource updateCollection:collection completionHandler:nil];
 }
 
 - (UICollectionView *)collectionView {

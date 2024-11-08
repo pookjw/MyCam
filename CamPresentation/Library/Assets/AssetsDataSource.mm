@@ -62,7 +62,7 @@
     [super dealloc];
 }
 
-- (void)updateCollection:(PHAssetCollection *)collection {
+- (void)updateCollection:(PHAssetCollection *)collection completionHandler:(void (^ _Nullable)(void))completionHandler {
     dispatch_async(self.queue, ^{
         PHFetchOptions *options = [PHFetchOptions new];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setReverseSortOrder:"), YES);
@@ -81,6 +81,8 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             self.mainQueue_assetsFetchResult = assetsFetchResult;
             [self.collectionView reloadData];
+            
+            if (completionHandler) completionHandler();
         });
     });
 }
@@ -88,6 +90,25 @@
 - (PHAsset *)assetAtIndexPath:(NSIndexPath *)indexPath {
     dispatch_assert_queue(dispatch_get_main_queue());
     return self.mainQueue_assetsFetchResult[indexPath.item];
+}
+
+- (NSIndexPath *)indexPathFromAsset:(PHAsset *)asset {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    __block NSInteger index = NSNotFound;
+    
+    [self.mainQueue_assetsFetchResult enumerateObjectsUsingBlock:^(PHAsset * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj isEqual:asset]) {
+            index = idx;
+            *stop = YES;
+        }
+    }];
+    
+    if (index == NSNotFound) {
+        return nil;
+    }
+    
+    return [NSIndexPath indexPathForItem:index inSection:0];
 }
 
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {

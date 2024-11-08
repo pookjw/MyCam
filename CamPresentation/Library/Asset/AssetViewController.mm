@@ -45,7 +45,23 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [self.dataSource updateCollection:self.collection];
+    [self.dataSource updateCollection:self.collection completionHandler:^{
+        NSIndexPath * _Nullable indexPath = [self.dataSource indexPathFromAsset:self.asset];
+        if (indexPath == nil) return;
+        
+        [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:0 animated:NO];
+    }];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    
+    if (NSIndexPath *indexPath = self.collectionView.indexPathsForVisibleItems.firstObject) {
+        [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            [self.collectionView scrollToItemAtIndexPath:indexPath atScrollPosition:0 animated:NO];
+        }
+                                     completion:nil];
+    }
 }
 
 - (UICollectionView *)collectionView {
