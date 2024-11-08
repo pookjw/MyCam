@@ -10,25 +10,10 @@
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#include <dlfcn.h>
-
-namespace cp_PUUserTransformView {
-namespace doubleTapZoomScaleForContentSize {
-CGFloat (*original)(Class, SEL, CGSize, CGSize, CGFloat, BOOL);
-CGFloat custom(Class self, SEL _cmd, CGSize contentSize, CGSize boundsSize, CGFloat defaultScale, BOOL preferToFillOnDoubleTap) {
-    return original(self, _cmd, contentSize, boundsSize, defaultScale, preferToFillOnDoubleTap);
-}
-void swizzle() {
-    Method method = class_getClassMethod(objc_lookUpClass("PUUserTransformView"), sel_registerName("doubleTapZoomScaleForContentSize:inBoundsSize:defaultScale:preferToFillOnDoubleTap:"));
-    original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
-    method_setImplementation(method, reinterpret_cast<IMP>(custom));
-}
-}
-}
 
 @interface AssetContentView () <UserTransformViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
-@property (retain, nonatomic, readonly) __kindof UIView *userTransformView;
+@property (retain, nonatomic, readonly) UserTransformView *userTransformView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
@@ -36,23 +21,12 @@ void swizzle() {
 @synthesize imageView = _imageView;
 @synthesize userTransformView = _userTransformView;
 
-+ (void)load {
-    assert(dlopen("/System/Library/PrivateFrameworks/PhotosUIPrivate.framework/PhotosUIPrivate", RTLD_NOW) != NULL);
-    
-    Protocol * _Nullable PUUserTransformViewDelegate = NSProtocolFromString(@"PUUserTransformViewDelegate");
-    if (PUUserTransformViewDelegate) {
-        assert(class_addProtocol(self, PUUserTransformViewDelegate));
-    }
-    
-    cp_PUUserTransformView::doubleTapZoomScaleForContentSize::swizzle();
-}
-
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         UIImageView *imageView = self.imageView;
         [self addSubview:imageView];
         
-        __kindof UIView *userTransformView = self.userTransformView;
+        UserTransformView *userTransformView = self.userTransformView;
         [self addSubview:userTransformView];
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), userTransformView);
     }
@@ -89,7 +63,7 @@ void swizzle() {
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), NO);
+    [self.userTransformView zoomOut:NO];
 }
 
 - (UIImageView *)imageView {
@@ -104,14 +78,8 @@ void swizzle() {
     return [imageView autorelease];
 }
 
-- (__kindof UIView *)userTransformView {
+- (UserTransformView *)userTransformView {
     if (auto userTransformView = _userTransformView) return userTransformView;
-    
-//    __kindof UIView *userTransformView = [objc_lookUpClass("PUUserTransformView") new];
-//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(userTransformView, sel_registerName("setDelegate:"), self);
-//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setPreferToFillOnDoubleTap:"), YES);
-//    reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(userTransformView, sel_registerName("setEnabledInteractions:"), 7);
-//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(userTransformView, sel_registerName("setNeedsUpdateEnabledInteractions:"), YES);
     
     UserTransformView *userTransformView = [UserTransformView new];
     userTransformView.delegate = self;
@@ -171,19 +139,19 @@ void swizzle() {
             CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, self.userTransformView.frame);
             imageView.frame = frame;
             
-            reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(self.userTransformView, sel_registerName("setContentPixelSize:"), result.size);
-            reinterpret_cast<void (*)(id, SEL, CGRect)>(objc_msgSend)(self.userTransformView, sel_registerName("setUntransformedContentFrame:"), frame);
+            self.userTransformView.contentPixelSize = result.size;
+            self.userTransformView.untransformedContentFrame = frame;
         }
     } copy] autorelease];
 }
 
 
-- (void)userTransformView:(id)arg1 didChangeUserAffineTransform:(struct CGAffineTransform)arg2 isUserInteracting:(_Bool)arg3 {
-    self.imageView.transform = arg2;
+- (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting {
+    self.imageView.transform = userAffineTransform;
 }
 
 - (void)didTriggerTapGestureRecognizer:(UITapGestureRecognizer *)sender {
-    BOOL hasUserZoomedIn = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.userTransformView, sel_registerName("hasUserZoomedIn"));
+    BOOL hasUserZoomedIn = self.userTransformView.hasUserZoomedIn;
     
     if (hasUserZoomedIn) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), YES);

@@ -100,7 +100,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     if (auto hostedView = _hostedView) return hostedView;
     
     UIView *hostedView = [UIView new];
-    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
+//    hostedView.backgroundColor = [UIColor.systemOrangeColor colorWithAlphaComponent:0.3];
     
     _hostedView = [hostedView retain];
     return [hostedView autorelease];
