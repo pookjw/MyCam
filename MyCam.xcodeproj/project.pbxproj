@@ -18,6 +18,8 @@
 		4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41D42C981A6400726F2F /* AVFoundation.framework */; };
 		4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D62C95ABC30010F295 /* AVFoundation.framework */; };
 		4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F32A2D72C95ABC30010F295 /* AVKit.framework */; };
+		4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; };
+		4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -78,6 +80,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
+				4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -538,6 +541,7 @@
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
 				4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */,
+				4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */,
 				4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */,
 				4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */,
 			);
