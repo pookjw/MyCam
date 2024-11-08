@@ -182,14 +182,6 @@ void swizzle() {
     self.imageView.transform = arg2;
 }
 
-- (void)userTransformView:(id)arg1 didChangeIsUserInteracting:(_Bool)arg2 {
-    
-}
-
-- (void)userTransformViewDidChangeIsZoomedIn:(id)arg1 {
-    
-}
-
 - (void)didTriggerTapGestureRecognizer:(UITapGestureRecognizer *)sender {
     BOOL hasUserZoomedIn = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.userTransformView, sel_registerName("hasUserZoomedIn"));
     

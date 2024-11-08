@@ -9,7 +9,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-// reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
+OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
 @interface UserTransformView () <UIScrollViewDelegate> {
     BOOL _zoomingOut;

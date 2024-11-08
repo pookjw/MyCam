@@ -12,9 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 @class UserTransformView;
 @protocol UserTransformViewDelegate <NSObject>
 - (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting;
-@optional - (void)userTransformView:(UserTransformView *)userTransformView didChangeIsUserInteracting:(BOOL)isUserInteracting;
 @optional - (BOOL)userTransformView:(UserTransformView *)userTransformView shouldReceiveTouchAtPoint:(CGPoint)point;
-@optional - (void)userTransformViewDidChangeIsZoomedIn:(UserTransformView *)userTransformView;
 @end
 
 @interface UserTransformView : UIView
