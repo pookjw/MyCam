@@ -372,6 +372,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             [_orthogonalSectionsWithContentSizeChanges addIndex:sectionIndexNumber.unsignedIntegerValue];
         }
         
+        NSMutableIndexSet *_old_orthogonalSectionsWithContentSizeChanges;
+        assert(object_getInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void **>(&_old_orthogonalSectionsWithContentSizeChanges)));
+        [_old_orthogonalSectionsWithContentSizeChanges release];
+        
         assert(object_setInstanceVariable(context, "_orthogonalSectionsWithContentSizeChanges", reinterpret_cast<void *>(_orthogonalSectionsWithContentSizeChanges)) != NULL);
     } else if (CGRectGetMinY(oldBounds) != CGRectGetMinY(newBounds)) {
         // 상하로 스크롤 했을 때 Header만 갱신

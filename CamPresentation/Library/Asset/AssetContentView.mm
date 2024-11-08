@@ -89,7 +89,7 @@ void swizzle() {
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {
-//    self.scrollView.zoomScale = 1.;
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), NO);
 }
 
 - (UIImageView *)imageView {
@@ -191,7 +191,13 @@ void swizzle() {
 }
 
 - (void)didTriggerTapGestureRecognizer:(UITapGestureRecognizer *)sender {
-    reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomInOnLocationFromProvider:animated:"), sender, YES);
+    BOOL hasUserZoomedIn = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.userTransformView, sel_registerName("hasUserZoomedIn"));
+    
+//    if (hasUserZoomedIn) {
+//        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomOut:"), NO);
+//    } else {
+        reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(self.userTransformView, sel_registerName("zoomInOnLocationFromProvider:animated:"), sender, YES);
+//    }
 }
 
 @end

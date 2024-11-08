@@ -223,6 +223,8 @@
             }];
         }
     }];
+    
+    [options release];
 }
 
 @end

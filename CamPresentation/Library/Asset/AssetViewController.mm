@@ -9,8 +9,9 @@
 #import <CamPresentation/AssetsDataSource.h>
 #import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetCollectionViewCell.h>
+#import <CamPresentation/AssetCollectionViewLayout.h>
 
-@interface AssetViewController () <UICollectionViewDelegate>
+@interface AssetViewController () <UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
 @property (retain, nonatomic, readonly) PHAssetCollection *collection;
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
@@ -50,33 +51,14 @@
 - (UICollectionView *)collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
-    UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
-    configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
-    
-    UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
-        NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
-                                                                          heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
-        
-        NSCollectionLayoutItem *item = [NSCollectionLayoutItem itemWithLayoutSize:itemSize supplementaryItems:@[]];
-        
-        NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
-                                                                           heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
-        
-        NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
-        
-        NSCollectionLayoutSection *section = [NSCollectionLayoutSection sectionWithGroup:group];
-        section.contentInsetsReference = UIContentInsetsReferenceNone;
-        section.orthogonalScrollingBehavior = UICollectionLayoutSectionOrthogonalScrollingBehaviorGroupPaging;
-        
-        return section;
-    }
-                                                                                                                       configuration:configuration];
-    [configuration release];
+    AssetCollectionViewLayout *collectionViewLayout = [AssetCollectionViewLayout new];
+    collectionViewLayout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     collectionView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     collectionView.bouncesVertically = NO;
+    collectionView.decelerationRate = UIScrollViewDecelerationRateFast;
     collectionView.delegate = self;
     
     _collectionView = [collectionView retain];
@@ -94,6 +76,18 @@
     
     _dataSource = [dataSource retain];
     return [dataSource autorelease];
+}
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
+    return collectionView.bounds.size;
+}
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
+    return 0.;
+}
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumInteritemSpacingForSectionAtIndex:(NSInteger)section {
+    return 0.;
 }
 
 @end

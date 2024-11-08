@@ -63,6 +63,16 @@
     [self updateScrollViewContentSize];
 }
 
+- (void)zoomOut:(BOOL)animated {
+    [self.scrollView setZoomScale:1. animated:animated];
+}
+
+- (BOOL)hasUserZoomedIn {
+//    NSLog(@"%@ %@", NSStringFromCGRect(self.hostedView.frame), NSStringFromCGRect(self.untransformedContentFrame));
+    return !CGRectEqualToRect(self.hostedView.frame, self.untransformedContentFrame);
+//    return self.scrollView.zoomScale != 1.;
+}
+
 - (UIScrollView *)scrollView {
     if (auto scrollView = _scrollView) return scrollView;
     
@@ -71,10 +81,14 @@
     
     scrollView.delegate = self;
     scrollView.minimumZoomScale = 1.;
-#warning Dynamic
     scrollView.maximumZoomScale = 13.636;
-    scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-//    scrollView.contentAlignmentPoint = CGPointMake(0.5, 0.5);
+    scrollView.contentInsetAdjustmentBehavior = static_cast<UIScrollViewContentInsetAdjustmentBehavior>(101);
+    scrollView.scrollsToTop = NO;
+    scrollView.showsVerticalScrollIndicator = NO;
+    scrollView.showsHorizontalScrollIndicator = NO;
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(scrollView, sel_registerName("setPreservesCenterDuringRotation:"), YES);
+    scrollView.transfersHorizontalScrollingToParent = YES;
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(scrollView, sel_registerName("_setAllowsParentToBeginHorizontally:"), YES);
     
     _scrollView = [scrollView retain];
     return [scrollView autorelease];
@@ -133,24 +147,36 @@
     
     CGAffineTransform userAffineTransform = CGAffineTransformMake(scale.width, 0., 0., scale.height, offset.x, offset.y);
 
-    [self.delegate userTransformView:self didChangeUserAffineTransform:userAffineTransform isUserInteracting:NO];
+    [self.delegate userTransformView:self didChangeUserAffineTransform:userAffineTransform isUserInteracting:self.scrollView.isTracking];
 }
 
 - (void)zoomInOnLocationFromProvider:(__kindof UIGestureRecognizer *)provider animated:(BOOL)animated {
-//    UIScrollView *scrollView = self.scrollView;
-//    
-//    CGRect untransformedContentFrame = _untransformedContentFrame;
-//    CGPoint location = [provider locationInView:scrollView];
-//    
-//    CGFloat width = CGRectGetWidth(untransformedContentFrame);
-//    CGFloat height = CGRectGetHeight(untransformedContentFrame);
-//    
-//    CGRect rect = CGRectMake(width * 0.5,
-//                             height * 0.5,
-//                             width * 0.3,
-//                             height * 0.3);
-//    
-//    [scrollView zoomToRect:rect animated:YES];
+    if (!CGRectContainsPoint(self.hostedView.frame, [provider locationInView:self])) return;
+    
+    UIScrollView *scrollView = self.scrollView;
+    CGPoint location = [provider locationInView:self.hostedView];
+    
+    CGRect untransformedContentFrame = _untransformedContentFrame;
+    
+    CGSize scaledSize = [UserTransformView rectWithAspectFit:YES rect:untransformedContentFrame size:scrollView.bounds.size].size;
+    
+    CGFloat ratio_1 = CGRectGetWidth(untransformedContentFrame) / CGRectGetHeight(untransformedContentFrame);
+    CGFloat ratio_2 = scaledSize.width / scaledSize.height;
+    CGPoint origin;
+    if (ratio_1 < ratio_2) {
+        origin.x = CGRectGetMinX(untransformedContentFrame);
+        origin.y = location.y - scaledSize.height * 0.5;
+    } else {
+        origin.x = location.x - scaledSize.width * 0.5;
+        origin.y = CGRectGetMinY(untransformedContentFrame);
+    }
+    
+    CGRect rect = CGRectMake(origin.x,
+                             origin.y,
+                             scaledSize.width,
+                             scaledSize.height);
+    
+    [scrollView zoomToRect:rect animated:animated];
 }
 
 - (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
