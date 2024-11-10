@@ -339,6 +339,7 @@
 				"NSObject+Foundation_IvarDescription.mm",
 				"NSURL+CP.h",
 				"NSURL+CP.mm",
+				pixel_buffer_shader.metal,
 				PixelBufferLayer.h,
 				PixelBufferLayer.mm,
 				Player/PlayerView.h,

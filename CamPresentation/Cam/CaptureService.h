@@ -10,6 +10,7 @@
 #import <CamPresentation/Extern.h>
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/PhotoLibraryFileOutput.h>
+#import <CamPresentation/PixelBufferLayer.h>
 #import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -40,7 +41,7 @@ API_UNAVAILABLE(visionos)
 @property (retain, nonatomic, readonly) NSArray<AVCaptureDevice *> *queue_addedPointCloudCaptureDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultVideoCaptureDevice;
 @property (retain, nonatomic, null_resettable, setter=queue_setFileOutput:) __kindof BaseFileOutput *queue_fileOutput;
-@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,PixelBufferLayer *> *queue_previewLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_depthMapLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
@@ -54,8 +55,8 @@ API_UNAVAILABLE(visionos)
 
 - (__kindof AVCaptureOutput * _Nullable)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
-- (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
+- (PixelBufferLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(PixelBufferLayer *)previewLayer;
 - (__kindof CALayer * _Nullable)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;

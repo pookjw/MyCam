@@ -183,11 +183,6 @@ __attribute__((objc_direct_members))
     return thread;
 }
 
-- (CFRunLoopRef)runLoop {
-    NSThread *thread = self.thread;
-    return (CFRunLoopRef)thread.threadDictionary[@"runLoop"];
-}
-
 - (void)runBlock:(void (^)())block {
     NSThread *thread = self.thread;
     NSMutableDictionary *dictionary = thread.threadDictionary[@"dictionary"];
