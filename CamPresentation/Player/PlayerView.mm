@@ -13,6 +13,8 @@
 @property (retain, nonatomic, readonly) UIButton *playbackButton;
 @property (retain, nonatomic, readonly) UISlider *seekingSlider;
 @property (retain, nonatomic, readonly) MPVolumeView *volumeView;
+@property (retain, nonatomic, readonly) AVRoutePickerView *routePickerView;
+@property (retain, nonatomic, readonly) UILabel *reasonForWaitingToPlayLabel;
 @property (retain, nonatomic, nullable) id periodicTimeObserver;
 @property (assign, nonatomic) BOOL wasPlaying;
 @end
@@ -22,6 +24,8 @@
 @synthesize playbackButton = _playbackButton;
 @synthesize seekingSlider = _seekingSlider;
 @synthesize volumeView = _volumeView;
+@synthesize routePickerView = _routePickerView;
+@synthesize reasonForWaitingToPlayLabel = _reasonForWaitingToPlayLabel;
 
 + (Class)layerClass {
     return AVPlayerLayer.class;
@@ -45,7 +49,20 @@
             [stackView.heightAnchor constraintEqualToConstant:44.]
         ]];
         
+        UILabel *reasonForWaitingToPlayLabel = self.reasonForWaitingToPlayLabel;
+        reasonForWaitingToPlayLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self addSubview:reasonForWaitingToPlayLabel];
+        
+        [NSLayoutConstraint activateConstraints:@[
+            [reasonForWaitingToPlayLabel.topAnchor constraintEqualToAnchor:self.layoutMarginsGuide.topAnchor],
+            [reasonForWaitingToPlayLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.leadingAnchor],
+            [reasonForWaitingToPlayLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.trailingAnchor],
+            [reasonForWaitingToPlayLabel.centerXAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerXAnchor]
+        ]];
+        
         [self updatePlaybackButton];
+        [self updateSeekingSlider];
+        [self updateReasonForWaitingToPlay];
         
         AVPlayerLayer *playerLayer = self.playerLayer;
         [playerLayer addObserver:self forKeyPath:@"player" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
@@ -65,30 +82,43 @@
     [_playbackButton release];
     [_seekingSlider release];
     [_volumeView release];
+    [_routePickerView release];
+    [_reasonForWaitingToPlayLabel release];
+    
     [super dealloc];
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isEqual:self.playerLayer]) {
-        if (id oldPlayer = change[NSKeyValueChangeOldKey]) {
-            if ([oldPlayer isKindOfClass:AVPlayer.class]) {
-                [self removeObserverForPlayer:static_cast<AVPlayer *>(oldPlayer)];
+        if ([keyPath isEqualToString:@"player"]) {
+            if (id oldPlayer = change[NSKeyValueChangeOldKey]) {
+                if ([oldPlayer isKindOfClass:AVPlayer.class]) {
+                    [self removeObserverForPlayer:static_cast<AVPlayer *>(oldPlayer)];
+                }
             }
-        }
-        
-        if (id newPlayer = change[NSKeyValueChangeNewKey]) {
-            if ([newPlayer isKindOfClass:AVPlayer.class]) {
-                [self addObserverForPlayer:static_cast<AVPlayer *>(newPlayer)];
+            
+            if (id newPlayer = change[NSKeyValueChangeNewKey]) {
+                if ([newPlayer isKindOfClass:AVPlayer.class]) {
+                    [self addObserverForPlayer:static_cast<AVPlayer *>(newPlayer)];
+                }
             }
+            
+            return;
         }
-        
-        return;
     } else if ([object isKindOfClass:AVPlayer.class]) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self updatePlaybackButton];
-        });
-        
-        return;
+        if ([keyPath isEqualToString:@"rate"] or [keyPath isEqualToString:@"status"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updatePlaybackButton];
+            });
+            
+            return;
+        } else if ([keyPath isEqualToString:@"reasonForWaitingToPlay"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self updateReasonForWaitingToPlay];
+            });
+            
+            return;
+        }
     }
     
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
@@ -102,7 +132,8 @@
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
         self.playbackButton,
         self.seekingSlider,
-        volumeView
+        volumeView,
+        self.routePickerView
     ]];
     
     [volumeView.widthAnchor constraintEqualToConstant:100.].active = YES;
@@ -110,6 +141,7 @@
     stackView.axis = UILayoutConstraintAxisHorizontal;
     stackView.distribution = UIStackViewDistributionFill;
     stackView.alignment = UIStackViewAlignmentFill;
+    stackView.spacing = 8.;
     
     _stackView = [stackView retain];
     return [stackView autorelease];
@@ -147,6 +179,28 @@
     
     _volumeView = [volumeView retain];
     return [volumeView autorelease];
+}
+
+- (AVRoutePickerView *)routePickerView {
+    if (auto routePickerView = _routePickerView) return routePickerView;
+    
+    AVRoutePickerView *routePickerView = [AVRoutePickerView new];
+    
+    _routePickerView = [routePickerView retain];
+    return [routePickerView autorelease];
+}
+
+- (UILabel *)reasonForWaitingToPlayLabel {
+    if (auto reasonForWaitingToPlayLabel = _reasonForWaitingToPlayLabel) return reasonForWaitingToPlayLabel;
+    
+    UILabel *reasonForWaitingToPlayLabel = [UILabel new];
+    reasonForWaitingToPlayLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    reasonForWaitingToPlayLabel.textColor = UIColor.labelColor;
+    reasonForWaitingToPlayLabel.backgroundColor = UIColor.systemBackgroundColor;
+    reasonForWaitingToPlayLabel.textAlignment = NSTextAlignmentCenter;
+    
+    _reasonForWaitingToPlayLabel = [reasonForWaitingToPlayLabel retain];
+    return [reasonForWaitingToPlayLabel autorelease];
 }
 
 - (void)didTriggerPlaybackButton:(UIButton *)sender {
@@ -236,9 +290,14 @@
     seekingSlider.enabled = YES;
 }
 
+- (void)updateReasonForWaitingToPlay {
+    self.reasonForWaitingToPlayLabel.text = self.playerLayer.player.reasonForWaitingToPlay;
+}
+
 - (void)removeObserverForPlayer:(AVPlayer *)player {
     [player removeObserver:self forKeyPath:@"rate"];
     [player removeObserver:self forKeyPath:@"status"];
+    [player removeObserver:self forKeyPath:@"reasonForWaitingToPlay"];
     
     assert(self.periodicTimeObserver != nil);
     [player removeTimeObserver:self.periodicTimeObserver];
@@ -247,6 +306,7 @@
 - (void)addObserverForPlayer:(AVPlayer *)player {
     [player addObserver:self forKeyPath:@"rate" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     
     __weak auto weakSelf = self;
     self.periodicTimeObserver = [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
