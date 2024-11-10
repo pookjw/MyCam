@@ -1,5 +1,5 @@
 //
-//  PixelBufferLayer.h
+//  ImageBufferLayer.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/11/24.
@@ -12,7 +12,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
-@interface PixelBufferLayer : CALayer
+@interface ImageBufferLayer : CALayer
 - (void)updateWithCIImage:(CIImage * _Nullable)ciImage rotationAngle:(float)rotationAngle fill:(BOOL)fill;
 - (void)updateWithCIImage:(CIImage * _Nullable)ciImage fill:(BOOL)fill;
 - (void)updateWithCGImage:(CGImageRef _Nullable)cgImage fill:(BOOL)fill;

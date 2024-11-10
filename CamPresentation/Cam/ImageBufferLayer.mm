@@ -1,11 +1,11 @@
 //
-//  PixelBufferLayer.m
+//  ImageBufferLayer.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 10/11/24.
 //
 
-#import <CamPresentation/PixelBufferLayer.h>
+#import <CamPresentation/ImageBufferLayer.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
@@ -15,14 +15,14 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/SVRunLoop.hpp>
 
-@interface PixelBufferLayer ()
+@interface ImageBufferLayer ()
 @property (class, retain, nonatomic, readonly) CIContext *ciContext;
 @property (assign, nonatomic, readonly) os_unfair_recursive_lock lock;
 @property (assign, nonatomic, nullable) CGImageRef cgImageIsolated;
 @property (assign, nonatomic) BOOL fillIsolated;
 @end
 
-@implementation PixelBufferLayer
+@implementation ImageBufferLayer
 
 + (CIContext *)ciContext {
     static CIContext *ciContext = [[CIContext alloc] initWithOptions:nil];
@@ -71,7 +71,7 @@
         CIImage *rotatedCIImage = [ciImage imageByApplyingTransform:transform highQualityDownsample:NO];
         
         // retained
-        CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:rotatedCIImage fromRect:rotatedCIImage.extent];
+        CGImageRef cgImage = [ImageBufferLayer.ciContext createCGImage:rotatedCIImage fromRect:rotatedCIImage.extent];
         
         os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
         
@@ -91,7 +91,7 @@
 - (void)updateWithCIImage:(CIImage *)ciImage fill:(BOOL)fill {
     [SVRunLoop.globalRenderRunLoop runBlock:^{
         // retained
-        CGImageRef cgImage = [PixelBufferLayer.ciContext createCGImage:ciImage fromRect:ciImage.extent];
+        CGImageRef cgImage = [ImageBufferLayer.ciContext createCGImage:ciImage fromRect:ciImage.extent];
         
         os_unfair_recursive_lock_lock_with_options(&_lock, OS_UNFAIR_LOCK_NONE);
         

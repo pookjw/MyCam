@@ -83,9 +83,10 @@ __attribute__((objc_direct_members))
         NSMutableDictionary *dictionary = thread.threadDictionary[@"dictionary"];
         
         auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-        auto lockPtr = reinterpret_cast<os_unfair_lock *>(object_getIndexedIvars(lockValue));
+        os_unfair_lock lock;
+        [lockValue getValue:&lock size:sizeof(os_unfair_lock)];
         
-        os_unfair_lock_lock(lockPtr);
+        os_unfair_lock_lock(&lock);
         
         if (auto runLoop = reinterpret_cast<CFRunLoopRef _Nullable>(dictionary[@"runLoop"])) {
             // 이미 RunLoop가 돌아가고 있다면 중단
@@ -95,7 +96,7 @@ __attribute__((objc_direct_members))
         // Thread는 생성되었는데 아직 start가 안 되었거나 start하던 도중 RunLoop을 설정하기 이전에 이 코드가 불려서 lock이 걸릴 경우, 중단하라는 flag 추가
         dictionary[@"needsStop"] = @YES;
         
-        objc_sync_exit(self);
+        os_unfair_lock_unlock(&lock);
         
         [_thread release]; 
     }
@@ -140,9 +141,10 @@ __attribute__((objc_direct_members))
         CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
         
         auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-        auto lockPtr = reinterpret_cast<os_unfair_lock *>(object_getIndexedIvars(lockValue));
+        os_unfair_lock lock;
+        [lockValue getValue:&lock size:sizeof(os_unfair_lock)];
         
-        os_unfair_lock_lock(lockPtr);
+        os_unfair_lock_lock(&lock);
         
         auto needsStopNumber = static_cast<NSNumber * _Nullable>(dictionary[@"needsStop"]);
         if (needsStopNumber.boolValue) {
@@ -162,7 +164,7 @@ __attribute__((objc_direct_members))
             dictionary[@"blocks"] = [NSMutableArray array];
         }
         
-        os_unfair_lock_unlock(lockPtr);
+        os_unfair_lock_unlock(&lock);
         
         CFRelease(source);
         
@@ -179,6 +181,11 @@ __attribute__((objc_direct_members))
     
     [thread start];
     return thread;
+}
+
+- (CFRunLoopRef)runLoop {
+    NSThread *thread = self.thread;
+    return (CFRunLoopRef)thread.threadDictionary[@"runLoop"];
 }
 
 - (void)runBlock:(void (^)())block {
