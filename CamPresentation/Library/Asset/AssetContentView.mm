@@ -7,21 +7,18 @@
 
 #import <CamPresentation/AssetContentView.h>
 #import <CamPresentation/UserTransformView.h>
-#import <CamPresentation/PlayerView.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
 @interface AssetContentView () <UserTransformViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
-@property (retain, nonatomic, readonly) PlayerView *playerView;
 @property (retain, nonatomic, readonly) UserTransformView *userTransformView;
 @property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
 @synthesize imageView = _imageView;
-@synthesize playerView = _playerView;
 @synthesize userTransformView = _userTransformView;
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -40,7 +37,6 @@
 - (void)dealloc {
     [_model release];
     [_imageView release];
-    [_playerView release];
     [_userTransformView release];
     [super dealloc];
 }
@@ -91,15 +87,6 @@
     
     _imageView = [imageView retain];
     return [imageView autorelease];
-}
-
-- (PlayerView *)playerView {
-    if (auto playerView = _playerView) return playerView;
-    
-    PlayerView *playerView = [[PlayerView alloc] initWithFrame:self.bounds];
-    
-    _playerView = [playerView retain];
-    return [playerView autorelease];
 }
 
 - (UserTransformView *)userTransformView {

@@ -10,17 +10,22 @@
 #import <CamPresentation/AssetsItemModel.h>
 #import <CamPresentation/AssetCollectionViewCell.h>
 #import <CamPresentation/AssetCollectionViewLayout.h>
+#import <CamPresentation/PlayerViewController.h>
+
+#warning TODO Live Photo
 
 @interface AssetViewController () <UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
 @property (retain, nonatomic, readonly) PHAssetCollection *collection;
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
+@property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @end
 
 @implementation AssetViewController
 @synthesize collectionView = _collectionView;
 @synthesize dataSource = _dataSource;
+@synthesize playerBarButtonItem = _playerBarButtonItem;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection asset:(PHAsset *)asset {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -36,6 +41,7 @@
     [_asset release];
     [_collectionView release];
     [_dataSource release];
+    [_playerBarButtonItem release];
     [super dealloc];
 }
 
@@ -45,6 +51,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    self.navigationItem.rightBarButtonItem = self.playerBarButtonItem;
+    
     [self.dataSource updateCollection:self.collection completionHandler:^{
         NSIndexPath * _Nullable indexPath = [self.dataSource indexPathFromAsset:self.asset];
         if (indexPath == nil) return;
@@ -94,12 +103,56 @@
     return [dataSource autorelease];
 }
 
+- (UIBarButtonItem *)playerBarButtonItem {
+    if (auto playerBarButtonItem = _playerBarButtonItem) return playerBarButtonItem;
+    
+    UIBarButtonItem *playerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"play.rectangle"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerPlayerBarButtonItem:)];
+    
+    _playerBarButtonItem = [playerBarButtonItem retain];
+    return [playerBarButtonItem autorelease];
+}
+
+- (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {
+    if (PHAsset *asset = [self currentVideoAsset]) {
+        PlayerViewController *playerViewController = [[PlayerViewController alloc] initWithAsset:asset];
+        UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:playerViewController];
+        [playerViewController release];
+        navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:navigationController animated:YES completion:nil];
+        [navigationController release];
+    }
+}
+
+- (PHAsset * _Nullable)currentVideoAsset {
+    UICollectionView *collectionView = self.collectionView;
+    
+    NSIndexPath * _Nullable indexPath = [collectionView indexPathForItemAtPoint:CGPointMake(CGRectGetMidX(collectionView.bounds), CGRectGetMidY(collectionView.bounds))];
+    if (indexPath == nil) {
+        return nil;
+    }
+    
+    PHAsset * _Nullable asset = [self.dataSource assetAtIndexPath:indexPath];
+    if (asset == nil) {
+        return nil;
+    }
+    
+    if (asset.mediaType != PHAssetMediaTypeVideo) {
+        return nil;
+    }
+    
+    return asset;
+}
+
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
     return collectionView.bounds.size;
 }
 
 - (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
     return 20.;
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    self.playerBarButtonItem.hidden = [self currentVideoAsset] == nil;
 }
 
 @end

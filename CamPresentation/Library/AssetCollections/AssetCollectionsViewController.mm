@@ -11,6 +11,7 @@
 #import <CamPresentation/AssetCollectionsCell.h>
 #import <CamPresentation/AssetCollectionsHeaderView.h>
 #import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
+#import <CamPresentation/PlayerViewController.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "MyCompositionalLayout.h"
@@ -43,6 +44,21 @@
     self.navigationItem.rightBarButtonItem = self.switchLayoutBarButtonItem;
     
     [self dataSource];
+    
+    __weak auto weakSelf = self;
+    UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"37666297-B7D6-4A2F-9B2F-88D6D6BA4E0F/L0/001"] options:nil].firstObject;
+        assert(asset != nil);
+        
+        PlayerViewController *playerViewController = [[PlayerViewController alloc] initWithAsset:asset];
+        UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:playerViewController];
+        [playerViewController release];
+        navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+        [weakSelf presentViewController:navigationController animated:YES completion:nil];
+        [navigationController release];
+    }];
+    
+    self.navigationItem.titleView = [UIButton buttonWithType:UIButtonTypeSystem primaryAction:action];
 }
 
 - (AssetCollectionsDataSource *)dataSource {
