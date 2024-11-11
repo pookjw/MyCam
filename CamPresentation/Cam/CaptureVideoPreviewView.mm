@@ -630,6 +630,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 - (void)updateContentScale {
     CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
     
+    self.previewLayer.contentsScale = displayScale;
     self.depthMapLayer.contentsScale = displayScale;
     self.visionLayer.contentsScale = displayScale;
     self.metadataObjectsLayer.contentsScale = displayScale;

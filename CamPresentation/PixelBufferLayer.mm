@@ -17,7 +17,6 @@
     @package id<MTLDevice> _device;
     @package id<MTLCommandQueue> _commandQueue;
     @package id<MTLRenderPipelineState> _renderPipelineState;
-    @package id<MTLSamplerState> _samplerState;
     CFRunLoopObserverRef _observer;
     CVMetalTextureCacheRef _textureCache;
     SVRunLoop *_runLoop;
@@ -59,17 +58,16 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
                                               &metalTextureCbCr);
     
     if (!metalTextureY or !metalTextureCbCr) {
-//        CVMetalTextureCacheFlush(pixelBufferLayer->_textureCache, 0);
+        CVMetalTextureCacheFlush(pixelBufferLayer->_textureCache, 0);
         return;
     }
     
     NSLog(@"Hello!");
     
     id<MTLTexture> _Nullable textureY = CVMetalTextureGetTexture(metalTextureY);
-//    CFRelease(metalTextureY);
-    
+    CVPixelBufferRelease(metalTextureY);
     id<MTLTexture> _Nullable textureCbCr = CVMetalTextureGetTexture(metalTextureCbCr);
-//    CFRelease(textureCbCr);
+    CVPixelBufferRelease(metalTextureCbCr);
     
     if (!textureY or !textureCbCr) {
         CVMetalTextureCacheFlush(pixelBufferLayer->_textureCache, 0);
@@ -78,37 +76,23 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     
     //
     
-    CGSize drawableSize = pixelBufferLayer->_metalLayer.drawableSize;
-    
-    std::pair<std::float_t, std::float_t> ratio {
-        drawableSize.width / CVPixelBufferGetWidth(pixelBuffer),
-        drawableSize.height / CVPixelBufferGetHeight(pixelBuffer)
+    float vertexData[16] = {
+        -1.0, -1.0,  0.0, 1.0,
+        1.0, -1.0,  1.0, 1.0,
+        -1.0,  1.0,  0.0, 0.0,
+        1.0,  1.0,  1.0, 0.0,
     };
     
-    std::pair<std::float_t, std::float_t> scale;
-    if (ratio.first < ratio.second) { // ratio.first < ratio.second
-        scale = {1.f, ratio.first / ratio.second}; // (1.f, ratioX / ratioY)
-    } else {
-        scale = {ratio.second / ratio.first, 1.f}; // (ratioY / ratioX, 1.f)
-    }
+    id<MTLBuffer> vertexCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:vertexData length:sizeof(vertexData) options:0];
     
-    std::array<std::float_t, 16> vertexArray {
-        -scale.first, -scale.second, 0.f, 1.f,
-        scale.first, -scale.second, 0.f, 1.f,
-        -scale.first, scale.second, 0.f, 1.f,
-        scale.first, scale.second, 0.f, 1.f
+    float textureData[16] = {
+        -1.0, -1.0,  0.0, 1.0,
+        1.0, -1.0,  1.0, 1.0,
+        -1.0,  1.0,  0.0, 0.0,
+        1.0,  1.0,  1.0, 0.0,
     };
     
-    id<MTLBuffer> vertexCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:vertexArray.data() length:vertexArray.size() * sizeof(std::float_t) options:0];
-    
-    constexpr std::array<std::float_t, 8> textureArray {
-        0.f, 1.f,
-        1.f, 1.f,
-        0.f, 0.f,
-        1.f, 0.f
-    };
-    
-    id<MTLBuffer> textureCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:textureArray.data() length:textureArray.size() * sizeof(std::float_t) options:0];
+    id<MTLBuffer> textureCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:textureData length:sizeof(textureData) options:0];
     
     MTLCommandBufferDescriptor *commandBufferDescriptor = [MTLCommandBufferDescriptor new];
     id<MTLCommandBuffer> commandBuffer = [pixelBufferLayer->_commandQueue commandBufferWithDescriptor:commandBufferDescriptor];
@@ -131,14 +115,17 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     [textureCoordBuffer release];
     [commandEncoder setFragmentTexture:textureY atIndex:0];
     [commandEncoder setFragmentTexture:textureCbCr atIndex:1];
-    [commandEncoder setFragmentSamplerState:pixelBufferLayer->_samplerState atIndex:0];
     [commandEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+    [commandEncoder popDebugGroup];
     [commandEncoder endEncoding];
     
     [commandBuffer presentDrawable:drawable];
     [commandBuffer commit];
     
     [pixelBufferLayer release];
+    
+//    [pixelBufferLayer->_metalLayer setNeedsDisplay];
+//    [pixelBufferLayer->_metalLayer displayIfNeeded];
 }
 
 void PixelBufferLayerRunLoopObserverContextRelease(const void *info) {
@@ -187,10 +174,10 @@ const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
         id observerObj = (id)observer;
         
         [runLoop runBlock:^{
-            CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-            CFRunLoopObserverRef observer = (CFRunLoopObserverRef)observerObj;
-            assert(!CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
-            CFRunLoopAddObserver(runLoop, observer, kCFRunLoopDefaultMode);
+//            CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+//            CFRunLoopObserverRef observer = (CFRunLoopObserverRef)observerObj;
+//            assert(!CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
+//            CFRunLoopAddObserver(runLoop, observer, kCFRunLoopDefaultMode);
             
             //
             
@@ -226,21 +213,12 @@ const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
             [pipelineDescriptor release];
             assert(!error);
             
-            MTLSamplerDescriptor *samplerDescriptor = [MTLSamplerDescriptor new];
-            samplerDescriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
-            samplerDescriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
-            samplerDescriptor.minFilter = MTLSamplerMinMagFilterLinear;
-            samplerDescriptor.magFilter = MTLSamplerMinMagFilterLinear;
-            id<MTLSamplerState> samplerState = [device newSamplerStateWithDescriptor:samplerDescriptor];
-            [samplerDescriptor release];
-            
             CVReturn result = CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
             assert(result == kCVReturnSuccess);
             
             _device = device;
             _commandQueue = commandQueue;
-            _renderPipelineState = renderPipelineState;
-            _samplerState = samplerState;
+            _renderPipelineState = renderPipelineState;\
         }];
     }
     
@@ -253,7 +231,6 @@ const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
     [_device release];
     [_commandQueue release];
     [_renderPipelineState release];
-    [_samplerState release];
     CFRelease(_textureCache);
     
     CFRelease(_observer);
@@ -265,73 +242,31 @@ const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
 - (void)setBounds:(CGRect)bounds {
     [super setBounds:bounds];
     _metalLayer.frame = bounds;
-    _metalLayer.drawableSize = self.bounds.size;
+    _metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);
 }
 
 - (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
-    int bufferWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
-    int bufferHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
-    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+//    id pixelBufferObj = (id)pixelBuffer;
+//    
+//    [_runLoop runBlock:^{
+//        CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+//        CFRunLoopObserverRef observer = _observer;
+//        assert(CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
+//        
+//        if (auto pixelBuffer = _pixelBuffer) {
+//            CVBufferRelease(pixelBuffer);
+//        }
+//        
+//        CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)pixelBufferObj;
+//        CVPixelBufferRetain(pixelBuffer);
+//        _pixelBuffer = pixelBuffer;
+//        
+//        PixelBufferLayerRunLoopObserverCallback(NULL, NULL, self);
+//    }];
     
-    CFDictionaryRef attributes = CVPixelBufferCopyCreationAttributes(pixelBuffer);
-    CVPixelBufferRef pixelBufferCopy = NULL;
-    CVReturn status = CVPixelBufferCreate(kCFAllocatorDefault, bufferWidth, bufferHeight, CVPixelBufferGetPixelFormatType(pixelBuffer), attributes, &pixelBufferCopy);
-    CFRelease(attributes);
+    _pixelBuffer = pixelBuffer;
     
-    assert(CVPixelBufferGetPlaneCount(pixelBuffer) == CVPixelBufferGetPlaneCount(pixelBufferCopy));
-    
-    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-    CVPixelBufferLockBaseAddress(pixelBufferCopy, 0);
-    
-    for (size_t i = 0; i < CVPixelBufferGetPlaneCount(pixelBuffer); i++) {
-        void *baseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, i);
-        void *copyAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBufferCopy, i);
-        
-        size_t height = CVPixelBufferGetHeightOfPlane(pixelBuffer, i);
-        assert(height == CVPixelBufferGetHeightOfPlane(pixelBufferCopy, i));
-        size_t bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, i);
-        assert(bytesPerRow == CVPixelBufferGetBytesPerRowOfPlane(pixelBufferCopy, i));
-        
-        memcpy(copyAddress, baseAddress, height * bytesPerRow);
-    }
-    
-    CFShow(pixelBuffer);
-    
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
-    CVPixelBufferUnlockBaseAddress(pixelBufferCopy, 0);
-    
-    CVMetalTextureRef _Nullable metalTextureY = nil;
-    CVMetalTextureCacheCreateTextureFromImage(NULL,
-                                              self->_textureCache,
-                                              pixelBufferCopy,
-                                              NULL,
-                                              MTLPixelFormatR8Unorm,
-                                              CVPixelBufferGetWidthOfPlane(pixelBuffer, 0),
-                                              CVPixelBufferGetHeightOfPlane(pixelBuffer, 0),
-                                              0,
-                                              &metalTextureY);
-    CFShow(metalTextureY);
-    if (metalTextureY != NULL) {
-        CFRelease(metalTextureY);
-    }
-    
-    id pixelBufferObj = (id)pixelBufferCopy;
-    
-    [_runLoop runBlock:^{
-        CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-        CFRunLoopObserverRef observer = _observer;
-        assert(CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
-        
-        if (auto pixelBuffer = _pixelBuffer) {
-            CVBufferRelease(pixelBuffer);
-        }
-        
-        CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)pixelBufferObj;
-        CVPixelBufferRetain(pixelBuffer);
-        _pixelBuffer = pixelBuffer;
-    }];
-    
-    CVBufferRelease(pixelBufferCopy);
+    PixelBufferLayerRunLoopObserverCallback(NULL, NULL, self);
 }
 
 @end
