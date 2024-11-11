@@ -71,11 +71,6 @@ API_UNAVAILABLE(visionos)
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
 - (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output;
 
-- (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (BOOL)queue_isAudioDeviceConnected:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice;
-
 - (NSSet<AVCaptureDeviceInput *> *)queue_audioDeviceInputsForOutput:(__kindof AVCaptureOutput *)output;
 
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice;
