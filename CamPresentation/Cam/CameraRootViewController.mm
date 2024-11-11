@@ -467,7 +467,7 @@
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
                 BOOL isRemoved = YES;
-                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator) {
+                for (PixelBufferLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator) {
                     if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
                         isRemoved = NO;
                         break;
