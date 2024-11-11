@@ -9,6 +9,7 @@
 #import <CamPresentation/SVRunLoop.hpp>
 #import <MetalKit/MetalKit.h>
 #include <array>
+#include <ranges>
 
 @interface PixelBufferLayer () {
     @package CVPixelBufferRef _pixelBuffer;
@@ -30,7 +31,7 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     CVPixelBufferRef pixelBuffer = pixelBufferLayer->_pixelBuffer;
     if (pixelBuffer == nil) return;
     
-    CFShow(pixelBuffer);
+//    CFShow(pixelBuffer);
     
     id<CAMetalDrawable> _Nullable drawable = pixelBufferLayer->_metalLayer.nextDrawable;
     if (!drawable) return;
@@ -268,20 +269,51 @@ const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
 }
 
 - (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
-    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
     int bufferWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
     int bufferHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
     size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
-    void *baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
     
     CFDictionaryRef attributes = CVPixelBufferCopyCreationAttributes(pixelBuffer);
-    // Copy the pixel buffer
     CVPixelBufferRef pixelBufferCopy = NULL;
     CVReturn status = CVPixelBufferCreate(kCFAllocatorDefault, bufferWidth, bufferHeight, CVPixelBufferGetPixelFormatType(pixelBuffer), attributes, &pixelBufferCopy);
     CFRelease(attributes);
+    
+    assert(CVPixelBufferGetPlaneCount(pixelBuffer) == CVPixelBufferGetPlaneCount(pixelBufferCopy));
+    
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
     CVPixelBufferLockBaseAddress(pixelBufferCopy, 0);
-    void *copyBaseAddress = CVPixelBufferGetBaseAddress(pixelBufferCopy);
-    memcpy(copyBaseAddress, baseAddress, bufferHeight * bytesPerRow);
+    
+    for (size_t i = 0; i < CVPixelBufferGetPlaneCount(pixelBuffer); i++) {
+        void *baseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, i);
+        void *copyAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBufferCopy, i);
+        
+        size_t height = CVPixelBufferGetHeightOfPlane(pixelBuffer, i);
+        assert(height == CVPixelBufferGetHeightOfPlane(pixelBufferCopy, i));
+        size_t bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, i);
+        assert(bytesPerRow == CVPixelBufferGetBytesPerRowOfPlane(pixelBufferCopy, i));
+        
+        memcpy(copyAddress, baseAddress, height * bytesPerRow);
+    }
+    
+    CFShow(pixelBuffer);
+    
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+    CVPixelBufferUnlockBaseAddress(pixelBufferCopy, 0);
+    
+    CVMetalTextureRef _Nullable metalTextureY = nil;
+    CVMetalTextureCacheCreateTextureFromImage(NULL,
+                                              self->_textureCache,
+                                              pixelBufferCopy,
+                                              NULL,
+                                              MTLPixelFormatR8Unorm,
+                                              CVPixelBufferGetWidthOfPlane(pixelBuffer, 0),
+                                              CVPixelBufferGetHeightOfPlane(pixelBuffer, 0),
+                                              0,
+                                              &metalTextureY);
+    CFShow(metalTextureY);
+    if (metalTextureY != NULL) {
+        CFRelease(metalTextureY);
+    }
     
     id pixelBufferObj = (id)pixelBufferCopy;
     
