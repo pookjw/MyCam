@@ -6,38 +6,146 @@
 //
 
 #import <CamPresentation/PixelBufferLayer.h>
-#import <CamPresentation/SVRunLoop.hpp>
 #import <MetalKit/MetalKit.h>
-#include <array>
-#include <ranges>
+#import <CamPresentation/SVRunLoop.hpp>
 
 @interface PixelBufferLayer () {
-    @package CVPixelBufferRef _pixelBuffer;
     @package CAMetalLayer *_metalLayer;
     @package id<MTLDevice> _device;
     @package id<MTLCommandQueue> _commandQueue;
     @package id<MTLRenderPipelineState> _renderPipelineState;
-    CFRunLoopObserverRef _observer;
     CVMetalTextureCacheRef _textureCache;
-    SVRunLoop *_runLoop;
+    dispatch_semaphore_t _semaphore;
 }
 @end
 
-void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) {
-    auto pixelBufferLayer = static_cast<PixelBufferLayer *>(info);
-    [pixelBufferLayer retain];
+@implementation PixelBufferLayer
+
+- (instancetype)initWithLayer:(id)layer {
+    assert([layer isKindOfClass:PixelBufferLayer.class]);
     
-    CVPixelBufferRef pixelBuffer = pixelBufferLayer->_pixelBuffer;
+    if (self = [super initWithLayer:layer]) {
+        auto casted = static_cast<PixelBufferLayer *>(layer);
+        
+        _metalLayer = [casted->_metalLayer retain];
+        _device = [casted->_device retain];
+        _commandQueue = [casted->_commandQueue retain];
+        _renderPipelineState = [casted->_renderPipelineState retain];
+        _textureCache = casted->_textureCache;
+        CFRetain(_textureCache);
+        _semaphore = casted->_semaphore;
+        dispatch_retain(_semaphore);
+    }
+    
+    return self;
+}
+
+- (instancetype)init {
+    if (self = [super init]) {
+        __block CAMetalLayer *metalLayer;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            metalLayer = [CAMetalLayer new];
+        });
+        
+        metalLayer.frame = self.bounds;
+        metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);
+        [self addSublayer:metalLayer];
+        _metalLayer = metalLayer;
+        
+        //
+        
+        id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+        metalLayer.device = device;
+        id<MTLCommandQueue> commandQueue = [device newCommandQueue];
+        
+        NSError * _Nullable error = nil;
+        id<MTLLibrary> library = [device newDefaultLibraryWithBundle:[NSBundle bundleForClass:PixelBufferLayer.class] error:&error];
+        assert(!error);
+        
+        MTLFunctionDescriptor *vertexFunctionDescriptor = [MTLFunctionDescriptor new];
+        vertexFunctionDescriptor.name = @"pixel_buffer_shader::vertexFunction";
+        id<MTLFunction> vertexFunction = [library newFunctionWithDescriptor:vertexFunctionDescriptor error:&error];
+        [vertexFunctionDescriptor release];
+        assert(!error);
+        
+        MTLFunctionDescriptor *fragmentFunctionDescriptor = [MTLFunctionDescriptor new];
+        fragmentFunctionDescriptor.name = @"pixel_buffer_shader::fragmentFunction";
+        id<MTLFunction> fragmentFunction = [library newFunctionWithDescriptor:fragmentFunctionDescriptor error:&error];
+        [fragmentFunctionDescriptor release];
+        assert(!error);
+        
+        [library release];
+        
+        MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor new];
+        
+        vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
+        vertexDescriptor.attributes[0].offset = 0;
+        vertexDescriptor.attributes[0].bufferIndex = 0;
+        
+        vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
+        vertexDescriptor.attributes[1].offset = 8;
+        vertexDescriptor.attributes[1].bufferIndex = 0;
+        
+        vertexDescriptor.layouts[0].stride = 16;
+        vertexDescriptor.layouts[0].stepRate = 1;
+        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+        
+        MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
+        pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+        pipelineDescriptor.vertexFunction = vertexFunction;
+        [vertexFunction release];
+        pipelineDescriptor.fragmentFunction = fragmentFunction;
+        [fragmentFunction release];
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor;
+        [vertexDescriptor release];
+        
+        id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+        [pipelineDescriptor release];
+        assert(!error);
+        
+        CVReturn result = CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
+        assert(result == kCVReturnSuccess);
+        
+        _device = device;
+        _commandQueue = commandQueue;
+        _renderPipelineState = renderPipelineState;
+        _semaphore = dispatch_semaphore_create(3);
+    }
+    
+    return self;
+}
+
+- (void)dealloc {
+    [_metalLayer release];
+    [_device release];
+    [_commandQueue release];
+    [_renderPipelineState release];
+    CFRelease(_textureCache);
+    dispatch_release(_semaphore);
+    
+    [super dealloc];
+}
+
+- (void)setBounds:(CGRect)bounds {
+    [super setBounds:bounds];
+    _metalLayer.frame = bounds;
+    _metalLayer.drawableSize = CGSizeMake(CGRectGetWidth(bounds) * self.contentsScale, CGRectGetHeight(bounds) * self.contentsScale);
+}
+
+- (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
     if (pixelBuffer == nil) return;
     
-//    CFShow(pixelBuffer);
+    dispatch_semaphore_wait(_semaphore, DISPATCH_TIME_FOREVER);
     
-    id<CAMetalDrawable> _Nullable drawable = pixelBufferLayer->_metalLayer.nextDrawable;
-    if (!drawable) return;
+    id<CAMetalDrawable> _Nullable drawable = _metalLayer.nextDrawable;
+    if (!drawable) {
+        dispatch_semaphore_signal(_semaphore);
+        return;
+    }
     
     CVMetalTextureRef _Nullable metalTextureY = nil;
     CVMetalTextureCacheCreateTextureFromImage(NULL,
-                                              pixelBufferLayer->_textureCache,
+                                              _textureCache,
                                               pixelBuffer,
                                               NULL,
                                               MTLPixelFormatR8Unorm,
@@ -48,7 +156,7 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     
     CVMetalTextureRef _Nullable metalTextureCbCr = nil;
     CVMetalTextureCacheCreateTextureFromImage(NULL,
-                                              pixelBufferLayer->_textureCache,
+                                              _textureCache,
                                               pixelBuffer,
                                               NULL,
                                               MTLPixelFormatRG8Unorm,
@@ -58,19 +166,17 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
                                               &metalTextureCbCr);
     
     if (!metalTextureY or !metalTextureCbCr) {
-        CVMetalTextureCacheFlush(pixelBufferLayer->_textureCache, 0);
+        dispatch_semaphore_signal(_semaphore);
         return;
     }
     
-    NSLog(@"Hello!");
-    
     id<MTLTexture> _Nullable textureY = CVMetalTextureGetTexture(metalTextureY);
-    CVPixelBufferRelease(metalTextureY);
     id<MTLTexture> _Nullable textureCbCr = CVMetalTextureGetTexture(metalTextureCbCr);
-    CVPixelBufferRelease(metalTextureCbCr);
     
     if (!textureY or !textureCbCr) {
-        CVMetalTextureCacheFlush(pixelBufferLayer->_textureCache, 0);
+        CVPixelBufferRelease(metalTextureY);
+        CVPixelBufferRelease(metalTextureCbCr);
+        dispatch_semaphore_signal(_semaphore);
         return;
     }
     
@@ -83,7 +189,7 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
         1.0,  1.0,  1.0, 0.0,
     };
     
-    id<MTLBuffer> vertexCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:vertexData length:sizeof(vertexData) options:0];
+    id<MTLBuffer> vertexCoordBuffer = [_device newBufferWithBytes:vertexData length:sizeof(vertexData) options:0];
     
     float textureData[16] = {
         -1.0, -1.0,  0.0, 1.0,
@@ -92,11 +198,17 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
         1.0,  1.0,  1.0, 0.0,
     };
     
-    id<MTLBuffer> textureCoordBuffer = [pixelBufferLayer->_device newBufferWithBytes:textureData length:sizeof(textureData) options:0];
+    id<MTLBuffer> textureCoordBuffer = [_device newBufferWithBytes:textureData length:sizeof(textureData) options:0];
     
     MTLCommandBufferDescriptor *commandBufferDescriptor = [MTLCommandBufferDescriptor new];
-    id<MTLCommandBuffer> commandBuffer = [pixelBufferLayer->_commandQueue commandBufferWithDescriptor:commandBufferDescriptor];
+    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBufferWithDescriptor:commandBufferDescriptor];
     [commandBufferDescriptor release];
+    
+    [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull) {
+        CVPixelBufferRelease(metalTextureY);
+        CVPixelBufferRelease(metalTextureCbCr);
+        dispatch_semaphore_signal(_semaphore);
+    }];
     
     //
     
@@ -104,11 +216,11 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.f, 1.f, 1.f, 1.f);
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.f, 0.f, 0.f, 1.f);
     
     id<MTLRenderCommandEncoder> commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     [renderPassDescriptor release];
-    [commandEncoder setRenderPipelineState:pixelBufferLayer->_renderPipelineState];
+    [commandEncoder setRenderPipelineState:_renderPipelineState];
     [commandEncoder setVertexBuffer:vertexCoordBuffer offset:0 atIndex:0];
     [vertexCoordBuffer release];
     [commandEncoder setVertexBuffer:textureCoordBuffer offset:0 atIndex:1];
@@ -121,152 +233,6 @@ void PixelBufferLayerRunLoopObserverCallback(CFRunLoopObserverRef observer, CFRu
     
     [commandBuffer presentDrawable:drawable];
     [commandBuffer commit];
-    
-    [pixelBufferLayer release];
-    
-//    [pixelBufferLayer->_metalLayer setNeedsDisplay];
-//    [pixelBufferLayer->_metalLayer displayIfNeeded];
-}
-
-void PixelBufferLayerRunLoopObserverContextRelease(const void *info) {
-//    [static_cast<SVRunLoop *>(info) release];
-}
-
-const void * PixelBufferLayerRunLoopObserverContextRetain(const void *info) {
-//    return [static_cast<SVRunLoop *>(info) retain];
-    return info;
-}
-
-@implementation PixelBufferLayer
-
-- (instancetype)init {
-    if (self = [super init]) {
-        SVRunLoop *runLoop = [[SVRunLoop alloc] initWithThreadName:@"Pixel Buffer Layer"];
-        _runLoop = runLoop;
-        
-        //
-        
-        CFRunLoopObserverContext context {
-            .info = reinterpret_cast<void *>(self),
-            .release = PixelBufferLayerRunLoopObserverContextRelease,
-            .retain = PixelBufferLayerRunLoopObserverContextRetain
-        };
-        
-        CFRunLoopObserverRef observer = CFRunLoopObserverCreate(kCFAllocatorDefault,
-                                                                kCFRunLoopBeforeWaiting,
-                                                                TRUE,
-                                                                0,
-                                                                PixelBufferLayerRunLoopObserverCallback,
-                                                                &context);
-        
-        _observer = observer;
-        
-        //
-        
-        CAMetalLayer *metalLayer = [CAMetalLayer new];
-        metalLayer.frame = self.bounds;
-        metalLayer.drawableSize = self.bounds.size;
-        [self addSublayer:metalLayer];
-        _metalLayer = metalLayer;
-        
-        //
-        
-        id observerObj = (id)observer;
-        
-        [runLoop runBlock:^{
-//            CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-//            CFRunLoopObserverRef observer = (CFRunLoopObserverRef)observerObj;
-//            assert(!CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
-//            CFRunLoopAddObserver(runLoop, observer, kCFRunLoopDefaultMode);
-            
-            //
-            
-            id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-            id<MTLCommandQueue> commandQueue = [device newCommandQueue];
-            
-            NSError * _Nullable error = nil;
-            id<MTLLibrary> library = [device newDefaultLibraryWithBundle:[NSBundle bundleForClass:PixelBufferLayer.class] error:&error];
-            assert(!error);
-            
-            MTLFunctionDescriptor *vertexFunctionDescriptor = [MTLFunctionDescriptor new];
-            vertexFunctionDescriptor.name = @"pixel_buffer_shader::vertexFunction";
-            id<MTLFunction> vertexFunction = [library newFunctionWithDescriptor:vertexFunctionDescriptor error:&error];
-            [vertexFunctionDescriptor release];
-            assert(!error);
-            
-            MTLFunctionDescriptor *fragmentFunctionDescriptor = [MTLFunctionDescriptor new];
-            fragmentFunctionDescriptor.name = @"pixel_buffer_shader::fragmentFunction";
-            id<MTLFunction> fragmentFunction = [library newFunctionWithDescriptor:fragmentFunctionDescriptor error:&error];
-            [fragmentFunctionDescriptor release];
-            assert(!error);
-            
-            [library release];
-            
-            MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-            pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-            pipelineDescriptor.vertexFunction = vertexFunction;
-            [vertexFunction release];
-            pipelineDescriptor.fragmentFunction = fragmentFunction;
-            [fragmentFunction release];
-            
-            id<MTLRenderPipelineState> renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-            [pipelineDescriptor release];
-            assert(!error);
-            
-            CVReturn result = CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &_textureCache);
-            assert(result == kCVReturnSuccess);
-            
-            _device = device;
-            _commandQueue = commandQueue;
-            _renderPipelineState = renderPipelineState;\
-        }];
-    }
-    
-    return self;
-}
-
-- (void)dealloc {
-    CVBufferRelease(_pixelBuffer);
-    [_metalLayer release];
-    [_device release];
-    [_commandQueue release];
-    [_renderPipelineState release];
-    CFRelease(_textureCache);
-    
-    CFRelease(_observer);
-    [_runLoop release];
-    
-    [super dealloc];
-}
-
-- (void)setBounds:(CGRect)bounds {
-    [super setBounds:bounds];
-    _metalLayer.frame = bounds;
-    _metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);
-}
-
-- (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
-//    id pixelBufferObj = (id)pixelBuffer;
-//    
-//    [_runLoop runBlock:^{
-//        CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-//        CFRunLoopObserverRef observer = _observer;
-//        assert(CFRunLoopContainsObserver(runLoop, observer, kCFRunLoopDefaultMode));
-//        
-//        if (auto pixelBuffer = _pixelBuffer) {
-//            CVBufferRelease(pixelBuffer);
-//        }
-//        
-//        CVPixelBufferRef pixelBuffer = (CVPixelBufferRef)pixelBufferObj;
-//        CVPixelBufferRetain(pixelBuffer);
-//        _pixelBuffer = pixelBuffer;
-//        
-//        PixelBufferLayerRunLoopObserverCallback(NULL, NULL, self);
-//    }];
-    
-    _pixelBuffer = pixelBuffer;
-    
-    PixelBufferLayerRunLoopObserverCallback(NULL, NULL, self);
 }
 
 @end

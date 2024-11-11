@@ -17,8 +17,9 @@ namespace ns_SVRunLoop {
         
         auto dictionary = static_cast<NSMutableDictionary *>(info);
         
-        auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-        auto lockPtr = reinterpret_cast<os_unfair_lock *>(object_getIndexedIvars(lockValue));
+        auto lockData = static_cast<NSData *>(dictionary[@"lock"]);
+        auto lockPtr = (os_unfair_lock *)(lockData.bytes);
+        assert(lockPtr != NULL);
         
         os_unfair_lock_lock(lockPtr);
         
@@ -82,11 +83,11 @@ __attribute__((objc_direct_members))
     if (auto thread = _thread) {
         NSMutableDictionary *dictionary = thread.threadDictionary[@"dictionary"];
         
-        auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-        os_unfair_lock lock;
-        [lockValue getValue:&lock size:sizeof(os_unfair_lock)];
+        auto lockData = static_cast<NSData *>(dictionary[@"lock"]);
+        auto lockPtr = (os_unfair_lock *)(lockData.bytes);
+        assert(lockPtr != NULL);
         
-        os_unfair_lock_lock(&lock);
+        os_unfair_lock_lock(lockPtr);
         
         if (auto runLoop = reinterpret_cast<CFRunLoopRef _Nullable>(dictionary[@"runLoop"])) {
             // 이미 RunLoop가 돌아가고 있다면 중단
@@ -96,7 +97,7 @@ __attribute__((objc_direct_members))
         // Thread는 생성되었는데 아직 start가 안 되었거나 start하던 도중 RunLoop을 설정하기 이전에 이 코드가 불려서 lock이 걸릴 경우, 중단하라는 flag 추가
         dictionary[@"needsStop"] = @YES;
         
-        os_unfair_lock_unlock(&lock);
+        os_unfair_lock_unlock(lockPtr);
         
         [_thread release]; 
     }
@@ -114,9 +115,10 @@ __attribute__((objc_direct_members))
     
     NSMutableDictionary *dictionary = [NSMutableDictionary new];
     os_unfair_lock lock = OS_UNFAIR_LOCK_INIT;
-    NSValue *lockValue = [NSValue valueWithBytes:&lock objCType:@encode(os_unfair_lock)];
+    NSData *lockData = [[NSData alloc] initWithBytes:&lock length:sizeof(os_unfair_lock)];
     
-    dictionary[@"lock"] = lockValue;
+    dictionary[@"lock"] = lockData;
+    [lockData release];
     
     NSThread *thread = [[NSThread alloc] initWithBlock:^{
         NSAutoreleasePool *pool = [NSAutoreleasePool new];
@@ -140,11 +142,11 @@ __attribute__((objc_direct_members))
         
         CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
         
-        auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-        os_unfair_lock lock;
-        [lockValue getValue:&lock size:sizeof(os_unfair_lock)];
+        auto lockData = static_cast<NSData *>(dictionary[@"lock"]);
+        auto lockPtr = (os_unfair_lock *)(lockData.bytes);
+        assert(lockPtr != NULL);
         
-        os_unfair_lock_lock(&lock);
+        os_unfair_lock_lock(lockPtr);
         
         auto needsStopNumber = static_cast<NSNumber * _Nullable>(dictionary[@"needsStop"]);
         if (needsStopNumber.boolValue) {
@@ -164,7 +166,7 @@ __attribute__((objc_direct_members))
             dictionary[@"blocks"] = [NSMutableArray array];
         }
         
-        os_unfair_lock_unlock(&lock);
+        os_unfair_lock_unlock(lockPtr);
         
         CFRelease(source);
         
@@ -187,8 +189,9 @@ __attribute__((objc_direct_members))
     NSThread *thread = self.thread;
     NSMutableDictionary *dictionary = thread.threadDictionary[@"dictionary"];
     
-    auto lockValue = static_cast<NSValue *>(dictionary[@"lock"]);
-    auto lockPtr = reinterpret_cast<os_unfair_lock *>(object_getIndexedIvars(lockValue));
+    auto lockData = static_cast<NSData *>(dictionary[@"lock"]);
+    auto lockPtr = (os_unfair_lock *)(lockData.bytes);
+    assert(lockPtr != NULL);
     
     os_unfair_lock_lock(lockPtr);
     

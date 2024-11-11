@@ -9,18 +9,21 @@
 using namespace metal;
 
 namespace pixel_buffer_shader {
+    typedef struct {
+        float2 position [[attribute(0)]];
+        float2 texCoord [[attribute(1)]];
+    } ImageVertex;
+    
     struct VertexIO {
         float4 position [[position]];
         float2 textureCoord [[user(texturecoord)]];
     };
     
-    vertex VertexIO vertexFunction(const device float2 *positions [[buffer(0)]],
-                                   const device float2 *textrueCoords [[buffer(1)]],
-                                   uint index [[vertex_id]])
+    vertex VertexIO vertexFunction(ImageVertex in [[stage_in]])
     {
         return {
-            .position = float4(positions[index], 0.0, 1.0),
-            .textureCoord = textrueCoords[index]
+            .position = float4(in.position, 0.0, 1.0),
+            .textureCoord = in.texCoord
         };
     }
     
@@ -39,11 +42,9 @@ namespace pixel_buffer_shader {
             float4(-0.7010f, +0.5291f, -0.8860f, +1.0000f)
         );
         
-        // Sample Y and CbCr textures to get the YCbCr color at the given texture coordinate
         float4 ycbcr = float4(capturedImageTextureY.sample(colorSampler, inoutFragment.textureCoord).r,
                               capturedImageTextureCbCr.sample(colorSampler, inoutFragment.textureCoord).rg, 1.0);
         
-        // Return converted RGB color
         return ycbcrToRGBTransform * ycbcr;
     }
 }

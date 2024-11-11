@@ -84,6 +84,7 @@
     [_volumeView release];
     [_routePickerView release];
     [_reasonForWaitingToPlayLabel release];
+    [_periodicTimeObserver release];
     
     [super dealloc];
 }
