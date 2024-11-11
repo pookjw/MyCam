@@ -7,7 +7,7 @@
 
 #import <CamPresentation/PixelBufferLayer.h>
 #import <MetalKit/MetalKit.h>
-#import <CamPresentation/SVRunLoop.hpp>
+#import <AVFoundation/AVFoundation.h>
 
 @interface PixelBufferLayer () {
     @package CAMetalLayer *_metalLayer;
@@ -182,20 +182,28 @@
     
     //
     
+    CGSize drawableSize = _metalLayer.drawableSize;
+    size_t width = CVPixelBufferGetWidth(pixelBuffer);
+    size_t height = CVPixelBufferGetHeight(pixelBuffer);
+    
+    CGRect fitRect = AVMakeRectWithAspectRatioInsideRect(CGSizeMake(width, height), CGRectMake(0., 0., drawableSize.width, drawableSize.height));
+    float scaleX = CGRectGetWidth(fitRect) / drawableSize.width;
+    float scaleY = CGRectGetHeight(fitRect) / drawableSize.height;
+    
     float vertexData[16] = {
-        -1.0, -1.0,  0.0, 1.0,
-        1.0, -1.0,  1.0, 1.0,
-        -1.0,  1.0,  0.0, 0.0,
-        1.0,  1.0,  1.0, 0.0,
+        -scaleX, -scaleY, 0.0f, 1.0f,
+        scaleX, -scaleY, 1.0f, 1.0f,
+        -scaleX, scaleY, 0.0f, 0.0f,
+        scaleX, scaleY, 1.0f, 0.0f
     };
     
     id<MTLBuffer> vertexCoordBuffer = [_device newBufferWithBytes:vertexData length:sizeof(vertexData) options:0];
     
     float textureData[16] = {
-        -1.0, -1.0,  0.0, 1.0,
-        1.0, -1.0,  1.0, 1.0,
-        -1.0,  1.0,  0.0, 0.0,
-        1.0,  1.0,  1.0, 0.0,
+        -1.0f, -1.0f,  0.0f, 1.0f,
+        1.0f, -1.0f,  1.0f, 1.0f,
+        -1.0f,  1.0f,  0.0f, 0.0f,
+        1.0f,  1.0f,  1.0f, 0.0f,
     };
     
     id<MTLBuffer> textureCoordBuffer = [_device newBufferWithBytes:textureData length:sizeof(textureData) options:0];
@@ -216,7 +224,7 @@
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.f, 0.f, 0.f, 1.f);
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.f, 0.f, 0.f, 0.f);
     
     id<MTLRenderCommandEncoder> commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     [renderPassDescriptor release];
