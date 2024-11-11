@@ -92,6 +92,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         _metadataObjectsLayer = [metadataObjectsLayer retain];
         
         CALayer *layer = self.layer;
+        layer.wantsExtendedDynamicRangeContent = YES;
+        
         CGRect bounds = layer.bounds;
         
         previewLayer.frame = bounds;

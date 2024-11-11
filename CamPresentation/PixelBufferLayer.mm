@@ -47,6 +47,15 @@
             metalLayer = [CAMetalLayer new];
         });
         
+        self.wantsExtendedDynamicRangeContent = YES;
+        
+//        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearDisplayP3);
+//        metalLayer.colorspace = colorSpace;
+//        CGColorSpaceRelease(colorSpace);
+        metalLayer.colorspace = nil;
+//        metalLayer.EDRMetadata = [CAEDRMetadata HLGMetadata];
+        metalLayer.wantsExtendedDynamicRangeContent = YES;
+        metalLayer.pixelFormat = MTLPixelFormatRGBA16Float;
         metalLayer.frame = self.bounds;
         metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);
         [self addSublayer:metalLayer];
@@ -91,7 +100,7 @@
         vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
         
         MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
-        pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+        pipelineDescriptor.colorAttachments[0].pixelFormat = metalLayer.pixelFormat;
         pipelineDescriptor.vertexFunction = vertexFunction;
         [vertexFunction release];
         pipelineDescriptor.fragmentFunction = fragmentFunction;
