@@ -972,13 +972,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     readinessCoordinator.delegate = self;
     [readinessCoordinator release];
     
-    for (AVCaptureDevice *audioDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
-        AVCaptureDevice *_videoDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice];
-        if ([_videoDevice isEqual:captureDevice]) {
-            [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:audioDevice];
-        }
-    }
-    
     MutablePhotoFormatModel *photoFormatModel = [MutablePhotoFormatModel new];
     [photoFormatModel updateAllWithPhotoOutput:photoOutput];
     [photoOutput release];
@@ -1267,6 +1260,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     [self.queue_photoFormatModelsByCaptureDevice removeObjectForKey:captureDevice];
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:captureDevice];
     
     [self queue_switchCaptureSessionByAddingDevice:NO postNotification:NO];
     
@@ -1332,7 +1326,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
     
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:captureDevice];
+    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
+        if ([[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:captureDevice]) {
+            [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
+        }
+    }
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
 }
@@ -1808,38 +1806,28 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice] == nil);
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter setObject:videoDevice forKey:audioDevice];
+    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] == nil);
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter setObject:audioDevice forKey:videoDevice];
 }
 
-- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice] != nil);
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:audioDevice];
+- (void)queue_disconnectAudioDeviceForAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
+    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] != nil);
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
 }
 
 - (BOOL)queue_isAudioDeviceConnected:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    AVCaptureDevice * _Nullable _videoDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice];
-    if (_videoDevice == nil) return NO;
-    return [_videoDevice isEqual:videoDevice];
+    AVCaptureDevice * _Nullable _audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
+    if (_audioDevice == nil) return NO;
+    return [_audioDevice isEqual:audioDevice];
 }
 
 - (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    return [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice] != nil;
-}
-
-- (AVCaptureDevice * _Nullable)queue_audioDeviceForAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    for (AVCaptureDevice *audioDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
-        AVCaptureDevice *_videoDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice];
-        if ([_videoDevice isEqual:videoDevice]) {
-            return audioDevice;
-        }
+    for (AVCaptureDevice *_audioDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.objectEnumerator) {
+        if ([_audioDevice isEqual:audioDevice]) return YES;
     }
     
-    return nil;
+    return NO;
 }
 
 - (NSSet<AVCaptureDeviceInput *> *)queue_audioDeviceInputsForOutput:(__kindof AVCaptureOutput *)output {
@@ -2025,7 +2013,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
     assert(videoDataOutput != nil);
     
-    AVCaptureDevice * _Nullable audioDevice = [self queue_audioDeviceForAssetWriterWithVideoDevice:videoDevice];
+    AVCaptureDevice * _Nullable audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
     
     AVCaptureAudioDataOutput * _Nullable audioDataOutput = nil;
     if (audioDevice != nil) {
@@ -3039,31 +3027,32 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(audioDevices.count == 1);
     AVCaptureDevice *audioDevice = audioDevices.allObjects[0];
     
-    AVCaptureDevice *videoDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:audioDevice];
-    if (videoDevice == nil) return;
-    
-    if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
-        AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
+    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
+        if (![[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:audioDevice]) continue;
         
-        if (assetWriter.status == AVAssetWriterStatusWriting) {
-            id _internal;
-            assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+        if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
+            AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
             
-            id helper;
-            assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
-            
-            BOOL _startSessionCalled;
-            assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
-            
-            if (!_startSessionCalled) {
-                return;
-            }
-            
-            if (movieAssetWriter.audioWriterInput.isReadyForMoreMediaData) {
-                BOOL success = [movieAssetWriter.audioWriterInput appendSampleBuffer:sampleBuffer];
+            if (assetWriter.status == AVAssetWriterStatusWriting) {
+                id _internal;
+                assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
                 
-                if (!success) {
-                    NSLog(@"%@", movieAssetWriter.assetWriter.error);
+                id helper;
+                assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
+                
+                BOOL _startSessionCalled;
+                assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
+                
+                if (!_startSessionCalled) {
+                    return;
+                }
+                
+                if (movieAssetWriter.audioWriterInput.isReadyForMoreMediaData) {
+                    BOOL success = [movieAssetWriter.audioWriterInput appendSampleBuffer:sampleBuffer];
+                    
+                    if (!success) {
+                        NSLog(@"%@", movieAssetWriter.assetWriter.error);
+                    }
                 }
             }
         }

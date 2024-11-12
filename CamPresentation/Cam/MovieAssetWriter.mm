@@ -80,13 +80,13 @@
         
         //
         
-        AVAssetWriterInputGroup *inputGroup = [[AVAssetWriterInputGroup alloc] initWithInputs:@[videoPixelBufferInput, audioWriterInput, metadataWriterInput] defaultInput:videoPixelBufferInput];
-        [videoPixelBufferInput release];
-        [metadataWriterInput release];
-        
-        assert([assetWriter canAddInputGroup:inputGroup]);
-        [assetWriter addInputGroup:inputGroup];
-        [inputGroup release];
+//        AVAssetWriterInputGroup *inputGroup = [[AVAssetWriterInputGroup alloc] initWithInputs:@[videoPixelBufferInput, audioWriterInput, metadataWriterInput] defaultInput:videoPixelBufferInput];
+//        [videoPixelBufferInput release];
+//        [metadataWriterInput release];
+//        
+//        assert([assetWriter canAddInputGroup:inputGroup]);
+//        [assetWriter addInputGroup:inputGroup];
+//        [inputGroup release];
     }
     
     return self;
