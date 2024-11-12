@@ -2917,6 +2917,19 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self.mainQueue_livePhotoMovieFileURLsByUniqueID removeObjectForKey:@(uniqueID)];
 }
 
++ (BOOL)startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
+    id _internal;
+    assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+    
+    id helper;
+    assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
+    
+    BOOL _startSessionCalled;
+    assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
+    
+    return _startSessionCalled;
+}
+
 #warning Asset Writier - Metadata Face & Location
 - (void)queue_handleMetadataOutput:(AVCaptureMetadataOutput *)depthDataOutput didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects {
     dispatch_assert_queue(self.captureSessionQueue);
@@ -2957,7 +2970,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 }
                 
                 if (movieAssetWriter != nil) {
-                    [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
+                    BOOL _startSessionCalled = [CaptureService startSessionCalledForAssetWriter:movieAssetWriter.assetWriter];
+                    
+                    if (_startSessionCalled) {
+                        [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
+                    }
                 }
                 
                 [metadataGroup release];
@@ -2992,16 +3009,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
         
         if (assetWriter.status == AVAssetWriterStatusWriting) {
-            id _internal;
-            assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+            BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
             
-            id helper;
-            assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
-            
-            BOOL _startSessionCalled;
-            assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
-            
-            if (!_startSessionCalled) {
+            if (!startSessionCalled) {
                 [assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
             }
             
@@ -3034,16 +3044,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
             
             if (assetWriter.status == AVAssetWriterStatusWriting) {
-                id _internal;
-                assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+                BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
                 
-                id helper;
-                assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
-                
-                BOOL _startSessionCalled;
-                assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
-                
-                if (!_startSessionCalled) {
+                if (!startSessionCalled) {
                     return;
                 }
                 
