@@ -49,10 +49,10 @@
         
         self.wantsExtendedDynamicRangeContent = YES;
         
-//        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearDisplayP3);
-//        metalLayer.colorspace = colorSpace;
-//        CGColorSpaceRelease(colorSpace);
-        metalLayer.colorspace = nil;
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearDisplayP3);
+        metalLayer.colorspace = colorSpace;
+        CGColorSpaceRelease(colorSpace);
+//        metalLayer.colorspace = nil;
 //        metalLayer.EDRMetadata = [CAEDRMetadata HLGMetadata];
         metalLayer.wantsExtendedDynamicRangeContent = YES;
         metalLayer.pixelFormat = MTLPixelFormatRGBA16Float;

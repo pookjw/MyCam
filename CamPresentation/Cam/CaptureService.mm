@@ -770,7 +770,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
     videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
-    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
+    
+#warning 옵션
+//    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
     videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
     [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
     assert([captureSession canAddOutput:videoDataOutput]);
@@ -1531,7 +1533,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
 }
 
-#warning Video Data Output이 여러 개 (Preview, Capture)가 된다면 개선이 필요함
 - (AVCaptureVideoDataOutput *)queue_videoDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
