@@ -52,10 +52,10 @@
 //        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearDisplayP3);
 //        metalLayer.colorspace = colorSpace;
 //        CGColorSpaceRelease(colorSpace);
-        metalLayer.colorspace = nil;
+//        metalLayer.colorspace = nil;
 //        metalLayer.EDRMetadata = [CAEDRMetadata HLGMetadata];
         metalLayer.wantsExtendedDynamicRangeContent = YES;
-        metalLayer.pixelFormat = MTLPixelFormatRGBA16Float;
+        metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         metalLayer.frame = self.bounds;
         metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);
         [self addSublayer:metalLayer];

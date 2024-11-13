@@ -3652,14 +3652,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     for (AVCaptureDevice *audioDevice in addedAudioDevices) {
         BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
-        BOOL isConnectedSomewhere = [captureService queue_isAssetWriterConnectedWithAudioDevice:audioDevice];
         
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
                 
                 if (isConnected) {
-                    [captureService queue_disconnectAudioDevice:audioDevice forAssetWriterVideoDevice:videoDevice];
+                    [captureService queue_disconnectAudioDeviceForAssetWriterVideoDevice:videoDevice];
                 } else {
                     [captureService queue_connectAudioDevice:audioDevice forAssetWriterVideoDevice:videoDevice];
                 }
@@ -3669,7 +3668,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         }];
         
         action.state = isConnected ? UIMenuElementStateOn : UIMenuElementStateOff;
-        action.attributes = (!isConnected && isConnectedSomewhere) ? UIMenuElementAttributesDisabled : 0;
         
         [actions addObject:action];
         

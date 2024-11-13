@@ -1,11 +1,11 @@
 //
-//  MovieAssetWriter.m
+//  MovieWriter.m
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 10/29/24.
+//  Created by Jinwoo Kim on 11/13/24.
 //
 
-#import <CamPresentation/MovieAssetWriter.h>
+#import <CamPresentation/MovieWriter.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
@@ -14,21 +14,33 @@
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/NSURL+CP.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
-@interface MovieAssetWriter ()
+@interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate>
+@property (retain, nonatomic, readonly) AVAssetWriter *assetWriter;
+@property (retain, nonatomic, readonly) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
 @property (retain, nonatomic, readonly) __kindof BaseFileOutput *fileOutput;
 @property (copy, nonatomic, readonly) CLLocation * _Nullable (^locationHandler)(void);
+@property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @end
 
-@implementation MovieAssetWriter
+@implementation MovieWriter
 
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoOutputSettings:(NSDictionary<NSString *, id> *)videoOutputSettings audioOutputSettings:(NSDictionary<NSString *, id> *)audioOutputSettings metadataOutputSettings:(NSDictionary<NSString *, id> *)metadataOutputSettings videoSourceFormatHint:(nullable CMVideoFormatDescriptionRef)videoSourceFormatHint audioSourceFormatHint:(nullable CMAudioFormatDescriptionRef)audioSourceFormatHint metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint locationHandler:(CLLocation * _Nullable (^)(void))locationHandler {
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput audioOutputSettings:(NSDictionary<NSString *,id> *)audioOutputSettings metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings videoSourceFormatHint:(CMVideoFormatDescriptionRef)videoSourceFormatHint audioSourceFormatHint:(CMAudioFormatDescriptionRef)audioSourceFormatHint metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint locationHandler:(CLLocation * _Nullable (^)())locationHandler {
     if (self = [super init]) {
+        dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
+        dispatch_queue_t queue = dispatch_queue_create("Movie Writer Queue", attr);
+        
+        _queue = queue;
         _fileOutput = [fileOutput retain];
         _locationHandler = [locationHandler copy];
         
         NSError * _Nullable error = nil;
         
+        //
+        
+#warning 하나의 Movie Writer를 여러 번 쓸 수 있게 하면 좋을 것 같다. startRecording 때 URL 새로 발급하고 AVAssetWriter 생성하는 방향으로
         NSURL *url;
         if (fileOutput.class == PhotoLibraryFileOutput.class) {
             NSURL *tmpURL = [NSURL cp_processTemporaryURLByCreatingDirectoryIfNeeded:YES];
@@ -45,6 +57,16 @@
         assert(url != nil);
         NSLog(@"%@", url);
         
+        //
+        
+        assert(videoDataOutput.sampleBufferDelegate == nil);
+        assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(videoDataOutput, sel_registerName("delegateOverride")) == nil);
+        videoDataOutput.deliversPreviewSizedOutputBuffers = NO;
+        videoDataOutput.alwaysDiscardsLateVideoFrames = NO;
+        [videoDataOutput setSampleBufferDelegate:self queue:queue];
+        
+        //
+        
         AVAssetWriter *assetWriter = [[AVAssetWriter alloc] initWithURL:url fileType:AVFileTypeQuickTimeMovie error:&error];
         assert(error == nil);
         _assetWriter = assetWriter;
@@ -53,6 +75,8 @@
         
         //
         
+        NSDictionary<NSString *, id> *videoOutputSettings = [videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
+        
         AVAssetWriterInput *videoPixelBufferInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoOutputSettings sourceFormatHint:videoSourceFormatHint];
         videoPixelBufferInput.expectsMediaDataInRealTime = YES;
         assert([assetWriter canAddInput:videoPixelBufferInput]);
@@ -60,6 +84,7 @@
         
         AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor = [[AVAssetWriterInputPixelBufferAdaptor alloc] initWithAssetWriterInput:videoPixelBufferInput sourcePixelBufferAttributes:nil];
         _videoPixelBufferAdaptor = videoPixelBufferAdaptor;
+        [videoPixelBufferInput release];
         
         //
         
@@ -75,6 +100,7 @@
         [assetWriter addInput:metadataWriterInput];
         
         AVAssetWriterInputMetadataAdaptor *metadataAdaptor = [[AVAssetWriterInputMetadataAdaptor alloc] initWithAssetWriterInput:metadataWriterInput];
+        [metadataWriterInput release];
         
         _metadataAdaptor = metadataAdaptor;
         
@@ -93,6 +119,7 @@
 }
 
 - (void)dealloc {
+    [_videoDataOutput release];
     [_fileOutput release];
     [_videoPixelBufferAdaptor release];
     [_audioWriterInput release];
@@ -100,54 +127,12 @@
     [_assetWriter removeObserver:self forKeyPath:@"status"];
     [_assetWriter release];
     [_locationHandler release];
+    dispatch_release(_queue);
     [super dealloc];
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([object isEqual:self.assetWriter]) {
-        if ([keyPath isEqualToString:@"status"]) {
-            auto statusNumber = static_cast<NSNumber *>(change[NSKeyValueChangeNewKey]);
-            auto status = static_cast<AVAssetWriterStatus>(statusNumber.integerValue);
-            
-            if (status == AVAssetWriterStatusCompleted) {
-                [self saveVideoFile];
-            }
-            
-            return;
-        }
-    }
-    
-    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
-}
-
-- (void)saveVideoFile {
-    NSURL *outputURL = self.assetWriter.outputURL;
-    
-    __kindof BaseFileOutput *fileOutput = self.fileOutput;
-    
-    if (fileOutput.class == PhotoLibraryFileOutput.class) {
-        auto photoLibraryFileOutput = static_cast<PhotoLibraryFileOutput *>(fileOutput);
-        
-        [photoLibraryFileOutput.photoLibrary performChanges:^{
-            PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
-            
-            [request addResourceWithType:PHAssetResourceTypeVideo fileURL:outputURL options:nil];
-            
-            request.location = self.locationHandler();
-        }
-                                        completionHandler:^(BOOL success, NSError * _Nullable error) {
-            NSLog(@"%d %@", success, error);
-            assert(error == nil);
-            
-            [NSFileManager.defaultManager removeItemAtURL:outputURL error:&error];
-            [outputURL stopAccessingSecurityScopedResource];
-            assert(error == nil);
-        }];
-    } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
-        [outputURL stopAccessingSecurityScopedResource];
-    } else {
-        abort();
-    }
+- (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
+    abort();
 }
 
 @end

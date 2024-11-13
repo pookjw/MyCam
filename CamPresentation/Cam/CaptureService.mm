@@ -52,7 +52,7 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureDataOutputSynchronizerDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *queue_depthMapLayersByCaptureDevice;
@@ -65,8 +65,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *queue_movieAssetWritersByVideoDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *queue_audioDevicesByVideoDeviceForAssetWriter;
 
-@property (retain, nonatomic, readonly) NSMutableSet<AVCaptureDataOutputSynchronizer *> *queue_dataOutputSynchronizers;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoDataOutput *, id> *queue_latestVideoFormatDescriptionsByVideoDataOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureAudioDataOutput *, id> *queue_latestAudioFormatDescriptionsByAudioDataOutput;
 
@@ -128,7 +128,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *movieAssetWritersByVideoDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
-        NSMutableSet<AVCaptureDataOutputSynchronizer *> *dataOutputSynchronizers = [NSMutableSet new];
+        NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *audioDevicesByVideoDeviceForAssetWriter = [NSMapTable weakToWeakObjectsMapTable];
         
         //
         
@@ -157,11 +157,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _queue_movieAssetWritersByVideoDevice = [movieAssetWritersByVideoDevice retain];
+        _queue_audioDevicesByVideoDeviceForAssetWriter = [audioDevicesByVideoDeviceForAssetWriter retain];
         _queue_latestVideoFormatDescriptionsByVideoDataOutput = [latestVideoFormatDescriptionsByVideoDataOutput retain];
         _queue_latestAudioFormatDescriptionsByAudioDataOutput = [latestVideoFormatDescriptionsByAudioDataOutput retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
-        _queue_dataOutputSynchronizers = dataOutputSynchronizers;
         self.queue_fileOutput = nil;
         
         //
@@ -220,9 +220,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_movieAssetWritersByVideoDevice release];
     [_queue_latestVideoFormatDescriptionsByVideoDataOutput release];
     [_queue_latestAudioFormatDescriptionsByAudioDataOutput release];
+    [_queue_audioDevicesByVideoDeviceForAssetWriter release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
-    [_queue_dataOutputSynchronizers release];
     [_locationManager stopUpdatingLocation];
     [_locationManager release];
     [_queue_fileOutput release];
@@ -777,6 +777,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:videoDataOutput];
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
+    [videoDataOutput release];
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     videoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
@@ -863,15 +864,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         MetadataObjectsLayer *metadataObjectsLayer = [MetadataObjectsLayer new];
         [self.queue_metadataObjectsLayersByCaptureDevice setObject:metadataObjectsLayer forKey:captureDevice];
         [metadataObjectsLayer release];
-        
-        AVCaptureDataOutputSynchronizer *synchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:@[videoDataOutput, metadataOutput]];
-        [metadataOutput release];
-        [synchronizer setDelegate:self queue:self.captureSessionQueue];
-        [self.queue_dataOutputSynchronizers addObject:synchronizer];
-        [synchronizer release];
     }
-    
-    [videoDataOutput release];
     
     //
     
@@ -1151,24 +1144,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     //
     
-    AVCaptureDataOutputSynchronizer *synchronizer = nil;
-    for (AVCaptureDataOutputSynchronizer *_synchronizer in self.queue_dataOutputSynchronizers) {
-        for (__kindof AVCaptureOutput *output in _synchronizer.dataOutputs) {
-            NSSet<AVCaptureDevice *> *videoCaptureDevices = [self queue_videoCaptureDevicesFromOutput:output];
-            
-            if ([videoCaptureDevices containsObject:captureDevice]) {
-                assert(synchronizer == nil); // debug
-                synchronizer = _synchronizer;
-                break; // dataOutputs만
-            }
-        }
-    }
-    assert(synchronizer != nil);
-    [synchronizer setDelegate:nil queue:nil];
-    [self.queue_dataOutputSynchronizers removeObject:synchronizer];
-    
-    //
-    
     AVCaptureDeviceInput *deviceInput = nil;
     for (AVCaptureDeviceInput *input in captureSession.inputs) {
         if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
@@ -1285,6 +1260,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     [self.queue_photoFormatModelsByCaptureDevice removeObjectForKey:captureDevice];
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:captureDevice];
     
     [self queue_switchCaptureSessionByAddingDevice:NO postNotification:NO];
     
@@ -1305,26 +1281,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     
     [captureSession beginConfiguration];
-    
-    //
-    
-    AVCaptureDataOutputSynchronizer *synchronizer = nil;
-    for (AVCaptureDataOutputSynchronizer *_synchronizer in self.queue_dataOutputSynchronizers) {
-        for (__kindof AVCaptureOutput *output in _synchronizer.dataOutputs) {
-            NSSet<AVCaptureDevice *> *audioCaptureDevices = [self queue_audioCaptureDevicesFromOutput:output];
-            
-            if ([audioCaptureDevices containsObject:captureDevice]) {
-                assert(synchronizer == nil); // debug
-                synchronizer = _synchronizer;
-                break; // dataOutputs만
-            }
-        }
-    }
-    
-    if (synchronizer != nil) {
-        [synchronizer setDelegate:nil queue:nil];
-        [self.queue_dataOutputSynchronizers removeObject:synchronizer];
-    }
     
     //
     
@@ -1369,6 +1325,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
+    
+    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
+        if ([[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:captureDevice]) {
+            [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
+        }
+    }
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
 }
@@ -1569,7 +1531,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
 }
 
-#warning Video Data Output이 여러 개 (Preview, Capture)가 된다면 개선이 필요함
 - (AVCaptureVideoDataOutput *)queue_videoDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -1844,95 +1805,25 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
-    assert(videoDataOutput != nil);
-    
-    NSMutableArray<AVCaptureOutput *> *dataOutputs = nil;
-    for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
-        if ([synchronizer.dataOutputs containsObject:videoDataOutput]) {
-            [synchronizer setDelegate:nil queue:nil];
-            dataOutputs = [synchronizer.dataOutputs mutableCopy];
-            [self.queue_dataOutputSynchronizers removeObject:synchronizer];
-            break;
-        }
-    }
-    assert(dataOutputs != nil);
-    
-    AVCaptureAudioDataOutput *audioDataOutput = [self queue_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
-    [dataOutputs addObject:audioDataOutput];
-    
-    AVCaptureDataOutputSynchronizer *synchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:dataOutputs];
-    [dataOutputs release];
-    [synchronizer setDelegate:self queue:self.captureSessionQueue];
-    [self.queue_dataOutputSynchronizers addObject:synchronizer];
-    [synchronizer release];
+    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] == nil);
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter setObject:audioDevice forKey:videoDevice];
 }
 
-- (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    AVCaptureAudioDataOutput *audioDataOutput = [self queue_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
-    assert(audioDataOutput != nil);
-    
-    AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
-    assert(videoDataOutput != nil);
-    
-    NSMutableArray<AVCaptureOutput *> *dataOutputs = nil;
-    for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
-        if ([synchronizer.dataOutputs containsObject:audioDataOutput] && [synchronizer.dataOutputs containsObject:videoDataOutput]) {
-            [synchronizer setDelegate:nil queue:nil];
-            dataOutputs = [synchronizer.dataOutputs mutableCopy];
-            [self.queue_dataOutputSynchronizers removeObject:synchronizer];
-            break;
-        }
-    }
-    assert(dataOutputs != nil);
-    
-    [dataOutputs removeObject:audioDataOutput];
-    
-    AVCaptureDataOutputSynchronizer *synchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:dataOutputs];
-    [dataOutputs release];
-    [synchronizer setDelegate:self queue:self.captureSessionQueue];
-    [self.queue_dataOutputSynchronizers addObject:synchronizer];
-    [synchronizer release];
+- (void)queue_disconnectAudioDeviceForAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
+    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] != nil);
+    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
 }
 
 - (BOOL)queue_isAudioDeviceConnected:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
-        BOOL hasAudioDevice = NO;
-        BOOL hasVideoDevice = NO;
-        
-        for (__kindof AVCaptureOutput *output in synchronizer.dataOutputs) {
-            if ([[self queue_audioCaptureDevicesFromOutput:output] containsObject:audioDevice]) {
-                hasAudioDevice = YES;
-            }
-            
-            if ([[self queue_videoCaptureDevicesFromOutput:output] containsObject:videoDevice]) {
-                hasVideoDevice = YES;
-            }
-            
-            if (hasAudioDevice && hasVideoDevice) break;
-        }
-        
-        if (hasAudioDevice && hasVideoDevice) {
-            return YES;
-        }
-    }
-    
-    return NO;
+    dispatch_assert_queue(self.captureSessionQueue);
+    AVCaptureDevice * _Nullable _audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
+    if (_audioDevice == nil) return NO;
+    return [_audioDevice isEqual:audioDevice];
 }
 
 - (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice {
-    for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
-        for (__kindof AVCaptureOutput *output in synchronizer.dataOutputs) {
-            if ([[self queue_audioCaptureDevicesFromOutput:output] containsObject:audioDevice]) {
-                return YES;
-            }
-        }
+    for (AVCaptureDevice *_audioDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.objectEnumerator) {
+        if ([_audioDevice isEqual:audioDevice]) return YES;
     }
     
     return NO;
@@ -2121,13 +2012,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
     assert(videoDataOutput != nil);
     
-    AVCaptureDevice * _Nullable audioDevice = nil;
-    for (AVCaptureDevice *_audioDevice in self.queue_addedAudioCaptureDevices) {
-        if ([self queue_isAudioDeviceConnected:_audioDevice forAssetWriterVideoDevice:videoDevice]) {
-            assert(audioDevice == nil); // debug
-            audioDevice = _audioDevice;
-        }
-    }
+    AVCaptureDevice * _Nullable audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
     
     AVCaptureAudioDataOutput * _Nullable audioDataOutput = nil;
     if (audioDevice != nil) {
@@ -2493,10 +2378,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     if (__kindof AVCaptureSession *oldCaptureSession = _queue_captureSession) {
         [oldCaptureSession beginConfiguration];
-        
-        for (AVCaptureDataOutputSynchronizer *synchronizer in self.queue_dataOutputSynchronizers) {
-            [synchronizer setDelegate:nil queue:nil];
-        }
         
         NSArray<AVCaptureConnection *> *connections = oldCaptureSession.connections;
         
@@ -2914,34 +2795,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             [newConnection release];
         }
         
-        // Synchonizer 설정
-        NSMutableSet<AVCaptureDataOutputSynchronizer *> *oldSynchronizers = _queue_dataOutputSynchronizers;
-        NSMutableSet<AVCaptureDataOutputSynchronizer *> *newSynchronizers = [[NSMutableSet alloc] initWithCapacity:oldSynchronizers.count];
-        
-        for (AVCaptureDataOutputSynchronizer *oldSynchronizer in oldSynchronizers) {
-            NSMutableArray<__kindof AVCaptureOutput *> *newOutputs = [[NSMutableArray alloc] initWithCapacity:oldSynchronizer.dataOutputs.count];
-            
-            for (__kindof AVCaptureOutput *oldOutput in oldSynchronizer.dataOutputs) {
-                __kindof AVCaptureOutput *newOutput = [addedOutputsByOutputs objectForKey:oldOutput];
-                assert(newOutput != nil);
-                [newOutputs addObject:newOutput];
-            }
-            
-            assert(oldSynchronizer.dataOutputs.count == newOutputs.count);
-            
-            AVCaptureDataOutputSynchronizer *newSynchronizer = [[AVCaptureDataOutputSynchronizer alloc] initWithDataOutputs:newOutputs];
-            [newOutputs release];
-            [newSynchronizer setDelegate:self queue:self.captureSessionQueue];
-            
-            [newSynchronizers addObject:newSynchronizer];
-            [newSynchronizer release];
-        }
-        
-        assert(oldSynchronizers.count == newSynchronizers.count);
-        
-        [_queue_dataOutputSynchronizers release];
-        _queue_dataOutputSynchronizers = newSynchronizers;
-        
         if (postNotification) {
             [self postDidUpdatePreviewLayersNotification];
         }
@@ -3063,6 +2916,19 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self.mainQueue_livePhotoMovieFileURLsByUniqueID removeObjectForKey:@(uniqueID)];
 }
 
++ (BOOL)startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
+    id _internal;
+    assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+    
+    id helper;
+    assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
+    
+    BOOL _startSessionCalled;
+    assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
+    
+    return _startSessionCalled;
+}
+
 #warning Asset Writier - Metadata Face & Location
 - (void)queue_handleMetadataOutput:(AVCaptureMetadataOutput *)depthDataOutput didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects {
     dispatch_assert_queue(self.captureSessionQueue);
@@ -3103,7 +2969,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 }
                 
                 if (movieAssetWriter != nil) {
-                    [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
+                    BOOL _startSessionCalled = [CaptureService startSessionCalledForAssetWriter:movieAssetWriter.assetWriter];
+                    
+                    if (_startSessionCalled) {
+                        [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
+                    }
                 }
                 
                 [metadataGroup release];
@@ -3138,16 +3008,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
         
         if (assetWriter.status == AVAssetWriterStatusWriting) {
-            id _internal;
-            assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+            BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
             
-            id helper;
-            assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
-            
-            BOOL _startSessionCalled;
-            assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
-            
-            if (!_startSessionCalled) {
+            if (!startSessionCalled) {
                 [assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
             }
             
@@ -3173,37 +3036,25 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(audioDevices.count == 1);
     AVCaptureDevice *audioDevice = audioDevices.allObjects[0];
     
-    AVCaptureDevice *videoDevice = nil;
-    for (AVCaptureDevice *_videoDevice in self.queue_addedVideoCaptureDevices) {
-        if ([self queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:_videoDevice]) {
-            assert(videoDevice == nil); // debug
-            videoDevice = _videoDevice;
-        }
-    }
-    if (videoDevice == nil) return;
-    
-    if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
-        AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
+    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
+        if (![[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:audioDevice]) continue;
         
-        if (assetWriter.status == AVAssetWriterStatusWriting) {
-            id _internal;
-            assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
+        if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
+            AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
             
-            id helper;
-            assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
-            
-            BOOL _startSessionCalled;
-            assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
-            
-            if (!_startSessionCalled) {
-                return;
-            }
-            
-            if (movieAssetWriter.audioWriterInput.isReadyForMoreMediaData) {
-                BOOL success = [movieAssetWriter.audioWriterInput appendSampleBuffer:sampleBuffer];
+            if (assetWriter.status == AVAssetWriterStatusWriting) {
+                BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
                 
-                if (!success) {
-                    NSLog(@"%@", movieAssetWriter.assetWriter.error);
+                if (!startSessionCalled) {
+                    return;
+                }
+                
+                if (movieAssetWriter.audioWriterInput.isReadyForMoreMediaData) {
+                    BOOL success = [movieAssetWriter.audioWriterInput appendSampleBuffer:sampleBuffer];
+                    
+                    if (!success) {
+                        NSLog(@"%@", movieAssetWriter.assetWriter.error);
+                    }
                 }
             }
         }
@@ -3528,52 +3379,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
     [self queue_handleMetadataOutput:static_cast<AVCaptureMetadataOutput *>(output) didOutputMetadataObjects:metadataObjects];
-}
-
-
-#pragma mark - AVCaptureDataOutputSynchronizerDelegate
-
-- (void)dataOutputSynchronizer:(AVCaptureDataOutputSynchronizer *)synchronizer didOutputSynchronizedDataCollection:(AVCaptureSynchronizedDataCollection *)synchronizedDataCollection {
-    dispatch_assert_queue(self.captureSessionQueue);
-    assert([self.queue_dataOutputSynchronizers containsObject:synchronizer]);
-    
-    AVCaptureVideoDataOutput *videoDataOutput = nil;
-    AVCaptureMetadataOutput *metadataOutput = nil;
-    AVCaptureAudioDataOutput * _Nullable audioDataOutput = nil;
-    
-    for (__kindof AVCaptureOutput *output in synchronizer.dataOutputs) {
-        if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
-            videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
-        } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
-            metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
-        } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
-            audioDataOutput = static_cast<AVCaptureAudioDataOutput *>(output);
-        } else {
-            abort();
-        }
-    }
-    
-    assert(videoDataOutput != nil);
-    assert(metadataOutput != nil);
-    
-    auto _Nullable synchronizedVideoSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:videoDataOutput]);
-    auto _Nullable synchronizedMetadataObjectData = static_cast<AVCaptureSynchronizedMetadataObjectData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:metadataOutput]);
-    
-    if (synchronizedVideoSampleBufferData != nil) {
-        [self queue_handleVideoDataOutput:videoDataOutput didOutputSampleBuffer:synchronizedVideoSampleBufferData.sampleBuffer];
-    }
-    
-    if (synchronizedMetadataObjectData != nil) {
-        [self queue_handleMetadataOutput:metadataOutput didOutputMetadataObjects:synchronizedMetadataObjectData.metadataObjects];
-    }
-    
-    if (audioDataOutput != nil) {
-        auto _Nullable synchronizedAudioSampleBufferData = static_cast<AVCaptureSynchronizedSampleBufferData *>([synchronizedDataCollection synchronizedDataForCaptureOutput:audioDataOutput]);
-        
-        if (synchronizedAudioSampleBufferData != nil) {
-            [self queue_handleAudioDataOutput:audioDataOutput didOutputSampleBuffer:synchronizedAudioSampleBufferData.sampleBuffer];
-        }
-    }
 }
 
 @end
