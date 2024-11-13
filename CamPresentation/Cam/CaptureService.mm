@@ -770,9 +770,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
     videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
-    
-#warning 옵션
-//    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
+    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
     videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
     [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
     assert([captureSession canAddOutput:videoDataOutput]);
