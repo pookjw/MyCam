@@ -2548,11 +2548,20 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [addedOutputsByOutputs setObject:newMovieFileOutput forKey:output];
                 [newMovieFileOutput release];
             } else if ([output isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                auto oldVideoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
+                
                 AVCaptureVideoDataOutput *newVideoDataOutput = [AVCaptureVideoDataOutput new];
-                [newVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+                
+                if (oldVideoDataOutput.deliversPreviewSizedOutputBuffers) {
+                    [newVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+                }
                 
                 assert([captureSession canAddOutput:newVideoDataOutput]);
                 [captureSession addOutputWithNoConnections:newVideoDataOutput];
+                
+                newVideoDataOutput.automaticallyConfiguresOutputBufferDimensions = oldVideoDataOutput.automaticallyConfiguresOutputBufferDimensions;
+                newVideoDataOutput.deliversPreviewSizedOutputBuffers = oldVideoDataOutput.deliversPreviewSizedOutputBuffers;
+                newVideoDataOutput.alwaysDiscardsLateVideoFrames = oldVideoDataOutput.alwaysDiscardsLateVideoFrames;
                 
                 [addedOutputsByOutputs setObject:newVideoDataOutput forKey:output];
                 [newVideoDataOutput release];
@@ -2725,6 +2734,50 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             NSString * _Nullable reason = nil;
             assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), newConnection, &reason));
             [captureSession addConnection:newConnection];
+            
+            //
+            
+            __kindof AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
+            
+            if ([addedOutput isKindOfClass:AVCaptureVideoDataOutput.class]) {
+                auto newVideoDataOutput = static_cast<AVCaptureVideoDataOutput *>(addedOutput);
+                auto oldVideoDataOutput = static_cast<AVCaptureVideoDataOutput *>(connection.output);
+                
+                if (!newVideoDataOutput.deliversPreviewSizedOutputBuffers) {
+                    AVCaptureDevice *videoDevice = nil;
+                    MovieWriter *oldMovieWriter = nil;
+                    for (AVCaptureDevice *_videoDevice in self.queue_movieWritersByVideoDevice.keyEnumerator) {
+                        MovieWriter *_oldMovieWriter = [self.queue_movieWritersByVideoDevice objectForKey:_videoDevice];
+                        if ([_oldMovieWriter.videoDataOutput isEqual:oldVideoDataOutput]) {
+                            videoDevice = _videoDevice;
+                            oldMovieWriter = [_oldMovieWriter retain];
+                            break;
+                        }
+                    }
+                    assert(videoDevice != nil);
+                    assert(oldMovieWriter != nil);
+                    
+                    CMMetadataFormatDescriptionRef metadataFormatDescription = [self newMetadataFormatDescription];
+                    CLLocationManager *locationManager = self.locationManager;
+                    
+                    MovieWriter *newMovieWriter = [[MovieWriter alloc] initWithFileOutput:self.queue_fileOutput
+                                                                          videoDataOutput:newVideoDataOutput
+                                                                   metadataOutputSettings:nil
+                                                                 metadataSourceFormatHint:metadataFormatDescription
+                                                                         useFastRecording:oldMovieWriter.useFastRecording
+                                                                            isolatedQueue:self.captureSessionQueue
+                                                                          locationHandler:^CLLocation * _Nullable{
+                        return locationManager.location;
+                    }];
+                    
+                    CFRelease(metadataFormatDescription);
+                    
+                    [self.queue_movieWritersByVideoDevice removeObjectForKey:videoDevice];
+                    [self.queue_movieWritersByVideoDevice setObject:newMovieWriter forKey:videoDevice];
+                    [newMovieWriter release];
+                    [oldMovieWriter release];
+                }
+            }
             
             //
             
