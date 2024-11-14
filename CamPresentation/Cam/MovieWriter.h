@@ -13,11 +13,13 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /*
- Multi Cam
- Audio
+ Audio (또한 Multi Cam일 때 설정값 유지 해줘야함)
+ -> CaptureService에서 Audio Queue를 따로 생성하고, Audio Queue에서 MovieWrites에 접근 가능한 Map이 따로 있어야 하나?
+ 
  Spatial https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
- File Output 바뀔 때
+ 
  이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
+ 
  drop reason 출력하기
  */
 
