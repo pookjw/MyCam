@@ -26,7 +26,6 @@
 @property (retain, atomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
 @property (retain, atomic, nullable) AVAssetWriterInput *audioWriterInput;
 @property (retain, atomic, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
-@property (retain, nonatomic, readonly) __kindof BaseFileOutput *fileOutput;
 @property (copy, nonatomic, readonly) CLLocation * _Nullable (^locationHandler)(void);
 @property (retain, nonatomic, readonly) dispatch_queue_t isolatedQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t videoQueue;
@@ -37,6 +36,7 @@
 
 @implementation MovieWriter
 @synthesize audioDataOutput = _audioDataOutput;
+@synthesize fileOutput = _fileOutput;
 
 + (BOOL)_isFinishWriting:(AVAssetWriter *)assetWriter {
     id _internal;
@@ -150,6 +150,18 @@
     }
     
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
+
+- (__kindof BaseFileOutput *)fileOutput {
+    dispatch_assert_queue(self.isolatedQueue);
+    return [[_fileOutput retain] autorelease];
+}
+
+- (void)setFileOutput:(__kindof BaseFileOutput *)fileOutput {
+    dispatch_assert_queue(self.isolatedQueue);
+    assert(self.assetWriter == nil);
+    [_fileOutput release];
+    _fileOutput = [fileOutput retain];
 }
 
 - (AVCaptureAudioDataOutput *)audioDataOutput {

@@ -16,9 +16,8 @@ NS_ASSUME_NONNULL_BEGIN
  Multi Cam
  Audio
  Spatial https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
- File Output 바뀔 때 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
- 이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함
- useFastRecording 토글
+ File Output 바뀔 때
+ 이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
  drop reason 출력하기
  */
 
@@ -31,6 +30,7 @@ typedef NS_ENUM(NSUInteger, MovieWriterStatus) {
 
 API_UNAVAILABLE(visionos)
 @interface MovieWriter : NSObject
+@property (retain, nonatomic, nullable) __kindof BaseFileOutput *fileOutput;
 @property (retain, nonatomic, readonly) AVCaptureVideoDataOutput *videoDataOutput;
 @property (retain, nonatomic, nullable) AVCaptureAudioDataOutput *audioDataOutput;
 @property (nonatomic, readonly) MovieWriterStatus status;

@@ -150,7 +150,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
-        self.queue_fileOutput = nil;
+        _queue_fileOutput = [[PhotoLibraryFileOutput alloc] initWithPhotoLibrary:PHPhotoLibrary.sharedPhotoLibrary];
         
         //
         
@@ -586,13 +586,20 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return captureDevice;
 }
 
-- (void)queue_setFileOutput:(__kindof BaseFileOutput *)queue_fileOutput {
+- (void)queue_setFileOutput:(__kindof BaseFileOutput *)fileOutput {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
     [_queue_fileOutput release];
     
-    if (queue_fileOutput == nil) {
+    if (fileOutput == nil) {
         _queue_fileOutput = [[PhotoLibraryFileOutput alloc] initWithPhotoLibrary:PHPhotoLibrary.sharedPhotoLibrary];
     } else {
-        _queue_fileOutput = [queue_fileOutput retain];
+        _queue_fileOutput = [fileOutput retain];
+    }
+    
+    for (MovieWriter *movieWriter in self.queue_movieWritersByVideoDevice.objectEnumerator) {
+        assert(movieWriter.status == MovieWriterStatusPending);
+        movieWriter.fileOutput = fileOutput;
     }
 }
 
