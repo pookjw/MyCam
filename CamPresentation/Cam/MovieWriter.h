@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
  Multi Cam
  Audio
  Spatial https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
- File Output 바뀔 때
+ File Output 바뀔 때 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
  이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함
  */
 

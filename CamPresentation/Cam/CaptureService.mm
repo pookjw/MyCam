@@ -65,7 +65,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieWriter *> *queue_movieWritersByVideoDevice;
-@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *queue_audioDevicesByVideoDeviceForAssetWriter;
 
 // Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
@@ -123,7 +122,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, MovieWriter *> *movieWritersByVideoDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
-        NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *audioDevicesByVideoDeviceForAssetWriter = [NSMapTable weakToWeakObjectsMapTable];
         
         //
         
@@ -152,7 +150,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
-        _queue_audioDevicesByVideoDeviceForAssetWriter = [audioDevicesByVideoDeviceForAssetWriter retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
         self.queue_fileOutput = nil;
@@ -211,7 +208,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
     [_queue_movieWritersByVideoDevice release];
-    [_queue_audioDevicesByVideoDeviceForAssetWriter release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
     [_locationManager stopUpdatingLocation];
@@ -1040,8 +1036,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [deviceInput release];
     [audioDataOutput release];
     assert([captureSession canAddConnection:connection]);
-    assert(connection.isEnabled);
-    assert(connection.isActive);
     [captureSession addConnection:connection];
     [connection release];
     
@@ -1279,7 +1273,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     [self.queue_photoFormatModelsByCaptureDevice removeObjectForKey:captureDevice];
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:captureDevice];
     
     [self queue_switchCaptureSessionByAddingDevice:NO postNotification:NO];
     
@@ -1331,6 +1324,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         if (connection.output != nil) {
             if ([connection.output isKindOfClass:AVCaptureAudioDataOutput.class]) {
+                for (MovieWriter *movieWriter in self.queue_movieWritersByVideoDevice.objectEnumerator) {
+                    if ([movieWriter.audioDataOutput isEqual:connection.output]) {
+                        assert(movieWriter.status == MovieWriterStatusPending);
+                        movieWriter.audioDataOutput = nil;
+                    }
+                }
+                
                 [captureSession removeOutput:connection.output];
             } else if ([connection.output isKindOfClass:AVCaptureMovieFileOutput.class]) {
                 // Video Devide Input과 연결되어 있을 것이기에 Output을 제거하면 안 됨
@@ -1344,12 +1344,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
-    
-    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
-        if ([[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:captureDevice]) {
-            [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
-        }
-    }
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
 }
@@ -1825,25 +1819,68 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] == nil);
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter setObject:audioDevice forKey:videoDevice];
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self.queue_addedVideoCaptureDevices containsObject:videoDevice]);
+    assert([self.queue_addedAudioCaptureDevices containsObject:audioDevice]);
+    assert(![self queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice]);
+    
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    assert(movieWriter.audioDataOutput == nil);
+    
+    AVCaptureAudioDataOutput *audioDataOutput = [self queue_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
+    assert(audioDataOutput != nil);
+    
+    movieWriter.audioDataOutput = audioDataOutput;
 }
 
 - (void)queue_disconnectAudioDeviceForAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
-    assert([self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] != nil);
-    [self.queue_audioDevicesByVideoDeviceForAssetWriter removeObjectForKey:videoDevice];
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self.queue_addedVideoCaptureDevices containsObject:videoDevice]);
+    
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    assert(movieWriter.audioDataOutput != nil);
+    
+    movieWriter.audioDataOutput = nil;
 }
 
 - (BOOL)queue_isAudioDeviceConnected:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    AVCaptureDevice * _Nullable _audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
-    if (_audioDevice == nil) return NO;
-    return [_audioDevice isEqual:audioDevice];
+    assert([self.queue_addedVideoCaptureDevices containsObject:videoDevice]);
+    assert([self.queue_addedAudioCaptureDevices containsObject:audioDevice]);
+    
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    
+    AVCaptureAudioDataOutput *audioDataOutput = movieWriter.audioDataOutput;
+    if (audioDataOutput == nil) return NO;
+    
+    for (AVCaptureConnection *connection in audioDataOutput.connections) {
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            
+            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+                if ([deviceInput.device isEqual:audioDevice]) {
+                    return YES;
+                }
+            }
+        }
+    }
+    
+    return NO;
 }
 
 - (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice {
-    for (AVCaptureDevice *_audioDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.objectEnumerator) {
-        if ([_audioDevice isEqual:audioDevice]) return YES;
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self.queue_addedAudioCaptureDevices containsObject:audioDevice]);
+    
+    for (AVCaptureDevice *videoDevice in self.queue_addedVideoCaptureDevices) {
+        BOOL connected = [self queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
+        
+        if (connected) {
+            return YES;
+        }
     }
     
     return NO;

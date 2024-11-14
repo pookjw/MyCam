@@ -169,6 +169,13 @@
     _audioDataOutput = [audioDataOutput retain];
     assert(audioDataOutput.sampleBufferDelegate == nil);
     assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioDataOutput, sel_registerName("delegateOverride")) == nil);
+    
+    if (self.useFastRecording) {
+        [self _enableAllConnections];
+    } else if (self.toggleConnectionStatus) {
+        [self _disableAllConnections];
+    }
+    
     [audioDataOutput setSampleBufferDelegate:self queue:self.audioQueue];
 }
 
