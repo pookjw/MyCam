@@ -39,14 +39,18 @@
 @synthesize audioDataOutput = _audioDataOutput;
 @synthesize toggleConnectionStatus = _toggleConnectionStatus;
 
-+ (BOOL)_doesAssetWriterHelperExists:(AVAssetWriter *)assetWriter {
++ (BOOL)_isFinishWriting:(AVAssetWriter *)assetWriter {
     id _internal;
     assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
     
     id helper;
     assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
     
-    return helper != nil;
+    if ([helper isKindOfClass:objc_lookUpClass("AVAssetWriterFinishWritingHelper")]) {
+        return YES;
+    }
+    
+    return NO;
 }
 
 + (BOOL)_startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
@@ -56,12 +60,9 @@
     id helper;
     assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nil);
     
-    NSLog(@"%@", helper);
-    if (helper == nil) {
-        return NO;
+    if (![helper isKindOfClass:objc_lookUpClass("AVAssetWriterWritingHelper")]) {
+        abort();
     }
-    
-    NSLog(@"%@", helper);
     
     BOOL _startSessionCalled;
     assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nil);
@@ -137,8 +138,6 @@
             dispatch_async(self.isolatedQueue, ^{
                 if ([self.assetWriter isEqual:assetWriter]) {
                     [self _didChangeStatusWithAssetWriter:assetWriter];
-                } else {
-                    abort();
                 }
             });
             return;
@@ -365,6 +364,11 @@
     
     AVAssetWriter *assetWriter = self.assetWriter;
     if (assetWriter == nil) return;
+    
+    if ([MovieWriter _isFinishWriting:assetWriter]) {
+        return;
+    }
+    
     if (assetWriter.status != AVAssetWriterStatusWriting or self.isPaused) {
         return;
     }
@@ -373,10 +377,7 @@
     
     BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
     if (!startSessionCalled) {
-        // -finishWritingWithCompletionHandler:이 불리는 동안은 AVAssetWriterStatusWriting이며 Helper가 존재하지 않는다.
-        if ([MovieWriter _doesAssetWriterHelperExists:assetWriter]) {
-            [assetWriter startSessionAtSourceTime:timestamp];
-        }
+        [assetWriter startSessionAtSourceTime:timestamp];
     }
     
     AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor = self.videoPixelBufferAdaptor;
@@ -411,6 +412,10 @@
         return;
     }
     
+    if ([MovieWriter _isFinishWriting:assetWriter]) {
+        return;
+    }
+    
     assert(assetWriter.status == AVAssetWriterStatusWriting);
     
     BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
@@ -435,6 +440,10 @@
     AVAssetWriter *assetWriter = self.assetWriter;
     assert(assetWriter != nil);
     if (assetWriter.status == AVAssetWriterStatusCompleted or self.isPaused) {
+        return;
+    }
+    
+    if ([MovieWriter _isFinishWriting:assetWriter]) {
         return;
     }
     
