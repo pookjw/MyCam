@@ -3686,27 +3686,22 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVAssetWriter * _Nullable assetWriter = [captureService queue_recordingAssetWriterWithVideoDevice:videoDevice];
+    BOOL isRecording = [captureService queue_isRecordingUsingAssetWriterWithVideoDevice:videoDevice];
     
 #warning Pause Recording
-    if (assetWriter == nil) {
-        UIAction *action = [UIAction actionWithTitle:@"Start Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+    if (isRecording) {
+        UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                [captureService queue_startRecordingUsingAssetWriterWithVideoDevice:videoDevice];
-                if (didChangeHandler) didChangeHandler();
+                [captureService queue_stopRecordingUsingAssetWriterWithVideoDevice:videoDevice completionHandler:didChangeHandler];
             });
         }];
         
         return action;
     } else {
-        UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIAction *action = [UIAction actionWithTitle:@"Start Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                dispatch_suspend(captureService.captureSessionQueue);
-                
-                [assetWriter finishWritingWithCompletionHandler:^{
-                    dispatch_resume(captureService.captureSessionQueue);
-                    if (didChangeHandler) didChangeHandler();
-                }];
+                [captureService queue_startRecordingUsingAssetWriterWithVideoDevice:videoDevice];
+                if (didChangeHandler) didChangeHandler();
             });
         }];
         

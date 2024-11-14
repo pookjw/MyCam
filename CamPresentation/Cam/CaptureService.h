@@ -86,8 +86,10 @@ API_UNAVAILABLE(visionos)
 
 - (void)queue_startPhotoCaptureWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (AVAssetWriter *)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)captureDevice;
-- (AVAssetWriter * _Nullable)queue_recordingAssetWriterWithVideoDevice:(AVCaptureDevice *)captureDevice;
+
+- (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^ _Nullable)(void))completionHandler;
+- (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 @end
 
 NS_ASSUME_NONNULL_END

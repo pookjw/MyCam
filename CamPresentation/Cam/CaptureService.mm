@@ -20,7 +20,7 @@
 #import <CamPresentation/ImageBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
-#import <CamPresentation/MovieAssetWriter.h>
+#import <CamPresentation/MovieWriter.h>
 #import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
@@ -64,11 +64,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
-@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *queue_movieAssetWritersByVideoDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieWriter *> *queue_movieWritersByVideoDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *queue_audioDevicesByVideoDeviceForAssetWriter;
-
-@property (retain, nonatomic, readonly) NSMapTable<AVCaptureVideoDataOutput *, id> *queue_latestVideoFormatDescriptionsByVideoDataOutput;
-@property (retain, nonatomic, readonly) NSMapTable<AVCaptureAudioDataOutput *, id> *queue_latestAudioFormatDescriptionsByAudioDataOutput;
 
 // Capture 할 때 -[AVWeakReferencingDelegateStorage setDelegate:queue:]에 Main Queue가 할당됨
 @property (retain, nonatomic, readonly) NSMapTable<NSNumber *, AVCapturePhoto *> *mainQueue_capturePhotosByUniqueID;
@@ -122,10 +119,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable weakToStrongObjectsMapTable];
-        NSMapTable<AVCaptureVideoDataOutput *, id> *latestVideoFormatDescriptionsByVideoDataOutput = [NSMapTable weakToStrongObjectsMapTable];
-        NSMapTable<AVCaptureAudioDataOutput *, id> *latestVideoFormatDescriptionsByAudioDataOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
-        NSMapTable<AVCaptureDevice *, MovieAssetWriter *> *movieAssetWritersByVideoDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, MovieWriter *> *movieWritersByVideoDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureDevice *> *audioDevicesByVideoDeviceForAssetWriter = [NSMapTable weakToWeakObjectsMapTable];
@@ -156,10 +151,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
-        _queue_movieAssetWritersByVideoDevice = [movieAssetWritersByVideoDevice retain];
+        _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
         _queue_audioDevicesByVideoDeviceForAssetWriter = [audioDevicesByVideoDeviceForAssetWriter retain];
-        _queue_latestVideoFormatDescriptionsByVideoDataOutput = [latestVideoFormatDescriptionsByVideoDataOutput retain];
-        _queue_latestAudioFormatDescriptionsByAudioDataOutput = [latestVideoFormatDescriptionsByAudioDataOutput retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
         _mainQueue_livePhotoMovieFileURLsByUniqueID = [livePhotoMovieFileURLsByUniqueID retain];
         self.queue_fileOutput = nil;
@@ -217,9 +210,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
-    [_queue_movieAssetWritersByVideoDevice release];
-    [_queue_latestVideoFormatDescriptionsByVideoDataOutput release];
-    [_queue_latestAudioFormatDescriptionsByAudioDataOutput release];
+    [_queue_movieWritersByVideoDevice release];
     [_queue_audioDevicesByVideoDeviceForAssetWriter release];
     [_mainQueue_capturePhotosByUniqueID release];
     [_mainQueue_livePhotoMovieFileURLsByUniqueID release];
@@ -515,18 +506,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 #warning TODO
             return;
         }
-    } else if ([object isKindOfClass:AVAssetWriter.class]) {
-        auto assetWriter = static_cast<AVAssetWriter *>(object);
-        
-        if ([keyPath isEqualToString:@"status"]) {
-            [self didChangeStatusForAssetWriter:assetWriter];
-            return;
-        } else if ([keyPath isEqualToString:@"error"]) {
-            if (NSError *error = assetWriter.error) {
-                NSLog(@"%@", error);
-            }
-            return;
-        }
     }
     
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
@@ -768,21 +747,57 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     //
     
-    AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
-    videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
-    videoDataOutput.deliversPreviewSizedOutputBuffers = YES;
-    videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
-    [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
-    assert([captureSession canAddOutput:videoDataOutput]);
-    [captureSession addOutputWithNoConnections:videoDataOutput];
+    AVCaptureVideoDataOutput *previewVideoDataOutput = [AVCaptureVideoDataOutput new];
+    previewVideoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
+    previewVideoDataOutput.deliversPreviewSizedOutputBuffers = YES;
+    previewVideoDataOutput.alwaysDiscardsLateVideoFrames = YES;
+    [previewVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+    assert([captureSession canAddOutput:previewVideoDataOutput]);
+    [captureSession addOutputWithNoConnections:previewVideoDataOutput];
     
-    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
-    [videoDataOutput release];
+    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:previewVideoDataOutput];
+    [previewVideoDataOutput release];
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     videoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-    [rotationCoodinator release];
     [videoDataOutputConnection release];
+    
+    //
+    
+    AVCaptureVideoDataOutput *movieVideoDataOutput = [AVCaptureVideoDataOutput new];
+    assert([captureSession canAddOutput:movieVideoDataOutput]);
+    [captureSession addOutputWithNoConnections:movieVideoDataOutput];
+    
+    AVCaptureConnection *movieVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieVideoDataOutput];
+    assert([captureSession canAddConnection:movieVideoDataOutputConnection]);
+    [captureSession addConnection:movieVideoDataOutputConnection];
+    movieVideoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+    [movieVideoDataOutputConnection release];
+    
+    CMMetadataFormatDescriptionRef metadataFormatDescription = [self newMetadataFormatDescription];
+    
+    CLLocationManager *locationManager = self.locationManager;
+    
+    MovieWriter *movieWriter = [[MovieWriter alloc] initWithFileOutput:self.queue_fileOutput
+                                                       videoDataOutput:movieVideoDataOutput
+                                                metadataOutputSettings:nil
+                                              metadataSourceFormatHint:metadataFormatDescription
+                                                toggleConnectionStatus:YES
+                                                      useFastRecording:NO
+                                                         isolatedQueue:self.captureSessionQueue
+                                                       locationHandler:^CLLocation * _Nullable{
+        return locationManager.location;
+    }];
+    
+    CFRelease(metadataFormatDescription);
+    [movieVideoDataOutput release];
+    
+    [self.queue_movieWritersByVideoDevice setObject:movieWriter forKey:captureDevice];
+    [movieWriter release];
+    
+    //
+    
+    [rotationCoodinator release];
     
     //
     
@@ -1130,6 +1145,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(captureDevice != nil);
     assert([self.queue_addedVideoCaptureDevices containsObject:captureDevice]);
     
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:captureDevice];
+    assert(movieWriter != nil);
+    assert(movieWriter.status == MovieWriterStatusPending);
+    [self.queue_movieWritersByVideoDevice removeObjectForKey:captureDevice];
+    
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:captureDevice.deviceType]);
     
@@ -1207,7 +1227,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             auto videoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
             [videoDataOutput setSampleBufferDelegate:nil queue:nil];
             [captureSession removeOutput:videoDataOutput];
-            [self.queue_latestVideoFormatDescriptionsByVideoDataOutput removeObjectForKey:videoDataOutput];
         } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
             auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(output);
             [depthDataOutput setDelegate:nil callbackQueue:nil];
@@ -1531,6 +1550,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
 }
 
+#warning deprecate - 여러 개 반환할 수 있도록
 - (AVCaptureVideoDataOutput *)queue_videoDataOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -1668,7 +1688,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     //
     
-    CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
+    CMMetadataFormatDescriptionRef formatDescription = [self newMetadataFormatDescription];
     AVCaptureMetadataInput *metadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:videoInputPort.clock];
     CFRelease(formatDescription);
     assert([captureSession canAddInput:metadataInput]);
@@ -2005,109 +2025,33 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
 }
 
-- (AVAssetWriter *)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
+- (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    assert([self queue_recordingAssetWriterWithVideoDevice:videoDevice] == nil);
     
-    AVCaptureVideoDataOutput *videoDataOutput = [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
-    assert(videoDataOutput != nil);
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    assert(movieWriter.status == MovieWriterStatusPending);
     
-    AVCaptureDevice * _Nullable audioDevice = [self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice];
-    
-    AVCaptureAudioDataOutput * _Nullable audioDataOutput = nil;
-    if (audioDevice != nil) {
-        audioDataOutput = [self queue_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
-        assert(audioDataOutput != nil);
-    }
-    
-    CMVideoFormatDescriptionRef videoFormatDescription = (CMVideoFormatDescriptionRef)[self.queue_latestVideoFormatDescriptionsByVideoDataOutput objectForKey:videoDataOutput];
-    assert(videoFormatDescription != NULL);
-    
-    CMAudioFormatDescriptionRef _Nullable audioFormatDescription = (CMAudioFormatDescriptionRef)[self.queue_latestAudioFormatDescriptionsByAudioDataOutput objectForKey:audioDataOutput];
-    
-    // retained
-    CMMetadataFormatDescriptionRef metadataFormatDescription;
-    
-    if (AVCaptureMetadataInput *metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:videoDevice]) {
-        id metadataInput_internal;
-        assert(object_getInstanceVariable(metadataInput, "_internal", reinterpret_cast<void **>(&metadataInput_internal)) != NULL);
-        assert(object_getInstanceVariable(metadataInput_internal, "desc", (void **)&metadataFormatDescription) != NULL);
-        CFRetain(metadataFormatDescription);
-    } else {
-        metadataFormatDescription = [self createMetadataFormatDescription];
-    }
-    
-#warning Configure Codec, File Type
-    CLLocationManager *locationManager = self.locationManager;
-    
-    MovieAssetWriter *movieAssetWriter = [[MovieAssetWriter alloc] initWithFileOutput:self.queue_fileOutput
-                                                                  videoOutputSettings:[videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie]
-                                                                  audioOutputSettings:[audioDataOutput recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie]
-                                                               metadataOutputSettings:nil
-                                                                videoSourceFormatHint:videoFormatDescription
-                                                                audioSourceFormatHint:audioFormatDescription
-                                                             metadataSourceFormatHint:metadataFormatDescription
-                                                                      locationHandler:^CLLocation * _Nullable{
-        return locationManager.location;
-    }];
-    
-    CFRelease(metadataFormatDescription);
-    
-    [self.queue_movieAssetWritersByVideoDevice setObject:movieAssetWriter forKey:videoDevice];
-    
-    AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
-    [movieAssetWriter release];
-    [self registerObserversForAssetWriter:assetWriter];
-    
-    BOOL started = [assetWriter startWriting];
-    if (!started) {
-        NSLog(@"%@", assetWriter.error);
-        abort();
-    }
-    
-    return assetWriter;
+    [movieWriter startRecording];
 }
 
-- (AVAssetWriter *)queue_recordingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
-    MovieAssetWriter * _Nullable movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice];
-    if (movieAssetWriter == nil) return nil;
-    return movieAssetWriter.assetWriter;
+- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^ _Nullable)(void))completionHandler {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    assert(movieWriter.status == MovieWriterStatusRecording);
+    
+    [movieWriter stopRecordingWithCompletionHandler:completionHandler];
 }
 
-- (void)registerObserversForAssetWriter:(AVAssetWriter *)assetWriter {
-    [assetWriter addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nullptr];
-    [assetWriter addObserver:self forKeyPath:@"error" options:NSKeyValueObservingOptionNew context:nullptr];
-}
-
-- (void)unregisterObserversForAssetWriter:(AVAssetWriter *)assetWriter {
-    [assetWriter removeObserver:self forKeyPath:@"status"];
-    [assetWriter removeObserver:self forKeyPath:@"error"];
-}
-
-- (void)didChangeStatusForAssetWriter:(AVAssetWriter *)assetWriter {
-    switch (assetWriter.status) {
-        case AVAssetWriterStatusCompleted:
-            NSLog(@"%@", assetWriter.outputURL);
-            // fallthough
-        case AVAssetWriterStatusFailed:
-        case AVAssetWriterStatusCancelled:
-            [self unregisterObserversForAssetWriter:assetWriter];
-            
-            dispatch_async(self.captureSessionQueue, ^{
-                AVCaptureDevice *videoDevice = nil;
-                for (AVCaptureDevice *_videoDevice in self.queue_movieAssetWritersByVideoDevice.keyEnumerator) {
-                    if ([[self.queue_movieAssetWritersByVideoDevice objectForKey:_videoDevice].assetWriter isEqual:assetWriter]) {
-                        assert(videoDevice == nil); // debug
-                        videoDevice = _videoDevice;
-                    }
-                }
-                assert(videoDevice != nil);
-                [self.queue_movieAssetWritersByVideoDevice removeObjectForKey:videoDevice];
-            });
-            break;
-        default:
-            break;
-    }
+- (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    
+    return movieWriter.status == MovieWriterStatusRecording;
 }
 
 - (void)didReceiveCaptureDeviceWasDisconnectedNotification:(NSNotification *)notification {
@@ -2515,7 +2459,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             } else if ([input isKindOfClass:AVCaptureMetadataInput.class]) {
                 auto oldMetadataInput = static_cast<AVCaptureMetadataInput *>(input);
                 
-                CMMetadataFormatDescriptionRef formatDescription = [self createMetadataFormatDescription];
+                CMMetadataFormatDescriptionRef formatDescription = [self newMetadataFormatDescription];
                 CMClockRef clock = reinterpret_cast<CMClockRef (*)(id, SEL)>(objc_msgSend)(oldMetadataInput, sel_registerName("clock"));
                 AVCaptureMetadataInput *newMetadataInput = [[AVCaptureMetadataInput alloc] initWithFormatDescription:formatDescription clock:clock];
                 CFRelease(formatDescription);
@@ -2816,7 +2760,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NSLog(@"%s", sel_getName(_cmd));
 }
 
-- (CMMetadataFormatDescriptionRef)createMetadataFormatDescription CM_RETURNS_RETAINED {
+- (CMMetadataFormatDescriptionRef)newMetadataFormatDescription CM_RETURNS_RETAINED {
     CMMetadataFormatDescriptionRef formatDescription;
     assert(CMMetadataFormatDescriptionCreateWithMetadataSpecifications(kCFAllocatorDefault,
                                                                        kCMMetadataFormatType_Boxed,
@@ -2945,7 +2889,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         //
         
         AVCaptureMetadataInput * _Nullable metadataInput = [self.queue_metadataInputsByCaptureDevice objectForKey:captureDevice];
-        MovieAssetWriter * _Nullable movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:captureDevice];
+        MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:captureDevice];
+        assert(movieWriter != nil);
+        
+        if (metadataInput == nil and movieWriter.status != MovieWriterStatusRecording) {
+            return;
+        }
         
         for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
             if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
@@ -2968,12 +2917,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     }
                 }
                 
-                if (movieAssetWriter != nil) {
-                    BOOL _startSessionCalled = [CaptureService startSessionCalledForAssetWriter:movieAssetWriter.assetWriter];
-                    
-                    if (_startSessionCalled) {
-                        [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
-                    }
+                if (movieWriter.status == MovieWriterStatusRecording) {
+                    [movieWriter appendTimedMetadataGroup:metadataGroup];
                 }
                 
                 [metadataGroup release];
@@ -2985,8 +2930,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (void)queue_handleVideoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
 #warning Intrinsic
     dispatch_assert_queue(self.captureSessionQueue);
-    
-    [self.queue_latestVideoFormatDescriptionsByVideoDataOutput setObject:(id)CMSampleBufferGetFormatDescription(sampleBuffer) forKey:videoDataOutput];
     
     NSSet<AVCaptureDevice *> *videoDevices = [self queue_videoCaptureDevicesFromOutput:videoDataOutput];
     assert(videoDevices.count == 1);
@@ -3003,62 +2946,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     PixelBufferLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:videoDevice];
     assert(previewLayer != nil);
     [previewLayer updateWithPixelBuffer:imageBuffer];
-    
-    if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
-        AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
-        
-        if (assetWriter.status == AVAssetWriterStatusWriting) {
-            BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
-            
-            if (!startSessionCalled) {
-                [assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
-            }
-            
-            if (movieAssetWriter.videoPixelBufferAdaptor.assetWriterInput.isReadyForMoreMediaData) {
-                if (imageBuffer != nil) {
-                    BOOL success = [movieAssetWriter.videoPixelBufferAdaptor appendPixelBuffer:imageBuffer withPresentationTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
-                    if (!success) {
-                        NSLog(@"%@", assetWriter.error);
-                    }
-                }
-            }
-        }
-    }
 }
 
 - (void)queue_handleAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
 #warning 파형 그려보기
-    dispatch_assert_queue(self.captureSessionQueue);
+//    dispatch_assert_queue(self.captureSessionQueue);
     
-    [self.queue_latestAudioFormatDescriptionsByAudioDataOutput setObject:(id)CMSampleBufferGetFormatDescription(sampleBuffer) forKey:audioDataOutput];
-    
-    NSSet<AVCaptureDevice *> *audioDevices = [self queue_audioCaptureDevicesFromOutput:audioDataOutput];
-    assert(audioDevices.count == 1);
-    AVCaptureDevice *audioDevice = audioDevices.allObjects[0];
-    
-    for (AVCaptureDevice *videoDevice in self.queue_audioDevicesByVideoDeviceForAssetWriter.keyEnumerator) {
-        if (![[self.queue_audioDevicesByVideoDeviceForAssetWriter objectForKey:videoDevice] isEqual:audioDevice]) continue;
-        
-        if (MovieAssetWriter *movieAssetWriter = [self.queue_movieAssetWritersByVideoDevice objectForKey:videoDevice]) {
-            AVAssetWriter *assetWriter = movieAssetWriter.assetWriter;
-            
-            if (assetWriter.status == AVAssetWriterStatusWriting) {
-                BOOL startSessionCalled = [CaptureService startSessionCalledForAssetWriter:assetWriter];
-                
-                if (!startSessionCalled) {
-                    return;
-                }
-                
-                if (movieAssetWriter.audioWriterInput.isReadyForMoreMediaData) {
-                    BOOL success = [movieAssetWriter.audioWriterInput appendSampleBuffer:sampleBuffer];
-                    
-                    if (!success) {
-                        NSLog(@"%@", movieAssetWriter.assetWriter.error);
-                    }
-                }
-            }
-        }
-    }
 }
 
 
@@ -3178,8 +3071,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     }
                 }
                 
-                for (MovieAssetWriter *movieAssetWriter in self.queue_movieAssetWritersByVideoDevice.objectEnumerator) {
-                    [movieAssetWriter.metadataAdaptor appendTimedMetadataGroup:metadataGroup];
+                for (MovieWriter *movieWriter in self.queue_movieWritersByVideoDevice.objectEnumerator) {
+                    if (movieWriter.status == MovieWriterStatusRecording) {
+                        [movieWriter appendTimedMetadataGroup:metadataGroup];
+                    }
                 }
                 
                 [metadataGroup release];

@@ -22,45 +22,56 @@
     CMFormatDescriptionRef _Nullable _audioSourceFormatHint;
     CMMetadataFormatDescriptionRef _Nullable _metadataSourceFormatHint;
 }
-@property (retain, nonatomic, nullable) AVAssetWriter *assetWriter;
-@property (retain, nonatomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
-@property (retain, nonatomic, nullable) AVAssetWriterInput *audioWriterInput;
-@property (retain, nonatomic, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
+@property (retain, atomic, nullable) AVAssetWriter *assetWriter;
+@property (retain, atomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
+@property (retain, atomic, nullable) AVAssetWriterInput *audioWriterInput;
+@property (retain, atomic, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
 @property (retain, nonatomic, readonly) __kindof BaseFileOutput *fileOutput;
 @property (copy, nonatomic, readonly) CLLocation * _Nullable (^locationHandler)(void);
 @property (retain, nonatomic, readonly) dispatch_queue_t isolatedQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t videoQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t audioQueue;
-@property (assign, nonatomic, readonly) BOOL toggleConnectionEnabled;
-@property (assign, nonatomic, readonly) BOOL useFastRecording;
-@property (assign, nonatomic, getter=isPaused) BOOL paused;
+@property (assign, atomic, getter=isPaused) BOOL paused;
 @property (copy, nonatomic, readonly) NSDictionary<NSString *, id> *metadataOutputSettings;
 @end
 
 @implementation MovieWriter
+@synthesize audioDataOutput = _audioDataOutput;
+@synthesize toggleConnectionStatus = _toggleConnectionStatus;
 
-+ (BOOL)startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
++ (BOOL)_doesAssetWriterHelperExists:(AVAssetWriter *)assetWriter {
     id _internal;
     assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
     
     id helper;
     assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
     
+    return helper != nil;
+}
+
++ (BOOL)_startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
+    id _internal;
+    assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nil);
+    
+    id helper;
+    assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nil);
+    
+    NSLog(@"%@", helper);
+    if (helper == nil) {
+        return NO;
+    }
+    
+    NSLog(@"%@", helper);
+    
     BOOL _startSessionCalled;
-    assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nullptr);
+    assert(object_getInstanceVariable(helper, "_startSessionCalled", reinterpret_cast<void **>(&_startSessionCalled)) != nil);
     
     return _startSessionCalled;
 }
 
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput audioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint toggleConnectionEnabled:(BOOL)toggleConnectionEnabled isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
-    return [self _initWithFileOutput:fileOutput videoDataOutput:videoDataOutput audioDataOutput:audioDataOutput metadataOutputSettings:metadataOutputSettings metadataSourceFormatHint:metadataSourceFormatHint toggleConnectionEnabled:toggleConnectionEnabled useFastRecording:NO isolatedQueue:isolatedQueue locationHandler:locationHandler];
-}
-
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput audioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
-    return [self _initWithFileOutput:fileOutput videoDataOutput:videoDataOutput audioDataOutput:audioDataOutput metadataOutputSettings:metadataOutputSettings metadataSourceFormatHint:metadataSourceFormatHint toggleConnectionEnabled:NO useFastRecording:useFastRecording isolatedQueue:isolatedQueue locationHandler:locationHandler];
-}
-
-- (instancetype)_initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput audioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint toggleConnectionEnabled:(BOOL)toggleConnectionEnabled useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint toggleConnectionStatus:(BOOL)toggleConnectionStatus useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
+    assert(!(toggleConnectionStatus && useFastRecording));
+    
     if (self = [super init]) {
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t videoQueue = dispatch_queue_create("Movie Writer Video Queue", attr);
@@ -68,22 +79,21 @@
         
         dispatch_retain(isolatedQueue);
         _isolatedQueue = isolatedQueue;
-        _toggleConnectionEnabled = toggleConnectionEnabled;
+        _toggleConnectionStatus = toggleConnectionStatus;
         _useFastRecording = useFastRecording;
         _videoQueue = videoQueue;
         _audioQueue = audioQueue;
         _videoDataOutput = [videoDataOutput retain];
-        _audioDataOutput = [audioDataOutput retain];
         _fileOutput = [fileOutput retain];
         _locationHandler = [locationHandler copy];
-        _toggleConnectionEnabled = toggleConnectionEnabled;
+        _toggleConnectionStatus = toggleConnectionStatus;
         CFRetain(metadataSourceFormatHint);
         _metadataSourceFormatHint = metadataSourceFormatHint;
         _metadataOutputSettings = [metadataOutputSettings copy];
         
         if (useFastRecording) {
             [self _enableAllConnections];
-        } else if (toggleConnectionEnabled) {
+        } else if (toggleConnectionStatus) {
             [self _disableAllConnections];
         }
         
@@ -91,13 +101,10 @@
         
         assert(videoDataOutput.sampleBufferDelegate == nil);
         assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(videoDataOutput, sel_registerName("delegateOverride")) == nil);
+        videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
         videoDataOutput.deliversPreviewSizedOutputBuffers = NO;
         videoDataOutput.alwaysDiscardsLateVideoFrames = NO;
         [videoDataOutput setSampleBufferDelegate:self queue:videoQueue];
-        
-        assert(audioDataOutput.sampleBufferDelegate == nil);
-        assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioDataOutput, sel_registerName("delegateOverride")) == nil);
-        [audioDataOutput setSampleBufferDelegate:self queue:audioQueue];
     }
     
     return self;
@@ -124,22 +131,78 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isKindOfClass:AVAssetWriter.class]) {
-        <#code to be executed upon observing keypath#>
-    } else {
-        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        auto assetWriter = static_cast<AVAssetWriter *>(object);
+        
+        if ([keyPath isEqualToString:@"status"]) {
+            dispatch_async(self.isolatedQueue, ^{
+                if ([self.assetWriter isEqual:assetWriter]) {
+                    [self _didChangeStatusWithAssetWriter:assetWriter];
+                } else {
+                    abort();
+                }
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"error"]) {
+            assert(assetWriter.error == nil);
+            return;
+        }
     }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
+
+- (AVCaptureAudioDataOutput *)audioDataOutput {
+    dispatch_assert_queue(self.isolatedQueue);
+    return [[_audioDataOutput retain] autorelease];
+}
+
+- (void)setAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    assert(self.assetWriter == nil);
+    
+    if (auto _oldAudioDataOutput = _audioDataOutput) {
+        [_oldAudioDataOutput setSampleBufferDelegate:nil queue:nil];
+        [_oldAudioDataOutput release];
+    }
+    
+    _audioDataOutput = [audioDataOutput retain];
+    assert(audioDataOutput.sampleBufferDelegate == nil);
+    assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioDataOutput, sel_registerName("delegateOverride")) == nil);
+    [audioDataOutput setSampleBufferDelegate:self queue:self.audioQueue];
 }
 
 - (MovieWriterStatus)status {
     dispatch_assert_queue(self.isolatedQueue);
     
-    if (self.assetWriter == nil) {
-        return MovieWriterStatusPending;
-    } else if (self.isPaused) {
-        return MovieWriterStatusPaused;
+    if (AVAssetWriter *assetWriter = self.assetWriter) {
+        if (self.isPaused) {
+            return MovieWriterStatusPaused;
+        } else if (assetWriter.status == AVAssetWriterStatusWriting) {
+            return MovieWriterStatusRecording;
+        } else {
+            return MovieWriterStatusUnknown;
+        }
     } else {
-        return MovieWriterStatusRecording;
+        return MovieWriterStatusPending;
     }
+}
+
+- (BOOL)toggleConnectionStatus {
+    dispatch_assert_queue(self.isolatedQueue);
+    return _toggleConnectionStatus;
+}
+
+- (void)setToggleConnectionStatus:(BOOL)toggleConnectionStatus {
+    dispatch_assert_queue(self.isolatedQueue);
+    assert(!(toggleConnectionStatus && self.useFastRecording));
+    _toggleConnectionStatus = toggleConnectionStatus;
+}
+
+- (void)setUseFastRecording:(BOOL)useFastRecording {
+    dispatch_assert_queue(self.isolatedQueue);
+    assert(!(self.toggleConnectionStatus && useFastRecording));
+    _useFastRecording = useFastRecording;
 }
 
 - (void)startRecording {
@@ -153,7 +216,7 @@
     assert(error == nil);
     self.assetWriter = assetWriter;
     
-    [assetWriter addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nullptr];
+    [self _registerObserversForAssetWriter:assetWriter];
     
     //
     
@@ -171,14 +234,16 @@
     
     //
     
-    NSDictionary<NSString *, id> *audioOutputSettings = [self.audioDataOutput recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
-    
-    AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:_audioSourceFormatHint];
-    audioWriterInput.expectsMediaDataInRealTime = YES;
-    assert([assetWriter canAddInput:audioWriterInput]);
-    [assetWriter addInput:audioWriterInput];
-    self.audioWriterInput = audioWriterInput;
-    [audioWriterInput release];
+    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
+        NSDictionary<NSString *, id> *audioOutputSettings = [audioDataOutput recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
+        
+        AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:_audioSourceFormatHint];
+        audioWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:audioWriterInput]);
+        [assetWriter addInput:audioWriterInput];
+        self.audioWriterInput = audioWriterInput;
+        [audioWriterInput release];
+    }
     
     //
     
@@ -220,13 +285,39 @@
 - (void)pauseRecording {
     dispatch_assert_queue(self.isolatedQueue);
     
-    abort();
+    AVAssetWriter *assetWriter = self.assetWriter;
+    assert(assetWriter != nil);
+    assert(assetWriter.status == AVAssetWriterStatusWriting);
+    
+    assert(!self.isPaused);
+    
+    self.paused = YES;
 }
 
-- (void)stopRecording {
+- (void)resumeRecording {
     dispatch_assert_queue(self.isolatedQueue);
     
-    abort();
+    AVAssetWriter *assetWriter = self.assetWriter;
+    assert(assetWriter != nil);
+    assert(assetWriter.status == AVAssetWriterStatusWriting);
+    
+    assert(self.isPaused);
+    
+    self.paused = NO;
+}
+
+- (void)stopRecordingWithCompletionHandler:(void (^ _Nullable)(void))completionHandler {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    AVAssetWriter *assetWriter = self.assetWriter;
+    assert(assetWriter != nil);
+    
+    [assetWriter finishWritingWithCompletionHandler:^{
+        dispatch_async(self.isolatedQueue, ^{
+            [self _didCompleteAssetWriter];
+            if (completionHandler) completionHandler();
+        });
+    }];
 }
 
 - (NSURL *)_nextURL {
@@ -259,20 +350,26 @@
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Video);
     
-    CFRelease(_videoSourceFormatHint);
-    _videoSourceFormatHint = desc;
-    CFRetain(desc);
+    if (self.useFastRecording) {
+        CFRelease(_videoSourceFormatHint);
+        _videoSourceFormatHint = desc;
+        CFRetain(desc);
+    }
     
     AVAssetWriter *assetWriter = self.assetWriter;
     if (assetWriter == nil) return;
-    
-    assert(assetWriter.status == AVAssetWriterStatusWriting);
+    if (assetWriter.status != AVAssetWriterStatusWriting or self.isPaused) {
+        return;
+    }
     
     CMTime timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
     
-    BOOL startSessionCalled = [MovieWriter startSessionCalledForAssetWriter:assetWriter];
+    BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
     if (!startSessionCalled) {
-        [assetWriter startSessionAtSourceTime:timestamp];
+        // -finishWritingWithCompletionHandler:이 불리는 동안은 AVAssetWriterStatusWriting이며 Helper가 존재하지 않는다.
+        if ([MovieWriter _doesAssetWriterHelperExists:assetWriter]) {
+            [assetWriter startSessionAtSourceTime:timestamp];
+        }
     }
     
     AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor = self.videoPixelBufferAdaptor;
@@ -295,16 +392,21 @@
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Audio);
     
-    CFRelease(_audioSourceFormatHint);
-    _audioSourceFormatHint = desc;
-    CFRetain(desc);
+    if (self.useFastRecording) {
+        CFRelease(_audioSourceFormatHint);
+        _audioSourceFormatHint = desc;
+        CFRetain(desc);
+    }
     
     AVAssetWriter *assetWriter = self.assetWriter;
     if (assetWriter == nil) return;
+    if (assetWriter.status != AVAssetWriterStatusWriting or self.isPaused) {
+        return;
+    }
     
     assert(assetWriter.status == AVAssetWriterStatusWriting);
     
-    BOOL startSessionCalled = [MovieWriter startSessionCalledForAssetWriter:assetWriter];
+    BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
     
     if (startSessionCalled) {
         AVAssetWriterInput *audioWriterInput = self.audioWriterInput;
@@ -325,9 +427,13 @@
     
     AVAssetWriter *assetWriter = self.assetWriter;
     assert(assetWriter != nil);
+    if (assetWriter.status == AVAssetWriterStatusCompleted or self.isPaused) {
+        return;
+    }
+    
     assert(assetWriter.status == AVAssetWriterStatusWriting);
     
-    if ([MovieWriter startSessionCalledForAssetWriter:assetWriter]) {
+    if ([MovieWriter _startSessionCalledForAssetWriter:assetWriter]) {
         AVAssetWriterInputMetadataAdaptor *metadataAdaptor = self.metadataAdaptor;
         
         BOOL success = [metadataAdaptor appendTimedMetadataGroup:timedMetadataGroup];
@@ -339,22 +445,30 @@
 }
 
 - (void)_enableAllConnections {
+    assert(self.videoDataOutput.connections.count > 0);
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = YES;
     }
     
-    for (AVCaptureConnection *connection in self.audioDataOutput.connections) {
-        connection.enabled = YES;
+    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
+        assert(audioDataOutput.connections.count > 0);
+        for (AVCaptureConnection *connection in audioDataOutput.connections) {
+            connection.enabled = YES;
+        }
     }
 }
 
 - (void)_disableAllConnections {
+    assert(self.videoDataOutput.connections.count > 0);
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = NO;
     }
     
-    for (AVCaptureConnection *connection in self.audioDataOutput.connections) {
-        connection.enabled = NO;
+    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
+        assert(audioDataOutput.connections.count > 0);
+        for (AVCaptureConnection *connection in audioDataOutput.connections) {
+            connection.enabled = NO;
+        }
     }
 }
 
@@ -368,14 +482,93 @@
     [assetWriter removeObserver:self forKeyPath:@"error"];
 }
 
+- (void)_didChangeStatusWithAssetWriter:(AVAssetWriter *)assetWriter {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    AVAssetWriterStatus status = assetWriter.status;
+    
+    switch (status) {
+        case AVAssetWriterStatusFailed:
+        case AVAssetWriterStatusCancelled:
+            abort();
+        case AVAssetWriterStatusCompleted:
+            [self _didCompleteAssetWriter];
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)_didCompleteAssetWriter {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    if (self.toggleConnectionStatus) {
+        [self _disableAllConnections];
+    }
+    
+    if (self.assetWriter != nil) {
+        [self _saveVideoFile];
+        [self _flushAssetWriter];
+    }
+}
+
+- (void)_flushAssetWriter {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    AVAssetWriter *assetWriter = self.assetWriter;
+    assert(assetWriter != nil);
+    assert(assetWriter.status != AVAssetWriterStatusWriting);
+    
+    [self _unregisterObserversForAssetWriter:assetWriter];
+    self.assetWriter = nil;
+    self.videoPixelBufferAdaptor = nil;
+    self.audioWriterInput = nil;
+    self.metadataAdaptor = nil;
+}
+
+- (void)_saveVideoFile {
+    dispatch_assert_queue(self.isolatedQueue);
+    
+    AVAssetWriter *assetWriter = self.assetWriter;
+    assert(assetWriter != nil);
+    
+    NSURL *outputURL = assetWriter.outputURL;
+    
+    __kindof BaseFileOutput *fileOutput = self.fileOutput;
+    
+    if (fileOutput.class == PhotoLibraryFileOutput.class) {
+        auto photoLibraryFileOutput = static_cast<PhotoLibraryFileOutput *>(fileOutput);
+        
+        [photoLibraryFileOutput.photoLibrary performChanges:^{
+            PHAssetCreationRequest *request = [PHAssetCreationRequest creationRequestForAsset];
+            
+            [request addResourceWithType:PHAssetResourceTypeVideo fileURL:outputURL options:nil];
+            
+            request.location = self.locationHandler();
+        }
+                                        completionHandler:^(BOOL success, NSError * _Nullable error) {
+            NSLog(@"%d %@", success, error);
+            assert(error == nil);
+            
+            [NSFileManager.defaultManager removeItemAtURL:outputURL error:&error];
+            [outputURL stopAccessingSecurityScopedResource];
+            assert(error == nil);
+        }];
+    } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
+        [outputURL stopAccessingSecurityScopedResource];
+    } else {
+        abort();
+    }
+}
+
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     
     if (mediaType == kCMMediaType_Video) {
-        [self _appendAudioSampleBuffer:sampleBuffer];
-    } else if (mediaType == kCMMediaType_Audio) {
         [self _appendVideoSampleBuffer:sampleBuffer];
+    } else if (mediaType == kCMMediaType_Audio) {
+        [self _appendAudioSampleBuffer:sampleBuffer];
     }
 }
 
