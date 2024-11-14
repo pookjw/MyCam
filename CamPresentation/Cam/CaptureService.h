@@ -11,6 +11,7 @@
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 #import <CamPresentation/PixelBufferLayer.h>
+#import <CamPresentation/MovieWriter.h>
 #import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -88,8 +89,7 @@ API_UNAVAILABLE(visionos)
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
-- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^ _Nullable)(void))completionHandler;
-- (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
+- (MovieWriter *)queue_movieWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -37,7 +37,6 @@
 
 @implementation MovieWriter
 @synthesize audioDataOutput = _audioDataOutput;
-@synthesize toggleConnectionStatus = _toggleConnectionStatus;
 
 + (BOOL)_isFinishWriting:(AVAssetWriter *)assetWriter {
     id _internal;
@@ -70,9 +69,7 @@
     return _startSessionCalled;
 }
 
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint toggleConnectionStatus:(BOOL)toggleConnectionStatus useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
-    assert(!(toggleConnectionStatus && useFastRecording));
-    
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
     if (self = [super init]) {
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t videoQueue = dispatch_queue_create("Movie Writer Video Queue", attr);
@@ -80,21 +77,19 @@
         
         dispatch_retain(isolatedQueue);
         _isolatedQueue = isolatedQueue;
-        _toggleConnectionStatus = toggleConnectionStatus;
         _useFastRecording = useFastRecording;
         _videoQueue = videoQueue;
         _audioQueue = audioQueue;
         _videoDataOutput = [videoDataOutput retain];
         _fileOutput = [fileOutput retain];
         _locationHandler = [locationHandler copy];
-        _toggleConnectionStatus = toggleConnectionStatus;
         CFRetain(metadataSourceFormatHint);
         _metadataSourceFormatHint = metadataSourceFormatHint;
         _metadataOutputSettings = [metadataOutputSettings copy];
         
         if (useFastRecording) {
             [self _enableAllConnections];
-        } else if (toggleConnectionStatus) {
+        } else {
             [self _disableAllConnections];
         }
         
@@ -115,6 +110,7 @@
     [_videoDataOutput release];
     [_audioDataOutput release];
     [_fileOutput release];
+    [_metadataOutputSettings release];
     [_videoPixelBufferAdaptor release];
     [_audioWriterInput release];
     [_metadataAdaptor release];
@@ -124,8 +120,14 @@
     dispatch_release(_isolatedQueue);
     dispatch_release(_videoQueue);
     dispatch_release(_audioQueue);
-    CFRelease(_videoSourceFormatHint);
-    CFRelease(_audioSourceFormatHint);
+    
+    if (_videoSourceFormatHint) {
+        CFRelease(_videoSourceFormatHint);
+    }
+    if (_audioSourceFormatHint) {
+        CFRelease(_audioSourceFormatHint);
+    }
+    
     CFRelease(_metadataSourceFormatHint);
     [super dealloc];
 }
@@ -171,7 +173,7 @@
     
     if (self.useFastRecording) {
         [self _enableAllConnections];
-    } else if (self.toggleConnectionStatus) {
+    } else {
         [self _disableAllConnections];
     }
     
@@ -194,21 +196,17 @@
     }
 }
 
-- (BOOL)toggleConnectionStatus {
-    dispatch_assert_queue(self.isolatedQueue);
-    return _toggleConnectionStatus;
-}
-
-- (void)setToggleConnectionStatus:(BOOL)toggleConnectionStatus {
-    dispatch_assert_queue(self.isolatedQueue);
-    assert(!(toggleConnectionStatus && self.useFastRecording));
-    _toggleConnectionStatus = toggleConnectionStatus;
-}
-
 - (void)setUseFastRecording:(BOOL)useFastRecording {
     dispatch_assert_queue(self.isolatedQueue);
-    assert(!(self.toggleConnectionStatus && useFastRecording));
     _useFastRecording = useFastRecording;
+    
+    if (self.assetWriter == nil) {
+        if (useFastRecording) {
+            [self _enableAllConnections];
+        } else {
+            [self _disableAllConnections];
+        }
+    }
 }
 
 - (void)startRecording {
@@ -357,7 +355,10 @@
     assert(mediaType == kCMMediaType_Video);
     
     if (self.useFastRecording) {
-        CFRelease(_videoSourceFormatHint);
+        if (CMFormatDescriptionRef _Nullable videoSourceFormatHint = _videoSourceFormatHint) {
+            CFRelease(videoSourceFormatHint);
+        }
+        
         _videoSourceFormatHint = desc;
         CFRetain(desc);
     }
@@ -401,7 +402,10 @@
     assert(mediaType == kCMMediaType_Audio);
     
     if (self.useFastRecording) {
-        CFRelease(_audioSourceFormatHint);
+        if (CMFormatDescriptionRef _Nullable audioSourceFormatHint = _audioSourceFormatHint) {
+            CFRelease(audioSourceFormatHint);
+        }
+        
         _audioSourceFormatHint = desc;
         CFRetain(desc);
     }
@@ -518,9 +522,7 @@
 - (void)_didCompleteAssetWriter {
     dispatch_assert_queue(self.isolatedQueue);
     
-    if (self.toggleConnectionStatus) {
-        [self _disableAllConnections];
-    }
+    [self _disableAllConnections];
     
     if (self.assetWriter != nil) {
         [self _saveVideoFile];

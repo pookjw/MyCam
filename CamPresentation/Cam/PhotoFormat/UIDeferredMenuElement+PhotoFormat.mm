@@ -333,6 +333,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                                          nullptr,
                                                          &description);
         assert(status == 0);
+        CFRelease(description);
         
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
         
@@ -376,6 +377,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         assert(status == 0);
         
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
+        CFRelease(description);
         
         NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
         menu.subtitle = string;
@@ -3639,6 +3641,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu * _Nonnull)_cp_queue_assetWriterMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Asset Writer" children:@[
         [UIDeferredMenuElement _cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleUseFastRecordingWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
     ]];
 }
@@ -3686,13 +3689,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    BOOL isRecording = [captureService queue_isRecordingUsingAssetWriterWithVideoDevice:videoDevice];
+    MovieWriter *movieWriter = [captureService queue_movieWriterWithVideoDevice:videoDevice];
     
 #warning Pause Recording
-    if (isRecording) {
+    if (movieWriter.status == MovieWriterStatusRecording) {
         UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                [captureService queue_stopRecordingUsingAssetWriterWithVideoDevice:videoDevice completionHandler:didChangeHandler];
+                [movieWriter stopRecordingWithCompletionHandler:didChangeHandler];
             });
         }];
         
@@ -3707,6 +3710,23 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         return action;
     }
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleUseFastRecordingWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    MovieWriter *movieWriter = [captureService queue_movieWriterWithVideoDevice:videoDevice];
+    BOOL useFastRecording = movieWriter.useFastRecording;
+    BOOL isRecording = (movieWriter.status == MovieWriterStatusRecording);
+    
+    UIAction *action = [UIAction actionWithTitle:@"Use Fast Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            movieWriter.useFastRecording = !useFastRecording;
+        });
+    }];
+    
+    action.state = useFastRecording ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isRecording ? UIMenuElementAttributesDisabled : 0;
+    
+    return action;
 }
 
 + (UIMenu * _Nonnull)_cp_quuee_minimumSizeZoomMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice {

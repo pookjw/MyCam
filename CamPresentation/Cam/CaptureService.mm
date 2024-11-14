@@ -20,8 +20,6 @@
 #import <CamPresentation/ImageBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
-#import <CamPresentation/MovieWriter.h>
-#import <UIKit/UIKit.h>
 
 #warning HDR Format Filter
 #warning Zoom, Exposure
@@ -778,7 +776,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                                                        videoDataOutput:movieVideoDataOutput
                                                 metadataOutputSettings:nil
                                               metadataSourceFormatHint:metadataFormatDescription
-                                                toggleConnectionStatus:YES
                                                       useFastRecording:NO
                                                          isolatedQueue:self.captureSessionQueue
                                                        locationHandler:^CLLocation * _Nullable{
@@ -867,6 +864,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         [captureSession addOutputWithNoConnections:metadataOutput];
         
         AVCaptureConnection *metadataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataObjectInputPort] output:metadataOutput];
+        [metadataOutput release];
         reason = nil;
         assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), metadataOutputConnection, &reason));
         [captureSession addConnection:metadataOutputConnection];
@@ -2060,6 +2058,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [outputURL startAccessingSecurityScopedResource];
     [movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+}
+
+- (MovieWriter *)queue_movieWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
+    assert(movieWriter != nil);
+    return movieWriter;
 }
 
 - (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
