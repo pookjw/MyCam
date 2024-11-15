@@ -455,7 +455,7 @@
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
-        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDeviceCopiedMapTable = captureService.queue_previewLayersByCaptureDeviceCopiedMapTable;
+        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = captureService.queue_previewLayersByCaptureDevice;
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *customPreviewLayersByCaptureDeviceCopiedMapTable = captureService.queue_customPreviewLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *depthMapLayersByCaptureDeviceCopiedMapTable = captureService.queue_depthMapLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, __kindof CALayer *> *visionLayersByCaptureDeviceCopiedMapTable = captureService.queue_visionLayersByCaptureDeviceCopiedMapTable;
@@ -468,7 +468,7 @@
                 if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
                 
                 BOOL isRemoved = YES;
-                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDeviceCopiedMapTable.objectEnumerator) {
+                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDevice.objectEnumerator) {
                     if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
                         isRemoved = NO;
                         break;
@@ -485,7 +485,7 @@
             }
             
             for (AVCaptureDevice * captureDevice in customPreviewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
-                AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
+                AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDevice objectForKey:captureDevice];
                 PixelBufferLayer *customPreviewLayer = [customPreviewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable depthMapLayer = [depthMapLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 __kindof CALayer * _Nullable visionLayer = [visionLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
