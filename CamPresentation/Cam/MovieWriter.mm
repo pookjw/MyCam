@@ -19,7 +19,6 @@
 
 @interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate> {
     CMFormatDescriptionRef _Nullable _videoSourceFormatHint;
-    CMMetadataFormatDescriptionRef _Nullable _metadataSourceFormatHint;
 }
 @property (retain, atomic, nullable) AVAssetWriter *assetWriter;
 @property (retain, atomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
@@ -30,7 +29,6 @@
 @property (retain, nonatomic, readonly) dispatch_queue_t videoQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t audioQueue;
 @property (assign, atomic, getter=isPaused) BOOL paused;
-@property (copy, nonatomic, readonly) NSDictionary<NSString *, id> *metadataOutputSettings;
 @end
 
 @implementation MovieWriter
@@ -225,7 +223,7 @@
     
     //
     
-    AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:self.metadataOutputSettings sourceFormatHint:_metadataSourceFormatHint];
+    AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:self.metadataOutputSettings sourceFormatHint:self.metadataSourceFormatHint];
     metadataWriterInput.expectsMediaDataInRealTime = YES;
     assert([assetWriter canAddInput:metadataWriterInput]);
     [assetWriter addInput:metadataWriterInput];

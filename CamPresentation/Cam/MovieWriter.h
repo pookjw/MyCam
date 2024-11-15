@@ -13,9 +13,6 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /*
- Audio (또한 Multi Cam일 때 설정값 유지 해줘야함)
- -> CaptureService에서 Audio Queue를 따로 생성하고, Audio Queue에서 MovieWrites에 접근 가능한 Map이 따로 있어야 하나?
- 
  Spatial https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
  
  이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
@@ -34,8 +31,11 @@ API_UNAVAILABLE(visionos)
 @interface MovieWriter : NSObject
 @property (retain, nonatomic, nullable) __kindof BaseFileOutput *fileOutput;
 @property (retain, nonatomic, readonly) AVCaptureVideoDataOutput *videoDataOutput;
-@property (nonatomic, readonly) MovieWriterStatus status;
+@property (copy, nonatomic, readonly) NSDictionary<NSString *, id> *metadataOutputSettings;
 @property (assign, nonatomic) BOOL useFastRecording;
+@property (assign, nonatomic, readonly, nullable) CMMetadataFormatDescriptionRef metadataSourceFormatHint;
+
+@property (nonatomic, readonly) MovieWriterStatus status;
 
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
