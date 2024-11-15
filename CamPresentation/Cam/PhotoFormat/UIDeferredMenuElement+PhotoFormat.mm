@@ -71,6 +71,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_selectPreviewLayerMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_depthMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_visionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -3775,6 +3777,42 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     });
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Minimum Size" children:@[element]];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_queue_selectPreviewLayerMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isNativeSelected = [captureService queue_isPreviewLayerEnabledForVideoDevice:videoDevice];
+    BOOL isCustomSelected = [captureService queue_isCustomPreviewLayerEnabledForVideoDevice:videoDevice];
+    
+    UIAction *nativePreviewLayerAction = [UIAction actionWithTitle:NSStringFromClass(AVCaptureVideoPreviewLayer.class) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
+            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    nativePreviewLayerAction.state = isNativeSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    UIAction *customPreviewLayerAction = [UIAction actionWithTitle:@"Custom" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setCustomPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    customPreviewLayerAction.state = isCustomSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Preview Layer Type" children:@[
+        nativePreviewLayerAction,
+        customPreviewLayerAction
+    ]];
+    
+    if (isNativeSelected) {
+        menu.subtitle = NSStringFromClass(AVCaptureVideoPreviewLayer.class);
+    } else if (isCustomSelected) {
+        menu.subtitle = @"Custom";
+    }
     
     return menu;
 }

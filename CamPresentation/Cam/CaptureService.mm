@@ -770,6 +770,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
     [previewLayer release];
+    previewLayer.hidden = YES;
+    previewLayerConnection.enabled = NO;
     [captureSession addConnection:previewLayerConnection];
     previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
     [previewLayerConnection release];
@@ -1564,6 +1566,71 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(connection != nil);
     
     return connection.isEnabled;
+}
+
+- (BOOL)queue_isPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCaptureVideoPreviewLayer *previewLayer = [self queue_previewLayerFromCaptureDevice:videoDevice];
+    assert(previewLayer != nil);
+    assert(previewLayer.connection != nil);
+    
+    return previewLayer.connection.isEnabled;
+}
+
+- (void)queue_setPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    AVCaptureVideoPreviewLayer *previewLayer = [self queue_previewLayerFromCaptureDevice:videoDevice];
+    assert(previewLayer != nil);
+    assert(previewLayer.connection != nil);
+    
+    previewLayer.connection.enabled = enabled;
+    
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        previewLayer.hidden = !enabled;
+    });
+}
+
+- (BOOL)queue_isCustomPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+        if (!videoDataOutput.deliversPreviewSizedOutputBuffers) continue;
+        
+        assert(videoDataOutput.connections.count == 1);
+        AVCaptureConnection *connection = videoDataOutput.connections.firstObject;
+        assert(connection != nil);
+        
+        return connection.enabled;
+    }
+    
+    abort();
+}
+
+- (void)queue_setCustomPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+        if (!videoDataOutput.deliversPreviewSizedOutputBuffers) continue;
+        
+        assert(videoDataOutput.connections.count == 1);
+        AVCaptureConnection *connection = videoDataOutput.connections.firstObject;
+        assert(connection != nil);
+        
+        connection.enabled = enabled;
+        
+        PixelBufferLayer *customPreviewLayer = [self.queue_customPreviewLayersByCaptureDevice objectForKey:videoDevice];
+        assert(customPreviewLayer != nil);
+        
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            customPreviewLayer.hidden = !enabled;
+        });
+        
+        return;
+    }
+    
+    abort();
 }
 
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {

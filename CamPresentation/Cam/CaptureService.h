@@ -57,6 +57,12 @@ API_UNAVAILABLE(visionos)
 
 - (__kindof AVCaptureOutput * _Nullable)queue_toBeRemoved_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice __attribute__((deprecated));
 
+- (BOOL)queue_isPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_setPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;
+
+- (BOOL)queue_isCustomPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_setCustomPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;
+
 - (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
 - (__kindof CALayer * _Nullable)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
