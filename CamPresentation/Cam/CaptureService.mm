@@ -2578,12 +2578,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     } else {
                         abort();
                     }
-                    
-                    assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice]);
-                    [self.queue_customPreviewLayersByCaptureDevice removeObjectForKey:captureDevice];
-                    
-                    // AVCaptureSession <-> AVCaptureMultiCamSession 전환이 될 경우 Preview Layer는 0개 및 1개일 것이며, 1개는 위에서 지워질 것이다.
-                    assert(self.queue_customPreviewLayersByCaptureDevice.count == 0);
                 }
             } else if ([input isKindOfClass:AVCaptureMetadataInput.class]) {
                 
@@ -2623,13 +2617,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 
                 if ([allVideoDeviceTypes containsObject:oldDeviceInput.device.deviceType]) {
                     assert([self.queue_rotationCoordinatorsByCaptureDevice objectForKey:oldDeviceInput.device] == nil);
-                    assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:oldDeviceInput.device] == nil);
                     
-                    PixelBufferLayer *previewLayer = [PixelBufferLayer new];
-                    [self.queue_customPreviewLayersByCaptureDevice setObject:previewLayer forKey:oldDeviceInput.device];
+                    PixelBufferLayer *oldPreviewLayer = [self.queue_customPreviewLayersByCaptureDevice objectForKey:oldDeviceInput.device];
+                    assert(oldPreviewLayer != nil);
                     
-                    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:oldDeviceInput.device previewLayer:previewLayer];
-                    [previewLayer release];
+                    PixelBufferLayer *customPreviewLayer = [PixelBufferLayer new];
+                    customPreviewLayer.hidden = oldPreviewLayer.isHidden;
+                    [self.queue_customPreviewLayersByCaptureDevice setObject:customPreviewLayer forKey:oldDeviceInput.device];
+                    
+                    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:oldDeviceInput.device previewLayer:customPreviewLayer];
+                    [customPreviewLayer release];
                     
                     [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:NULL];
                     [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:oldDeviceInput.device];
@@ -2789,10 +2786,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             AVCaptureInputPort * _Nullable metadataDataInputPort = [addedInput portsWithMediaType:AVMediaTypeMetadataObject sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
             
             AVCaptureConnection *newConnection;
-            if (connection.videoPreviewLayer != nil) {
-                AVCaptureDevice *captureDevice = addedInput.device;
-                
+            if (AVCaptureVideoPreviewLayer *oldPreviewLayer = connection.videoPreviewLayer) {
                 AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
+                previewLayer.hidden = oldPreviewLayer.isHidden;
                 
                 newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
                 [previewLayer release];
