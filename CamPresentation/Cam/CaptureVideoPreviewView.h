@@ -25,8 +25,7 @@ API_UNAVAILABLE(visionos)
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 - (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(PixelBufferLayer *)previewLayer depthMapLayer:(CALayer * _Nullable)depthMapLayer visionLayer:(CALayer * _Nullable)visionLayer metadataObjectsLayer:(CALayer * _Nullable)metadataObjectsLayer;
-#warning deprecated
-- (void)reloadMenu;
+- (void)reloadMenu __attribute__((deprecated));
 @end
 
 NS_ASSUME_NONNULL_END

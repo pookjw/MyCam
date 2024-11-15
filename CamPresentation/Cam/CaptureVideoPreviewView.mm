@@ -520,8 +520,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.spatialCaptureDiscomfortReasonLabel.text = text;
 }
 
-#warning deprecated
-- (void)reloadMenu {
+- (void)reloadMenu __attribute__((deprecated)) {
     UIMenu *menu = [self.menuBarButtonItem.menu copy];
     self.menuBarButtonItem.menu = menu;
     [menu release];
