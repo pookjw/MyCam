@@ -14,8 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 /*
  Spatial https://www.finnvoorhees.com/words/reading-and-writing-spatial-video-with-avfoundation
- 
- 이제 하나의 Video Device는 여러 개의 Video Data Output을 가질 수 있으므로, CaptureService에서 Video Data Output을 다루는 부분을 고려해야함 (VideoDataOutputFromCaptureDevice, queue_outputClass:fromCaptureDevice:)
  */
 
 typedef NS_ENUM(NSUInteger, MovieWriterStatus) {
