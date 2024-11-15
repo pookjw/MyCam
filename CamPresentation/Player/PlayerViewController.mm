@@ -32,7 +32,7 @@
     assert(asset.mediaType == PHAssetMediaTypeVideo);
     
     if (self = [super init]) {
-        _requestID = static_cast<PHImageRequestID>(NSNotFound);
+        _requestID = PHLivePhotoRequestIDInvalid;
         _input = [asset retain];
     }
     
@@ -41,7 +41,7 @@
 
 - (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem {
     if (self = [super init]) {
-        _requestID = static_cast<PHImageRequestID>(NSNotFound);
+        _requestID = PHLivePhotoRequestIDInvalid;
         _input = [playerItem retain];
     }
     
@@ -55,7 +55,7 @@
         return [*ptr release];
     }
     
-    if (_requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+    if (_requestID != PHLivePhotoRequestIDInvalid) {
         [PHImageManager.defaultManager cancelImageRequest:_requestID];
     }
     

@@ -51,7 +51,7 @@
     [_resultHandler release];
     [_localizedTitle release];
     
-    if (_requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+    if (_requestID != PHLivePhotoRequestIDInvalid) {
         [_imageManager cancelImageRequest:_requestID];
     }
     [_imageManager release];
@@ -98,9 +98,9 @@
 
 - (void)cancelRequest {
     PHImageRequestID requestID = self.requestID;
-    if (requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+    if (requestID != PHLivePhotoRequestIDInvalid) {
         [self.imageManager cancelImageRequest:requestID];
-        self.requestID = static_cast<PHImageRequestID>(NSNotFound);
+        self.requestID = PHLivePhotoRequestIDInvalid;
     }
 }
 

@@ -24,7 +24,7 @@
 - (instancetype)initWithAsset:(PHAsset *)asset {
     if (self = [super init]) {
         _asset = [asset retain];
-        _requestID = static_cast<PHImageRequestID>(NSNotFound);
+        _requestID = PHLivePhotoRequestIDInvalid;
     }
     
     return self;
@@ -34,7 +34,7 @@
     [_asset release];
     [_resultHandler release];
     
-    if (_requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+    if (_requestID != PHLivePhotoRequestIDInvalid) {
         [_imageManager cancelImageRequest:_requestID];
     }
     
@@ -68,9 +68,9 @@
     dispatch_assert_queue(dispatch_get_main_queue());
     
     PHImageRequestID requestID = self.requestID;
-    if (requestID != static_cast<PHImageRequestID>(NSNotFound)) {
+    if (requestID != PHLivePhotoRequestIDInvalid) {
         [self.imageManager cancelImageRequest:requestID];
-        self.requestID = static_cast<PHImageRequestID>(NSNotFound);
+        self.requestID = PHLivePhotoRequestIDInvalid;
     }
 }
 
