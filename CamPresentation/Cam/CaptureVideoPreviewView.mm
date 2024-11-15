@@ -84,6 +84,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize blurView = _blurView;
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer customPreviewLayer:(PixelBufferLayer *)customPreviewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
+    assert(previewLayer != nil);
+    
     if (self = [super init]) {
         _captureService = [captureService retain];
         _captureDevice = [captureDevice retain];

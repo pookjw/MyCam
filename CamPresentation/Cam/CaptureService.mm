@@ -621,7 +621,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
-- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable {
+- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
     NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *table = [NSMapTable weakToStrongObjectsMapTable];
@@ -768,8 +768,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
-//    previewLayer.hidden = YES;
-//    previewLayerConnection.enabled = NO;
+    previewLayer.hidden = YES;
+    previewLayerConnection.enabled = NO;
     [previewLayer release];
     [captureSession addConnection:previewLayerConnection];
     previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
@@ -801,8 +801,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:previewVideoDataOutput];
     [previewVideoDataOutput release];
-    customPreviewLayer.hidden = YES;
-    videoDataOutputConnection.enabled = NO;
+//    customPreviewLayer.hidden = YES;
+//    videoDataOutputConnection.enabled = NO;
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
     videoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
