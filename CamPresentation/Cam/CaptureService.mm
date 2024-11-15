@@ -21,6 +21,11 @@
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
 
+/*
+ Rotation이랑 (Connection쪽)
+ Switch할 때 Rotation쪽 봐야 할 것 같음
+ */
+
 #warning HDR Format Filter
 #warning Zoom, Exposure
 #warning AVCaptureDataOutputSynchronizer, AVControlCenterModuleState AVControlCenterCaptureDeviceWatcher
@@ -53,6 +58,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
 @property (retain, nonatomic, readonly) dispatch_queue_t audioDataOutputQueue;
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_customPreviewLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *queue_depthMapLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *queue_pointCloudLayersByCaptureDevice;
@@ -74,7 +80,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @end
 
 @implementation CaptureService
-@synthesize queue_customPreviewLayersByCaptureDevice = _queue_customPreviewLayersByCaptureDevice;
 
 + (void)load {
     Protocol *AVCapturePointCloudDataOutputDelegate = NSProtocolFromString(@"AVCapturePointCloudDataOutputDelegate");
@@ -116,6 +121,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *rotationCoordinatorsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *readinessCoordinatorByCapturePhotoOutput = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *photoFormatModelsByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *customPreviewLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *depthMapLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *pointCloudLayersByCaptureDevice = [NSMapTable weakToStrongObjectsMapTable];
@@ -149,6 +155,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _locationManager = locationManager;
         _queue_rotationCoordinatorsByCaptureDevice = [rotationCoordinatorsByCaptureDevice retain];
         _queue_readinessCoordinatorByCapturePhotoOutput = [readinessCoordinatorByCapturePhotoOutput retain];
+        _queue_previewLayersByCaptureDevice = [previewLayersByCaptureDevice retain];
         _queue_customPreviewLayersByCaptureDevice = [customPreviewLayersByCaptureDevice retain];
         _queue_depthMapLayersByCaptureDevice = [depthMapLayersByCaptureDevice retain];
         _queue_visionLayersByCaptureDevice = [visionLayersByCaptureDevice retain];
@@ -286,6 +293,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                         for (AVCaptureConnection *connection in videoDataOutput.connections) {
                             connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
                         }
+                    }
+                }
+                
+                for (AVCaptureVideoPreviewLayer *previewLayer in self.queue_previewLayersByCaptureDevice.objectEnumerator) {
+                    if ([rotationCoordinator.previewLayer isEqual:previewLayer]) {
+                        previewLayer.connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
                     }
                 }
             });
@@ -520,11 +533,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-- (NSMapTable<AVCaptureDevice *,PixelBufferLayer *> *)queue_customPreviewLayersByCaptureDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    return _queue_customPreviewLayersByCaptureDevice;
-}
-
 - (NSArray<AVCaptureDevice *> *)queue_addedCaptureDevices {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -618,6 +626,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
+- (NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *)queue_previewLayersByCaptureDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_previewLayersByCaptureDevice copy] autorelease];
+}
+
 - (NSMapTable<AVCaptureDevice *,PixelBufferLayer *> *)queue_customPreviewLayersByCaptureDeviceCopiedMapTable {
     dispatch_assert_queue(self.captureSessionQueue);
     return [[self.queue_customPreviewLayersByCaptureDevice copy] autorelease];
@@ -682,12 +695,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [self registerObserversForVideoCaptureDevice:captureDevice];
     
+    assert([self.queue_previewLayersByCaptureDevice objectForKey:captureDevice] == nil);
+    AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
+    [self.queue_previewLayersByCaptureDevice setObject:previewLayer forKey:captureDevice];
+    
     assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     PixelBufferLayer *customPreviewLayer = [PixelBufferLayer new];
     [self.queue_customPreviewLayersByCaptureDevice setObject:customPreviewLayer forKey:captureDevice];
-    
-    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:customPreviewLayer];
     [customPreviewLayer release];
+    
+    AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
     
     [rotationCoodinator addObserver:self forKeyPath:@"videoRotationAngleForHorizonLevelPreview" options:NSKeyValueObservingOptionNew context:nullptr];
     [self.queue_rotationCoordinatorsByCaptureDevice setObject:rotationCoodinator forKey:captureDevice];
@@ -746,6 +763,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVCaptureInputPort * _Nullable visionDataInputPort = [newInput portsWithMediaType:AVMediaTypeVisionData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable cameraCalibrationDataInputPort = [newInput portsWithMediaType:AVMediaTypeCameraCalibrationData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
     AVCaptureInputPort * _Nullable metadataObjectInputPort = [newInput portsWithMediaType:AVMediaTypeMetadataObject sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+    
+    //
+    
+    AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
+    [previewLayer release];
+    [captureSession addConnection:previewLayerConnection];
+    previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
+    [previewLayerConnection release];
     
     //
     
@@ -1539,18 +1564,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return connection.isEnabled;
 }
 
-- (PixelBufferLayer *)queue_customPreviewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+- (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    return [self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice];
+    return [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
 }
 
-- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(PixelBufferLayer *)previewLayer {
+- (AVCaptureDevice *)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    NSMapTable<AVCaptureDevice *,PixelBufferLayer *> *previewLayersByCaptureDevice = self.queue_customPreviewLayersByCaptureDevice;
+    NSMapTable<AVCaptureDevice *,AVCaptureVideoPreviewLayer *> *queue_previewLayersByCaptureDevice = self.queue_previewLayersByCaptureDevice;
     
-    for (AVCaptureDevice *captureDevice in previewLayersByCaptureDevice.keyEnumerator) {
-        PixelBufferLayer *_previewLayer = [previewLayersByCaptureDevice objectForKey:captureDevice];
+    for (AVCaptureDevice *captureDevice in queue_previewLayersByCaptureDevice.keyEnumerator) {
+        AVCaptureVideoPreviewLayer *_previewLayer = [queue_previewLayersByCaptureDevice objectForKey:captureDevice];
         if ([_previewLayer isEqual:previewLayer]) {
             return captureDevice;
         }
@@ -2677,7 +2702,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             
             AVCaptureConnection *newConnection;
             if (connection.videoPreviewLayer != nil) {
-                abort();
+                AVCaptureDevice *captureDevice = addedInput.device;
+                
+                AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
+                [self.queue_previewLayersByCaptureDevice setObject:previewLayer forKey:captureDevice];
+                
+                newConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
+                [previewLayer release];
             } else {
                 __kindof AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
                 assert(addedOutput != nil);
@@ -3036,10 +3067,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
         assert(metadataObjectsLayer != nil);
         
-#warning Preview Layer
-//        AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
-//        
-//        [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
+        AVCaptureVideoPreviewLayer *previewLayer = [self.queue_previewLayersByCaptureDevice objectForKey:captureDevice];
+        
+        [metadataObjectsLayer updateWithMetadataObjects:metadataObjects previewLayer:previewLayer];
         
         //
         

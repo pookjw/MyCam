@@ -59,6 +59,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) UIBarButtonItem *gestureModeMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
+@property (retain, nonatomic, readonly) PixelBufferLayer *customPreviewLayer;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
 @property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
@@ -82,10 +83,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice customPreviewLayer:(PixelBufferLayer *)customPreviewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer customPreviewLayer:(PixelBufferLayer *)customPreviewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
     if (self = [super init]) {
         _captureService = [captureService retain];
         _captureDevice = [captureDevice retain];
+        _previewLayer = [previewLayer retain];
         _customPreviewLayer = [customPreviewLayer retain];
         _depthMapLayer = [depthMapLayer retain];
         _visionLayer = [visionLayer retain];
@@ -95,6 +97,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         layer.wantsExtendedDynamicRangeContent = YES;
         
         CGRect bounds = layer.bounds;
+        
+        previewLayer.frame = bounds;
+        [layer addSublayer:previewLayer];
         
         customPreviewLayer.frame = bounds;
         [layer addSublayer:customPreviewLayer];
@@ -114,13 +119,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             [layer addSublayer:metadataObjectsLayer];
         }
         
-#warning Preview Layer
-        FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:nil];
+        FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
         [layer addSublayer:focusRectLayer];
         _focusRectLayer = focusRectLayer;
         
-#warning Preview Layer
-        ExposureRectLayer *exposureRectLayer = [[ExposureRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:nil];
+        ExposureRectLayer *exposureRectLayer = [[ExposureRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
         [layer addSublayer:exposureRectLayer];
         _exposureRectLayer = exposureRectLayer;
         
@@ -214,6 +217,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"adjustingExposure"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
     [_captureDevice release];
+    [_previewLayer release];
     [_customPreviewLayer release];
     [_depthMapLayer release];
     [_visionLayer release];
@@ -277,6 +281,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [super layoutSubviews];
     
     CGRect bounds = self.layer.bounds;
+    self.previewLayer.frame = bounds;
     self.customPreviewLayer.frame = bounds;
     self.depthMapLayer.frame = bounds;
     self.visionLayer.frame = bounds;
@@ -528,7 +533,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    PixelBufferLayer *previewLayer = previewView.customPreviewLayer;
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
     CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
     CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
@@ -583,7 +588,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    PixelBufferLayer *previewLayer = previewView.customPreviewLayer;
+    AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
     CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
     CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
