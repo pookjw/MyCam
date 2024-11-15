@@ -326,6 +326,12 @@
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Video);
     
+    CMAttachmentMode mode = 0;
+    CFStringRef _Nullable reason = (CFStringRef)CMGetAttachment(sampleBuffer, kCMSampleBufferAttachmentKey_DroppedFrameReason, &mode);
+    if (reason) {
+        CFShow(reason);
+    }
+    
     if (self.useFastRecording) {
         if (CMFormatDescriptionRef _Nullable videoSourceFormatHint = _videoSourceFormatHint) {
             CFRelease(videoSourceFormatHint);
@@ -370,6 +376,12 @@
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Audio);
+    
+    CMAttachmentMode mode = 0;
+    CFStringRef _Nullable reason = (CFStringRef)CMGetAttachment(sampleBuffer, kCMSampleBufferAttachmentKey_DroppedFrameReason, &mode);
+    if (reason) {
+        CFShow(reason);
+    }
     
     AVAssetWriter *assetWriter = self.assetWriter;
     if (assetWriter == nil) return;
