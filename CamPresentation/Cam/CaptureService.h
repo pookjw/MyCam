@@ -28,6 +28,9 @@ CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotifi
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
 
+/*
+ AVCaptureDeviceRotationCoordinator KVO에서 videoRotationAngleForHorizonLevelPreview 뿐만 아니라 videoRotationAngleForHorizonLevelCapture도 해야함
+ */
 //
 
 API_UNAVAILABLE(visionos)
