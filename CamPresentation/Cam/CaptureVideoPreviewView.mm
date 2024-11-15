@@ -82,11 +82,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(PixelBufferLayer *)previewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice customPreviewLayer:(PixelBufferLayer *)customPreviewLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
     if (self = [super init]) {
         _captureService = [captureService retain];
         _captureDevice = [captureDevice retain];
-        _previewLayer = [previewLayer retain];
+        _customPreviewLayer = [customPreviewLayer retain];
         _depthMapLayer = [depthMapLayer retain];
         _visionLayer = [visionLayer retain];
         _metadataObjectsLayer = [metadataObjectsLayer retain];
@@ -96,8 +96,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         CGRect bounds = layer.bounds;
         
-        previewLayer.frame = bounds;
-        [layer addSublayer:previewLayer];
+        customPreviewLayer.frame = bounds;
+        [layer addSublayer:customPreviewLayer];
         
         if (depthMapLayer != nil) {
             depthMapLayer.frame = bounds;
@@ -150,7 +150,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             [toolbar.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
         
-        toolbar.layer.zPosition = previewLayer.zPosition + 1.f;
+        toolbar.layer.zPosition = customPreviewLayer.zPosition + 1.f;
         
         //
         
@@ -214,7 +214,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"adjustingExposure"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
     [_captureDevice release];
-    [_previewLayer release];
+    [_customPreviewLayer release];
     [_depthMapLayer release];
     [_visionLayer release];
     [_metadataObjectsLayer release];
@@ -277,7 +277,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [super layoutSubviews];
     
     CGRect bounds = self.layer.bounds;
-    self.previewLayer.frame = bounds;
+    self.customPreviewLayer.frame = bounds;
     self.depthMapLayer.frame = bounds;
     self.visionLayer.frame = bounds;
     self.metadataObjectsLayer.frame = bounds;
@@ -528,7 +528,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)didTriggerCaptureVideoPreviewViewTapGestureRecognizer:(UITapGestureRecognizer *)sender {
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    PixelBufferLayer *previewLayer = previewView.previewLayer;
+    PixelBufferLayer *previewLayer = previewView.customPreviewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
     CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
     CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
@@ -583,7 +583,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
-    PixelBufferLayer *previewLayer = previewView.previewLayer;
+    PixelBufferLayer *previewLayer = previewView.customPreviewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
     CGPoint pointOfInterest = [previewLayer captureDevicePointOfInterestForPoint:viewPoint];
     CaptureVideoPreview::GestureMode gestureMode = self.gestureMode;
@@ -631,7 +631,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 - (void)updateContentScale {
     CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
     
-    self.previewLayer.contentsScale = displayScale;
+    self.customPreviewLayer.contentsScale = displayScale;
     self.depthMapLayer.contentsScale = displayScale;
     self.visionLayer.contentsScale = displayScale;
     self.metadataObjectsLayer.contentsScale = displayScale;
