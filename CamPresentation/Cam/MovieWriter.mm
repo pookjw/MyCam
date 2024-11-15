@@ -17,9 +17,8 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-@interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate> {
+@interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate> {
     CMFormatDescriptionRef _Nullable _videoSourceFormatHint;
-    CMFormatDescriptionRef _Nullable _audioSourceFormatHint;
     CMMetadataFormatDescriptionRef _Nullable _metadataSourceFormatHint;
 }
 @property (retain, atomic, nullable) AVAssetWriter *assetWriter;
@@ -35,7 +34,6 @@
 @end
 
 @implementation MovieWriter
-@synthesize audioDataOutput = _audioDataOutput;
 @synthesize fileOutput = _fileOutput;
 
 + (BOOL)_isFinishWriting:(AVAssetWriter *)assetWriter {
@@ -108,7 +106,6 @@
 
 - (void)dealloc {
     [_videoDataOutput release];
-    [_audioDataOutput release];
     [_fileOutput release];
     [_metadataOutputSettings release];
     [_videoPixelBufferAdaptor release];
@@ -123,9 +120,6 @@
     
     if (_videoSourceFormatHint) {
         CFRelease(_videoSourceFormatHint);
-    }
-    if (_audioSourceFormatHint) {
-        CFRelease(_audioSourceFormatHint);
     }
     
     CFRelease(_metadataSourceFormatHint);
@@ -164,34 +158,6 @@
     _fileOutput = [fileOutput retain];
 }
 
-- (AVCaptureAudioDataOutput *)audioDataOutput {
-    dispatch_assert_queue(self.isolatedQueue);
-    return [[_audioDataOutput retain] autorelease];
-}
-
-- (void)setAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput {
-    dispatch_assert_queue(self.isolatedQueue);
-    
-    assert(self.assetWriter == nil);
-    
-    if (auto _oldAudioDataOutput = _audioDataOutput) {
-        [_oldAudioDataOutput setSampleBufferDelegate:nil queue:nil];
-        [_oldAudioDataOutput release];
-    }
-    
-    _audioDataOutput = [audioDataOutput retain];
-    assert(audioDataOutput.sampleBufferDelegate == nil);
-    assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioDataOutput, sel_registerName("delegateOverride")) == nil);
-    
-    if (self.useFastRecording) {
-        [self _enableAllConnections];
-    } else {
-        [self _disableAllConnections];
-    }
-    
-    [audioDataOutput setSampleBufferDelegate:self queue:self.audioQueue];
-}
-
 - (MovieWriterStatus)status {
     dispatch_assert_queue(self.isolatedQueue);
     
@@ -221,7 +187,7 @@
     }
 }
 
-- (void)startRecording {
+- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *,id> *)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef)audioSourceFormatHint {
     dispatch_assert_queue(self.isolatedQueue);
     assert(self.assetWriter == nil);
     
@@ -250,16 +216,12 @@
     
     //
     
-    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
-        NSDictionary<NSString *, id> *audioOutputSettings = [audioDataOutput recommendedAudioSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
-        
-        AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:_audioSourceFormatHint];
-        audioWriterInput.expectsMediaDataInRealTime = YES;
-        assert([assetWriter canAddInput:audioWriterInput]);
-        [assetWriter addInput:audioWriterInput];
-        self.audioWriterInput = audioWriterInput;
-        [audioWriterInput release];
-    }
+    AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:audioSourceFormatHint];
+    audioWriterInput.expectsMediaDataInRealTime = YES;
+    assert([assetWriter canAddInput:audioWriterInput]);
+    [assetWriter addInput:audioWriterInput];
+    self.audioWriterInput = audioWriterInput;
+    [audioWriterInput release];
     
     //
     
@@ -406,21 +368,10 @@
     }
 }
 
-- (void)_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer {
-    dispatch_assert_queue(self.audioQueue);
-    
+- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer {
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Audio);
-    
-    if (self.useFastRecording) {
-        if (CMFormatDescriptionRef _Nullable audioSourceFormatHint = _audioSourceFormatHint) {
-            CFRelease(audioSourceFormatHint);
-        }
-        
-        _audioSourceFormatHint = desc;
-        CFRetain(desc);
-    }
     
     AVAssetWriter *assetWriter = self.assetWriter;
     if (assetWriter == nil) return;
@@ -450,9 +401,7 @@
     }
 }
 
-- (void)appendTimedMetadataGroup:(AVTimedMetadataGroup *)timedMetadataGroup {
-    dispatch_assert_queue(self.isolatedQueue);
-    
+- (void)nonisolated_appendTimedMetadataGroup:(AVTimedMetadataGroup *)timedMetadataGroup {
     AVAssetWriter *assetWriter = self.assetWriter;
     assert(assetWriter != nil);
     if (assetWriter.status == AVAssetWriterStatusCompleted or self.isPaused) {
@@ -481,26 +430,12 @@
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = YES;
     }
-    
-    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
-        assert(audioDataOutput.connections.count > 0);
-        for (AVCaptureConnection *connection in audioDataOutput.connections) {
-            connection.enabled = YES;
-        }
-    }
 }
 
 - (void)_disableAllConnections {
     assert(self.videoDataOutput.connections.count > 0);
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = NO;
-    }
-    
-    if (AVCaptureAudioDataOutput *audioDataOutput = self.audioDataOutput) {
-        assert(audioDataOutput.connections.count > 0);
-        for (AVCaptureConnection *connection in audioDataOutput.connections) {
-            connection.enabled = NO;
-        }
     }
 }
 
@@ -597,8 +532,6 @@
     
     if (mediaType == kCMMediaType_Video) {
         [self _appendVideoSampleBuffer:sampleBuffer];
-    } else if (mediaType == kCMMediaType_Audio) {
-        [self _appendAudioSampleBuffer:sampleBuffer];
     }
 }
 

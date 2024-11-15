@@ -34,7 +34,6 @@ API_UNAVAILABLE(visionos)
 @interface MovieWriter : NSObject
 @property (retain, nonatomic, nullable) __kindof BaseFileOutput *fileOutput;
 @property (retain, nonatomic, readonly) AVCaptureVideoDataOutput *videoDataOutput;
-@property (retain, nonatomic, nullable) AVCaptureAudioDataOutput *audioDataOutput;
 @property (nonatomic, readonly) MovieWriterStatus status;
 @property (assign, nonatomic) BOOL useFastRecording;
 
@@ -43,12 +42,13 @@ API_UNAVAILABLE(visionos)
 
 - (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler;
 
-- (void)startRecording;
+- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef _Nullable)audioSourceFormatHint;
 - (void)pauseRecording;
 - (void)resumeRecording;
 - (void)stopRecordingWithCompletionHandler:(void (^ _Nullable)(void))completionHandler;
 
-- (void)appendTimedMetadataGroup:(AVTimedMetadataGroup *)timedMetadataGroup;
+- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+- (void)nonisolated_appendTimedMetadataGroup:(AVTimedMetadataGroup *)timedMetadataGroup;
 @end
 
 NS_ASSUME_NONNULL_END
