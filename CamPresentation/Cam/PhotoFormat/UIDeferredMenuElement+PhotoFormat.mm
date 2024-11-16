@@ -3930,9 +3930,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     UIAction *action = [UIAction actionWithTitle:@"Enable Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
-            [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
-            
             NSError * _Nullable error = nil;
             [videoDevice lockForConfiguration:&error];
             assert(error == nil);
@@ -3972,7 +3969,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu *)_cp_queue_greenGhostMitigationSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
                                                             captureDevice:videoDevice
-                                                                    title:@"Green Ghost Mitigation"
+                                                                    title:@"Supported Formats"
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
         return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVideoGreenGhostMitigationSupported"));
