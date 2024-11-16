@@ -124,6 +124,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_greenGhostMitigationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
 #warning TODO: autoVideoFrameRateEnabled
@@ -3953,6 +3955,45 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             if (didChangeHandler) didChangeHandler();
         });
     }];
+    
+    return action;
+}
+
++ (UIMenu *)_cp_queue_greenGhostMitigationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Green Ghost Mitigation"
+                                children:@[
+        [UIDeferredMenuElement _cp_queue_greenGhostMitigationSupportedFormatsMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_toggleGreenGhostMitigationActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_queue_greenGhostMitigationSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:videoDevice
+                                                                    title:@"Green Ghost Mitigation"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVideoGreenGhostMitigationSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
+
++ (UIAction *)_cp_queue_toggleGreenGhostMitigationActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isVideoGreenGhostMitigationSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(videoDevice.activeFormat, sel_registerName("isVideoGreenGhostMitigationSupported"));
+    BOOL isVideoGreenGhostMitigationEnabled = [captureService queue_isGreenGhostMitigationEnabledForAllConnectionsForVideoDevice:videoDevice];
+    
+    UIAction *action = [UIAction actionWithTitle:@"Green Ghost Mitigation" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setGreenGhostMitigationEnabledForAllConnections:!isVideoGreenGhostMitigationEnabled forVideoDevice:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isVideoGreenGhostMitigationEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    action.attributes = isVideoGreenGhostMitigationSupported ? 0 : UIMenuElementAttributesDisabled;
+    action.subtitle = @"Requires Spatial Video Capture";
     
     return action;
 }

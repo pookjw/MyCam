@@ -106,6 +106,9 @@ API_UNAVAILABLE(visionos)
 
 - (void)queue_setPreferredStablizationModeForAllConnections:(AVCaptureVideoStabilizationMode)stabilizationMode forVideoDevice:(AVCaptureDevice *)videoDevice;
 - (AVCaptureVideoStabilizationMode)queue_preferredStablizationModeForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice;
+
+- (void)queue_setGreenGhostMitigationEnabledForAllConnections:(BOOL)greenGhostMitigationEnabled forVideoDevice:(AVCaptureDevice *)videoDevice;
+- (BOOL)queue_isGreenGhostMitigationEnabledForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -2311,8 +2311,40 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return result;
 }
 
-- (void)queue_assertAllConnectionsHaveSameStablizationModeForVideoDevice:(AVCaptureDevice *)videoDevice {
-    [self queue_preferredStablizationModeForAllConnectionsForVideoDevice:videoDevice];
+- (BOOL)queue_isGreenGhostMitigationEnabledForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoGreenGhostMitigationSupported"))) continue;
+        
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if (![inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput.device isEqual:videoDevice]) continue;
+            
+            return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoGreenGhostMitigationEnabled"));
+        }
+    }
+    
+    return NO;
+}
+
+- (void)queue_setGreenGhostMitigationEnabledForAllConnections:(BOOL)greenGhostMitigationEnabled forVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(connection, sel_registerName("isVideoGreenGhostMitigationSupported"))) continue;
+        
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if (![inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput.device isEqual:videoDevice]) continue;
+            
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(connection, sel_registerName("setVideoGreenGhostMitigationEnabled:"), greenGhostMitigationEnabled);
+        }
+    }
 }
 
 - (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
