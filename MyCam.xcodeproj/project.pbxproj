@@ -42,6 +42,7 @@
 		4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD22C9995DE00174044 /* UniformTypeIdentifiers.framework */; };
 		4FED1AD52C99999800174044 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD42C99999800174044 /* CoreLocation.framework */; };
 		4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD62C99999D00174044 /* CoreLocation.framework */; };
+		4FF536532CE87EE2000FA763 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FF536522CE87EE2000FA763 /* VideoToolbox.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -157,6 +158,7 @@
 		4FED1AD22C9995DE00174044 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1AD42C99999800174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		4FED1AD62C99999D00174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreLocation.framework; sourceTree = DEVELOPER_DIR; };
+		4FF536522CE87EE2000FA763 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
 		4FFA40242CBF5EC800940200 /* MyWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MyWidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -531,6 +533,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */,
+				4FF536532CE87EE2000FA763 /* VideoToolbox.framework in Frameworks */,
 				4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
 				4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */,
@@ -590,6 +593,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4FF536522CE87EE2000FA763 /* VideoToolbox.framework */,
 				4F3806E92CE0FDCC002E96DF /* ModelIO.framework */,
 				4F3806E62CE0FDC8002E96DF /* Metal.framework */,
 				4F3806E52CE0FDC8002E96DF /* MetalKit.framework */,

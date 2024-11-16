@@ -21,6 +21,7 @@
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
 #import <UIKit/UIKit.h>
+#import <VideoToolbox/VideoToolbox.h>
 
 /*
  Rotation이랑 (Connection쪽)
@@ -792,6 +793,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
+    previewLayerConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
     previewLayer.hidden = YES;
     previewLayerConnection.enabled = NO;
@@ -808,6 +810,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession addOutputWithNoConnections:photoOutput];
     AVCaptureConnection *photoOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:photoOutput];
+    photoOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     assert([captureSession canAddConnection:photoOutputConnection]);
     [captureSession addConnection:photoOutputConnection];
     [photoOutputConnection release];
@@ -826,6 +829,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:previewVideoDataOutput];
     [previewVideoDataOutput release];
+    videoDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
 //    customPreviewLayer.hidden = YES;
 //    videoDataOutputConnection.enabled = NO;
     assert([captureSession canAddConnection:videoDataOutputConnection]);
@@ -841,6 +845,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:movieVideoDataOutput];
     
     AVCaptureConnection *movieVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieVideoDataOutput];
+    movieVideoDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     assert([captureSession canAddConnection:movieVideoDataOutputConnection]);
     [captureSession addConnection:movieVideoDataOutputConnection];
     movieVideoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelCapture;
@@ -881,8 +886,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         [captureSession addOutputWithNoConnections:depthDataOutput];
         
         AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
-        depthDataOutputConnection.videoMirrored = YES;
         [depthDataOutput release];
+        depthDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
+        depthDataOutputConnection.videoMirrored = YES;
+        depthDataOutputConnection.enabled = NO;
         assert([captureSession canAddConnection:depthDataOutputConnection]);
         [captureSession addConnection:depthDataOutputConnection];
         [depthDataOutputConnection release];
@@ -905,6 +912,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         AVCaptureConnection *visionDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[visionDataInputPort] output:visionDataOutput];
         [visionDataOutput release];
+        visionDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
+        visionDataOutputConnection.enabled = NO;
         reason = nil;
         assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), visionDataOutputConnection, &reason));
         [captureSession addConnection:visionDataOutputConnection];
@@ -926,6 +935,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         AVCaptureConnection *calibrationDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[cameraCalibrationDataInputPort] output:calibrationDataOutput];
         [calibrationDataOutput release];
+        calibrationDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
         reason = nil;
         assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), calibrationDataOutputConnection, &reason));
         [captureSession addConnection:calibrationDataOutputConnection];
@@ -1830,6 +1840,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:movieFileOutput];
     
     AVCaptureConnection *movieFileOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieFileOutput];
+    movieFileOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     assert([captureSession canAddConnection:movieFileOutputConnection]);
     [captureSession addConnection:movieFileOutputConnection];
     [movieFileOutputConnection release];
@@ -2246,14 +2257,80 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     CFRelease(audioSourceFormatHint);
 }
 
-- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^ _Nullable)(void))completionHandler {
+- (void)queue_setSpatialVideoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
-    assert(movieWriter != nil);
-    assert(movieWriter.status == MovieWriterStatusRecording);
+//    AVCaptureMovieFileOutput *movieFileOutput = [self queue_movieFileOutputFromCaptureDevice:videoDevice];
+//    
+//    for (AVCaptureConnection *connection in movieFileOutput.connections) {
+//        NSLog(@"%@", [movieFileOutput outputSettingsForConnection:connection]);
+//    }
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+        NSMutableDictionary<NSString *, id> *videoSettings = [videoDataOutput.videoSettings mutableCopy];
+        if (videoSettings == nil) videoSettings = [NSMutableDictionary new];
+        NSMutableDictionary<NSString *, id> *compressionProperties = [videoSettings[AVVideoCompressionPropertiesKey] mutableCopy];
+        if (compressionProperties == nil) compressionProperties = [NSMutableDictionary new];
+        compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = (id)((CFArrayRef)@[@0, @1]);
+        compressionProperties[(id)kCMFormatDescriptionExtension_HorizontalFieldOfView] = @90000;
+        compressionProperties[(id)kVTCompressionPropertyKey_HorizontalDisparityAdjustment] = @200;
+        videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties;
+        [compressionProperties release];
+        
+        videoSettings[AVVideoCodecKey] = AVVideoCodecTypeHEVC;
+        
+        videoDataOutput.videoSettings = videoSettings;
+        [videoSettings release];
+    }
+}
+
+- (void)queue_setPreferredStablizationModeForAllConnections:(AVCaptureVideoStabilizationMode)stabilizationMode forVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
     
-    [movieWriter stopRecordingWithCompletionHandler:completionHandler];
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        // videoPreviewLayer != nil은 NO가 나오는 문제가 있음
+        if (!connection.isVideoStabilizationSupported) continue;
+        
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if (![inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput.device isEqual:videoDevice]) continue;
+            
+            connection.preferredVideoStabilizationMode = stabilizationMode;
+        }
+    }
+}
+
+- (AVCaptureVideoStabilizationMode)queue_preferredStablizationModeForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    auto result = static_cast<AVCaptureVideoStabilizationMode>(NSNotFound);
+    
+    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+        // videoPreviewLayer != nil은 NO가 나오는 문제가 있음
+        if (!connection.isVideoStabilizationSupported) continue;
+        
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            if (![inputPort.input isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput.device isEqual:videoDevice]) continue;
+            
+            if (result == NSNotFound) {
+                result = connection.preferredVideoStabilizationMode;
+                continue;
+            }
+            
+            assert(result == connection.preferredVideoStabilizationMode);
+        }
+    }
+    
+    assert(result != NSNotFound);
+    return result;
+}
+
+- (void)queue_assertAllConnectionsHaveSameStablizationModeForVideoDevice:(AVCaptureDevice *)videoDevice {
+    [self queue_preferredStablizationModeForAllConnectionsForVideoDevice:videoDevice];
 }
 
 - (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
@@ -2893,6 +2970,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             }
             
             newConnection.enabled = connection.isEnabled;
+            newConnection.preferredVideoStabilizationMode = connection.preferredVideoStabilizationMode;
             
             if (newConnection.isVideoMirroringSupported) {
                 newConnection.automaticallyAdjustsVideoMirroring = connection.automaticallyAdjustsVideoMirroring;
@@ -3294,6 +3372,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 if (![[self.adoQueue_audioDataOutputsByMovieWriter objectForKey:movieWriter] isEqual:audioDataOutput]) continue;
                 [movieWriter nonisolated_appendAudioSampleBuffer:sampleBuffer];
             }
+            
+            break;
         }
     }
 }
