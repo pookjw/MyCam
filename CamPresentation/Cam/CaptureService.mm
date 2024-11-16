@@ -289,6 +289,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 auto previewLayer = static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer);
                 assert(previewLayer != nil);
                 
+                previewLayer.connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
+                
                 AVCaptureDevice *videoDevice = [self queue_captureDeviceFromPreviewLayer:previewLayer];
                 assert(videoDevice != nil);
                 
