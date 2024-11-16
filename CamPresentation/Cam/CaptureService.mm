@@ -288,6 +288,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             dispatch_async(self.captureSessionQueue, ^{
                 auto previewLayer = static_cast<AVCaptureVideoPreviewLayer *>(rotationCoordinator.previewLayer);
                 assert(previewLayer != nil);
+                assert(previewLayer.connection != nil);
                 
                 previewLayer.connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
                 
@@ -791,11 +792,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
+    previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
     previewLayer.hidden = YES;
     previewLayerConnection.enabled = NO;
     [previewLayer release];
+    assert([captureSession canAddConnection:previewLayerConnection]);
     [captureSession addConnection:previewLayerConnection];
-    previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
     [previewLayerConnection release];
     
     //
