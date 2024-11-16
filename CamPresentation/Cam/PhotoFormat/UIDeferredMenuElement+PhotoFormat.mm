@@ -57,6 +57,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -116,6 +118,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
@@ -232,10 +236,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             return format.isSpatialVideoCaptureSupported;
         }
                                                                                               didChangeHandler:didChangeHandler]];
-        
-        [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:captureDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler]];
-        
-        [elements addObject:[UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:captureDevice connection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo] didChangeHandler:didChangeHandler]];
     }
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Movie" children:elements];
@@ -1366,18 +1366,18 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return menu;
 }
 
-+ (UIMenu * _Nonnull)_cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice connection:(AVCaptureConnection *)connection didChangeHandler:(void (^)())didChangeHandler {
++ (UIMenu * _Nonnull)_cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
-    AVCaptureVideoStabilizationMode activeVideoStabilizationMode = connection.activeVideoStabilizationMode;
+    AVCaptureVideoStabilizationMode activeVideoStabilizationMode = [captureService queue_preferredStablizationModeForAllConnectionsForVideoDevice:captureDevice];
     
     auto actionsVec = [UIDeferredMenuElement _cp_allVideoStabilizationModes]
-    | std::views::transform([captureService, connection, didChangeHandler, activeVideoStabilizationMode, activeFormat](AVCaptureVideoStabilizationMode mode) -> UIAction * {
+    | std::views::transform([captureService, captureDevice, didChangeHandler, activeVideoStabilizationMode, activeFormat](AVCaptureVideoStabilizationMode mode) -> UIAction * {
         UIAction *action = [UIAction actionWithTitle:NSStringFromAVCaptureVideoStabilizationMode(mode)
                                                image:nil
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                connection.preferredVideoStabilizationMode = mode;
+                [captureService queue_setPreferredStablizationModeForAllConnections:mode forVideoDevice:captureDevice];
                 if (didChangeHandler != nil) {
                     didChangeHandler();
                 }
@@ -3823,6 +3823,78 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setSpatialVideoSettingsForVideoDevice:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    return action;
+}
+
++ (UIMenu *)_cp_queue_stabilizationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice].allObjects[0];
+    AVCaptureConnection *connection = [videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+    assert(connection != nil);
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Stabilization" children:@[
+        [UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:videoDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_queue_quickActionsMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Quick Actions" children:@[
+        [UIDeferredMenuElement _cp_queue_enableSpatialVideoCaptureQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIAction *)_cp_queue_enableSpatialVideoCaptureQuickActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDeviceFormat * _Nullable format = nil;
+    
+    for (AVCaptureDeviceFormat *_format in videoDevice.formats) {
+        if ([_format isVideoStabilizationModeSupported:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced] and _format.isSpatialVideoCaptureSupported) {
+            format = _format;
+            break;
+        }
+    }
+    
+    if (format == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"Enable Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Enable Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
+            
+            NSError * _Nullable error = nil;
+            [videoDevice lockForConfiguration:&error];
+            assert(error == nil);
+            videoDevice.activeFormat = format;
+            [videoDevice unlockForConfiguration];
+            
+            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
+            if (outputs.count == 0) {
+                AVCaptureMovieFileOutput *output = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
+                outputs = [NSSet setWithObject:output];
+            }
+            
+            [captureService queue_setPreferredStablizationModeForAllConnections:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced forVideoDevice:videoDevice];
+            
+            for (AVCaptureMovieFileOutput *output in outputs) {
+                assert(output.isSpatialVideoCaptureSupported);
+                output.spatialVideoCaptureEnabled = YES;
+            }
+            
             if (didChangeHandler) didChangeHandler();
         });
     }];

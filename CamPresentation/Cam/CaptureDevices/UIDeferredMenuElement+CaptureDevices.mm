@@ -88,6 +88,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             UIMenu *spatialVideoCaptureSupportedDevices = [UIDeferredMenuElement _cp_queue_spatialVideoCaptureSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
             menusVec.push_back(spatialVideoCaptureSupportedDevices);
             
+            UIMenu *previewOptimizedStabilizationModeSupportedDevices = [UIDeferredMenuElement _cp_queue_previewOptimizedStabilizationModeSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+            menusVec.push_back(previewOptimizedStabilizationModeSupportedDevices);
+            
             //
             
             NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
@@ -232,10 +235,26 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 + (UIMenu * _Nonnull)_cp_queue_spatialVideoCaptureSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
     return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
-                                                                           title:@"Sparial Video Capture Supported Devices"
+                                                                           title:@"Spatial Video Capture Supported Devices"
                                                                    filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
         for (AVCaptureDeviceFormat *format in captureDevice.formats) {
             if (format.isSpatialVideoCaptureSupported) {
+                return YES;
+            }
+        }
+        
+        return NO;
+    }
+                                                                selectionHandler:selectionHandler
+                                                              deselectionHandler:deselectionHandler];
+}
+
++ (UIMenu *)_cp_queue_previewOptimizedStabilizationModeSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
+    return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                           title:@"Preview Optimized Stabilization Mode Supported Devices"
+                                                                   filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+        for (AVCaptureDeviceFormat *format in captureDevice.formats) {
+            if ([format isVideoStabilizationModeSupported:AVCaptureVideoStabilizationModePreviewOptimized]) {
                 return YES;
             }
         }
