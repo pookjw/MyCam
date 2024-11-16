@@ -30,6 +30,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 
 /*
  -[AVCaptureMovieFileOutput(TrueVideo) setTrueVideoCaptureEnabled:]
+ GreenGhost
  */
 
 //
@@ -103,7 +104,6 @@ API_UNAVAILABLE(visionos)
 - (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 - (MovieWriter *)queue_movieWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 
-- (void)queue_setSpatialVideoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice;
 - (void)queue_setPreferredStablizationModeForAllConnections:(AVCaptureVideoStabilizationMode)stabilizationMode forVideoDevice:(AVCaptureDevice *)videoDevice;
 - (AVCaptureVideoStabilizationMode)queue_preferredStablizationModeForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice;
 @end

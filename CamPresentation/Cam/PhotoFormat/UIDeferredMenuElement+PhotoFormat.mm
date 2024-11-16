@@ -33,6 +33,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
+#import <VideoToolbox/VideoToolbox.h>
 #include <vector>
 #include <ranges>
 
@@ -56,6 +57,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             assert(photoOutput != nil);
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
+            
+            [elements addObject:[UIDeferredMenuElement _cp_queue_tmpWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -122,8 +125,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
-            
-            [elements addObject:[UIDeferredMenuElement _cp_queue_tmpWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
 #warning TODO: autoVideoFrameRateEnabled
             
@@ -3822,7 +3823,61 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIAction *)_cp_queue_tmpWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_setSpatialVideoSettingsForVideoDevice:videoDevice];
+            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
+            
+            AVCaptureDeviceFormat * _Nullable format = nil;
+            
+            for (AVCaptureDeviceFormat *_format in videoDevice.formats) {
+                if ([_format isVideoStabilizationModeSupported:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced] and _format.isSpatialVideoCaptureSupported) {
+                    format = _format;
+                    break;
+                }
+            }
+            assert(format != nil);
+            
+            NSError * _Nullable error = nil;
+            [videoDevice lockForConfiguration:&error];
+            assert(error == nil);
+            videoDevice.activeFormat = format;
+            [videoDevice unlockForConfiguration];
+            
+            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
+            if (outputs.count == 0) {
+                AVCaptureMovieFileOutput *output = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
+                outputs = [NSSet setWithObject:output];
+            }
+            
+            [captureService queue_setPreferredStablizationModeForAllConnections:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced forVideoDevice:videoDevice];
+            
+            for (AVCaptureMovieFileOutput *output in outputs) {
+                assert(output.isSpatialVideoCaptureSupported);
+                output.spatialVideoCaptureEnabled = YES;
+            }
+            
+            MovieWriter *movieWriter = [captureService queue_movieWriterWithVideoDevice:videoDevice];
+            assert(movieWriter != nil);
+            movieWriter.useFastRecording = YES;
+            
+            for (AVCaptureVideoDataOutput *videoDataOutput in [captureService queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+                NSMutableDictionary<NSString *, id> *videoSettings = [videoDataOutput.videoSettings mutableCopy];
+                if (videoSettings == nil) videoSettings = [NSMutableDictionary new];
+                NSMutableDictionary<NSString *, id> *compressionProperties = [videoSettings[AVVideoCompressionPropertiesKey] mutableCopy];
+                if (compressionProperties == nil) compressionProperties = [NSMutableDictionary new];
+                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = (id)((CFArrayRef)@[@0, @1]);
+                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCViewIDs] = (id)((CFArrayRef)@[@0, @1]);
+                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCLeftAndRightViewIDs] = (id)((CFArrayRef)@[@0, @1]);
+                compressionProperties[(id)kCMFormatDescriptionExtension_HorizontalFieldOfView] = @90000;
+                compressionProperties[(id)kVTCompressionPropertyKey_HorizontalDisparityAdjustment] = @200;
+                videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties;
+                [compressionProperties release];
+                
+                videoSettings[AVVideoCodecKey] = AVVideoCodecTypeHEVC;
+                
+                videoDataOutput.videoSettings = videoSettings;
+                [videoSettings release];
+            }
+            
             if (didChangeHandler) didChangeHandler();
         });
     }];

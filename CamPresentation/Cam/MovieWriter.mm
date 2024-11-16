@@ -35,11 +35,7 @@
 @synthesize fileOutput = _fileOutput;
 
 + (BOOL)_isFinishWriting:(AVAssetWriter *)assetWriter {
-    id _internal;
-    assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nullptr);
-    
-    id helper;
-    assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nullptr);
+    id helper = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(assetWriter, sel_registerName("_helper"));
     
     if ([helper isKindOfClass:objc_lookUpClass("AVAssetWriterFinishWritingHelper")]) {
         return YES;
@@ -49,11 +45,7 @@
 }
 
 + (BOOL)_startSessionCalledForAssetWriter:(AVAssetWriter *)assetWriter {
-    id _internal;
-    assert(object_getInstanceVariable(assetWriter, "_internal", reinterpret_cast<void **>(&_internal)) != nil);
-    
-    id helper;
-    assert(object_getInstanceVariable(_internal, "helper", reinterpret_cast<void **>(&helper)) != nil);
+    id helper = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(assetWriter, sel_registerName("_helper"));
     
     if (![helper isKindOfClass:objc_lookUpClass("AVAssetWriterWritingHelper")]) {
         abort();
