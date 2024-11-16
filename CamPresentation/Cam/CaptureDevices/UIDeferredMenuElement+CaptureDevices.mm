@@ -85,6 +85,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             UIMenu *lowLightSupportedDevicesMenu = [UIDeferredMenuElement _cp_queue_lowLightBoostSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
             menusVec.push_back(lowLightSupportedDevicesMenu);
             
+            UIMenu *spatialVideoCaptureSupportedDevices = [UIDeferredMenuElement _cp_queue_spatialVideoCaptureSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+            menusVec.push_back(spatialVideoCaptureSupportedDevices);
+            
             //
             
             NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
@@ -222,6 +225,22 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                                                            title:@"Low Boost Supported Devices"
                                                                    filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
         return captureDevice.isLowLightBoostSupported;
+    }
+                                                                selectionHandler:selectionHandler
+                                                              deselectionHandler:deselectionHandler];
+}
+
++ (UIMenu * _Nonnull)_cp_queue_spatialVideoCaptureSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler {
+    return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                           title:@"Sparial Video Capture Supported Devices"
+                                                                   filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+        for (AVCaptureDeviceFormat *format in captureDevice.formats) {
+            if (format.isSpatialVideoCaptureSupported) {
+                return YES;
+            }
+        }
+        
+        return NO;
     }
                                                                 selectionHandler:selectionHandler
                                                               deselectionHandler:deselectionHandler];

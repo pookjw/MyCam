@@ -20,6 +20,7 @@
 #import <CamPresentation/ImageBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
+#import <UIKit/UIKit.h>
 
 /*
  Rotation이랑 (Connection쪽)
