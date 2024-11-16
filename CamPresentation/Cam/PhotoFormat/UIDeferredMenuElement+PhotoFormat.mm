@@ -119,6 +119,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_tmpWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
 #warning TODO: autoVideoFrameRateEnabled
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -3815,6 +3817,17 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     }
     
     return menu;
+}
+
++ (UIAction *)_cp_queue_tmpWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setSpatialVideoSettingsForVideoDevice:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    return action;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

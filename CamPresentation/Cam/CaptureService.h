@@ -28,6 +28,10 @@ CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotifi
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
 
+/*
+ -[AVCaptureMovieFileOutput(TrueVideo) setTrueVideoCaptureEnabled:]
+ */
+
 //
 
 API_UNAVAILABLE(visionos)
@@ -97,6 +101,8 @@ API_UNAVAILABLE(visionos)
 
 - (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 - (MovieWriter *)queue_movieWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
+
+- (void)queue_setSpatialVideoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice;
 @end
 
 NS_ASSUME_NONNULL_END

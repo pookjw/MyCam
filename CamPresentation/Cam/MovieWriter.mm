@@ -321,6 +321,8 @@
 
 - (void)_appendVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer {
     dispatch_assert_queue(self.videoQueue);
+    CMTaggedBufferGroupRef group = CMSampleBufferGetTaggedBufferGroup(sampleBuffer);
+    CFShow(group);
     
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);

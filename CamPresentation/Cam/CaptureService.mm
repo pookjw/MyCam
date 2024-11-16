@@ -21,6 +21,7 @@
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
 #import <UIKit/UIKit.h>
+#import <VideoToolbox/VideoToolbox.h>
 
 /*
  Rotation이랑 (Connection쪽)
@@ -2246,14 +2247,30 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     CFRelease(audioSourceFormatHint);
 }
 
-- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^ _Nullable)(void))completionHandler {
+- (void)queue_setSpatialVideoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
-    assert(movieWriter != nil);
-    assert(movieWriter.status == MovieWriterStatusRecording);
-    
-    [movieWriter stopRecordingWithCompletionHandler:completionHandler];
+//    AVCaptureMovieFileOutput *movieFileOutput = [self queue_movieFileOutputFromCaptureDevice:videoDevice];
+//    
+//    for (AVCaptureConnection *connection in movieFileOutput.connections) {
+//        NSLog(@"%@", [movieFileOutput outputSettingsForConnection:connection]);
+//    }
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+        NSMutableDictionary<NSString *, id> *videoSettings = [videoDataOutput.videoSettings mutableCopy];
+        if (videoSettings == nil) videoSettings = [NSMutableDictionary new];
+        NSMutableDictionary<NSString *, id> *compressionProperties = [videoSettings[AVVideoCompressionPropertiesKey] mutableCopy];
+        if (compressionProperties == nil) compressionProperties = [NSMutableDictionary new];
+        compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = (id)((CFArrayRef)@[@0, @1]);
+        compressionProperties[(id)kCMFormatDescriptionExtension_HorizontalFieldOfView] = @90000;
+        compressionProperties[(id)kVTCompressionPropertyKey_HorizontalDisparityAdjustment] = @200;
+        videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties;
+        [compressionProperties release];
+        
+        videoSettings[AVVideoCodecKey] = AVVideoCodecTypeHEVC;
+        
+        videoDataOutput.videoSettings = videoSettings;
+        [videoSettings release];
+    }
 }
 
 - (BOOL)queue_isRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice {
