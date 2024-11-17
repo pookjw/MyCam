@@ -8,6 +8,9 @@
 #import <CamPresentation/UIScreenEdgePanGestureRecognizer+CP_Category.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
 
 namespace cp_UIScreenEdgePanGestureRecognizer {
 namespace _supportsStylusTouches {
@@ -28,3 +31,5 @@ void swizzle() {
 }
 
 @end
+
+#endif

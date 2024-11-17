@@ -21,8 +21,8 @@
 		4F3806E72CE0FDC8002E96DF /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E52CE0FDC8002E96DF /* MetalKit.framework */; };
 		4F3806E82CE0FDC8002E96DF /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E62CE0FDC8002E96DF /* Metal.framework */; };
 		4F3806EA2CE0FDCC002E96DF /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E92CE0FDCC002E96DF /* ModelIO.framework */; };
-		4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; };
-		4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); };
+		4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -358,6 +358,16 @@
 				"UIView+MenuElementDynamicHeight.mm",
 				UserTransformView.h,
 				UserTransformView.mm,
+				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",
+				"XRCam/UIDeferredMenuElement+XRCaptureDevices.mm",
+				XRCam/XRCamMenuViewController.h,
+				XRCam/XRCamMenuViewController.mm,
+				XRCam/XRCamRootViewController.h,
+				XRCam/XRCamRootViewController.mm,
+				XRCam/XRCaptureService.h,
+				XRCam/XRCaptureService.mm,
+				XRCam/XRCaptureVideoPreviewView.h,
+				XRCam/XRCaptureVideoPreviewView.mm,
 			);
 			privateHeaders = (
 				Audio/AudioSessionInfoView.h,
@@ -444,11 +454,15 @@
 				"UIScreenEdgePanGestureRecognizer+CP_Category.h",
 				"UIView+MenuElementDynamicHeight.h",
 				UserTransformView.h,
+				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",
+				XRCam/XRCamMenuViewController.h,
+				XRCam/XRCaptureService.h,
 			);
 			publicHeaders = (
 				Cam/CameraRootViewController.h,
 				CamPresentation.h,
 				Library/AssetCollections/AssetCollectionsViewController.h,
+				XRCam/XRCamRootViewController.h,
 			);
 			target = 4F2A41912C98148000726F2F /* CamPresentation */;
 		};

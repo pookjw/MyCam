@@ -685,7 +685,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [[self.queue_metadataObjectsLayersByCaptureDevice copy] autorelease];
 }
 
-- (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice {
+- (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
     if ([allVideoDeviceTypes containsObject:captureDevice.deviceType]) {

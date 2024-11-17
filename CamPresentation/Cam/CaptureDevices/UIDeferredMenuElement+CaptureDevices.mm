@@ -123,13 +123,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 if (isAdded) {
-                    if (deselectionHandler != nil) {
-                        deselectionHandler(captureDevice);
-                    }
+                    [captureService queue_removeCaptureDevice:captureDevice];
+                    if (deselectionHandler != nil) deselectionHandler(captureDevice);
                 } else {
-                    if (selectionHandler != nil) {
-                        selectionHandler(captureDevice);
-                    }
+                    [captureService queue_addCaptureDevice:captureDevice];
+                    if (selectionHandler) selectionHandler(captureDevice);
                 }
             });
         }];
@@ -183,13 +181,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                                  handler:^(__kindof UIAction * _Nonnull action) {
                 dispatch_async(captureService.captureSessionQueue, ^{
                     if (isAdded) {
-                        if (deselectionHandler != nil) {
-                            deselectionHandler(captureDevice);
-                        }
+                        [captureService queue_removeCaptureDevice:captureDevice];
+                        if (deselectionHandler != nil) deselectionHandler(captureDevice);
                     } else {
-                        if (selectionHandler != nil) {
-                            selectionHandler(captureDevice);
-                        }
+                        [captureService queue_addCaptureDevice:captureDevice];
+                        if (selectionHandler) selectionHandler(captureDevice);
                     }
                 });
             }];

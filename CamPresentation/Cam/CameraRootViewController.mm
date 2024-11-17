@@ -241,7 +241,7 @@
             
             dispatch_async(captureService.captureSessionQueue, ^{
                 if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
-                    [captureService queue_addCapureDevice:defaultVideoCaptureDevice];
+                    [captureService queue_addCaptureDevice:defaultVideoCaptureDevice];
                 }
             });
         } else {
@@ -294,20 +294,7 @@
 - (UIBarButtonItem *)captureDevicesBarButtonItem {
     if (auto captureDevicesBarButtonItem = _captureDevicesBarButtonItem) return captureDevicesBarButtonItem;
     
-    CaptureService *captureService = self.captureService;
-    
-    UIDeferredMenuElement *element = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService
-                                                                                                         selectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_addCapureDevice:captureDevice];
-        });
-    }
-                                                                                                       deselectionHandler:^(AVCaptureDevice * _Nonnull captureDevice) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_removeCaptureDevice:captureDevice];
-        });
-    }];
-    
+    UIDeferredMenuElement *element = [UIDeferredMenuElement cp_captureDevicesElementWithCaptureService:self.captureService selectionHandler:nil deselectionHandler:nil];
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
         element

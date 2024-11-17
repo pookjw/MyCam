@@ -19,7 +19,9 @@
 
 + (NSArray<Class> *)viewControllerClasses {
     return @[
-#if !TARGET_OS_VISION
+#if TARGET_OS_VISION
+        XRCamRootViewController.class,
+#else
         CameraRootViewController.class,
 #endif
         AssetCollectionsViewController.class
@@ -69,7 +71,11 @@
 //    AssetCollectionsViewController *photosViewController = [AssetCollectionsViewController new];
 //    [self.navigationController pushViewController:photosViewController animated:YES];
 //    [photosViewController release];
+#if TARGET_OS_VISION
+    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
+#else
     CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
+#endif
     [self.navigationController pushViewController:cameraRootViewController animated:YES];
     [cameraRootViewController release];
 }

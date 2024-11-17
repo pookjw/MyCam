@@ -62,7 +62,6 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) PixelBufferLayer *customPreviewLayer;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
-@property (retain, nonatomic, readonly) id<UITraitChangeRegistration> displayScaleChangeRegistration;
 @property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
 @end
 
@@ -172,9 +171,6 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
         [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
         
-        id<UITraitChangeRegistration> displayScaleChangeRegistration = [self registerForTraitChanges:@[UITraitDisplayScale.class] withTarget:self action:@selector(didChangeDisplayScale:)];
-        _displayScaleChangeRegistration = [displayScaleChangeRegistration retain];
-        
         [self updateContentScale];
         
         //
@@ -211,7 +207,6 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
-    [_displayScaleChangeRegistration release];
     [_captureService release];
     [_captureDevice removeObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons"];
     [_captureDevice removeObserver:self forKeyPath:@"reactionEffectsInProgress"];
@@ -281,6 +276,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 - (void)layoutSubviews {
     [super layoutSubviews];
+    
+    [self updateContentScale];
     
     CGRect bounds = self.layer.bounds;
     self.previewLayer.frame = bounds;
@@ -629,10 +626,6 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 abort();
         }
     });
-}
-
-- (void)didChangeDisplayScale:(CaptureVideoPreviewView *)sender {
-    [self updateContentScale];
 }
 
 - (void)updateContentScale {

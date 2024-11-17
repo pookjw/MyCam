@@ -7,13 +7,16 @@
 
 #import <CamPresentation/PlayerView.h>
 #import <MediaPlayer/MediaPlayer.h>
+#import <TargetConditionals.h>
 
 @interface PlayerView ()
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIButton *playbackButton;
 @property (retain, nonatomic, readonly) UISlider *seekingSlider;
 @property (retain, nonatomic, readonly) MPVolumeView *volumeView;
+#if !TARGET_OS_VISION
 @property (retain, nonatomic, readonly) AVRoutePickerView *routePickerView;
+#endif
 @property (retain, nonatomic, readonly) UILabel *reasonForWaitingToPlayLabel;
 @property (retain, nonatomic, nullable) id periodicTimeObserver;
 @property (assign, nonatomic) BOOL wasPlaying;
@@ -24,7 +27,9 @@
 @synthesize playbackButton = _playbackButton;
 @synthesize seekingSlider = _seekingSlider;
 @synthesize volumeView = _volumeView;
+#if !TARGET_OS_VISION
 @synthesize routePickerView = _routePickerView;
+#endif
 @synthesize reasonForWaitingToPlayLabel = _reasonForWaitingToPlayLabel;
 
 + (Class)layerClass {
@@ -82,7 +87,9 @@
     [_playbackButton release];
     [_seekingSlider release];
     [_volumeView release];
+#if !TARGET_OS_VISION
     [_routePickerView release];
+#endif
     [_reasonForWaitingToPlayLabel release];
     [_periodicTimeObserver release];
     
@@ -134,7 +141,9 @@
         self.playbackButton,
         self.seekingSlider,
         volumeView,
+#if !TARGET_OS_VISION
         self.routePickerView
+#endif
     ]];
     
     [volumeView.widthAnchor constraintEqualToConstant:100.].active = YES;
@@ -182,6 +191,7 @@
     return [volumeView autorelease];
 }
 
+#if !TARGET_OS_VISION
 - (AVRoutePickerView *)routePickerView {
     if (auto routePickerView = _routePickerView) return routePickerView;
     
@@ -190,6 +200,7 @@
     _routePickerView = [routePickerView retain];
     return [routePickerView autorelease];
 }
+#endif
 
 - (UILabel *)reasonForWaitingToPlayLabel {
     if (auto reasonForWaitingToPlayLabel = _reasonForWaitingToPlayLabel) return reasonForWaitingToPlayLabel;

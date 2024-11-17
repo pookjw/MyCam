@@ -30,7 +30,8 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 
 /*
  -[AVCaptureMovieFileOutput(TrueVideo) setTrueVideoCaptureEnabled:]
- GreenGhost
+ AVCaptureMultichannelAudioMode
+ 
  */
 
 //
@@ -54,7 +55,7 @@ API_UNAVAILABLE(visionos)
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
 
-- (void)queue_addCapureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (PhotoFormatModel * _Nullable)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice;

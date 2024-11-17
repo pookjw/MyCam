@@ -47,7 +47,10 @@
     navigationBar.scrollEdgeAppearance = navigationBarAppearance;
     [navigationBarAppearance release];
     
+#if !TARGET_OS_VISION
     assert(object_setInstanceVariable(navigationController.interactivePopGestureRecognizer, "_recognizesWithoutEdge", reinterpret_cast<void *>(YES)));
+#endif
+    
 #endif
     
     window.rootViewController = navigationController;
