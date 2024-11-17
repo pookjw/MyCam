@@ -343,6 +343,8 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     
     [captureSession commitConfiguration];
     
+    reinterpret_cast<void (*)(Class, SEL, id)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("setUserPreferredCamera:"), videoDevice);
+    
     [self _postDidUpdatePreviewLayerNotification];
     [self _postAddedCaptureDeviceNotificationWithCaptureDevice:videoDevice];
 }
