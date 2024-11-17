@@ -31,6 +31,10 @@
                             [captureService queue_removeCaptureDevice:device];
                             if (deselectionHandler) deselectionHandler(device);
                         } else {
+                            for (AVCaptureDevice *videoDevice in captureService.queue_addedVideoDevices) {
+                                [captureService queue_removeCaptureDevice:videoDevice];
+                            }
+                            
                             [captureService queue_addCaptureDevice:device];
                             if (selectionHandler) selectionHandler(device);
                         }

@@ -10,7 +10,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-CP_EXTERN NSNotificationName const XRCaptureServiceDidUpdatePreviewLayerNotificationName;
+CP_EXTERN NSNotificationName const XRCaptureServiceUpdatedPreviewLayerNotificationName;
+CP_EXTERN NSNotificationName const XRCaptureServiceAddedCaptureDeviceNotificationName;
+CP_EXTERN NSNotificationName const XRCaptureServiceRemovedCaptureDeviceNotificationName;
+CP_EXTERN NSString * const XRCaptureServiceCaptureDeviceKey;
 
 API_AVAILABLE(visionos(1.0))
 @interface XRCaptureService : NSObject
@@ -18,14 +21,15 @@ API_AVAILABLE(visionos(1.0))
 @property (retain, nonatomic, readonly, nullable) AVCaptureSession *captureSession;
 @property (retain, nonatomic, readonly) AVCaptureDeviceDiscoverySession *captureDeviceDiscoverySession;
 @property (retain, nonatomic, readonly) NSSet<AVCaptureDevice *> *queue_addedCaptureDevices;
+@property (retain, nonatomic, readonly) NSSet<AVCaptureDevice *> *queue_addedVideoDevices;
 @property (nonatomic, readonly, nullable) AVCaptureDevice *defaultVideoDevice;
 @property (retain, nonatomic, nullable, readonly) __kindof CALayer *queue_previewLayer;
 
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass;
-- (void)queue_startPhotoCapture;
-- (void)queue_startVideoRecording;
+- (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_startPhotoCaptureWithVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_startVideoRecordingWithVideoDevice:(AVCaptureDevice *)videoDevice;
 @end
 
 NS_ASSUME_NONNULL_END

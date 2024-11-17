@@ -360,6 +360,8 @@
 				UserTransformView.mm,
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.mm",
+				"XRCam/UIDeferredMenuElement+XRVideoDeviceConfiguration.h",
+				"XRCam/UIDeferredMenuElement+XRVideoDeviceConfiguration.mm",
 				XRCam/XRCamMenuViewController.h,
 				XRCam/XRCamMenuViewController.mm,
 				XRCam/XRCamRootViewController.h,
@@ -455,6 +457,7 @@
 				"UIView+MenuElementDynamicHeight.h",
 				UserTransformView.h,
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",
+				"XRCam/UIDeferredMenuElement+XRVideoDeviceConfiguration.h",
 				XRCam/XRCamMenuViewController.h,
 				XRCam/XRCaptureService.h,
 			);

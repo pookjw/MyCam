@@ -60,7 +60,7 @@
     
     XRCaptureService *captureService = [XRCaptureService new];
     
-    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didUpdatePreviewLayer:) name:XRCaptureServiceDidUpdatePreviewLayerNotificationName object:captureService];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(didUpdatePreviewLayer:) name:XRCaptureServiceUpdatedPreviewLayerNotificationName object:captureService];
     
     _captureService = [captureService retain];
     return [captureService autorelease];
