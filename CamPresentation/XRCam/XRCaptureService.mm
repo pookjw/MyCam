@@ -10,6 +10,8 @@
 #if TARGET_OS_VISION
 
 #import <CamPresentation/XRCaptureService.h>
+#import <CamPresentation/MovieWriter.h>
+#import <CamPresentation/PhotoLibraryFileOutput.h>
 #import <Photos/Photos.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -19,9 +21,10 @@ NSNotificationName const XRCaptureServiceAddedCaptureDeviceNotificationName = @"
 NSNotificationName const XRCaptureServiceRemovedCaptureDeviceNotificationName = @"XRCaptureServiceRemovedCaptureDeviceNotificationName";
 NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDeviceKey";
 
-@interface XRCaptureService () <AVCaptureVideoDataOutputSampleBufferDelegate>
-@property (retain, nonatomic, nullable) id rotationCoordinator;
-@property (retain, nonatomic, nullable) id photoOutputReadinessCoordinator;
+@interface XRCaptureService ()
+@property (retain, nonatomic, nullable) id queue_rotationCoordinator; // TODO
+@property (retain, nonatomic, nullable) id queue_photoOutputReadinessCoordinator; // TODO
+@property (retain, nonatomic, nullable) MovieWriter *queue_movieWriter;
 @end
 
 @implementation XRCaptureService
@@ -63,8 +66,9 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     dispatch_release(_captureSessionQueue);
     [_captureSession release];
     [_captureDeviceDiscoverySession release];
-    [_rotationCoordinator release];
-    [_photoOutputReadinessCoordinator release];
+    [_queue_rotationCoordinator release];
+    [_queue_photoOutputReadinessCoordinator release];
+    [_queue_movieWriter release];
     [super dealloc];
 }
 
@@ -191,8 +195,10 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(photoOutput, sel_registerName("capturePhotoWithSettings:delegate:"), photoSettings, self);
 }
 
-- (void)queue_startVideoRecordingWithVideoDevice:(AVCaptureDevice *)videoDevice {
-    abort();
+- (MovieWriter *)queue_movieWriterForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert(self.queue_movieWriter != nil);
+    return self.queue_movieWriter;
 }
 
 - (void)_queue_removeVideoDevice:(AVCaptureDevice *)videoDevice {
@@ -237,6 +243,7 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
 - (void)_queue_addVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert(![self.queue_addedCaptureDevices containsObject:videoDevice]);
+    assert(self.queue_movieWriter == nil);
     
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     assert([allVideoDeviceTypes containsObject:videoDevice.deviceType]);
@@ -268,17 +275,22 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     
     //
     
-    AVCaptureVideoDataOutput *videoDataOutput = [AVCaptureVideoDataOutput new];
-    videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
-    [videoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
-    assert([captureSession canAddOutput:videoDataOutput]);
-    [captureSession addOutputWithNoConnections:videoDataOutput];
+    AVCaptureVideoDataOutput *movieWriterVideoDataOutput = [AVCaptureVideoDataOutput new];
+    assert([captureSession canAddOutput:movieWriterVideoDataOutput]);
+    [captureSession addOutputWithNoConnections:movieWriterVideoDataOutput];
     
-    AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoDataOutput];
-    [videoDataOutput release];
-    assert([captureSession canAddConnection:videoDataOutputConnection]);
-    [captureSession addConnection:videoDataOutputConnection];
-    [videoDataOutputConnection release];
+    AVCaptureConnection *movieWriterVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:movieWriterVideoDataOutput];
+    assert([captureSession canAddConnection:movieWriterVideoDataOutputConnection]);
+    [captureSession addConnection:movieWriterVideoDataOutputConnection];
+    [movieWriterVideoDataOutputConnection release];
+    
+    PhotoLibraryFileOutput *fileOutput = [[PhotoLibraryFileOutput alloc] initWithPhotoLibrary:PHPhotoLibrary.sharedPhotoLibrary];
+    MovieWriter *movieWriter = [[MovieWriter alloc] initWithFileOutput:fileOutput videoDataOutput:movieWriterVideoDataOutput useFastRecording:YES isolatedQueue:self.captureSessionQueue locationHandler:nil];
+    [fileOutput release];
+    self.queue_movieWriter = movieWriter;
+    [movieWriter release];
+    
+    [movieWriterVideoDataOutput release];
     
     //
     

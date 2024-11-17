@@ -6,16 +6,15 @@
 //
 
 #import <CamPresentation/MovieWriter.h>
-#import <TargetConditionals.h>
-
-#if !TARGET_OS_VISION
-
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 #import <CamPresentation/ExternalStorageDeviceFileOutput.h>
 #import <CamPresentation/NSURL+CP.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <TargetConditionals.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+
+NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWriterChangedStatusNotificationName";
 
 @interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate> {
     CMFormatDescriptionRef _Nullable _videoSourceFormatHint;
@@ -24,7 +23,7 @@
 @property (retain, atomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
 @property (retain, atomic, nullable) AVAssetWriterInput *audioWriterInput;
 @property (retain, atomic, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
-@property (copy, nonatomic, readonly) CLLocation * _Nullable (^locationHandler)(void);
+@property (copy, nonatomic, nullable, readonly) CLLocation * _Nullable (^locationHandler)(void);
 @property (retain, nonatomic, readonly) dispatch_queue_t isolatedQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t videoQueue;
 @property (retain, nonatomic, readonly) dispatch_queue_t audioQueue;
@@ -57,7 +56,7 @@
     return _startSessionCalled;
 }
 
-- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput metadataOutputSettings:(NSDictionary<NSString *,id> *)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef)metadataSourceFormatHint useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
+- (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^)())locationHandler {
     if (self = [super init]) {
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t videoQueue = dispatch_queue_create("Movie Writer Video Queue", attr);
@@ -71,9 +70,6 @@
         _videoDataOutput = [videoDataOutput retain];
         _fileOutput = [fileOutput retain];
         _locationHandler = [locationHandler copy];
-        CFRetain(metadataSourceFormatHint);
-        _metadataSourceFormatHint = metadataSourceFormatHint;
-        _metadataOutputSettings = [metadataOutputSettings copy];
         
         if (useFastRecording) {
             [self _enableAllConnections];
@@ -85,8 +81,10 @@
         
         assert(videoDataOutput.sampleBufferDelegate == nil);
         assert(reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(videoDataOutput, sel_registerName("delegateOverride")) == nil);
+#if !TARGET_OS_VISION
         videoDataOutput.automaticallyConfiguresOutputBufferDimensions = NO;
         videoDataOutput.deliversPreviewSizedOutputBuffers = NO;
+#endif
         videoDataOutput.alwaysDiscardsLateVideoFrames = NO;
         [videoDataOutput setSampleBufferDelegate:self queue:videoQueue];
     }
@@ -97,7 +95,6 @@
 - (void)dealloc {
     [_videoDataOutput release];
     [_fileOutput release];
-    [_metadataOutputSettings release];
     [_videoPixelBufferAdaptor release];
     [_audioWriterInput release];
     [_metadataAdaptor release];
@@ -112,7 +109,6 @@
         CFRelease(_videoSourceFormatHint);
     }
     
-    CFRelease(_metadataSourceFormatHint);
     [super dealloc];
 }
 
@@ -177,7 +173,7 @@
     }
 }
 
-- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *,id> *)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef)audioSourceFormatHint {
+- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef _Nullable)audioSourceFormatHint metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef _Nullable)metadataSourceFormatHint {
     dispatch_assert_queue(self.isolatedQueue);
     assert(self.assetWriter == nil);
     
@@ -192,7 +188,11 @@
     
     //
     
+#if TARGET_OS_VISION
+    NSDictionary<NSString *, id> *videoOutputSettings = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(self.videoDataOutput, sel_registerName("recommendedVideoSettingsForAssetWriterWithOutputFileType:"), AVFileTypeQuickTimeMovie);
+#else
     NSDictionary<NSString *, id> *videoOutputSettings = [self.videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
+#endif
     
     AVAssetWriterInput *videoPixelBufferInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoOutputSettings sourceFormatHint:_videoSourceFormatHint];
     videoPixelBufferInput.expectsMediaDataInRealTime = YES;
@@ -215,16 +215,18 @@
     
     //
     
-    AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:self.metadataOutputSettings sourceFormatHint:self.metadataSourceFormatHint];
-    metadataWriterInput.expectsMediaDataInRealTime = YES;
-    assert([assetWriter canAddInput:metadataWriterInput]);
-    [assetWriter addInput:metadataWriterInput];
-    
-    AVAssetWriterInputMetadataAdaptor *metadataAdaptor = [[AVAssetWriterInputMetadataAdaptor alloc] initWithAssetWriterInput:metadataWriterInput];
-    [metadataWriterInput release];
-    
-    self.metadataAdaptor = metadataAdaptor;
-    [metadataAdaptor release];
+    if (metadataSourceFormatHint) {
+        AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:metadataOutputSettings sourceFormatHint:metadataSourceFormatHint];
+        metadataWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:metadataWriterInput]);
+        [assetWriter addInput:metadataWriterInput];
+        
+        AVAssetWriterInputMetadataAdaptor *metadataAdaptor = [[AVAssetWriterInputMetadataAdaptor alloc] initWithAssetWriterInput:metadataWriterInput];
+        [metadataWriterInput release];
+        
+        self.metadataAdaptor = metadataAdaptor;
+        [metadataAdaptor release];
+    }
     
     //
     
@@ -260,6 +262,7 @@
     assert(!self.isPaused);
     
     self.paused = YES;
+    [self _postChangedStatusNotification];
 }
 
 - (void)resumeRecording {
@@ -272,6 +275,7 @@
     assert(self.isPaused);
     
     self.paused = NO;
+    [self _postChangedStatusNotification];
 }
 
 - (void)stopRecordingWithCompletionHandler:(void (^ _Nullable)(void))completionHandler {
@@ -296,11 +300,13 @@
     if (fileOutput.class == PhotoLibraryFileOutput.class) {
         NSURL *tmpURL = [NSURL cp_processTemporaryURLByCreatingDirectoryIfNeeded:YES];
         url = [tmpURL URLByAppendingPathComponent:[NSUUID UUID].UUIDString conformingToType:UTTypeQuickTimeMovie];
+#if !TARGET_OS_VISION
     } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
         auto externalFileOutput = static_cast<ExternalStorageDeviceFileOutput *>(fileOutput);
         url = [externalFileOutput.externalStorageDevice nextAvailableURLsWithPathExtensions:@[UTTypeQuickTimeMovie.preferredFilenameExtension] error:&error].firstObject;
         assert(error == nil);
         assert([url startAccessingSecurityScopedResource]);
+#endif
     } else {
         abort();
     }
@@ -420,6 +426,7 @@
     
     if ([MovieWriter _startSessionCalledForAssetWriter:assetWriter]) {
         AVAssetWriterInputMetadataAdaptor *metadataAdaptor = self.metadataAdaptor;
+        assert(metadataAdaptor != nil); // metadataSourceFormatHint should not be nil
         
         BOOL success = [metadataAdaptor appendTimedMetadataGroup:timedMetadataGroup];
         
@@ -430,17 +437,35 @@
 }
 
 - (void)_enableAllConnections {
+#if TARGET_OS_VISION
+    NSArray<AVCaptureConnection *> *connections = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self.videoDataOutput, sel_registerName("connections"));
+    assert(connections.count > 0);
+    
+    for (AVCaptureConnection *connection in connections) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(connection, sel_registerName("setEnabled:"), YES);
+    }
+#else
     assert(self.videoDataOutput.connections.count > 0);
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = YES;
     }
+#endif
 }
 
 - (void)_disableAllConnections {
+#if TARGET_OS_VISION
+    NSArray<AVCaptureConnection *> *connections = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self.videoDataOutput, sel_registerName("connections"));
+    assert(connections.count > 0);
+    
+    for (AVCaptureConnection *connection in connections) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(connection, sel_registerName("setEnabled:"), NO);
+    }
+#else
     assert(self.videoDataOutput.connections.count > 0);
     for (AVCaptureConnection *connection in self.videoDataOutput.connections) {
         connection.enabled = NO;
     }
+#endif
 }
 
 - (void)_registerObserversForAssetWriter:(AVAssetWriter *)assetWriter {
@@ -468,6 +493,8 @@
         default:
             break;
     }
+    
+    [self _postChangedStatusNotification];
 }
 
 - (void)_didCompleteAssetWriter {
@@ -513,7 +540,9 @@
             
             [request addResourceWithType:PHAssetResourceTypeVideo fileURL:outputURL options:nil];
             
-            request.location = self.locationHandler();
+            if (auto locationHandler = self.locationHandler) {
+                request.location = locationHandler();
+            }
         }
                                         completionHandler:^(BOOL success, NSError * _Nullable error) {
             NSLog(@"%d %@", success, error);
@@ -523,11 +552,17 @@
             [outputURL stopAccessingSecurityScopedResource];
             assert(error == nil);
         }];
+#if !TARGET_OS_VISION
     } else if (fileOutput.class == ExternalStorageDeviceFileOutput.class) {
         [outputURL stopAccessingSecurityScopedResource];
+#endif
     } else {
         abort();
     }
+}
+
+- (void)_postChangedStatusNotification {
+    [NSNotificationCenter.defaultCenter postNotificationName:MovieWriterChangedStatusNotificationName object:self];
 }
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
@@ -540,5 +575,3 @@
 }
 
 @end
-
-#endif

@@ -12,20 +12,25 @@
 #import <CamPresentation/XRCamMenuViewController.h>
 #import <CamPresentation/UIDeferredMenuElement+XRCaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+XRVideoDeviceConfiguration.h>
+#import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
 @interface XRCamMenuViewController ()
 @property (retain, nonatomic, readonly) XRCaptureService *captureService;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
-@property (retain, nonatomic, readonly) UIButton *capturePhotoButton;
+@property (retain, nonatomic, readonly) UIButton *captureButton;
+@property (retain, nonatomic, readonly) UIButton *recordButton;
+@property (retain, nonatomic, readonly) UIButton *audioConfigurationButton;
 @property (retain, nonatomic, readonly) UIButton *devicesButton;
 @property (retain, nonatomic, readonly) UIButton *deviceConfigurationButton;
 @end
 
 @implementation XRCamMenuViewController
 @synthesize stackView = _stackView;
-@synthesize capturePhotoButton = _capturePhotoButton;
+@synthesize captureButton = _captureButton;
+@synthesize recordButton = _recordButton;
+@synthesize audioConfigurationButton = _audioConfigurationButton;
 @synthesize devicesButton = _devicesButton;
 @synthesize deviceConfigurationButton = _deviceConfigurationButton;
 
@@ -44,7 +49,8 @@
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_captureService release];
     [_stackView release];
-    [_capturePhotoButton release];
+    [_captureButton release];
+    [_audioConfigurationButton release];
     [_devicesButton release];
     [_deviceConfigurationButton release];
     [super dealloc];
@@ -68,7 +74,9 @@
     if (auto stackView = _stackView) return [[stackView retain] autorelease];
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
-        self.capturePhotoButton,
+        self.captureButton,
+        self.recordButton,
+        self.audioConfigurationButton,
         self.devicesButton,
         self.deviceConfigurationButton
     ]];
@@ -81,18 +89,47 @@
     return [stackView autorelease];
 }
 
-- (UIButton *)capturePhotoButton {
-    if (auto capturePhotoButton = _capturePhotoButton) return [[capturePhotoButton retain] autorelease];
+- (UIButton *)captureButton {
+    if (auto captureButton = _captureButton) return [[captureButton retain] autorelease];
     
     UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
     configuration.image = [UIImage systemImageNamed:@"camera.shutter.button.fill"];
     
-    UIButton *capturePhotoButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
-    capturePhotoButton.enabled = NO;
-    [capturePhotoButton addTarget:self action:@selector(_didTriggerCapturePhotoButton:) forControlEvents:UIControlEventPrimaryActionTriggered];
+    UIButton *captureButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
+    captureButton.enabled = NO;
+    [captureButton addTarget:self action:@selector(_didTriggerCaptureButton:) forControlEvents:UIControlEventPrimaryActionTriggered];
     
-    _capturePhotoButton = [capturePhotoButton retain];
-    return capturePhotoButton;
+    _captureButton = [captureButton retain];
+    return captureButton;
+}
+
+- (UIButton *)recordButton {
+    if (auto recordButton = _recordButton) return [[recordButton retain] autorelease];
+    
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    configuration.image = [UIImage systemImageNamed:@"camera.shutter.button.fill"];
+    
+    UIButton *recordButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
+    recordButton.enabled = NO;
+    [recordButton addTarget:self action:@selector(_didTriggerRecordButton:) forControlEvents:UIControlEventPrimaryActionTriggered];
+    
+    _recordButton = [recordButton retain];
+    return recordButton;
+}
+
+- (UIButton *)audioConfigurationButton {
+    if (auto audioConfigurationButton = _audioConfigurationButton) return [[audioConfigurationButton retain] autorelease];
+    
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    configuration.image = [UIImage systemImageNamed:@"waveform"];
+    
+    UIButton *audioConfigurationButton = [UIButton buttonWithConfiguration:configuration primaryAction:nil];
+    audioConfigurationButton.menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_audioElementWithDidChangeHandler:nil]
+    ]];
+    
+    _audioConfigurationButton = [audioConfigurationButton retain];
+    return audioConfigurationButton;
 }
 
 - (UIButton *)devicesButton {
@@ -141,7 +178,8 @@
     
     if (videoDevices.count == 0) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.capturePhotoButton.enabled = NO;
+            self.captureButton.enabled = NO;
+            self.recordButton.enabled = NO;
             self.deviceConfigurationButton.menu = nil;
             self.deviceConfigurationButton.enabled = NO;
         });
@@ -149,7 +187,8 @@
         AVCaptureDevice *videoDevice = videoDevices.allObjects[0];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.capturePhotoButton.enabled = YES;
+            self.captureButton.enabled = YES;
+            self.recordButton.enabled = YES;
             self.deviceConfigurationButton.menu = [UIMenu menuWithChildren:@[
                 [UIDeferredMenuElement cp_xr_videoDeviceConfigurationElementWithCaptureService:self.captureService videoDevice:videoDevice didChangeHandler:nil]
             ]];
@@ -158,10 +197,29 @@
     }
 }
 
-- (void)_didTriggerCapturePhotoButton:(UIButton *)sender {
+- (void)_didTriggerCaptureButton:(UIButton *)sender {
     dispatch_async(self.captureService.captureSessionQueue, ^{
         for (AVCaptureDevice *videoDevice in self.captureService.queue_addedVideoDevices) {
             [self.captureService queue_startPhotoCaptureWithVideoDevice:videoDevice];
+        }
+    });
+}
+
+- (void)_didTriggerRecordButton:(UIButton *)sender {
+    dispatch_async(self.captureService.captureSessionQueue, ^{
+        for (AVCaptureDevice *videoDevice in self.captureService.queue_addedVideoDevices) {
+            MovieWriter *movieWriter = [self.captureService queue_movieWriterForVideoDevice:videoDevice];
+            
+            switch (movieWriter.status) {
+                case MovieWriterStatusPending:
+                    [movieWriter startRecordingWithAudioOutputSettings:nil audioSourceFormatHint:nil metadataOutputSettings:nil metadataSourceFormatHint:nil];
+                    break;
+                case MovieWriterStatusRecording:
+                    [movieWriter stopRecordingWithCompletionHandler:nil];
+                    break;
+                default:
+                    abort();
+            }
         }
     });
 }

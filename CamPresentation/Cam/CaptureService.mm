@@ -850,21 +850,16 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     movieVideoDataOutputConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelCapture;
     [movieVideoDataOutputConnection release];
     
-    CMMetadataFormatDescriptionRef metadataFormatDescription = [self newMetadataFormatDescription];
-    
     CLLocationManager *locationManager = self.locationManager;
     
     MovieWriter *movieWriter = [[MovieWriter alloc] initWithFileOutput:self.queue_fileOutput
                                                        videoDataOutput:movieVideoDataOutput
-                                                metadataOutputSettings:nil
-                                              metadataSourceFormatHint:metadataFormatDescription
                                                       useFastRecording:NO
                                                          isolatedQueue:self.captureSessionQueue
                                                        locationHandler:^CLLocation * _Nullable{
         return locationManager.location;
     }];
     
-    CFRelease(metadataFormatDescription);
     [movieVideoDataOutput release];
     
     [self.queue_movieWritersByVideoDevice setObject:movieWriter forKey:captureDevice];
@@ -2255,7 +2250,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         }
     });
     
-    [movieWriter startRecordingWithAudioOutputSettings:audioOutputSettings audioSourceFormatHint:audioSourceFormatHint];
+    CMMetadataFormatDescriptionRef metadataSourceFormatHint = [self newMetadataFormatDescription];
+    
+    [movieWriter startRecordingWithAudioOutputSettings:audioOutputSettings audioSourceFormatHint:audioSourceFormatHint metadataOutputSettings:nil metadataSourceFormatHint:metadataSourceFormatHint];
+    
+    CFRelease(metadataSourceFormatHint);
     
     if (audioOutputSettings) {
         [audioOutputSettings release];
@@ -3107,8 +3106,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             
             MovieWriter *newMovieWriter = [[MovieWriter alloc] initWithFileOutput:movieWriter.fileOutput
                                                                   videoDataOutput:newVideoDataOutput
-                                                           metadataOutputSettings:movieWriter.metadataOutputSettings
-                                                         metadataSourceFormatHint:movieWriter.metadataSourceFormatHint
                                                                  useFastRecording:movieWriter.useFastRecording
                                                                     isolatedQueue:self.captureSessionQueue
                                                                   locationHandler:^CLLocation * _Nullable{
