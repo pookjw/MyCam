@@ -5,8 +5,13 @@
 //  Created by Jinwoo Kim on 11/17/24.
 //
 
+#import <TargetConditionals.h>
+
+#if TARGET_OS_VISION
+
 #import <CamPresentation/UIDeferredMenuElement+XRVideoDeviceConfiguration.h>
 #import <CamPresentation/XRCaptureService.h>
+#import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -52,6 +57,54 @@ UIMenu *setMetadataObjectTypesMenu(XRCaptureService *captureService, AVCaptureDe
     return menu;
 }
 
+UIMenu *formatsMenu(XRCaptureService *captureService, AVCaptureDevice *videoDevice, NSString *title, BOOL includeSubtitle, BOOL (^ _Nullable filterHandler)(AVCaptureDeviceFormat *format), void (^ _Nullable didChangeHandler)()) {
+    NSArray<AVCaptureDeviceFormat *> *formats = videoDevice.formats;
+    AVCaptureDeviceFormat *activeFormat = videoDevice.activeFormat;
+    NSMutableArray<UIAction *> *formatActions = [NSMutableArray new];
+    
+    [formats enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(AVCaptureDeviceFormat * _Nonnull format, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([captureService.captureSession isKindOfClass:AVCaptureMultiCamSession.class] && !format.multiCamSupported) {
+            return;
+        }
+        
+        if (filterHandler) {
+            if (!filterHandler(format)) return;
+        }
+        
+        UIAction *action = [UIAction actionWithTitle:format.debugDescription image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [videoDevice lockForConfiguration:&error];
+                assert(error == nil);
+                videoDevice.activeFormat = format;
+                [videoDevice unlockForConfiguration];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.cp_overrideNumberOfTitleLines = 0;
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.state = [activeFormat isEqual:format] ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [formatActions addObject:action];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:title
+                                   image:nil
+                              identifier:nil
+                                 options:0
+                                children:formatActions];
+    [formatActions release];
+    
+    if (includeSubtitle) {
+        menu.subtitle = activeFormat.debugDescription;
+    }
+    
+    menu.cp_overrideNumberOfTitleLines = 0;
+    
+    return menu;
+}
+
 }
 }
 }
@@ -66,6 +119,7 @@ UIMenu *setMetadataObjectTypesMenu(XRCaptureService *captureService, AVCaptureDe
             using namespace cp::xr::deviceConfiguration;
             
             [elements addObject:setMetadataObjectTypesMenu(captureService, videoDevice, didChangeHandler)];
+            [elements addObject:formatsMenu(captureService, videoDevice, @"Formats", YES, nil, didChangeHandler)];
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(elements);
@@ -77,3 +131,5 @@ UIMenu *setMetadataObjectTypesMenu(XRCaptureService *captureService, AVCaptureDe
 }
 
 @end
+
+#endif
