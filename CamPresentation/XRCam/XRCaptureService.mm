@@ -209,6 +209,10 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     
     AVCaptureSession *captureSession = self.captureSession;
     
+    assert(self.queue_movieWriter != nil);
+    assert(self.queue_movieWriter.status == MovieWriterStatusPending);
+    self.queue_movieWriter = nil;
+    
     BOOL didRemove = NO;
     
     [captureSession beginConfiguration];
