@@ -14,6 +14,7 @@
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CamPresentation/ARVideoPlayerViewController.h>
 
 #warning TODO Live Photo (Vision은 Live Photo + Spatial일 수 있으며, PhotosXRUI에 해당 기능을 처리하는게 Swift로 있음)
 
@@ -22,6 +23,7 @@
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
+@property (retain, nonatomic, readonly) UIBarButtonItem *arVideoPlayerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *customPlayerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @end
@@ -29,6 +31,7 @@
 @implementation AssetViewController
 @synthesize collectionView = _collectionView;
 @synthesize dataSource = _dataSource;
+@synthesize arVideoPlayerBarButtonItem = _arVideoPlayerBarButtonItem;
 @synthesize customPlayerBarButtonItem = _customPlayerBarButtonItem;
 @synthesize playerBarButtonItem = _playerBarButtonItem;
 
@@ -46,7 +49,9 @@
     [_asset release];
     [_collectionView release];
     [_dataSource release];
+    [_arVideoPlayerBarButtonItem release];
     [_customPlayerBarButtonItem release];
+    [_playerBarButtonItem release];
     [super dealloc];
 }
 
@@ -57,7 +62,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.navigationItem.rightBarButtonItems = @[self.customPlayerBarButtonItem, self.playerBarButtonItem];
+    self.navigationItem.rightBarButtonItems = @[
+        self.arVideoPlayerBarButtonItem,
+        self.customPlayerBarButtonItem,
+        self.playerBarButtonItem
+    ];
     
     [self.dataSource updateCollection:self.collection completionHandler:^{
         NSIndexPath * _Nullable indexPath = [self.dataSource indexPathFromAsset:self.asset];
@@ -108,6 +117,15 @@
     return [dataSource autorelease];
 }
 
+- (UIBarButtonItem *)arVideoPlayerBarButtonItem {
+    if (auto arVideoPlayerBarButtonItem = _arVideoPlayerBarButtonItem) return arVideoPlayerBarButtonItem;
+    
+    UIBarButtonItem *arVideoPlayerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"square.3.layers.3d.top.filled"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerARPlayerBarButtonItem:)];
+    
+    _arVideoPlayerBarButtonItem = [arVideoPlayerBarButtonItem retain];
+    return [arVideoPlayerBarButtonItem autorelease];
+}
+
 - (UIBarButtonItem *)customPlayerBarButtonItem {
     if (auto customPlayerBarButtonItem = _customPlayerBarButtonItem) return customPlayerBarButtonItem;
     
@@ -124,6 +142,17 @@
     
     _playerBarButtonItem = [playerBarButtonItem retain];
     return [playerBarButtonItem autorelease];
+}
+
+- (void)didTriggerARPlayerBarButtonItem:(UIBarButtonItem *)sender {
+    if (PHAsset *asset = [self currentVideoAsset]) {
+        ARVideoPlayerViewController *playerViewController = [[ARVideoPlayerViewController alloc] initWithAsset:asset];
+        UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:playerViewController];
+        [playerViewController release];
+        navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:navigationController animated:YES completion:nil];
+        [navigationController release];
+    }
 }
 
 - (void)didTriggerCustomPlayerBarButtonItem:(UIBarButtonItem *)sender {

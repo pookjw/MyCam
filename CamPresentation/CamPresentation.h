@@ -6,6 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <AVFoundation/AVFoundation.h>
 
 //! Project version number for CamPresentation.
 FOUNDATION_EXPORT double CamPresentationVersionNumber;
