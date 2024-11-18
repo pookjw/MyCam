@@ -11,10 +11,11 @@
 #import <CamPresentation/AssetCollectionsCell.h>
 #import <CamPresentation/AssetCollectionsHeaderView.h>
 #import <CamPresentation/AssetCollectionsCollectionViewLayout.h>
-#import <CamPresentation/PlayerViewController.h>
+#import <CamPresentation/AssetViewController.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import "MyCompositionalLayout.h"
+#import <CamPresentation/MyCompositionalLayout.h>
+#include <random>
 
 @interface AssetCollectionsViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) AssetCollectionsDataSource *dataSource;
@@ -47,15 +48,27 @@
     
     __weak auto weakSelf = self;
     UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"37666297-B7D6-4A2F-9B2F-88D6D6BA4E0F/L0/001"] options:nil].firstObject;
+        PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumSpatial options:nil];
+        PHAssetCollection *collection = collections.firstObject;
+        assert(collection != nil);
+        
+        PHFetchOptions *options = [PHFetchOptions new];
+        options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeVideo];
+        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
+        [options release];
+        
+        if (assets.count == 0) return;
+        
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<NSUInteger> distr(0, assets.count - 1);
+        
+        PHAsset *asset = assets[distr(gen)];
         assert(asset != nil);
         
-        PlayerViewController *playerViewController = [[PlayerViewController alloc] initWithAsset:asset];
-        UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:playerViewController];
-        [playerViewController release];
-        navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-        [weakSelf presentViewController:navigationController animated:YES completion:nil];
-        [navigationController release];
+        AssetViewController *viewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
+        [weakSelf.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
     }];
     
     self.navigationItem.titleView = [UIButton buttonWithType:UIButtonTypeSystem primaryAction:action];

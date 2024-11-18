@@ -11,20 +11,25 @@
 #import <CamPresentation/AssetCollectionViewCell.h>
 #import <CamPresentation/AssetCollectionViewLayout.h>
 #import <CamPresentation/PlayerViewController.h>
+#import <AVKit/AVKit.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
-#warning TODO Live Photo
+#warning TODO Live Photo (Vision은 Live Photo + Spatial일 수 있으며, PhotosXRUI에 해당 기능을 처리하는게 Swift로 있음)
 
 @interface AssetViewController () <UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
 @property (retain, nonatomic, readonly) PHAssetCollection *collection;
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
+@property (retain, nonatomic, readonly) UIBarButtonItem *customPlayerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @end
 
 @implementation AssetViewController
 @synthesize collectionView = _collectionView;
 @synthesize dataSource = _dataSource;
+@synthesize customPlayerBarButtonItem = _customPlayerBarButtonItem;
 @synthesize playerBarButtonItem = _playerBarButtonItem;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection asset:(PHAsset *)asset {
@@ -41,7 +46,7 @@
     [_asset release];
     [_collectionView release];
     [_dataSource release];
-    [_playerBarButtonItem release];
+    [_customPlayerBarButtonItem release];
     [super dealloc];
 }
 
@@ -52,7 +57,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.navigationItem.rightBarButtonItem = self.playerBarButtonItem;
+    self.navigationItem.rightBarButtonItems = @[self.customPlayerBarButtonItem, self.playerBarButtonItem];
     
     [self.dataSource updateCollection:self.collection completionHandler:^{
         NSIndexPath * _Nullable indexPath = [self.dataSource indexPathFromAsset:self.asset];
@@ -103,16 +108,25 @@
     return [dataSource autorelease];
 }
 
+- (UIBarButtonItem *)customPlayerBarButtonItem {
+    if (auto customPlayerBarButtonItem = _customPlayerBarButtonItem) return customPlayerBarButtonItem;
+    
+    UIBarButtonItem *customPlayerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"play.rectangle"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerCustomPlayerBarButtonItem:)];
+    
+    _customPlayerBarButtonItem = [customPlayerBarButtonItem retain];
+    return [customPlayerBarButtonItem autorelease];
+}
+
 - (UIBarButtonItem *)playerBarButtonItem {
     if (auto playerBarButtonItem = _playerBarButtonItem) return playerBarButtonItem;
     
-    UIBarButtonItem *playerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"play.rectangle"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerPlayerBarButtonItem:)];
+    UIBarButtonItem *playerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"play.rectangle.on.rectangle"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerPlayerBarButtonItem:)];
     
     _playerBarButtonItem = [playerBarButtonItem retain];
     return [playerBarButtonItem autorelease];
 }
 
-- (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {
+- (void)didTriggerCustomPlayerBarButtonItem:(UIBarButtonItem *)sender {
     if (PHAsset *asset = [self currentVideoAsset]) {
         PlayerViewController *playerViewController = [[PlayerViewController alloc] initWithAsset:asset];
         UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:playerViewController];
@@ -121,6 +135,53 @@
         [self presentViewController:navigationController animated:YES completion:nil];
         [navigationController release];
     }
+}
+
+- (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {
+    PHAsset *asset = [self currentVideoAsset];
+    if (asset == nil) return;
+    
+    UIViewController *progressViewController = [UIViewController new];
+    UIProgressView *progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleBar];
+    progressViewController.view = progressView;
+    
+    PHVideoRequestOptions *options = [PHVideoRequestOptions new];
+    options.networkAccessAllowed = YES;
+    options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
+    options.progressHandler = ^(double progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [progressView setProgress:progress animated:YES];
+        });
+    };
+    
+    PHImageRequestID requestID = [PHImageManager.defaultManager requestPlayerItemForVideo:asset options:options resultHandler:^(AVPlayerItem * _Nullable playerItem, NSDictionary * _Nullable info) {
+        assert(playerItem != nil);
+        
+        [progressViewController dismissViewControllerAnimated:YES completion:^{
+            AVPlayerViewController *playerViewController = [AVPlayerViewController new];
+            AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+            playerViewController.player = player;
+            [player release];
+            
+            [self presentViewController:playerViewController animated:YES completion:nil];
+            [playerViewController release];
+        }];
+    }];
+    
+    [options release];
+    
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Loading" message:asset.localIdentifier preferredStyle:UIAlertControllerStyleAlert];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(alertController, sel_registerName("setContentViewController:"), progressViewController);
+    [progressViewController release];
+    
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+        [PHImageManager.defaultManager cancelImageRequest:requestID];
+    }];
+    
+    [alertController addAction:cancelAction];
+    
+    [self presentViewController:alertController animated:YES completion:nil];
 }
 
 - (PHAsset * _Nullable)currentVideoAsset {
@@ -152,7 +213,7 @@
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    self.playerBarButtonItem.hidden = [self currentVideoAsset] == nil;
+    self.customPlayerBarButtonItem.hidden = [self currentVideoAsset] == nil;
 }
 
 @end
