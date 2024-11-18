@@ -46,7 +46,7 @@
     [super viewDidLoad];
     
     id mrui_ornamentsItem = reinterpret_cast<id (*) (id, SEL)>(objc_msgSend) (self, NSSelectorFromString(@"mrui_ornamentsItem"));
-    reinterpret_cast<void (*) (id, SEL, id)>(objc_msgSend)(mrui_ornamentsItem, NSSelectorFromString(@"setOrnaments:"), @[
+    reinterpret_cast<void (*) (id, SEL, id)>(objc_msgSend)(mrui_ornamentsItem, sel_registerName("setOrnaments:"), @[
         self.menuOrnament
     ]);
     
@@ -90,14 +90,14 @@
     
     id menuOrnament = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("MRUIPlatterOrnament") alloc], sel_registerName("initWithViewController:"), menuViewController);
     
-    reinterpret_cast<void (*) (id, SEL, CGSize)>(objc_msgSend)(menuOrnament, NSSelectorFromString(@"setPreferredContentSize:"), CGSizeMake(400., 80.));
-    reinterpret_cast<void (*) (id, SEL, CGPoint)>(objc_msgSend)(menuOrnament, NSSelectorFromString(@"setContentAnchorPoint:"), CGPointMake(0.5, 0.));
-    reinterpret_cast<void (*) (id, SEL, CGPoint)>(objc_msgSend)(menuOrnament, NSSelectorFromString(@"setSceneAnchorPoint:"), CGPointMake(0.5, 1.));
-    reinterpret_cast<void (*) (id, SEL, CGFloat)>(objc_msgSend)(menuOrnament, NSSelectorFromString(@"_setZOffset:"), 50.);
+    reinterpret_cast<void (*) (id, SEL, CGSize)>(objc_msgSend)(menuOrnament, sel_registerName("setPreferredContentSize:"), CGSizeMake(400., 80.));
+    reinterpret_cast<void (*) (id, SEL, CGPoint)>(objc_msgSend)(menuOrnament, sel_registerName("setContentAnchorPoint:"), CGPointMake(0.5, 0.));
+    reinterpret_cast<void (*) (id, SEL, CGPoint)>(objc_msgSend)(menuOrnament, sel_registerName("setSceneAnchorPoint:"), CGPointMake(0.5, 1.));
+    reinterpret_cast<void (*) (id, SEL, CGFloat)>(objc_msgSend)(menuOrnament, sel_registerName("_setZOffset:"), 50.);
     
     _menuOrnament = [menuOrnament retain];
     
-    return menuOrnament;
+    return [menuOrnament autorelease];
 }
 
 - (void)didUpdatePreviewLayer:(NSNotification *)notification {
