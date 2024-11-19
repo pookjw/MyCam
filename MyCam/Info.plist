@@ -12,10 +12,14 @@
 	<true/>
 	<key>NSCameraStudioLightEnabled</key>
 	<true/>
+	<key>NSHandsTrackingUsageDescription</key>
+	<string>Authroization is required to use AR experiences.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.pookjw.MyCam.CameraRootViewController</string>
 	</array>
+	<key>NSWorldSensingUsageDescription</key>
+	<string>Authroization is required to use AR experiences.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

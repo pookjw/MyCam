@@ -48,7 +48,8 @@
     
     __weak auto weakSelf = self;
     UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumSpatial options:nil];
+        // PHAssetCollectionSubtypeSmartAlbumSpatial
+        PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumVideos options:nil];
         PHAssetCollection *collection = collections.firstObject;
         assert(collection != nil);
         

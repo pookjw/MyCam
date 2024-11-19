@@ -7,6 +7,7 @@
 
 #import <CamPresentation/ARVideoPlayerViewController.h>
 #import <CamPresentation/CamPresentation-Swift.h>
+#import <CamPresentation/UIApplication+mrui_requestSceneWrapper.hpp>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
@@ -19,11 +20,16 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *doneBarButtonItem;
 @property (assign, nonatomic) PHImageRequestID imageRequestID;
 #if TARGET_OS_VISION
+@property (retain, nonatomic, readonly) UIButton *toggleImmersiveSceneButton;
+@property (readonly, nullable) UIScene *immersiveSpaceScene;
 #endif
 @end
 
 @implementation ARVideoPlayerViewController
 @synthesize doneBarButtonItem = _doneBarButtonItem;
+#if TARGET_OS_VISION
+@synthesize toggleImmersiveSceneButton = _toggleImmersiveSceneButton;
+#endif
 
 - (instancetype)initWithAsset:(PHAsset *)asset {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -61,6 +67,10 @@
     [_player release];
     [_videoRenderer release];
     [_doneBarButtonItem release];
+#if TARGET_OS_VISION
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+    [_toggleImmersiveSceneButton release];
+#endif
     [super dealloc];
 }
 
@@ -115,6 +125,20 @@
     } else {
         [self attachPlayerView];
     }
+    
+#if TARGET_OS_VISION
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(receivedSceneWillConnectNotificaiton:)
+                                               name:UISceneWillConnectNotification
+                                             object:nil];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(receivedSceneDidDisconnectNotificaiton:)
+                                               name:UISceneDidDisconnectNotification
+                                             object:nil];
+    
+    [self updateToggleImmersiveSceneButton];
+#endif
 }
 
 - (UIBarButtonItem *)doneBarButtonItem {
@@ -134,6 +158,52 @@
     
     [self dismissViewControllerAnimated:YES completion:nil];
 }
+
+#if TARGET_OS_VISION
+- (UIButton *)toggleImmersiveSceneButton {
+    if (auto toggleImmersiveSceneButton = _toggleImmersiveSceneButton) return [[toggleImmersiveSceneButton retain] autorelease];
+    
+    UIButton *toggleImmersiveSceneButton = [UIButton new];
+    [toggleImmersiveSceneButton addTarget:self action:@selector(didTriggerToggleImmersiveSceneButton:) forControlEvents:UIControlEventPrimaryActionTriggered];
+    
+    _toggleImmersiveSceneButton = [toggleImmersiveSceneButton retain];
+    return [toggleImmersiveSceneButton autorelease];
+}
+
+- (void)didTriggerToggleImmersiveSceneButton:(UIButton *)sender {
+    
+}
+
+- (UIScene *)immersiveSpaceScene {
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if (scene.session.role == UISceneSessionRoleImmersiveSpaceApplication) {
+            return scene;
+        }
+    }
+    
+    return nil;
+}
+
+- (void)receivedSceneWillConnectNotificaiton:(NSNotification *)notification {
+    [self updateToggleImmersiveSceneButton];
+}
+
+- (void)receivedSceneDidDisconnectNotificaiton:(NSNotification *)notification {
+    [self updateToggleImmersiveSceneButton];
+}
+
+- (void)updateToggleImmersiveSceneButton {
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    
+    if (self.immersiveSpaceScene == nil) {
+        configuration.image = [UIImage systemImageNamed:@"visionpro"];
+    } else {
+        configuration.image = [UIImage systemImageNamed:@"visionpro.fill"];
+    }
+    
+    self.toggleImmersiveSceneButton.configuration = configuration;
+}
+#endif
 
 - (void)attachPlayerView {
 #if TARGET_OS_IOS
@@ -160,7 +230,10 @@
     
     [arVideoPlayerViewController release];
 #elif TARGET_OS_VISION
-    abort();
+    UIButton *toggleImmersiveSceneButton = self.toggleImmersiveSceneButton;
+    toggleImmersiveSceneButton.frame = self.view.bounds;
+    toggleImmersiveSceneButton.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    [self.view addSubview:toggleImmersiveSceneButton];
 #endif
 }
 
