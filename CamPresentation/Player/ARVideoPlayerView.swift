@@ -5,6 +5,8 @@
 //  Created by Jinwoo Kim on 11/18/24.
 //
 
+#if os(iOS)
+
 @preconcurrency import Foundation
 import UIKit
 import SwiftUI
@@ -13,16 +15,44 @@ import RealityKit
 @preconcurrency import AVFoundation
 
 @_expose(Cxx)
-public nonisolated func newARVideoPlayerHostingController(avPlayer: AVPlayer) -> UIViewController {
+public nonisolated func newARVideoPlayerHostingController(
+    avPlayer: AVPlayer,
+    arSessionHandler: UnsafeRawPointer
+) -> UIViewController {
     MainActor.assumeIsolated {
-        UIHostingController(rootView: ARVideoPlayerView(avPlayer: avPlayer))
+        var rootView = ARVideoPlayerView(avPlayer: avPlayer)
+        if Int(bitPattern: arSessionHandler) != .zero {
+            let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
+            
+            rootView = rootView
+                .arSessionHandler { arSession in
+                    let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
+                    block(arSession)
+                }
+        }
+        
+        return UIHostingController(rootView: rootView)
     }
 }
 
 @_expose(Cxx)
-public nonisolated func newARVideoPlayerHostingController(videoRenderer: AVSampleBufferVideoRenderer) -> UIViewController {
+public nonisolated func newARVideoPlayerHostingController(
+    videoRenderer: AVSampleBufferVideoRenderer,
+    arSessionHandler: UnsafeRawPointer
+) -> UIViewController {
     MainActor.assumeIsolated {
-        UIHostingController(rootView: ARVideoPlayerView(videoRenderer: videoRenderer))
+        var rootView = ARVideoPlayerView(videoRenderer: videoRenderer)
+        if Int(bitPattern: arSessionHandler) != .zero {
+            let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
+            
+            rootView = rootView
+                .arSessionHandler { arSession in
+                    let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
+                    block(arSession)
+                }
+        }
+        
+        return UIHostingController(rootView: rootView)
     }
 }
 
@@ -41,7 +71,8 @@ fileprivate struct ARVideoPlayerView: View {
     }
     
     private let input: Input
-    @State private var originID: UUID?
+    fileprivate var arSessionHandler: (@MainActor (ARSession) -> Void)?
+    @State private var viewModel = ARVideoPlayerViewModel()
     @State private var status: AVPlayer.Status?
     @State private var rate: Float?
     
@@ -56,9 +87,12 @@ fileprivate struct ARVideoPlayerView: View {
     var body: some View {
         GeometryReader { proxy in
             RealityView { (content: inout RealityViewCameraContent) in
+                let arView = Mirror(reflecting: content).descendant("view") as! ARView
+                arSessionHandler?(arView.session)
+                
                 content.camera = .spatialTracking
             } update: { (content: inout RealityViewCameraContent) in
-                if let _ = originID {
+                if viewModel.originID != viewModel.lastUpdatedOriginID {
                     let frame = proxy.frame(in: .local)
                     let center = CGPoint(x: frame.midX, y: frame.midY)
                     guard let hit = content.hitTest(point: center, in: .local, query: .nearest, mask: .sceneUnderstanding).first else {
@@ -77,6 +111,7 @@ fileprivate struct ARVideoPlayerView: View {
                     }
                     
                     entity.transform = .init(rotation: .init(vector: .init(hit.normal, .zero)), translation: hit.position)
+                    viewModel.lastUpdatedOriginID = viewModel.__originID
                 }
             }
         }
@@ -84,7 +119,7 @@ fileprivate struct ARVideoPlayerView: View {
         .overlay(alignment: .bottom) {
             HStack {
                 Button("Locate") {
-                    originID = .init()
+                    viewModel.originID = .init()
                 }
                 .buttonStyle(.bordered)
                 
@@ -111,18 +146,14 @@ fileprivate struct ARVideoPlayerView: View {
             guard case let .avPlayer(avPlayer) = input else { return }
             
             let statusTask = Task { [statusState = _status] in
-                statusState.wrappedValue = avPlayer.status
-                
-                for await change in avPlayer.observe(\.status, options: .new) {
-                    statusState.wrappedValue = change.newValue
+                for await _ in avPlayer.observe(\.status, options: [.initial, .new]) {
+                    statusState.wrappedValue = avPlayer.status
                 }
             }
             
             let rateTask = Task { [rateState = _rate] in
-                rateState.wrappedValue = avPlayer.rate
-                
-                for await change in avPlayer.observe(\.rate, options: .new) {
-                    rateState.wrappedValue = change.newValue
+                for await _ in avPlayer.observe(\.rate, options: [.initial, .new]) {
+                    rateState.wrappedValue = avPlayer.rate
                 }
             }
             
@@ -160,14 +191,30 @@ fileprivate struct ARVideoPlayerView: View {
     }
 }
 
+@MainActor
+@Observable
+fileprivate final class ARVideoPlayerViewModel {
+    var originID: UUID?
+    var __originID: UUID? {
+        _originID
+    }
+    @ObservationIgnored var lastUpdatedOriginID: UUID?
+}
+
+extension ARVideoPlayerView {
+    func arSessionHandler(_ handler: @MainActor @escaping (ARSession) -> Void) -> ARVideoPlayerView {
+        var copy = self
+        copy.arSessionHandler = handler
+        return copy
+    }
+}
+
 extension _KeyValueCodingAndObserving {
     func observe<Value>(
         _ keyPath: KeyPath<Self, Value>,
         options: NSKeyValueObservingOptions = [],
         bufferingPolicy limit: AsyncStream<NSKeyValueObservedChange<Value>>.Continuation.BufferingPolicy = .unbounded
     ) -> AsyncStream<NSKeyValueObservedChange<Value>> {
-        guard !options.contains(.initial) else { fatalError() }
-        
         let (stream, continuation) = AsyncStream<NSKeyValueObservedChange<Value>>.makeStream(bufferingPolicy: limit)
         
         let observation = observe(keyPath, options: options) { object, change in
@@ -181,3 +228,7 @@ extension _KeyValueCodingAndObserving {
         return stream
     }
 }
+
+extension UnsafeRawPointer: @retroactive @unchecked Sendable {}
+
+#endif

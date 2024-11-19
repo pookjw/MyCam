@@ -10,6 +10,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
+#import <ARKit/ARKit.h>
 
 @interface ARVideoPlayerViewController ()
 @property (retain, nonatomic, nullable, readonly) PHAsset *asset;
@@ -136,7 +137,20 @@
 
 - (void)attachPlayerView {
 #if TARGET_OS_IOS
-    __kindof UIViewController *arVideoPlayerViewController = CamPresentation::newARVideoPlayerHostingController(self.player);
+    __weak auto wealSelf = self;
+    
+    __kindof UIViewController *arVideoPlayerViewController = CamPresentation::newARVideoPlayerHostingController(self.player, ^ (ARSession *arSession) {
+        auto retained = wealSelf;
+        if (retained == nil) return;
+        
+        ARCoachingOverlayView *overlayView = [[ARCoachingOverlayView alloc] initWithFrame:retained.view.bounds];
+        overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [retained.view addSubview:overlayView];
+        
+        overlayView.session = arSession;
+        overlayView.goal = ARCoachingGoalAnyPlane;
+        [overlayView release];
+    });
     
     [self addChildViewController:arVideoPlayerViewController];
     arVideoPlayerViewController.view.frame = self.view.bounds;
