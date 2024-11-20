@@ -171,7 +171,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [captureDevice addObserver:self forKeyPath:@"spatialCaptureDiscomfortReasons" options:NSKeyValueObservingOptionNew context:nullptr];
         [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
         
-        [self updateContentScale];
+        [self updateContentsScale];
         
         //
         
@@ -277,7 +277,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     
-    [self updateContentScale];
+    [self updateContentsScale];
     
     CGRect bounds = self.layer.bounds;
     self.previewLayer.frame = bounds;
@@ -628,7 +628,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     });
 }
 
-- (void)updateContentScale {
+- (void)updateContentsScale {
     CGFloat displayScale = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_currentScreenScale"));
     
     self.customPreviewLayer.contentsScale = displayScale;

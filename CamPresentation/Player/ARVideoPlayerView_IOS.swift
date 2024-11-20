@@ -115,7 +115,7 @@ fileprivate struct ARVideoPlayerView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
         .overlay(alignment: .bottom) {
             HStack {
                 Button("Locate") {

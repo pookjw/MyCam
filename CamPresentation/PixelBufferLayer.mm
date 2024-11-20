@@ -141,6 +141,11 @@
     _metalLayer.drawableSize = CGSizeMake(CGRectGetWidth(bounds) * self.contentsScale, CGRectGetHeight(bounds) * self.contentsScale);
 }
 
+- (void)setContentsScale:(CGFloat)contentsScale {
+    [super setContentsScale:contentsScale];
+    _metalLayer.contentsScale = contentsScale;
+}
+
 - (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
     if (pixelBuffer == nil) return;
     
