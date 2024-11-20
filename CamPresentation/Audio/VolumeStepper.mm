@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 10/17/24.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_TV
+
 #import <CamPresentation/VolumeStepper.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -89,3 +93,5 @@
 }
 
 @end
+
+#endif

@@ -11,8 +11,10 @@ NSString * NSStringFromAVAudioSessionPortOverride(AVAudioSessionPortOverride por
     switch (portOverride) {
         case AVAudioSessionPortOverrideNone:
             return @"None";
+#if !TARGET_OS_TV
         case AVAudioSessionPortOverrideSpeaker:
             return @"Speaker";
+#endif
         default:
             abort();
     }

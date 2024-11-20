@@ -5,6 +5,11 @@
 //  Created by Jinwoo Kim on 10/17/24.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_TV
+// #endif
+
 #import <CamPresentation/VolumeSlider.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -222,3 +227,5 @@
 }
 
 @end
+
+#endif

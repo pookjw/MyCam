@@ -8,6 +8,7 @@
 #import <CamPresentation/PixelBufferLayer.h>
 #import <MetalKit/MetalKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <TargetConditionals.h>
 
 @interface PixelBufferLayer () {
     @package CAMetalLayer *_metalLayer;
@@ -47,6 +48,7 @@
             metalLayer = [CAMetalLayer new];
         });
         
+#if !TARGET_OS_TV
         self.wantsExtendedDynamicRangeContent = YES;
         
 //        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearDisplayP3);
@@ -55,6 +57,8 @@
 //        metalLayer.colorspace = nil;
 //        metalLayer.EDRMetadata = [CAEDRMetadata HLGMetadata];
         metalLayer.wantsExtendedDynamicRangeContent = YES;
+#endif
+        
         metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         metalLayer.frame = self.bounds;
         metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * self.contentsScale, self.bounds.size.height * self.contentsScale);

@@ -41,7 +41,11 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+#if !TARGET_OS_TV
     self.view.backgroundColor = UIColor.systemBackgroundColor;
+#endif
+    
     self.navigationItem.rightBarButtonItem = self.switchLayoutBarButtonItem;
     
     [self dataSource];

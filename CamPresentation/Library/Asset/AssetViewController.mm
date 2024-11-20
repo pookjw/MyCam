@@ -171,7 +171,11 @@
     if (asset == nil) return;
     
     UIViewController *progressViewController = [UIViewController new];
+#if TARGET_OS_TV
+    UIProgressView *progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+#else
     UIProgressView *progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleBar];
+#endif
     progressViewController.view = progressView;
     
     PHVideoRequestOptions *options = [PHVideoRequestOptions new];
@@ -242,7 +246,11 @@
 }
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+#if TARGET_OS_TV
+    self.customPlayerBarButtonItem.enabled = [self currentVideoAsset] != nil;
+#else
     self.customPlayerBarButtonItem.hidden = [self currentVideoAsset] == nil;
+#endif
 }
 
 @end

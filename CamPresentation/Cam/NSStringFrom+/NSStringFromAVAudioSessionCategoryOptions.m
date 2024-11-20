@@ -23,9 +23,11 @@ NSString * NSStringFromAVAudioSessionCategoryOptions(AVAudioSessionCategoryOptio
         [array addObject:@"Allow Bluetooth"];
     }
     
+#if !TARGET_OS_TV
     if ((audioSessionCategoryOptions & AVAudioSessionCategoryOptionDefaultToSpeaker) == AVAudioSessionCategoryOptionDefaultToSpeaker) {
         [array addObject:@"Default To Speaker"];
     }
+#endif
     
     if ((audioSessionCategoryOptions & AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers) == AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers) {
         [array addObject:@"Interrupt Spoken Audio And Mix With Others"];
@@ -39,9 +41,11 @@ NSString * NSStringFromAVAudioSessionCategoryOptions(AVAudioSessionCategoryOptio
         [array addObject:@"Allow AirPlay"];
     }
     
+#if !TARGET_OS_TV
     if ((audioSessionCategoryOptions & AVAudioSessionCategoryOptionOverrideMutedMicrophoneInterruption) == AVAudioSessionCategoryOptionOverrideMutedMicrophoneInterruption) {
         [array addObject:@"Override Muted Microphone Interruption"];
     }
+#endif
     
     NSString *string = [array componentsJoinedByString:@", "];
     [array release];

@@ -3410,7 +3410,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self.mainQueue_capturePhotosByUniqueID setObject:photo forKey:@(photo.resolvedSettings.uniqueID)];
 }
 
-#if !TARGET_OS_MACCATALYST
+#if TARGET_OS_IOS
 - (void)captureOutput:(AVCapturePhotoOutput *)output didFinishCapturingDeferredPhotoProxy:(AVCaptureDeferredPhotoProxy *)deferredPhotoProxy error:(NSError *)error {
     assert(self.queue_fileOutput.class == PhotoLibraryFileOutput.class);
     

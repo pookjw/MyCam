@@ -20,25 +20,41 @@
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UILabel *exposureTargetBiasLabel;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *exposureTargetBiasSlider;
+#endif
 @property (retain, nonatomic, readonly) UILabel *activeMaxExposureDurationLabel;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *activeMaxExposureDurationSlider;
+#endif
 @property (retain, nonatomic, readonly) UILabel *exposureDurationLabel;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *exposureDurationSlider;
+#endif
 @property (retain, nonatomic, readonly) UILabel *ISOLabel;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *ISOSlider;
+#endif
 @end
 
 @implementation CaptureDeviceExposureSlidersView
 @synthesize stackView = _stackView;
 @synthesize exposureTargetBiasLabel = _exposureTargetBiasLabel;
+#if !TARGET_OS_TV
 @synthesize exposureTargetBiasSlider = _exposureTargetBiasSlider;
+#endif
 @synthesize activeMaxExposureDurationLabel = _activeMaxExposureDurationLabel;
+#if !TARGET_OS_TV
 @synthesize activeMaxExposureDurationSlider = _activeMaxExposureDurationSlider;
+#endif
 @synthesize exposureDurationLabel = _exposureDurationLabel;
+#if !TARGET_OS_TV
 @synthesize exposureDurationSlider = _exposureDurationSlider;
+#endif
 @synthesize ISOLabel = _ISOLabel;
+#if !TARGET_OS_TV
 @synthesize ISOSlider = _ISOSlider;
+#endif
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -81,13 +97,21 @@
     [_captureDevice release];
     [_stackView release];
     [_exposureTargetBiasLabel release];
+#if !TARGET_OS_TV
     [_exposureTargetBiasSlider release];
+#endif
     [_activeMaxExposureDurationLabel release];
+#if !TARGET_OS_TV
     [_activeMaxExposureDurationSlider release];
+#endif
     [_exposureDurationLabel release];
+#if !TARGET_OS_TV
     [_exposureDurationSlider release];
+#endif
     [_ISOLabel release];
+#if !TARGET_OS_TV
     [_ISOSlider release];
+#endif
     [super dealloc];
 }
 
@@ -134,13 +158,21 @@
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
         self.exposureTargetBiasLabel,
+#if !TARGET_OS_TV
         self.exposureTargetBiasSlider,
+#endif
         self.activeMaxExposureDurationLabel,
+#if !TARGET_OS_TV
         self.activeMaxExposureDurationSlider,
+#endif
         self.exposureDurationLabel,
+#if !TARGET_OS_TV
         self.exposureDurationSlider,
+#endif
         self.ISOLabel,
+#if !TARGET_OS_TV
         self.ISOSlider
+#endif
     ]];
     
     stackView.axis = UILayoutConstraintAxisVertical;
@@ -164,6 +196,7 @@
     return [exposureTargetBiasLabel autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)exposureTargetBiasSlider {
     if (auto exposureTargetBiasSlider = _exposureTargetBiasSlider) return exposureTargetBiasSlider;
     
@@ -202,6 +235,7 @@
     _exposureTargetBiasSlider = [exposureTargetBiasSlider retain];
     return [exposureTargetBiasSlider autorelease];
 }
+#endif
 
 - (UILabel *)activeMaxExposureDurationLabel {
     if (auto activeMaxExposureDurationLabel = _activeMaxExposureDurationLabel) return activeMaxExposureDurationLabel;
@@ -216,6 +250,7 @@
     return [activeMaxExposureDurationLabel autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)activeMaxExposureDurationSlider {
     if (auto activeMaxExposureDurationSlider = _activeMaxExposureDurationSlider) return activeMaxExposureDurationSlider;
     
@@ -251,6 +286,7 @@
     _activeMaxExposureDurationSlider = [activeMaxExposureDurationSlider retain];
     return [activeMaxExposureDurationSlider autorelease];
 }
+#endif
 
 - (UILabel *)exposureDurationLabel {
     if (auto exposureDurationLabel = _exposureDurationLabel) return exposureDurationLabel;
@@ -265,6 +301,7 @@
     return [exposureDurationLabel autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)exposureDurationSlider {
     if (auto exposureDurationSlider = _exposureDurationSlider) return exposureDurationSlider;
     
@@ -298,6 +335,7 @@
     _exposureDurationSlider = [exposureDurationSlider retain];
     return [exposureDurationSlider autorelease];
 }
+#endif
 
 - (UILabel *)ISOLabel {
     if (auto ISOLabel = _ISOLabel) return ISOLabel;
@@ -312,6 +350,7 @@
     return [ISOLabel autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)ISOSlider {
     if (auto ISOSlider = _ISOSlider) return ISOSlider;
     
@@ -343,6 +382,7 @@
     _ISOSlider = [ISOSlider retain];
     return [ISOSlider autorelease];
 }
+#endif
 
 - (void)queue_updateAttributes {
     dispatch_assert_queue(self.captureService.captureSessionQueue);
@@ -371,6 +411,7 @@
         UILabel *exposureTargetBiasLabel = self.exposureTargetBiasLabel;
         exposureTargetBiasLabel.text = [NSString stringWithFormat:@"exposureTargetBias : %lf", exposureTargetBias];
         
+#if !TARGET_OS_TV
         UISlider *exposureTargetBiasSlider = self.exposureTargetBiasSlider;
         exposureTargetBiasSlider.maximumValue = maxExposureTargetBias;
         exposureTargetBiasSlider.minimumValue = minExposureTargetBias;
@@ -383,10 +424,12 @@
             exposureTargetBiasSlider.tintColor = UIColor.systemRedColor;
         }
         exposureTargetBiasSlider.enabled = (exposureMode != AVCaptureExposureModeCustom);
+#endif
         
         UILabel *activeMaxExposureDurationLabel = self.activeMaxExposureDurationLabel;
         activeMaxExposureDurationLabel.text = [NSString stringWithFormat:@"activeMaxExposureDuration : %lf", CMTimeGetSeconds(activeMaxExposureDuration)];
         
+#if !TARGET_OS_TV
         UISlider *activeMaxExposureDurationSlider = self.activeMaxExposureDurationSlider;
         activeMaxExposureDurationSlider.maximumValue = CMTimeGetSeconds(maxExposureDuration);
         activeMaxExposureDurationSlider.minimumValue = CMTimeGetSeconds(minExposureDuration);
@@ -394,10 +437,12 @@
             activeMaxExposureDurationSlider.value = CMTimeGetSeconds(activeMaxExposureDuration);
         }
         activeMaxExposureDurationSlider.enabled = (exposureMode != AVCaptureExposureModeCustom);
+#endif
         
         UILabel *exposureDurationLabel = self.exposureDurationLabel;
         exposureDurationLabel.text = [NSString stringWithFormat:@"exposureDuration : %lf", CMTimeGetSeconds(exposureDuration)];
         
+#if !TARGET_OS_TV
         UISlider *exposureDurationSlider = self.exposureDurationSlider;
         exposureDurationSlider.maximumValue = CMTimeGetSeconds(maxExposureDuration);
         exposureDurationSlider.minimumValue = CMTimeGetSeconds(minExposureDuration);
@@ -405,10 +450,12 @@
             exposureDurationSlider.value = CMTimeGetSeconds(exposureDuration);
         }
         exposureDurationSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
+#endif
         
         UILabel *ISOLabel = self.ISOLabel;
         ISOLabel.text = [NSString stringWithFormat:@"ISO : %lf", ISO];
         
+#if !TARGET_OS_TV
         UISlider *ISOSlider = self.ISOSlider;
         ISOSlider.maximumValue = maxISO;
         ISOSlider.minimumValue = minISO;
@@ -416,6 +463,7 @@
             ISOSlider.value = ISO;
         }
         ISOSlider.enabled = (exposureMode == AVCaptureExposureModeCustom);
+#endif
         
         [self _cp_updateMenuElementHeight];
     });

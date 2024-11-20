@@ -18,14 +18,18 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *temperatureSlider;
 @property (retain, nonatomic, readonly) UISlider *tintSlider;
+#endif
 @end
 
 @implementation CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView
 @synthesize stackView = _stackView;
+#if !TARGET_OS_TV
 @synthesize temperatureSlider = _temperatureSlider;
 @synthesize tintSlider = _tintSlider;
+#endif
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -51,8 +55,10 @@
     [_captureDevice removeObserver:self forKeyPath:@"deviceWhiteBalanceGains"];
     [_captureDevice release];
     [_stackView release];
+#if !TARGET_OS_TV
     [_temperatureSlider release];
     [_tintSlider release];
+#endif
     [super dealloc];
 }
 
@@ -73,8 +79,10 @@
     if (auto stackView = _stackView) return stackView;
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
+#if !TARGET_OS_TV
         self.temperatureSlider,
         self.tintSlider
+#endif
     ]];
     
     stackView.axis = UILayoutConstraintAxisVertical;
@@ -85,6 +93,7 @@
     return [stackView autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)temperatureSlider {
     if (auto temperatureSlider = _temperatureSlider) return temperatureSlider;
     
@@ -182,6 +191,7 @@
     _tintSlider = [tintSlider retain];
     return [tintSlider autorelease];
 }
+#endif
 
 - (void)queue_updateAttributes {
     dispatch_assert_queue(self.captureService.captureSessionQueue);
@@ -195,6 +205,7 @@
     
     AVCaptureWhiteBalanceTemperatureAndTintValues temperatureAndTintValues = [self.captureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:deviceWhiteBalanceGains];
     
+#if !TARGET_OS_TV
     dispatch_async(dispatch_get_main_queue(), ^{
         UISlider *temperatureSlider = self.temperatureSlider;
         UISlider *tintSlider = self.tintSlider;
@@ -207,6 +218,7 @@
             tintSlider.value = temperatureAndTintValues.tint;
         }
     });
+#endif
 }
 
 @end

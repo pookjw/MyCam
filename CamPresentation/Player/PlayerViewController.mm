@@ -9,6 +9,7 @@
 #import <CamPresentation/PlayerView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
 #include <variant>
 
 @interface PlayerViewController () {
@@ -76,7 +77,9 @@
     [super viewDidLoad];
     
     UINavigationItem *navigationItem = self.navigationItem;
+#if !TARGET_OS_TV
     navigationItem.largeTitleDisplayMode = UINavigationItemLargeTitleDisplayModeNever;
+#endif
     navigationItem.rightBarButtonItems = @[self.doneBarButtonItem, self.progressBarButtonItem];
     
     if (PHAsset *asset = self.asset) {
