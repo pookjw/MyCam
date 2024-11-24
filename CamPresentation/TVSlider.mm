@@ -14,6 +14,7 @@
 #import <objc/runtime.h>
 
 @interface TVSlider ()
+@property (nonatomic, getter=isEditing) BOOL editing;
 @property (retain, readonly, nonatomic) __kindof UIView *_floatingContentView;
 @property (retain, nonatomic, readonly) UIView *_minimumTrackView;
 @property (retain, nonatomic, readonly) UIView *_maximumTrackView;
@@ -36,6 +37,7 @@
 @synthesize _tracksContainerview = __tracksContainerview;
 @synthesize _thumbView = __thumbView;
 @synthesize _panGestureRecognizer = __panGestureRecognizer;
+@synthesize enabled = _enabled;
 
 + (BOOL)requiresConstraintBasedLayout {
     return YES;
@@ -73,7 +75,7 @@
 }
 
 - (BOOL)canBecomeFocused {
-    return YES;
+    return self.isEnabled;
 }
 
 - (void)updateConstraints {
@@ -96,8 +98,10 @@
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
     if (UIPress *lastPress = [self _lastPressForPresses:presses]) {
         if ([self _isEnterPress:lastPress]) {
-            self.editing = !self.isEditing;
-            self._lastEnterPressBeganTimestamp = lastPress.timestamp;
+            if (self.isEnabled) {
+                self.editing = !self.isEditing;
+                self._lastEnterPressBeganTimestamp = lastPress.timestamp;
+            }
             return;
         } else if ([self _isLeftPress:lastPress]) {
             if (self.isEditing) {
@@ -167,12 +171,19 @@
     }
 }
 
-- (BOOL)isEnabled {
-    abort();
-}
-
 - (void)setEnabled:(BOOL)enabled {
-    abort();
+    [self willChangeValueForKey:@"enabled"];
+    
+    _enabled = enabled;
+    self._minimumTrackView.alpha = enabled ? 1. : 0.5;
+    self._maximumTrackView.alpha = enabled ? 1. : 0.5;
+    self._thumbView.alpha = enabled ? 1. : 0.5;
+    
+    [self didChangeValueForKey:@"enabled"];
+    
+    if (!enabled) {
+        self.editing = NO;
+    }
 }
 
 - (BOOL)isEditing {
@@ -225,6 +236,7 @@
     _maximumValue = 100.f;
     _value = 50.f;
     _stepValue = 10.f;
+    _enabled = YES;
     
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), floatingContentView);
     

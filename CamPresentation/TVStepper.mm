@@ -85,6 +85,20 @@
     self.value = 0.;
 }
 
+- (void)setEnabled:(BOOL)enabled {
+    [self willChangeValueForKey:@"enabled"];
+    
+    _enabled = enabled;
+    self._minusButton.enabled = enabled;
+    self._plusButton.enabled = enabled;
+    
+    if (!enabled) {
+        [self _invalidateTimer];
+    }
+    
+    [self didChangeValueForKey:@"enabled"];
+}
+
 - (void)setWraps:(BOOL)wraps {
     [self willChangeValueForKey:@"wraps"];
     _wraps = wraps;

@@ -19,6 +19,7 @@ IB_DESIGNABLE
 @property (nonatomic) IBInspectable double minimumValue;
 @property (nonatomic) IBInspectable double maximumValue;
 @property (nonatomic) IBInspectable double stepValue;
+@property (nonatomic, getter=isEnabled) IBInspectable BOOL enabled;
 
 - (void)addAction:(UIAction *)action;
 - (void)removeAction:(UIAction *)action;

@@ -16,10 +16,10 @@ IB_DESIGNABLE
 @property (nonatomic) IBInspectable float minimumValue;
 @property (nonatomic) IBInspectable float maximumValue;
 @property (nonatomic) IBInspectable float stepValue;
-@property (nonatomic, getter=isEnabled) BOOL enabled;
 
+@property (nonatomic, getter=isEnabled) IBInspectable BOOL enabled;
 @property (nonatomic, getter=isContinuous) IBInspectable BOOL continuous;
-@property (nonatomic, getter=isEditing) BOOL editing;
+@property (nonatomic, readonly, getter=isEditing) BOOL editing;
 
 @property (retain, nonatomic, nullable) IBInspectable UIColor *minimumTrackTintColor UI_APPEARANCE_SELECTOR;
 @property (retain, nonatomic, nullable) IBInspectable UIColor *maximumTrackTintColor UI_APPEARANCE_SELECTOR;
