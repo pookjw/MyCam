@@ -11,6 +11,7 @@
 #if !TARGET_OS_VISION
 
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
+#import <CamPresentation/TVSlider.h>
 
 @interface CaptureDeviceFrameRateRangeInfoView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -18,7 +19,10 @@
 @property (retain, nonatomic, readonly) AVFrameRateRange *frameRateRange;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UILabel *label;
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *minSlider;
+@property (retain, nonatomic, readonly) TVSlider *maxSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *minSlider;
 @property (retain, nonatomic, readonly) UISlider *maxSlider;
 #endif
@@ -27,10 +31,8 @@
 @implementation CaptureDeviceFrameRateRangeInfoView
 @synthesize stackView = _stackView;
 @synthesize label = _label;
-#if !TARGET_OS_TV
 @synthesize minSlider = _minSlider;
 @synthesize maxSlider = _maxSlider;
-#endif
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice frameRateRange:(AVFrameRateRange *)frameRateRange {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -68,10 +70,8 @@
     [_frameRateRange release];
     [_stackView release];
     [_label release];
-#if !TARGET_OS_TV
     [_minSlider release];
     [_maxSlider release];
-#endif
     [super dealloc];
 }
 
@@ -103,10 +103,8 @@
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
         self.label,
-#if !TARGET_OS_TV
         self.minSlider,
         self.maxSlider
-#endif
     ]];
     
     stackView.axis = UILayoutConstraintAxisVertical;
@@ -130,7 +128,17 @@
     return [label autorelease];
 }
 
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+- (TVSlider *)minSlider {
+    abort();
+}
+
+- (TVSlider *)maxSlider {
+    abort();
+}
+
+#else
+
 - (UISlider *)minSlider {
     if (auto minSlider = _minSlider) return minSlider;
     
@@ -219,7 +227,19 @@
         UILabel *label = self.label;
         label.text = [NSString stringWithFormat:@"%@ : %lf / %lf", frameRateRange, CMTimeGetSeconds(activeVideoMinFrameDuration), CMTimeGetSeconds(activeVideoMaxFrameDuration)];
         
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+        TVSlider *minSlider = self.minSlider;
+        minSlider.minimumValue = CMTimeGetSeconds(frameRateRange.minFrameDuration);
+        minSlider.maximumValue = CMTimeGetSeconds(activeVideoMaxFrameDuration);
+        minSlider.value = CMTimeGetSeconds(activeVideoMinFrameDuration);
+        minSlider.enabled = !isAutoVideoFrameRateEnabled;
+        
+        TVSlider *maxSlider = self.maxSlider;
+        maxSlider.minimumValue = CMTimeGetSeconds(activeVideoMinFrameDuration);
+        maxSlider.maximumValue = CMTimeGetSeconds(frameRateRange.maxFrameDuration);
+        maxSlider.enabled = !isAutoVideoFrameRateEnabled;
+        maxSlider.value = CMTimeGetSeconds(activeVideoMaxFrameDuration);
+#else
         UISlider *minSlider = self.minSlider;
         minSlider.minimumValue = CMTimeGetSeconds(frameRateRange.minFrameDuration);
         minSlider.maximumValue = CMTimeGetSeconds(activeVideoMaxFrameDuration);

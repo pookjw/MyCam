@@ -30,6 +30,8 @@
 #import <CamPresentation/CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView.h>
 #import <CamPresentation/CaptureDeviceWhiteBalanceChromaticitySlidersView.h>
 #import <CamPresentation/CaptureDeviceLowLightBoostInfoView.h>
+#import <CamPresentation/TVSlider.h>
+#import <CamPresentation/TVStepper.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -771,7 +773,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && !TARGET_OS_TV
 + (UIAction * _Nonnull)_cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoOutput:(AVCapturePhotoOutput *)photoOutput didChangeHandler:(void (^)())didChangeHandler {
     BOOL isAutoDeferredPhotoDeliveryEnabled = photoOutput.isAutoDeferredPhotoDeliveryEnabled;
     
@@ -1005,15 +1007,25 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     //
     
     __kindof UIMenuElement *torchLevelSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = std::fminf(1.f, AVCaptureMaxAvailableTorchLevel);
         slider.value = captureDevice.torchLevel;
         slider.enabled = captureDevice.torchAvailable;
         
-        [slider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             // fcmp   s8, #0.0
-            auto value = std::max(static_cast<UISlider *>(action.sender).value, 0.01f);
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
+            auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            // fcmp   s8, #0.0
+            auto value = std::max(slider.value, 0.01f);
             
             dispatch_async(captureService.captureSessionQueue, ^{
                 NSError * _Nullable error = nil;
@@ -1025,8 +1037,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                 
                 [captureDevice unlockForConfiguration];
             });
-        }]
-         forControlEvents:UIControlEventValueChanged];
+        }];
+        
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -1426,7 +1443,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *videoZoomFactorSlider = [TVSlider new];
+#else
         UISlider *videoZoomFactorSlider = [UISlider new];
+#endif
         videoZoomFactorSlider.minimumValue = minAvailableVideoZoomFactor;
         videoZoomFactorSlider.maximumValue = maxAvailableVideoZoomFactor;
         videoZoomFactorSlider.value = videoZoomFactor;
@@ -1442,10 +1463,18 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
+#if TARGET_OS_TV
+        NSMutableArray<TVSlider *> *videoZoomRangesForDepthDataDeliverySliders = [[NSMutableArray alloc] initWithCapacity:supportedVideoZoomRangesForDepthDataDelivery.count];
+#else
         NSMutableArray<UISlider *> *videoZoomRangesForDepthDataDeliverySliders = [[NSMutableArray alloc] initWithCapacity:supportedVideoZoomRangesForDepthDataDelivery.count];
+#endif
         
         for (AVZoomRange *range in supportedVideoZoomRangesForDepthDataDelivery) {
+#if TARGET_OS_TV
+            TVSlider *slider = [TVSlider new];
+#else
             UISlider *slider = [UISlider new];
+#endif
             slider.minimumValue = range.minZoomFactor;
             slider.maximumValue = range.maxZoomFactor;
             slider.value = videoZoomFactor;
@@ -1466,7 +1495,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *videoZoomFactorForCenterStageSlider = [TVSlider new];
+#else
         UISlider *videoZoomFactorForCenterStageSlider = [UISlider new];
+#endif
         if (isCenterStageActive) {
             videoZoomFactorForCenterStageSlider.minimumValue = videoMinZoomFactorForCenterStage;
             videoZoomFactorForCenterStageSlider.maximumValue = videoMaxZoomFactorForCenterStage;
@@ -1487,7 +1520,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         //
         
         UIAction *sliderAction = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             
             dispatch_async(captureService.captureSessionQueue, ^{

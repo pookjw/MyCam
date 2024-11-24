@@ -8,11 +8,14 @@
 #import <CamPresentation/PlayerView.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <TargetConditionals.h>
+#import <CamPresentation/TVSlider.h>
 
 @interface PlayerView ()
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIButton *playbackButton;
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *seekingSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *seekingSlider;
 #endif
 @property (retain, nonatomic, readonly) MPVolumeView *volumeView;
@@ -20,18 +23,14 @@
 @property (retain, nonatomic, readonly) AVRoutePickerView *routePickerView;
 #endif
 @property (retain, nonatomic, readonly) UILabel *reasonForWaitingToPlayLabel;
-#if !TARGET_OS_TV
 @property (retain, nonatomic, nullable) id periodicTimeObserver;
-#endif
 @property (assign, nonatomic) BOOL wasPlaying;
 @end
 
 @implementation PlayerView
 @synthesize stackView = _stackView;
 @synthesize playbackButton = _playbackButton;
-#if !TARGET_OS_TV
 @synthesize seekingSlider = _seekingSlider;
-#endif
 @synthesize volumeView = _volumeView;
 #if !TARGET_OS_VISION
 @synthesize routePickerView = _routePickerView;
@@ -74,9 +73,7 @@
         ]];
         
         [self updatePlaybackButton];
-#if !TARGET_OS_TV
         [self updateSeekingSlider];
-#endif
         [self updateReasonForWaitingToPlay];
         
         AVPlayerLayer *playerLayer = self.playerLayer;
@@ -95,17 +92,13 @@
     
     [_stackView release];
     [_playbackButton release];
-#if !TARGET_OS_TV
     [_seekingSlider release];
-#endif
     [_volumeView release];
 #if !TARGET_OS_VISION
     [_routePickerView release];
 #endif
     [_reasonForWaitingToPlayLabel release];
-#if !TARGET_OS_TV
     [_periodicTimeObserver release];
-#endif
     
     [super dealloc];
 }
@@ -153,9 +146,7 @@
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
         self.playbackButton,
-#if !TARGET_OS_TV
         self.seekingSlider,
-#endif
         volumeView,
 #if !TARGET_OS_VISION
         self.routePickerView
@@ -183,7 +174,11 @@
     return playbackButton;
 }
 
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+- (TVSlider *)seekingSlider {
+    abort();
+}
+#else
 - (UISlider *)seekingSlider {
     if (auto seekingSlider = _seekingSlider) return seekingSlider;
     
@@ -305,9 +300,12 @@
     playbackButton.enabled = isEnabled;
 }
 
-#if !TARGET_OS_TV
 - (void)updateSeekingSlider {
+#if TARGET_OS_TV
+    TVSlider *seekingSlider = self.seekingSlider;
+#else
     UISlider *seekingSlider = self.seekingSlider;
+#endif
     
     AVPlayer * _Nullable player = self.playerLayer.player;
     if (player == nil) {
@@ -318,13 +316,14 @@
     seekingSlider.minimumValue = 0.;
     seekingSlider.maximumValue = CMTimeConvertScale(player.currentItem.duration, 1000000UL, kCMTimeRoundingMethod_Default).value;
     
+#if !TARGET_OS_TV
     if (!seekingSlider.isTracking) {
         seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
     }
+#endif
     
     seekingSlider.enabled = YES;
 }
-#endif
 
 - (void)updateReasonForWaitingToPlay {
     self.reasonForWaitingToPlayLabel.text = self.playerLayer.player.reasonForWaitingToPlay;
@@ -335,10 +334,8 @@
     [player removeObserver:self forKeyPath:@"status"];
     [player removeObserver:self forKeyPath:@"reasonForWaitingToPlay"];
     
-#if !TARGET_OS_TV
     assert(self.periodicTimeObserver != nil);
     [player removeTimeObserver:self.periodicTimeObserver];
-#endif
 }
 
 - (void)addObserverForPlayer:(AVPlayer *)player {
@@ -346,12 +343,10 @@
     [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     
-#if !TARGET_OS_TV
     __weak auto weakSelf = self;
     self.periodicTimeObserver = [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
         [weakSelf updateSeekingSlider];
     }];
-#endif
 }
 
 @end

@@ -11,6 +11,7 @@
 #if !TARGET_OS_VISION
 
 #import <CamPresentation/AVCaptureDevice+ValidWhiteBalanceGains.h>
+#import <CamPresentation/TVSlider.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -18,7 +19,10 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *temperatureSlider;
+@property (retain, nonatomic, readonly) TVSlider *tintSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *temperatureSlider;
 @property (retain, nonatomic, readonly) UISlider *tintSlider;
 #endif
@@ -26,10 +30,8 @@
 
 @implementation CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView
 @synthesize stackView = _stackView;
-#if !TARGET_OS_TV
 @synthesize temperatureSlider = _temperatureSlider;
 @synthesize tintSlider = _tintSlider;
-#endif
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -55,10 +57,8 @@
     [_captureDevice removeObserver:self forKeyPath:@"deviceWhiteBalanceGains"];
     [_captureDevice release];
     [_stackView release];
-#if !TARGET_OS_TV
     [_temperatureSlider release];
     [_tintSlider release];
-#endif
     [super dealloc];
 }
 
@@ -79,10 +79,8 @@
     if (auto stackView = _stackView) return stackView;
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
-#if !TARGET_OS_TV
         self.temperatureSlider,
         self.tintSlider
-#endif
     ]];
     
     stackView.axis = UILayoutConstraintAxisVertical;
@@ -93,7 +91,17 @@
     return [stackView autorelease];
 }
 
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+- (TVSlider *)temperatureSlider {
+    abort();
+}
+
+- (TVSlider *)tintSlider {
+    abort();
+}
+
+#else
+
 - (UISlider *)temperatureSlider {
     if (auto temperatureSlider = _temperatureSlider) return temperatureSlider;
     
@@ -205,8 +213,14 @@
     
     AVCaptureWhiteBalanceTemperatureAndTintValues temperatureAndTintValues = [self.captureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:deviceWhiteBalanceGains];
     
-#if !TARGET_OS_TV
     dispatch_async(dispatch_get_main_queue(), ^{
+#if TARGET_OS_TV
+        TVSlider *temperatureSlider = self.temperatureSlider;
+        TVSlider *tintSlider = self.tintSlider;
+        
+        temperatureSlider.value = temperatureAndTintValues.temperature;
+        tintSlider.value = temperatureAndTintValues.tint;
+#else
         UISlider *temperatureSlider = self.temperatureSlider;
         UISlider *tintSlider = self.tintSlider;
         
@@ -217,8 +231,8 @@
         if (!tintSlider.isTracking) {
             tintSlider.value = temperatureAndTintValues.tint;
         }
-    });
 #endif
+    });
 }
 
 @end
