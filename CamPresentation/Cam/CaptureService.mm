@@ -2306,7 +2306,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         }
     }
     
+#warning TODO NSNumber로 Nullable하게 해야함
+#if !TARGET_OS_TV
     assert(result != NSNotFound);
+#endif
     return result;
 }
 

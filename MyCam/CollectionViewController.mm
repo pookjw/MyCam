@@ -73,9 +73,9 @@
     [super viewDidLoad];
     [self cellRegistration];
     
-    AssetCollectionsViewController *photosViewController = [AssetCollectionsViewController new];
-    [self.navigationController pushViewController:photosViewController animated:YES];
-    [photosViewController release];
+    CameraRootViewController *viewController = [CameraRootViewController new];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];

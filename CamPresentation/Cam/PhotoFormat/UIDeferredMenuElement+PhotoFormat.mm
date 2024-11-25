@@ -120,7 +120,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+#if !TARGET_OS_TV
             [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+#endif
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -178,7 +180,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleSpatialPhotoCaptureActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
     
-#if !TARGET_OS_MACCATALYST
+#if !TARGET_OS_MACCATALYST && !TARGET_OS_MAC
     [elements addObject:[UIDeferredMenuElement _cp_queue_toggleDeferredPhotoDeliveryActionWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
 #endif
     
@@ -3498,7 +3500,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         [UIDeferredMenuElement _cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+#if !TARGET_OS_TV
         [UIDeferredMenuElement _cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+#endif
     ]];
 }
 
@@ -3640,6 +3644,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                                          didChangeHandler:didChangeHandler];
 }
 
+#if !TARGET_OS_TV
 + (UIMenu * _Nonnull)_cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
                                                             captureDevice:captureDevice
@@ -3654,6 +3659,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     return menu;
 }
+#endif
 
 + (UIAction * _Nonnull)_cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
@@ -3718,6 +3724,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return action;
 }
 
+#if !TARGET_OS_TV
 + (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
@@ -3738,6 +3745,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     return action;
 }
+#endif
 
 + (UIMenu * _Nonnull)_cp_queue_assetWriterMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Asset Writer" children:@[
