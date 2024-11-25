@@ -8,6 +8,7 @@
 #import <CamPresentation/UserTransformView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
@@ -86,7 +87,9 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     scrollView.minimumZoomScale = 1.;
     scrollView.maximumZoomScale = 13.636;
     scrollView.contentInsetAdjustmentBehavior = static_cast<UIScrollViewContentInsetAdjustmentBehavior>(101);
+#if !TARGET_OS_TV
     scrollView.scrollsToTop = NO;
+#endif
     scrollView.showsVerticalScrollIndicator = NO;
     scrollView.showsHorizontalScrollIndicator = NO;
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(scrollView, sel_registerName("setPreservesCenterDuringRotation:"), YES);

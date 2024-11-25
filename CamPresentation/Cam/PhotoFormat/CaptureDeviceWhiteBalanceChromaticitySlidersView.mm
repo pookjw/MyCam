@@ -18,14 +18,18 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly) UISlider *xSlider;
 @property (retain, nonatomic, readonly) UISlider *ySlider;
+#endif
 @end
 
 @implementation CaptureDeviceWhiteBalanceChromaticitySlidersView
 @synthesize stackView = _stackView;
+#if !TARGET_OS_TV
 @synthesize xSlider = _xSlider;
 @synthesize ySlider = _ySlider;
+#endif
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -51,8 +55,10 @@
     [_captureDevice removeObserver:self forKeyPath:@"deviceWhiteBalanceGains"];
     [_captureDevice release];
     [_stackView release];
+#if !TARGET_OS_TV
     [_xSlider release];
     [_ySlider release];
+#endif
     [super dealloc];
 }
 
@@ -73,8 +79,10 @@
     if (auto stackView = _stackView) return stackView;
     
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
+#if !TARGET_OS_TV
         self.xSlider,
         self.ySlider
+#endif
     ]];
     
     stackView.axis = UILayoutConstraintAxisVertical;
@@ -85,6 +93,7 @@
     return [stackView autorelease];
 }
 
+#if !TARGET_OS_TV
 - (UISlider *)xSlider {
     if (auto xSlider = _xSlider) return xSlider;
     
@@ -182,6 +191,7 @@
     _ySlider = [ySlider retain];
     return [ySlider autorelease];
 }
+#endif
 
 - (void)queue_updateAttributes {
     dispatch_assert_queue(self.captureService.captureSessionQueue);
@@ -195,6 +205,7 @@
     
     AVCaptureWhiteBalanceChromaticityValues chromaticityValues = [self.captureDevice chromaticityValuesForDeviceWhiteBalanceGains:deviceWhiteBalanceGains];
     
+#if !TARGET_OS_TV
     dispatch_async(dispatch_get_main_queue(), ^{
         UISlider *xSlider = self.xSlider;
         UISlider *ySlider = self.ySlider;
@@ -207,6 +218,7 @@
             ySlider.value = chromaticityValues.y;
         }
     });
+#endif
 }
 
 @end

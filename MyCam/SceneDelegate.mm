@@ -8,6 +8,7 @@
 #import "SceneDelegate.h"
 #import "CollectionViewController.h"
 #import <objc/runtime.h>
+#import <TargetConditionals.h>
 
 @interface SceneDelegate ()
 @end

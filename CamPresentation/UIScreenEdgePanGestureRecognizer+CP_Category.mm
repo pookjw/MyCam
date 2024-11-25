@@ -10,7 +10,7 @@
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
 
-#if !TARGET_OS_VISION
+#if TARGET_OS_IOS
 
 namespace cp_UIScreenEdgePanGestureRecognizer {
 namespace _supportsStylusTouches {

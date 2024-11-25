@@ -47,7 +47,7 @@
 - (UIVisualEffectView *)blurView {
     if (auto blurView = _blurView) return blurView;
     
-    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterial]];
+    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleRegular]];
     
     _blurView = [blurView retain];
     return [blurView autorelease];

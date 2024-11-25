@@ -144,12 +144,16 @@
 - (void)didReceiveInterruptionNotification:(NSNotification *)notification {
     NSNumber *interruptionTypeNumber = notification.userInfo[AVAudioSessionInterruptionTypeKey];
     NSNumber *interruptionOptionsNumber = notification.userInfo[AVAudioSessionInterruptionOptionKey];
+#if !TARGET_OS_TV
     NSNumber *interruptionReasonNumber = notification.userInfo[AVAudioSessionInterruptionReasonKey];
+#endif
     
     dispatch_async(dispatch_get_main_queue(), ^{
         self.interruptionTypeNumber = interruptionTypeNumber;
         self.interruptionOptionsNumber = interruptionOptionsNumber;
+#if !TARGET_OS_TV
         self.interruptionReasonNumber = interruptionReasonNumber;
+#endif
         [self updateLabel];
     });
 }

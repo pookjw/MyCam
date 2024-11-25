@@ -13,6 +13,7 @@
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/ExposureRectLayer.h>
+#import <CamPresentation/UIToolbar+CP_UIToolbarTVPatch.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #include <array>
@@ -57,7 +58,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *adjustingWhiteBalanceActivityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *adjustingWhiteBalanceBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *gestureModeMenuBarButtonItem;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) __kindof UIView *toolbar;
+#else
 @property (retain, nonatomic, readonly) UIToolbar *toolbar;
+#endif
 @property (retain, nonatomic, readonly) UIVisualEffectView *blurView;
 @property (retain, nonatomic, readonly) PixelBufferLayer *customPreviewLayer;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
@@ -95,7 +100,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         _metadataObjectsLayer = [metadataObjectsLayer retain];
         
         CALayer *layer = self.layer;
+#if !TARGET_OS_TV
         layer.wantsExtendedDynamicRangeContent = YES;
+#endif
         
         CGRect bounds = layer.bounds;
         
@@ -145,7 +152,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         //
         
+#if TARGET_OS_TV
+        __kindof UIView *toolbar = self.toolbar;
+#else
         UIToolbar *toolbar = self.toolbar;
+#endif
         toolbar.translatesAutoresizingMaskIntoConstraints = NO;
         [self addSubview:toolbar];
         [NSLayoutConstraint activateConstraints:@[
@@ -335,7 +346,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     UIActivityIndicatorView *captureProgressActivityIndicatorView = self.captureProgressActivityIndicatorView;
     UIBarButtonItem *captureProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:captureProgressActivityIndicatorView];
+#if !TARGET_OS_TV
     captureProgressBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     captureProgressBarButtonItem.enabled = NO;
     
     _captureProgressBarButtonItem = [captureProgressBarButtonItem retain];
@@ -358,7 +373,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     UIActivityIndicatorView *reactionProgressActivityIndicatorView = self.reactionProgressActivityIndicatorView;
     UIBarButtonItem *reactionProgressBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:reactionProgressActivityIndicatorView];
+#if !TARGET_OS_TV
     reactionProgressBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     reactionProgressBarButtonItem.enabled = NO;
     
     _reactionProgressBarButtonItem = [reactionProgressBarButtonItem retain];
@@ -381,7 +400,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     UIActivityIndicatorView *adjustingFocusActivityIndicatorView = self.adjustingFocusActivityIndicatorView;
     UIBarButtonItem *adjustingFocusBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingFocusActivityIndicatorView];
+#if !TARGET_OS_TV
     adjustingFocusBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     adjustingFocusBarButtonItem.enabled = NO;
     
     _adjustingFocusBarButtonItem = [adjustingFocusBarButtonItem retain];
@@ -404,7 +427,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     UIActivityIndicatorView *adjustingExposureActivityIndicatorView = self.adjustingExposureActivityIndicatorView;
     UIBarButtonItem *adjustingExposureBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingExposureActivityIndicatorView];
+#if !TARGET_OS_TV
     adjustingExposureBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     adjustingExposureBarButtonItem.enabled = NO;
     
     _adjustingExposureBarButtonItem = [adjustingExposureBarButtonItem retain];
@@ -427,7 +454,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     UIActivityIndicatorView *adjustingWhiteBalanceActivityIndicatorView = self.adjustingWhiteBalanceActivityIndicatorView;
     UIBarButtonItem *adjustingWhiteBalanceBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:adjustingWhiteBalanceActivityIndicatorView];
+#if !TARGET_OS_TV
     adjustingWhiteBalanceBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     adjustingWhiteBalanceBarButtonItem.enabled = NO;
     
     _adjustingWhiteBalanceBarButtonItem = [adjustingWhiteBalanceBarButtonItem retain];
@@ -489,6 +520,29 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     return [gestureModeMenuBarButtonItem autorelease];
 }
 
+#if TARGET_OS_TV
+- (__kindof UIView *)toolbar {
+    if (auto toolbar = _toolbar) return toolbar;
+    
+    __kindof UIView *toolbar = [objc_lookUpClass("UIToolbar") new];
+    objc_setAssociatedObject(toolbar, cp_getUIToolbarTVPatchKey(), [NSNull null], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(toolbar, sel_registerName("setItems:animated:"), @[
+        self.captureProgressBarButtonItem,
+        self.reactionProgressBarButtonItem,
+        self.adjustingFocusBarButtonItem,
+        self.adjustingExposureBarButtonItem,
+        self.adjustingWhiteBalanceBarButtonItem,
+        [UIBarButtonItem flexibleSpaceItem],
+        self.gestureModeMenuBarButtonItem,
+        [UIBarButtonItem flexibleSpaceItem],
+        self.menuBarButtonItem
+    ], NO);
+    
+    _toolbar = [toolbar retain];
+    return [toolbar autorelease];
+}
+#else
 - (UIToolbar *)toolbar {
     if (auto toolbar = _toolbar) return toolbar;
     
@@ -509,11 +563,12 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     _toolbar = [toolbar retain];
     return [toolbar autorelease];
 }
+#endif
 
 - (UIVisualEffectView *)blurView {
     if (auto blurView = _blurView) return blurView;
     
-    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
+    UIVisualEffectView *blurView = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleRegular]];
     
     _blurView = [blurView retain];
     return [blurView autorelease];
@@ -670,10 +725,19 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (readinessCoordinator.captureReadiness == AVCapturePhotoOutputCaptureReadinessReady) {
             [self.captureProgressActivityIndicatorView stopAnimating];
+            
+#if !TARGET_OS_TV
             self.captureProgressBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
         } else {
             [self.captureProgressActivityIndicatorView startAnimating];
+#if !TARGET_OS_TV
             self.captureProgressBarButtonItem.hidden = NO;
+#else
+#warning TODO
+#endif
         }
         
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.menuBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -685,10 +749,18 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     if (reactionEffectsInProgressCount > 0) {
         [self.reactionProgressActivityIndicatorView startAnimating];
-        self.reactionProgressBarButtonItem.hidden = NO;
+#if !TARGET_OS_TV
+        self.reactionProgressBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     } else {
         [self.reactionProgressActivityIndicatorView stopAnimating];
-        self.reactionProgressBarButtonItem.hidden = YES;
+#if !TARGET_OS_TV
+        self.reactionProgressBarButtonItem.hidden = NO;
+#else
+#warning TODO
+#endif
     }
 }
 
@@ -697,10 +769,18 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     if (adjustingFocus) {
         [self.adjustingFocusActivityIndicatorView startAnimating];
+#if !TARGET_OS_TV
         self.adjustingFocusBarButtonItem.hidden = NO;
+#else
+#warning TODO
+#endif
     } else {
         [self.adjustingFocusActivityIndicatorView stopAnimating];
+#if !TARGET_OS_TV
         self.adjustingFocusBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     }
 }
 
@@ -709,10 +789,18 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     if (adjustingExposure) {
         [self.adjustingExposureActivityIndicatorView startAnimating];
+#if !TARGET_OS_TV
         self.adjustingExposureBarButtonItem.hidden = NO;
+#else
+#warning TODO
+#endif
     } else {
         [self.adjustingExposureActivityIndicatorView stopAnimating];
+#if !TARGET_OS_TV
         self.adjustingExposureBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     }
 }
 
@@ -721,10 +809,18 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     if (adjustingWhiteBalance) {
         [self.adjustingWhiteBalanceActivityIndicatorView startAnimating];
+#if !TARGET_OS_TV
         self.adjustingWhiteBalanceBarButtonItem.hidden = NO;
+#else
+#warning TODO
+#endif
     } else {
         [self.adjustingWhiteBalanceActivityIndicatorView stopAnimating];
+#if !TARGET_OS_TV
         self.adjustingWhiteBalanceBarButtonItem.hidden = YES;
+#else
+#warning TODO
+#endif
     }
 }
 

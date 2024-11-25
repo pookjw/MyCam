@@ -11,6 +11,7 @@
 #if !TARGET_OS_VISION
 
 #import <CamPresentation/AVCaptureDevice+ValidWhiteBalanceGains.h>
+#import <CamPresentation/TVSlider.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -18,8 +19,13 @@
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) AVCaptureDevice *captureDevice;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *temperatureSlider;
+@property (retain, nonatomic, readonly) TVSlider *tintSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *temperatureSlider;
 @property (retain, nonatomic, readonly) UISlider *tintSlider;
+#endif
 @end
 
 @implementation CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView
@@ -84,6 +90,17 @@
     _stackView = [stackView retain];
     return [stackView autorelease];
 }
+
+#if TARGET_OS_TV
+- (TVSlider *)temperatureSlider {
+    abort();
+}
+
+- (TVSlider *)tintSlider {
+    abort();
+}
+
+#else
 
 - (UISlider *)temperatureSlider {
     if (auto temperatureSlider = _temperatureSlider) return temperatureSlider;
@@ -182,6 +199,7 @@
     _tintSlider = [tintSlider retain];
     return [tintSlider autorelease];
 }
+#endif
 
 - (void)queue_updateAttributes {
     dispatch_assert_queue(self.captureService.captureSessionQueue);
@@ -196,6 +214,13 @@
     AVCaptureWhiteBalanceTemperatureAndTintValues temperatureAndTintValues = [self.captureDevice temperatureAndTintValuesForDeviceWhiteBalanceGains:deviceWhiteBalanceGains];
     
     dispatch_async(dispatch_get_main_queue(), ^{
+#if TARGET_OS_TV
+        TVSlider *temperatureSlider = self.temperatureSlider;
+        TVSlider *tintSlider = self.tintSlider;
+        
+        temperatureSlider.value = temperatureAndTintValues.temperature;
+        tintSlider.value = temperatureAndTintValues.tint;
+#else
         UISlider *temperatureSlider = self.temperatureSlider;
         UISlider *tintSlider = self.tintSlider;
         
@@ -206,6 +231,7 @@
         if (!tintSlider.isTracking) {
             tintSlider.value = temperatureAndTintValues.tint;
         }
+#endif
     });
 }
 

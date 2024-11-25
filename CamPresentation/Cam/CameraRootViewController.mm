@@ -162,7 +162,9 @@
     [super viewDidLoad];
     
     UIView *view = self.view;
+#if !TARGET_OS_TV
     view.backgroundColor = UIColor.systemBackgroundColor;
+#endif
     
     UIStackView *stackView = self.stackView;
     stackView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -210,9 +212,6 @@
     UINavigationItem *navigationItem = self.navigationItem;
     
     navigationItem.rightBarButtonItems = @[
-        self.captureProgressBarButtonItem,
-        self.reactionProgressBarButtonItem,
-        self.adjustingFocusBarButtonItem,
         self.photosBarButtonItem,
         self.audioBarButtonItem,
         self.fileOutputsBarButtonItem,

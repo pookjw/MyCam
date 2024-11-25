@@ -29,7 +29,12 @@
 }
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+#if TARGET_OS_TV
+    UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceGrouped];
+#else
     UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceInsetGrouped];
+#endif
+    
     UICollectionViewCompositionalLayout *collectionViewLayout = [UICollectionViewCompositionalLayout layoutWithListConfiguration:listConfiguration];
     [listConfiguration release];
     
@@ -68,9 +73,9 @@
     [super viewDidLoad];
     [self cellRegistration];
     
-    AssetCollectionsViewController *photosViewController = [AssetCollectionsViewController new];
-    [self.navigationController pushViewController:photosViewController animated:YES];
-    [photosViewController release];
+    CameraRootViewController *viewController = [CameraRootViewController new];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];

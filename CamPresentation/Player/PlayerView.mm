@@ -8,11 +8,16 @@
 #import <CamPresentation/PlayerView.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <TargetConditionals.h>
+#import <CamPresentation/TVSlider.h>
 
 @interface PlayerView ()
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIButton *playbackButton;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *seekingSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *seekingSlider;
+#endif
 @property (retain, nonatomic, readonly) MPVolumeView *volumeView;
 #if !TARGET_OS_VISION
 @property (retain, nonatomic, readonly) AVRoutePickerView *routePickerView;
@@ -42,7 +47,9 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
+#if !TARGET_OS_TV
         self.backgroundColor = UIColor.systemBackgroundColor;
+#endif
         
         UIStackView *stackView = self.stackView;
         stackView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -167,6 +174,11 @@
     return playbackButton;
 }
 
+#if TARGET_OS_TV
+- (TVSlider *)seekingSlider {
+    abort();
+}
+#else
 - (UISlider *)seekingSlider {
     if (auto seekingSlider = _seekingSlider) return seekingSlider;
     
@@ -181,6 +193,7 @@
     _seekingSlider = [seekingSlider retain];
     return [seekingSlider autorelease];
 }
+#endif
 
 - (MPVolumeView *)volumeView {
     if (auto volumeView = _volumeView) return volumeView;
@@ -208,7 +221,9 @@
     UILabel *reasonForWaitingToPlayLabel = [UILabel new];
     reasonForWaitingToPlayLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
     reasonForWaitingToPlayLabel.textColor = UIColor.labelColor;
+#if !TARGET_OS_TV
     reasonForWaitingToPlayLabel.backgroundColor = UIColor.systemBackgroundColor;
+#endif
     reasonForWaitingToPlayLabel.textAlignment = NSTextAlignmentCenter;
     
     _reasonForWaitingToPlayLabel = [reasonForWaitingToPlayLabel retain];
@@ -231,6 +246,7 @@
     }
 }
 
+#if !TARGET_OS_TV
 - (void)didTouchDownSeekingSlider:(UISlider *)sender {
     AVPlayer * _Nullable player = self.playerLayer.player;
     if (player == nil) return;
@@ -255,6 +271,7 @@
         [player play];
     }
 }
+#endif
 
 - (void)updatePlaybackButton {
     UIButtonConfiguration *configuration;
@@ -284,7 +301,11 @@
 }
 
 - (void)updateSeekingSlider {
+#if TARGET_OS_TV
+    TVSlider *seekingSlider = self.seekingSlider;
+#else
     UISlider *seekingSlider = self.seekingSlider;
+#endif
     
     AVPlayer * _Nullable player = self.playerLayer.player;
     if (player == nil) {
@@ -295,9 +316,11 @@
     seekingSlider.minimumValue = 0.;
     seekingSlider.maximumValue = CMTimeConvertScale(player.currentItem.duration, 1000000UL, kCMTimeRoundingMethod_Default).value;
     
+#if !TARGET_OS_TV
     if (!seekingSlider.isTracking) {
         seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
     }
+#endif
     
     seekingSlider.enabled = YES;
 }

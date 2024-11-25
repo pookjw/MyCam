@@ -11,6 +11,7 @@
 #if !TARGET_OS_VISION
 
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
+#import <CamPresentation/TVSlider.h>
 
 @interface CaptureDeviceFrameRateRangeInfoView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
@@ -18,8 +19,13 @@
 @property (retain, nonatomic, readonly) AVFrameRateRange *frameRateRange;
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UILabel *label;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly) TVSlider *minSlider;
+@property (retain, nonatomic, readonly) TVSlider *maxSlider;
+#else
 @property (retain, nonatomic, readonly) UISlider *minSlider;
 @property (retain, nonatomic, readonly) UISlider *maxSlider;
+#endif
 @end
 
 @implementation CaptureDeviceFrameRateRangeInfoView
@@ -122,6 +128,17 @@
     return [label autorelease];
 }
 
+#if TARGET_OS_TV
+- (TVSlider *)minSlider {
+    abort();
+}
+
+- (TVSlider *)maxSlider {
+    abort();
+}
+
+#else
+
 - (UISlider *)minSlider {
     if (auto minSlider = _minSlider) return minSlider;
     
@@ -193,6 +210,7 @@
     _maxSlider = [maxSlider retain];
     return [maxSlider autorelease];
 }
+#endif
 
 - (void)queue_updateAttributes {
     dispatch_assert_queue(self.captureService.captureSessionQueue);
@@ -209,6 +227,19 @@
         UILabel *label = self.label;
         label.text = [NSString stringWithFormat:@"%@ : %lf / %lf", frameRateRange, CMTimeGetSeconds(activeVideoMinFrameDuration), CMTimeGetSeconds(activeVideoMaxFrameDuration)];
         
+#if TARGET_OS_TV
+        TVSlider *minSlider = self.minSlider;
+        minSlider.minimumValue = CMTimeGetSeconds(frameRateRange.minFrameDuration);
+        minSlider.maximumValue = CMTimeGetSeconds(activeVideoMaxFrameDuration);
+        minSlider.value = CMTimeGetSeconds(activeVideoMinFrameDuration);
+        minSlider.enabled = !isAutoVideoFrameRateEnabled;
+        
+        TVSlider *maxSlider = self.maxSlider;
+        maxSlider.minimumValue = CMTimeGetSeconds(activeVideoMinFrameDuration);
+        maxSlider.maximumValue = CMTimeGetSeconds(frameRateRange.maxFrameDuration);
+        maxSlider.enabled = !isAutoVideoFrameRateEnabled;
+        maxSlider.value = CMTimeGetSeconds(activeVideoMaxFrameDuration);
+#else
         UISlider *minSlider = self.minSlider;
         minSlider.minimumValue = CMTimeGetSeconds(frameRateRange.minFrameDuration);
         minSlider.maximumValue = CMTimeGetSeconds(activeVideoMaxFrameDuration);
@@ -225,6 +256,7 @@
         if (!maxSlider.isTracking) {
             maxSlider.value = CMTimeGetSeconds(activeVideoMaxFrameDuration);
         }
+#endif
         
         [self _cp_updateMenuElementHeight];
     });

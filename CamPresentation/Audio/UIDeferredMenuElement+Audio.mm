@@ -15,6 +15,8 @@
 #import <CamPresentation/AudioSessionInfoView.h>
 #import <CamPresentation/VolumeSlider.h>
 #import <CamPresentation/VolumeStepper.h>
+#import <CamPresentation/TVSlider.h>
+#import <CamPresentation/TVStepper.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
@@ -22,6 +24,7 @@
 #include <dlfcn.h>
 #include <vector>
 #include <ranges>
+#import <TargetConditionals.h>
 
 #warning TODO visionOS Spatial Experience
 #warning 남은 기능 구현하기
@@ -53,23 +56,37 @@
             __kindof UIMenuElement *audioSessionInfoViewElement = [UIDeferredMenuElement _cp_infoViewElementWithAudioSession:audioSession];
             UIAction *allowHapticsAndSystemSoundsDuringRecordingAction = [UIDeferredMenuElement _cp_allowHapticsAndSystemSoundsDuringRecordingActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             
-#if !TARGET_OS_VISION
+#if !TARGET_OS_VISION && !TARGET_OS_TV
             UIAction *generateImpactFeecbackAction = [UIDeferredMenuElement _cp_generateImpactFeecbackAction];
 #endif
             
+#if !TARGET_OS_TV
             UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_prepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+#endif
+            
             UIAction *setPrefersNoInterruptionsFromSystemAlertsAction = [UIDeferredMenuElement _cp_setPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIAction *setPrefersInterruptionOnRouteDisconnectAction = [UIDeferredMenuElement _cp_setPrefersInterruptionOnRouteDisconnectActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            
+#if !TARGET_OS_TV
             UIMenu *inputOrientationsMenu = [UIDeferredMenuElement _cp_inputOrientationsMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+#endif
+            
             __kindof UIMenuElement *setPreferredSampleRateElement = [UIDeferredMenuElement _cp_setPreferredSampleRateElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             __kindof UIMenuElement *setInputGainElement = [UIDeferredMenuElement _cp_setInputGainElementWithAudioSession:audioSession];
             __kindof UIMenuElement *setPreferredIOBufferDurationElement = [UIDeferredMenuElement _cp_setPreferredIOBufferDurationElementWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            
+#if !TARGET_OS_TV
             UIMenu *volumeControlsMenu = [UIDeferredMenuElement _cp_volumeControlsMenu];
+#endif
+            
             UIMenu *numberOfChannelsSteppersMenuWithAudioSession = [UIDeferredMenuElement _cp_numberOfChannelsSteppersMenuWithAudioSession:audioSession];
             UIAction *setSupportsMultichannelContentWithAudioSession = [UIDeferredMenuElement _cp_setSupportsMultichannelContentActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *currentRouteMenu = [UIDeferredMenuElement _cp_currentRouteMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
             UIMenu *overrideOutputAudioPortMenu = [UIDeferredMenuElement _cp_overrideOutputAudioPortMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            
+#if !TARGET_OS_TV
             UIMenu *aggregatedIOPreferenceMenu = [UIDeferredMenuElement _cp_aggregatedIOPreferenceMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+#endif
             
             NSArray<__kindof UIMenuElement *> *children = @[
                 categoriesMenu,
@@ -86,22 +103,31 @@
                 routePickerAction,
                 audioSessionInfoViewElement,
                 allowHapticsAndSystemSoundsDuringRecordingAction,
-#if !TARGET_OS_VISION
+#if !TARGET_OS_VISION && !TARGET_OS_TV
                 generateImpactFeecbackAction,
 #endif
+                
+#if !TARGET_OS_TV
                 prepareRouteSelectionForPlaybackAction,
+#endif
                 setPrefersNoInterruptionsFromSystemAlertsAction,
                 setPrefersInterruptionOnRouteDisconnectAction,
+#if !TARGET_OS_TV
                 inputOrientationsMenu,
+#endif
                 setPreferredSampleRateElement,
                 setInputGainElement,
                 setPreferredIOBufferDurationElement,
+#if !TARGET_OS_TV
                 volumeControlsMenu,
+#endif
                 numberOfChannelsSteppersMenuWithAudioSession,
                 setSupportsMultichannelContentWithAudioSession,
                 currentRouteMenu,
                 overrideOutputAudioPortMenu,
+#if !TARGET_OS_TV
                 aggregatedIOPreferenceMenu
+#endif
             ];
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -243,7 +269,9 @@
     return {
         AVAudioSessionRouteSharingPolicyDefault,
         AVAudioSessionRouteSharingPolicyLongFormAudio,
+#if !TARGET_OS_TV
         AVAudioSessionRouteSharingPolicyLongFormVideo,
+#endif
         AVAudioSessionRouteSharingPolicyIndependent
     };
 }
@@ -254,7 +282,9 @@
     auto actionsVec = std::vector<AVAudioSessionRouteSharingPolicy> {
         AVAudioSessionRouteSharingPolicyDefault,
         AVAudioSessionRouteSharingPolicyLongFormAudio,
+#if !TARGET_OS_TV
         AVAudioSessionRouteSharingPolicyLongFormVideo,
+#endif
         AVAudioSessionRouteSharingPolicyIndependent
     }
     | std::views::transform([audioSession, currentRouteSharingPolicy, didChangeHandler](AVAudioSessionRouteSharingPolicy policy) -> UIAction * {
@@ -298,11 +328,15 @@
         AVAudioSessionCategoryOptionMixWithOthers,
         AVAudioSessionCategoryOptionDuckOthers,
         AVAudioSessionCategoryOptionAllowBluetooth,
+#if !TARGET_OS_TV
         AVAudioSessionCategoryOptionDefaultToSpeaker,
+#endif
         AVAudioSessionCategoryOptionInterruptSpokenAudioAndMixWithOthers,
         AVAudioSessionCategoryOptionAllowBluetoothA2DP,
         AVAudioSessionCategoryOptionAllowAirPlay,
+#if !TARGET_OS_TV
         AVAudioSessionCategoryOptionOverrideMutedMicrophoneInterruption
+#endif
     };
 }
 
@@ -459,7 +493,7 @@
     return action;
 }
 
-#if !TARGET_OS_VISION
+#if TARGET_OS_IOS
 + (UIAction * _Nonnull)_cp_generateImpactFeecbackAction {
     UIAction *action = [UIAction actionWithTitle:@"Impact Feedback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         auto barButtonItem = static_cast<UIBarButtonItem *>(action.sender);
@@ -473,7 +507,6 @@
     
     return action;
 }
-#endif
 
 + (UIAction * _Nonnull)_cp_prepareRouteSelectionForPlaybackActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIAction *action = [UIAction actionWithTitle:@"Prepare Route Selection For Playback" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -485,6 +518,7 @@
     
     return action;
 }
+#endif
 
 + (UIAction * _Nonnull)_cp_setPrefersNoInterruptionsFromSystemAlertsActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     BOOL prefersNoInterruptionsFromSystemAlerts = audioSession.prefersNoInterruptionsFromSystemAlerts;
@@ -528,6 +562,7 @@
     };
 }
 
+#if !TARGET_OS_TV
 + (UIMenu * _Nonnull)_cp_inputOrientationsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     AVAudioStereoOrientation inputOrientation = audioSession.inputOrientation;
     AVAudioStereoOrientation preferredInputOrientation = audioSession.preferredInputOrientation;
@@ -564,6 +599,7 @@
     
     return menu;
 }
+#endif
 
 #warning TODO -setPreferredInputSampleRate:, -setPreferredOutputSampleRate:
 + (__kindof UIMenuElement * _Nonnull)_cp_setPreferredSampleRateElementWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
@@ -575,14 +611,22 @@
         label.minimumScaleFactor = 0.001;
         label.text = [NSString stringWithFormat:@"preferredSampleRate : %f", audioSession.preferredSampleRate];
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 8000.f;
         slider.maximumValue = 48000.f;
         slider.value = audioSession.preferredSampleRate;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             
             label.text = [NSString stringWithFormat:@"preferredSampleRate : %f", value];;
@@ -596,7 +640,11 @@
             });
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
         [label release];
@@ -620,7 +668,11 @@
         label.minimumScaleFactor = 0.001;
         label.text = [NSString stringWithFormat:@"inputGain : %lf", audioSession.inputGain];
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = audioSession.inputGain;
@@ -628,7 +680,11 @@
         slider.enabled = audioSession.isInputGainSettable;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             
             label.text = [NSString stringWithFormat:@"inputGain : %lf", value];
@@ -640,7 +696,11 @@
             });
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
         [label release];
@@ -664,14 +724,22 @@
         label.minimumScaleFactor = 0.001;
         label.text = [NSString stringWithFormat:@"preferredIOBufferDuration : %lf", audioSession.preferredIOBufferDuration];
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.005;
         slider.maximumValue = 0.093;
         slider.value = audioSession.preferredIOBufferDuration;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             
             label.text = [NSString stringWithFormat:@"preferredIOBufferDuration : %lf", value];
@@ -685,7 +753,11 @@
             });
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, slider]];
         [label release];
@@ -700,6 +772,7 @@
     return element;
 }
 
+#if !TARGET_OS_TV
 + (UIMenu *)_cp_volumeControlsMenu {
     UIMenu *menu = [UIMenu menuWithTitle:@"Volume Controls"
                                 children:@[
@@ -710,6 +783,7 @@
     
     return menu;
 }
+#endif
 
 + (__kindof UIMenuElement *)_cp_VolumeViewElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
@@ -720,6 +794,7 @@
     return element;
 }
 
+#if !TARGET_OS_TV
 + (__kindof UIMenuElement *)_cp_VolumeSliderElement {
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
         VolumeSlider *volumeSlider = [VolumeSlider new];
@@ -737,6 +812,7 @@
     
     return element;
 }
+#endif
 
 + (UIMenu *)_cp_numberOfChannelsSteppersMenuWithAudioSession:(AVAudioSession *)audioSession {
     UIMenu *menu = [UIMenu menuWithTitle:@"Number Of Channels Steppers"
@@ -757,7 +833,11 @@
         label.minimumScaleFactor = 0.001;
         label.text = [NSString stringWithFormat:@"preferredInputNumberOfChannels : %ld", audioSession.preferredInputNumberOfChannels];
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.continuous = YES;
         stepper.minimumValue = 0.;
         stepper.maximumValue = audioSession.maximumInputNumberOfChannels;
@@ -765,7 +845,11 @@
         stepper.value = audioSession.preferredInputNumberOfChannels;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             auto value = static_cast<NSInteger>(stepper.value);
             
             label.text = [NSString stringWithFormat:@"preferredInputNumberOfChannels : %ld", value];
@@ -777,7 +861,11 @@
             });
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
         [label release];
@@ -801,7 +889,11 @@
         label.minimumScaleFactor = 0.001;
         label.text = [NSString stringWithFormat:@"preferredOutputNumberOfChannels : %ld", audioSession.preferredOutputNumberOfChannels];
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.continuous = YES;
         stepper.minimumValue = 0.;
         stepper.maximumValue = audioSession.maximumOutputNumberOfChannels;
@@ -809,7 +901,11 @@
         stepper.value = audioSession.preferredOutputNumberOfChannels;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             auto value = static_cast<NSInteger>(stepper.value);
             
             label.text = [NSString stringWithFormat:@"preferredOutputNumberOfChannels : %ld", value];
@@ -821,7 +917,11 @@
             });
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
         [label release];
@@ -1102,7 +1202,9 @@
 + (std::vector<AVAudioSessionPortOverride>)_cp_allPortOverridesVector {
     return {
         AVAudioSessionPortOverrideNone,
+#if !TARGET_OS_TV
         AVAudioSessionPortOverrideSpeaker
+#endif
     };
 }
 
@@ -1141,6 +1243,7 @@
     };
 }
 
+#if !TARGET_OS_TV
 // https://developer.apple.com/documentation/avfaudio/avaudiosessioniotype?language=objc
 + (UIMenu *)_cp_aggregatedIOPreferenceMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
     auto actionsVec = [UIDeferredMenuElement _cp_allIOTypes]
@@ -1169,6 +1272,7 @@
     
     return menu;
 }
+#endif
 
 // AVAusioApplication Mute
 //+ (UIAction * _Nonnull)

@@ -11,7 +11,9 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
+#if !TARGET_OS_TV
 #import <ARKit/ARKit.h>
+#endif
 
 @interface ARVideoPlayerViewController ()
 @property (retain, nonatomic, nullable, readonly) PHAsset *asset;
@@ -77,7 +79,10 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+#if !TARGET_OS_TV
     self.view.backgroundColor = UIColor.systemBackgroundColor;
+#endif
+    
     self.navigationItem.rightBarButtonItem = self.doneBarButtonItem;
     
     if (PHAsset *asset = self.asset) {
