@@ -14,6 +14,7 @@
 #import <objc/runtime.h>
 
 @interface TVStepper ()
+@property (nonatomic, getter=isEditing) BOOL editing;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @property (retain, nonatomic, readonly) UIButton *_plusButton;
 @property (retain, nonatomic, readonly) UIButton *_minusButton;
@@ -82,12 +83,11 @@
     _minimumValue = 0.;
     _maximumValue = 100.;
     _stepValue = 1.;
+    _editing = NO;
     self.value = 0.;
 }
 
 - (void)setEnabled:(BOOL)enabled {
-    [self willChangeValueForKey:@"enabled"];
-    
     _enabled = enabled;
     self._minusButton.enabled = enabled;
     self._plusButton.enabled = enabled;
@@ -96,13 +96,11 @@
         [self _invalidateTimer];
     }
     
-    [self didChangeValueForKey:@"enabled"];
+    [self.superview setNeedsFocusUpdate];
 }
 
 - (void)setWraps:(BOOL)wraps {
-    [self willChangeValueForKey:@"wraps"];
     _wraps = wraps;
-    [self didChangeValueForKey:@"wraps"];
     [self _updateButtonsEnabled];
 }
 
@@ -111,21 +109,13 @@
     double maximumValue = self.maximumValue;
     
     value = MAX(minimumValue, MIN(maximumValue, value));
-    
-    [self willChangeValueForKey:@"value"];
     _value = value;
-    [self didChangeValueForKey:@"value"];
     
     [self _updateButtonsEnabled];
 }
 
 - (void)setMinimumValue:(double)minimumValue {
-    double maximumValue = self.maximumValue;
-    assert(minimumValue < maximumValue);
-    
-    [self willChangeValueForKey:@"minimumValue"];
     _minimumValue = minimumValue;
-    [self didChangeValueForKey:@"minimumValue"];
     
     double value = self.value;
     if (value < minimumValue) {
@@ -134,12 +124,7 @@
 }
 
 - (void)setMaximumValue:(double)maximumValue {
-    double minimumValue = self.minimumValue;
-    assert(minimumValue < maximumValue);
-    
-    [self willChangeValueForKey:@"maximumValue"];
     _maximumValue = maximumValue;
-    [self didChangeValueForKey:@"maximumValue"];
     
     double value = self.value;
     if (maximumValue < value) {
@@ -147,14 +132,19 @@
     }
 }
 
+- (NSArray<UIAction *> *)actions {
+    return self._actions;
+}
+
 - (void)addAction:(UIAction *)action {
     assert(![self._actions containsObject:action]);
-    [self._actions addObject:action];
+    UIAction *_immutableCopy = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_immutableCopy"));
+    [self._actions addObject:_immutableCopy];
 }
 
 - (void)removeAction:(UIAction *)action {
     assert([self._actions containsObject:action]);
-    [self._actions addObject:action];
+    [self._actions removeObject:action];
 }
 
 - (UIStackView *)_stackView {
@@ -280,6 +270,7 @@
                                                      repeats:YES];
     
     self._timer = timer;
+    self.editing = YES;
 }
 
 - (void)_invalidateTimer {
@@ -288,6 +279,7 @@
     
     [timer invalidate];
     self._timer = nil;
+    self.editing = NO;
 }
 
 - (void)_didTriggerTimer:(NSTimer *)sender {

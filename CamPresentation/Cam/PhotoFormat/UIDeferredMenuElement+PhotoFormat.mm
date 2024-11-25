@@ -60,8 +60,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_tmpWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
-            
             [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -1536,10 +1534,16 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             });
             
             for (__kindof NSValue *sliderValue in allSliderValues) {
+#if TARGET_OS_TV
+                TVSlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
+                slider.value = value;
+#else
                 UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
+                
                 if (!slider.isTracking) {
                     slider.value = value;
                 }
+#endif
                 
                 if ([systemRecommendedVideoZoomRange containsZoomFactor:value]) {
                     slider.tintColor = UIColor.systemGreenColor;
@@ -1550,8 +1554,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         }];
         
         for (__kindof NSValue *sliderValue in allSliderValues) {
+#if TARGET_OS_TV
+            TVSlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
+            [slider addAction:sliderAction];
+#else
             UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
             [slider addAction:sliderAction forControlEvents:UIControlEventValueChanged];
+#endif
         }
         
         [allSliderValues release];
@@ -1636,7 +1645,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         //
         
         NSMutableArray<__kindof UIMenuElement *> *videoZoomRangesForDepthDataDeliverySliderElements = [[NSMutableArray alloc] initWithCapacity:videoZoomRangesForDepthDataDeliverySliders.count];
-        for (UISlider *slider in videoZoomRangesForDepthDataDeliverySliders) {
+        for (__kindof UIView *slider in videoZoomRangesForDepthDataDeliverySliders) {
             __kindof UIMenuElement *sliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
                 return slider;
             });
@@ -1972,7 +1981,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     __kindof CALayer *layer = [captureService queue_depthMapLayerFromCaptureDevice:captureDevice];
     
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         if (layer != nil) {
             slider.minimumValue = 0.f;
@@ -1981,11 +1994,19 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             slider.continuous = YES;
             
             UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+                auto sender = static_cast<TVSlider *>(action.sender);
+#else
                 auto sender = static_cast<UISlider *>(action.sender);
+#endif
                 layer.opacity = sender.value;
             }];
             
+#if TARGET_OS_TV
+            [slider addAction:action];
+#else
             [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         } else {
             slider.enabled = NO;
         }
@@ -2273,7 +2294,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     float lensPosition = captureDevice.lensPosition;
     
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
@@ -2282,7 +2307,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         slider.enabled = isSupported;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto sender = static_cast<TVSlider *>(action.sender);
+#else
             auto sender = static_cast<UISlider *>(action.sender);
+#endif
             float lensPosition = sender.value;
             
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -2299,7 +2328,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             });
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -2375,7 +2408,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         float exposureTargetBias = captureDevice.exposureTargetBias;
         
         UIDeferredMenuElement *autoExposureBracketedStillImageSettingsElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+#if TARGET_OS_TV
+            TVSlider *slider = [TVSlider new];
+#else
             UISlider *slider = [UISlider new];
+#endif
             
             slider.minimumValue = minExposureTargetBias;
             slider.maximumValue = maxExposureTargetBias;
@@ -2432,12 +2469,20 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         CMTime exposureDuration = captureDevice.exposureDuration;
         
         UIDeferredMenuElement *manualExposureBracketedStillImageSettingsElement = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+#if TARGET_OS_TV
+            TVSlider *ISOSlider = [TVSlider new];
+#else
             UISlider *ISOSlider = [UISlider new];
+#endif
             ISOSlider.maximumValue = maxISO;
             ISOSlider.minimumValue = minISO;
             ISOSlider.value = ISO;
             
+#if TARGET_OS_TV
+            TVSlider *exposureDurationSlider = [TVSlider new];
+#else
             UISlider *exposureDurationSlider = [UISlider new];
+#endif
             exposureDurationSlider.maximumValue = CMTimeGetSeconds(maxExposureDuration);
             exposureDurationSlider.minimumValue = CMTimeGetSeconds(minExposureDuration);
             CMTimeShow(minExposureDuration);
@@ -2620,7 +2665,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     __kindof CALayer *layer = [captureService queue_visionLayerFromCaptureDevice:captureDevice];
     
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         if (layer != nil) {
             slider.minimumValue = 0.f;
@@ -2629,11 +2678,19 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             slider.continuous = YES;
             
             UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+                auto sender = static_cast<TVSlider *>(action.sender);
+#else
                 auto sender = static_cast<UISlider *>(action.sender);
+#endif
                 layer.opacity = sender.value;
             }];
             
+#if TARGET_OS_TV
+            [slider addAction:action];
+#else
             [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         } else {
             slider.enabled = NO;
         }
@@ -3776,7 +3833,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu * _Nonnull)_cp_quuee_minimumSizeZoomMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice {
     // https://developer.apple.com/videos/play/wwdc2021/10047?time=327
     __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         /*
               b
@@ -3799,7 +3860,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -3813,7 +3878,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             });
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -3857,71 +3926,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     }
     
     return menu;
-}
-
-+ (UIAction *)_cp_queue_tmpWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
-            [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
-            
-            AVCaptureDeviceFormat * _Nullable format = nil;
-            
-            for (AVCaptureDeviceFormat *_format in videoDevice.formats) {
-                if ([_format isVideoStabilizationModeSupported:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced] and _format.isSpatialVideoCaptureSupported) {
-                    format = _format;
-                    break;
-                }
-            }
-            assert(format != nil);
-            
-            NSError * _Nullable error = nil;
-            [videoDevice lockForConfiguration:&error];
-            assert(error == nil);
-            videoDevice.activeFormat = format;
-            [videoDevice unlockForConfiguration];
-            
-            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
-            if (outputs.count == 0) {
-                AVCaptureMovieFileOutput *output = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
-                outputs = [NSSet setWithObject:output];
-            }
-            
-            [captureService queue_setPreferredStablizationModeForAllConnections:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced forVideoDevice:videoDevice];
-            
-            for (AVCaptureMovieFileOutput *output in outputs) {
-                assert(output.isSpatialVideoCaptureSupported);
-                output.spatialVideoCaptureEnabled = YES;
-            }
-            
-            MovieWriter *movieWriter = [captureService queue_movieWriterWithVideoDevice:videoDevice];
-            assert(movieWriter != nil);
-            movieWriter.useFastRecording = YES;
-            
-            for (AVCaptureVideoDataOutput *videoDataOutput in [captureService queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
-                NSMutableDictionary<NSString *, id> *videoSettings = [videoDataOutput.videoSettings mutableCopy];
-                if (videoSettings == nil) videoSettings = [NSMutableDictionary new];
-                NSMutableDictionary<NSString *, id> *compressionProperties = [videoSettings[AVVideoCompressionPropertiesKey] mutableCopy];
-                if (compressionProperties == nil) compressionProperties = [NSMutableDictionary new];
-                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = (id)((CFArrayRef)@[@0, @1]);
-                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCViewIDs] = (id)((CFArrayRef)@[@0, @1]);
-                compressionProperties[(id)kVTCompressionPropertyKey_MVHEVCLeftAndRightViewIDs] = (id)((CFArrayRef)@[@0, @1]);
-                compressionProperties[(id)kCMFormatDescriptionExtension_HorizontalFieldOfView] = @90000;
-                compressionProperties[(id)kVTCompressionPropertyKey_HorizontalDisparityAdjustment] = @200;
-                videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties;
-                [compressionProperties release];
-                
-                videoSettings[AVVideoCodecKey] = AVVideoCodecTypeHEVC;
-                
-                videoDataOutput.videoSettings = videoSettings;
-                [videoSettings release];
-            }
-            
-            if (didChangeHandler) didChangeHandler();
-        });
-    }];
-    
-    return action;
 }
 
 + (UIMenu *)_cp_queue_stabilizationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {

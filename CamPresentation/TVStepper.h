@@ -10,6 +10,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_AVAILABLE(tvos(18.0))
+NS_SWIFT_UI_ACTOR
 IB_DESIGNABLE
 @interface TVStepper : UIView
 @property (nonatomic,getter=isContinuous) IBInspectable BOOL continuous;
@@ -20,9 +21,11 @@ IB_DESIGNABLE
 @property (nonatomic) IBInspectable double maximumValue;
 @property (nonatomic) IBInspectable double stepValue;
 @property (nonatomic, getter=isEnabled) IBInspectable BOOL enabled;
+@property (nonatomic, readonly, getter=isEditing) BOOL editing;
+@property (nonatomic, readonly) NSArray<UIAction *> *actions;
 
-- (void)addAction:(UIAction *)action;
-- (void)removeAction:(UIAction *)action;
+- (void)addAction:(UIAction *)action NS_SWIFT_NAME(addAction(_:));
+- (void)removeAction:(UIAction *)action NS_SWIFT_NAME(removeAction(_:));
 @end
 
 NS_ASSUME_NONNULL_END

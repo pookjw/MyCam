@@ -60,6 +60,9 @@ void swizzle() {
         IMP dealloc = class_getMethodImplementation(self, @selector(dealloc));
         assert(class_addMethod(_isa, @selector(dealloc), dealloc, NULL));
         
+        IMP setEnabled = class_getMethodImplementation(self, @selector(setEnabled:));
+        assert(class_addMethod(_isa, @selector(setEnabled:), setEnabled, NULL));
+        
         IMP didUpdateFocusInContext_withAnimationCoordinator = class_getMethodImplementation(self, @selector(didUpdateFocusInContext:withAnimationCoordinator:));
         assert(class_addMethod(_isa, @selector(didUpdateFocusInContext:withAnimationCoordinator:), didUpdateFocusInContext_withAnimationCoordinator, NULL));
         
@@ -113,6 +116,12 @@ void swizzle() {
 }
 #pragma clang diagnostic pop
 
+- (void)setEnabled:(BOOL)enabled {
+    objc_super superInfo = { self, [self class] };
+    reinterpret_cast<void (*)(objc_super *, SEL, BOOL)>(objc_msgSendSuper2)(&superInfo, _cmd, enabled);
+    
+    [self.superview setNeedsFocusUpdate];
+}
 
 - (void)didUpdateFocusInContext:(UIFocusUpdateContext *)context withAnimationCoordinator:(UIFocusAnimationCoordinator *)coordinator {
     objc_super superInfo = { self, [self class] };

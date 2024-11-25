@@ -38,6 +38,7 @@
 @synthesize _thumbView = __thumbView;
 @synthesize _panGestureRecognizer = __panGestureRecognizer;
 @synthesize enabled = _enabled;
+@synthesize _actions = __actions;
 
 + (BOOL)requiresConstraintBasedLayout {
     return YES;
@@ -172,18 +173,16 @@
 }
 
 - (void)setEnabled:(BOOL)enabled {
-    [self willChangeValueForKey:@"enabled"];
-    
     _enabled = enabled;
     self._minimumTrackView.alpha = enabled ? 1. : 0.5;
     self._maximumTrackView.alpha = enabled ? 1. : 0.5;
     self._thumbView.alpha = enabled ? 1. : 0.5;
     
-    [self didChangeValueForKey:@"enabled"];
-    
     if (!enabled) {
         self.editing = NO;
     }
+    
+    [self.superview setNeedsFocusUpdate];
 }
 
 - (BOOL)isEditing {
@@ -191,8 +190,6 @@
 }
 
 - (void)setEditing:(BOOL)editing {
-    [self willChangeValueForKey:@"editing"];
-    
     self._leadingFocusGuide.enabled = editing;
     self._trailingFocusGuide.enabled = editing;
     self._panGestureRecognizer.enabled = editing;
@@ -206,8 +203,6 @@
             reinterpret_cast<void (*)(id, SEL, NSUInteger, BOOL)>(objc_msgSend)(self._floatingContentView, sel_registerName("setControlState:animated:"), 0, YES);
         }
     }
-    
-    [self didChangeValueForKey:@"editing"];
 }
 
 - (void)_commonInit_TVSlider {
@@ -265,7 +260,7 @@
         [thumbView.centerYAnchor constraintEqualToAnchor:minimumTrackView.centerYAnchor],
         [thumbView.centerXAnchor constraintEqualToAnchor:minimumTrackView.trailingAnchor],
         [thumbView.topAnchor constraintGreaterThanOrEqualToAnchor:floatingContentView.topAnchor constant:20.],
-        [thumbView.bottomAnchor constraintGreaterThanOrEqualToAnchor:floatingContentView.bottomAnchor constant:-20.],
+        [thumbView.bottomAnchor constraintLessThanOrEqualToAnchor:floatingContentView.bottomAnchor constant:-20.],
         [thumbView.widthAnchor constraintEqualToConstant:30.],
         [thumbView.heightAnchor constraintEqualToConstant:30.],
         
@@ -300,23 +295,28 @@
 }
 
 - (void)setMinimumValue:(float)minimumValue {
-    [self willChangeValueForKey:@"minimumValue"];
     _minimumValue = minimumValue;
-    [self didChangeValueForKey:@"minimumValue"];
+    
+    float value = self.value;
+    if (value < minimumValue) {
+        self.value = minimumValue;
+    }
+    
     [self setNeedsUpdateConstraints];
 }
 
 - (void)setMaximumValue:(float)maximumValue {
-    [self willChangeValueForKey:@"maximumValue"];
     _maximumValue = maximumValue;
-    [self didChangeValueForKey:@"maximumValue"];
     [self setNeedsUpdateConstraints];
+    
+    float value = self.value;
+    if (maximumValue < value) {
+        self.value = maximumValue;
+    }
 }
 
 - (void)setValue:(float)value animated:(BOOL)animated {
-    [self willChangeValueForKey:@"value"];
     _value = value;
-    [self didChangeValueForKey:@"value"];
     
     if (animated) {
         [UIView animateWithDuration:0.2 animations:^{
@@ -327,6 +327,10 @@
     } else {
         [self setNeedsUpdateConstraints];
     }
+}
+
+- (NSArray<UIAction *> *)actions {
+    return self._actions;
 }
 
 - (UIColor *)minimumTrackTintColor {
@@ -355,12 +359,13 @@
 
 - (void)addAction:(UIAction *)action {
     assert(![self._actions containsObject:action]);
-    [self._actions addObject:action];
+    UIAction *_immutableCopy = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_immutableCopy"));
+    [self._actions addObject:_immutableCopy];
 }
 
 - (void)removeAction:(UIAction *)action {
     assert([self._actions containsObject:action]);
-    [self._actions addObject:action];
+    [self._actions removeObject:action];
 }
 
 - (__kindof UIView *)_floatingContentView {
@@ -447,9 +452,7 @@
             [self setValue:value animated:NO];
             
             if (self.isContinuous or sender.state != UIGestureRecognizerStateChanged) {
-                for (UIAction *action in self._actions) {
-                    [action performWithSender:self target:nil];
-                }
+                [self _sendEvents];
             }
             
             break;
@@ -533,9 +536,7 @@
     [self setValue:newValue animated:YES];
     
     if (self.isContinuous) {
-        for (UIAction *action in self._actions) {
-            [action performWithSender:self target:nil];
-        }
+        [self _sendEvents];
     }
 }
 
@@ -552,9 +553,13 @@
     self._pressTimer = nil;
     
     if (!self.isContinuous) {
-        for (UIAction *action in self._actions) {
-            [action performWithSender:self target:nil];
-        }
+        [self _sendEvents];
+    }
+}
+
+- (void)_sendEvents {
+    for (UIAction *action in self._actions) {
+        [action performWithSender:self target:nil];
     }
 }
 
