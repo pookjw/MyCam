@@ -635,9 +635,16 @@
     float minimumValue = self.minimumValue;
     float maximumValue = self.maximumValue;
     float size = maximumValue - minimumValue;
-    float value = self.value;
     
-    NSLayoutConstraint *minimumTrackViewWidthConstraint = [self._minimumTrackView.widthAnchor constraintEqualToAnchor:self._tracksContainerview.widthAnchor multiplier:(value - minimumValue) / size];
+    float multiplier;
+    if (size == 0.f) {
+        multiplier = 0.f;
+    } else {
+        float value = self.value;
+        multiplier = (value - minimumValue) / size;
+    }
+    
+    NSLayoutConstraint *minimumTrackViewWidthConstraint = [self._minimumTrackView.widthAnchor constraintEqualToAnchor:self._tracksContainerview.widthAnchor multiplier:multiplier];
     
     self._minimumTrackViewWidthConstraint.active = NO;
     minimumTrackViewWidthConstraint.active = YES;

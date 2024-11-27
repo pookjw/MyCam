@@ -13,7 +13,6 @@
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/ExposureRectLayer.h>
-#import <CamPresentation/UIToolbar+CP_UIToolbarTVPatch.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #include <array>
@@ -525,7 +524,6 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     if (auto toolbar = _toolbar) return toolbar;
     
     __kindof UIView *toolbar = [objc_lookUpClass("UIToolbar") new];
-    objc_setAssociatedObject(toolbar, cp_getUIToolbarTVPatchKey(), [NSNull null], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
     reinterpret_cast<void (*)(id, SEL, id, BOOL)>(objc_msgSend)(toolbar, sel_registerName("setItems:animated:"), @[
         self.captureProgressBarButtonItem,
