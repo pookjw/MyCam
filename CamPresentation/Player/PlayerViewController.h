@@ -7,7 +7,6 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
-#import <Photos/Photos.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -16,8 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithNibName:(nullable NSString *)nibNameOrNil bundle:(nullable NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
 - (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
-- (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem;
-- (instancetype)initWithAsset:(PHAsset *)asset;
+- (instancetype)initWithPlayer:(AVPlayer *)player;
 @end
 
 NS_ASSUME_NONNULL_END

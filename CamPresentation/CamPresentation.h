@@ -20,3 +20,4 @@ FOUNDATION_EXPORT const unsigned char CamPresentationVersionString[];
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/XRCamRootViewController.h>
 #import <CamPresentation/AssetCollectionsViewController.h>
+#import <CamPresentation/VideoPlayerListViewController.h>

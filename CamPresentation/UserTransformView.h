@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (assign, nonatomic) struct CGRect untransformedContentFrame;
 @property (assign, nonatomic) BOOL preferToFillOnDoubleTap;
 @property (assign, nonatomic) BOOL hasUserZoomedIn;
-@property (weak, nonatomic) id<UserTransformViewDelegate> delegate;
+@property (assign, nonatomic) id<UserTransformViewDelegate> delegate;
 - (void)zoomInOnLocationFromProvider:(__kindof UIGestureRecognizer *)provider animated:(BOOL)animated;
 - (void)zoomOut:(BOOL)animated;
 @end

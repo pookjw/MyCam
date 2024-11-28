@@ -8,6 +8,7 @@
 #import "CollectionViewController.h"
 #import <CamPresentation/CamPresentation.h>
 #import <TargetConditionals.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @interface CollectionViewController ()
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
@@ -24,7 +25,8 @@
 #else
         CameraRootViewController.class,
 #endif
-        AssetCollectionsViewController.class
+        AssetCollectionsViewController.class,
+        VideoPlayerListViewController.class
     ];
 }
 
@@ -73,7 +75,11 @@
     [super viewDidLoad];
     [self cellRegistration];
     
-    CameraRootViewController *viewController = [CameraRootViewController new];
+//    CameraRootViewController *viewController = [CameraRootViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
+    
+    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
     
@@ -99,6 +105,18 @@
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    Class viewControllerClass = [CollectionViewController viewControllerClasses][indexPath.item];
+    
+    if (viewControllerClass == VideoPlayerListViewController.class) {
+        NSURL *url = [NSBundle.mainBundle URLForResource:@"demo" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
+        AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
+        VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithPlayerItem:playerItem];
+        [playerItem release];
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
+        return;
+    }
+    
     __kindof UIViewController *viewController = [CollectionViewController.viewControllerClasses[indexPath.item] new];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];

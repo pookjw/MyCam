@@ -73,11 +73,11 @@
         ]];
         
         [self updatePlaybackButton];
-        [self updateSeekingSlider];
         [self updateReasonForWaitingToPlay];
         
         AVPlayerLayer *playerLayer = self.playerLayer;
         [playerLayer addObserver:self forKeyPath:@"player" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
+        [PlayerView updateSeekingSlider:self.seekingSlider player:playerLayer.player];
     }
     
     return self;
@@ -300,14 +300,12 @@
     playbackButton.enabled = isEnabled;
 }
 
-- (void)updateSeekingSlider {
 #if TARGET_OS_TV
-    TVSlider *seekingSlider = self.seekingSlider;
++ (void)updateSeekingSlider:(TVSlider *)seekingSlider player:(AVPlayer * _Nullable)player
 #else
-    UISlider *seekingSlider = self.seekingSlider;
++ (void)updateSeekingSlider:(UISlider *)seekingSlider player:(AVPlayer * _Nullable)player
 #endif
-    
-    AVPlayer * _Nullable player = self.playerLayer.player;
+{
     if (player == nil) {
         seekingSlider.enabled = NO;
         return;
@@ -316,7 +314,9 @@
     seekingSlider.minimumValue = 0.;
     seekingSlider.maximumValue = CMTimeConvertScale(player.currentItem.duration, 1000000UL, kCMTimeRoundingMethod_Default).value;
     
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+    seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
+#else
     if (!seekingSlider.isTracking) {
         seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
     }
@@ -343,9 +343,10 @@
     [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     
-    __weak auto weakSelf = self;
+    auto seekingSlider = self.seekingSlider;
+    
     self.periodicTimeObserver = [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
-        [weakSelf updateSeekingSlider];
+        [PlayerView updateSeekingSlider:seekingSlider player:player];
     }];
 }
 

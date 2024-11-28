@@ -12,7 +12,6 @@
 @interface AssetsContentView ()
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (assign, nonatomic, readonly) CGSize targetSize;
-@property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetsContentView
@@ -35,7 +34,10 @@
 }
 
 - (void)setModel:(AssetsItemModel *)model {
-    if (CGSizeEqualToSize(_model.targetSize, model.targetSize) && [_model.asset isEqual:model.asset]) return;
+//    if ([_model.asset isEqual:model.asset]) {
+//        [_model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
+//        return;
+//    }
     
     [_model cancelRequest];
     [_model release];
@@ -45,22 +47,12 @@
     imageView.image = nil;
     imageView.alpha = 0.;
     
-    if (CGSizeEqualToSize(self.targetSize, model.targetSize)) {
-        model.resultHandler = self.resultHandler;
-    } else {
-        [model cancelRequest];
-        model.resultHandler = self.resultHandler;
-        [model requestImageWithTargetSize:self.targetSize];
-    }
+    [model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    
-    if (!CGSizeEqualToSize(self.targetSize, self.model.targetSize)) {
-        [self.model cancelRequest];
-        [self.model requestImageWithTargetSize:self.targetSize];
-    }
+    [self.model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
 }
 
 - (UIImageView *)imageView {
@@ -85,7 +77,6 @@
 }
 
 - (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
-    __weak auto weakSelf = self;
     UIImageView *imageView = self.imageView;
     
     return [[^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
@@ -94,16 +85,6 @@
         if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
             if (cancelledNumber.boolValue) {
                 NSLog(@"Cancelled");
-                return;
-            }
-        }
-        
-        auto unretained = weakSelf;
-        if (unretained == nil) return;
-        
-        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-            if (unretained.model.requestID != requestIDNumber.integerValue) {
-                NSLog(@"Request ID does not equal.");
                 return;
             }
         }

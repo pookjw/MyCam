@@ -76,11 +76,7 @@
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    
-    if (!CGSizeEqualToSize(self.targetSize, self.model.targetSize)) {
-        [self.model cancelRequest];
-        [self.model requestImageWithTargetSize:self.targetSize];
-    }
+    [self.model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
 }
 
 - (CGSize)targetSize {
@@ -152,7 +148,10 @@
 }
 
 - (void)setModel:(AssetCollectionsItemModel *)model {
-    if (CGSizeEqualToSize(_model.targetSize, model.targetSize) && [_model.collection isEqual:model.collection]) return;
+//    if ([_model.collection isEqual:model.collection]) {
+//        [_model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
+//        return;
+//    }
     
     [_model cancelRequest];
     [_model release];
@@ -170,24 +169,20 @@
     imageView.alpha = 0.;
     label.alpha = 0.;
     
-    __weak auto weakSelf = self;
+    [model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
+}
+
+- (void (^)(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount))resultHandler {
+    UILabel *label = self.label;
+    UIImageView *imageView = self.imageView;
+    UIStackView *stackView = self.stackView;
     
-    model.resultHandler = ^(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount) {
+    return [[^(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount) {
         dispatch_assert_queue(dispatch_get_main_queue());
         
         if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
             if (cancelledNumber.boolValue) {
                 NSLog(@"Cancelled");
-                return;
-            }
-        }
-        
-        auto unretained = weakSelf;
-        if (unretained == nil) return;
-        
-        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-            if (unretained.model.requestID != requestIDNumber.integerValue) {
-                NSLog(@"Request ID does not equal.");
                 return;
             }
         }
@@ -212,10 +207,8 @@
             }
         }];
         
-        [self invalidateIntrinsicContentSize];
-    };
-    
-    [model requestImageWithTargetSize:self.targetSize];
+        [stackView invalidateIntrinsicContentSize];
+    } copy] autorelease];
 }
 
 @end

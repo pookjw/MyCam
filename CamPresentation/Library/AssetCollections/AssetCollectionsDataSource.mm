@@ -213,7 +213,7 @@
         assert(collection != nil);
         AssetCollectionsItemModel *model = [[AssetCollectionsItemModel alloc] initWithCollection:collection];
         prefetchingModelsByIndexPath[indexPath] = model;
-        [model requestImageWithTargetSize:targetSize];
+        [model requestImageWithTargetSize:targetSize resultHandler:nil];
         [model release];
     }
 }

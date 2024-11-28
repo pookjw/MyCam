@@ -64,13 +64,7 @@
     imageView.alpha = 0.;
     imageView.frame = CGRectZero;
     
-    if (CGSizeEqualToSize(PHImageManagerMaximumSize, model.targetSize)) {
-        model.resultHandler = self.resultHandler;
-    } else {
-        [model cancelRequest];
-        model.resultHandler = self.resultHandler;
-        [model requestImageWithTargetSize:PHImageManagerMaximumSize];
-    }
+    [model requestImageWithTargetSize:PHImageManagerMaximumSize resultHandler:self.resultHandler];
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {
@@ -105,8 +99,8 @@
 }
 
 - (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
-    __weak auto weakSelf = self;
     UIImageView *imageView = self.imageView;
+    UserTransformView *userTransformView = self.userTransformView;
     
     return [[^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
         dispatch_assert_queue(dispatch_get_main_queue());
@@ -114,16 +108,6 @@
         if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
             if (cancelledNumber.boolValue) {
                 NSLog(@"Cancelled");
-                return;
-            }
-        }
-        
-        auto unretained = weakSelf;
-        if (unretained == nil) return;
-        
-        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-            if (unretained.model.requestID != requestIDNumber.integerValue) {
-                NSLog(@"Request ID does not equal.");
                 return;
             }
         }
@@ -147,11 +131,11 @@
         }];
         
         if (result) {
-            CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, self.userTransformView.frame);
+            CGRect frame = AVMakeRectWithAspectRatioInsideRect(result.size, userTransformView.frame);
             imageView.frame = frame;
             
-            self.userTransformView.contentPixelSize = result.size;
-            self.userTransformView.untransformedContentFrame = frame;
+            userTransformView.contentPixelSize = result.size;
+            userTransformView.untransformedContentFrame = frame;
         }
     } copy] autorelease];
 }

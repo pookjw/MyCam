@@ -25,7 +25,6 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         __kindof UISlider *volumeSlider = self.volumeSlider;
-        __weak auto weakSelf = self;
         
         // HUD 방지
         [self addSubview:volumeSlider];
@@ -33,12 +32,7 @@
         object_setInstanceVariable(volumeSlider, "_forcingOffscreenVisibility", reinterpret_cast<void *>(YES));
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(volumeSlider, sel_registerName("_setIsOffScreen:"), NO);
         
-        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-            auto slider = static_cast<__kindof UISlider *>(action.sender);
-            weakSelf.value = slider.value;
-        }];
-        
-        [volumeSlider addAction:action forControlEvents:UIControlEventValueChanged];
+        [volumeSlider addTarget:self action:@selector(didVolumeSliderValueChanged:) forControlEvents:UIControlEventValueChanged];
         
         self.stepValue = 0.1;
         self.minimumValue = 0.;
@@ -90,6 +84,10 @@
 - (__kindof UISlider *)volumeSlider {
     __kindof UISlider *volumeSlider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self.volumeView, sel_registerName("volumeSlider"));
     return volumeSlider;
+}
+
+- (void)didVolumeSliderValueChanged:(__kindof UISlider *)sender {
+    self.value = sender.value;
 }
 
 @end

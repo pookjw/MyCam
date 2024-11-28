@@ -10,14 +10,9 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
-#include <variant>
 
-@interface PlayerViewController () {
-    std::variant<PHAsset *, AVPlayerItem *> _input;
-}
-@property (retain, nonatomic, readonly, nullable) PHAsset *asset;
-@property (retain, nonatomic, readonly, nullable) AVPlayerItem *playerItem;
-@property (assign, nonatomic) PHImageRequestID requestID;
+@interface PlayerViewController ()
+@property (retain, nonatomic, readonly, nullable) AVPlayer *player;
 @property (nonatomic, readonly) PlayerView *playerView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *doneBarButtonItem;
 @property (retain, nonatomic, readonly) __kindof UIView *progressView;
@@ -29,37 +24,16 @@
 @synthesize progressView = _progressView;
 @synthesize progressBarButtonItem = _progressBarButtonItem;
 
-- (instancetype)initWithAsset:(PHAsset *)asset {
-    assert(asset.mediaType == PHAssetMediaTypeVideo);
-    
+- (instancetype)initWithPlayer:(AVPlayer *)player {
     if (self = [super init]) {
-        _requestID = PHLivePhotoRequestIDInvalid;
-        _input = [asset retain];
-    }
-    
-    return self;
-}
-
-- (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem {
-    if (self = [super init]) {
-        _requestID = PHLivePhotoRequestIDInvalid;
-        _input = [playerItem retain];
+        _player = [player retain];
     }
     
     return self;
 }
 
 - (void)dealloc {
-    if (PHAsset **ptr = std::get_if<PHAsset *>(&_input)) {
-        [*ptr release];
-    } else if (AVPlayerItem **ptr = std::get_if<AVPlayerItem *>(&_input)) {
-        return [*ptr release];
-    }
-    
-    if (_requestID != PHLivePhotoRequestIDInvalid) {
-        [PHImageManager.defaultManager cancelImageRequest:_requestID];
-    }
-    
+    [_player release];
     [_doneBarButtonItem release];
     [_progressView release];
     [_progressBarButtonItem release];
@@ -82,49 +56,7 @@
 #endif
     navigationItem.rightBarButtonItems = @[self.doneBarButtonItem, self.progressBarButtonItem];
     
-    if (PHAsset *asset = self.asset) {
-        PHVideoRequestOptions *options = [PHVideoRequestOptions new];
-        options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
-        options.networkAccessAllowed = YES;
-        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setStreamingAllowed:"), YES);
-        
-        __kindof UIView *progressView = self.progressView;
-        options.progressHandler = ^(double progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
-            assert(error == nil);
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                reinterpret_cast<void (*)(id, SEL, double, BOOL, id)>(objc_msgSend)(progressView, sel_registerName("setProgress:animated:completion:"), progress, YES, nil);
-            });
-        };
-        
-        AVPlayer *player = [AVPlayer new];
-        
-        PHImageRequestID requestID = [PHImageManager.defaultManager requestPlayerItemForVideo:asset options:options resultHandler:^(AVPlayerItem * _Nullable playerItem, NSDictionary * _Nullable info) {
-            [player replaceCurrentItemWithPlayerItem:playerItem];
-        }];
-        
-        self.requestID = requestID;
-        self.playerView.playerLayer.player = player;
-        [player release];
-        
-        [options release];
-    }
-}
-
-- (PHAsset *)asset {
-    if (PHAsset **ptr = std::get_if<PHAsset *>(&_input)) {
-        return *ptr;
-    }
-    
-    return nil;
-}
-
-- (AVPlayerItem *)playerItem {
-    if (AVPlayerItem **ptr = std::get_if<AVPlayerItem *>(&_input)) {
-        return *ptr;
-    }
-    
-    return nil;
+    self.playerView.playerLayer.player = self.player;
 }
 
 - (PlayerView *)playerView {

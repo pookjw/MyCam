@@ -20,15 +20,17 @@ public nonisolated func newARVideoPlayerHostingController(
     arSessionHandler: UnsafeRawPointer
 ) -> UIViewController {
     MainActor.assumeIsolated {
-        var rootView = ARVideoPlayerView(avPlayer: avPlayer)
-        if Int(bitPattern: arSessionHandler) != .zero {
+        let rootView: ARVideoPlayerView
+        
+        if Int(bitPattern: arSessionHandler) == .zero {
+            rootView = ARVideoPlayerView(avPlayer: avPlayer, arSessionHandler: nil)
+        } else {
             let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
             
-            rootView = rootView
-                .arSessionHandler { arSession in
-                    let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
-                    block(arSession)
-                }
+            rootView = ARVideoPlayerView(avPlayer: avPlayer) { arSession in
+                let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
+                block(arSession)
+            }
         }
         
         return UIHostingController(rootView: rootView)
@@ -41,15 +43,17 @@ public nonisolated func newARVideoPlayerHostingController(
     arSessionHandler: UnsafeRawPointer
 ) -> UIViewController {
     MainActor.assumeIsolated {
-        var rootView = ARVideoPlayerView(videoRenderer: videoRenderer)
-        if Int(bitPattern: arSessionHandler) != .zero {
+        let rootView: ARVideoPlayerView
+        
+        if Int(bitPattern: arSessionHandler) == .zero {
+            rootView = ARVideoPlayerView(videoRenderer: videoRenderer, arSessionHandler: nil)
+        } else {
             let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
             
-            rootView = rootView
-                .arSessionHandler { arSession in
-                    let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
-                    block(arSession)
-                }
+            rootView = ARVideoPlayerView(videoRenderer: videoRenderer) { arSession in
+                let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
+                block(arSession)
+            }
         }
         
         return UIHostingController(rootView: rootView)
@@ -71,24 +75,26 @@ fileprivate struct ARVideoPlayerView: View {
     }
     
     private let input: Input
-    fileprivate var arSessionHandler: (@MainActor (ARSession) -> Void)?
     @State private var viewModel = ARVideoPlayerViewModel()
     @State private var status: AVPlayer.Status?
     @State private var rate: Float?
     
-    init(avPlayer: AVPlayer) {
+    init(avPlayer: AVPlayer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
         input = .avPlayer(avPlayer)
+        viewModel.arSessionHandler = arSessionHandler
     }
     
-    init (videoRenderer: AVSampleBufferVideoRenderer) {
+    init (videoRenderer: AVSampleBufferVideoRenderer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
         input = .videoRenderer(videoRenderer)
+        viewModel.arSessionHandler = arSessionHandler
     }
     
     var body: some View {
         GeometryReader { proxy in
             RealityView { (content: inout RealityViewCameraContent) in
                 let arView = Mirror(reflecting: content).descendant("view") as! ARView
-                arSessionHandler?(arView.session)
+                viewModel.arSessionHandler?(arView.session)
+                viewModel.arSessionHandler = nil
                 
                 content.camera = .spatialTracking
             } update: { (content: inout RealityViewCameraContent) in
@@ -199,14 +205,7 @@ fileprivate final class ARVideoPlayerViewModel {
         _originID
     }
     @ObservationIgnored var lastUpdatedOriginID: UUID?
-}
-
-extension ARVideoPlayerView {
-    func arSessionHandler(_ handler: @MainActor @escaping (ARSession) -> Void) -> ARVideoPlayerView {
-        var copy = self
-        copy.arSessionHandler = handler
-        return copy
-    }
+    @ObservationIgnored var arSessionHandler: (@MainActor (ARSession) -> Void)?
 }
 
 extension _KeyValueCodingAndObserving {

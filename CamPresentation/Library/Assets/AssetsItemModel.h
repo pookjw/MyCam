@@ -18,15 +18,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetsItemModel : NSObject
 @property (retain, nonatomic, readonly) PHAsset *asset;
-@property (assign, nonatomic, readonly) CGSize targetSize;
-@property (assign, nonatomic, readonly) PHImageRequestID requestID;
-@property (copy, nonatomic, nullable) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
-
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithAsset:(PHAsset *)asset;
 - (void)cancelRequest;
-- (void)requestImageWithTargetSize:(CGSize)targetSize;
+- (void)requestImageWithTargetSize:(CGSize)targetSize resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler;
 @end
 
 NS_ASSUME_NONNULL_END

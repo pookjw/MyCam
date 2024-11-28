@@ -357,6 +357,10 @@
 				Player/PlayerView.mm,
 				Player/PlayerViewController.h,
 				Player/PlayerViewController.mm,
+				Player/VideoPlayerListViewController.h,
+				Player/VideoPlayerListViewController.mm,
+				Player/VideoPlayerListViewModel.h,
+				Player/VideoPlayerListViewModel.mm,
 				SVRunLoop.hpp,
 				SVRunLoop.mm,
 				TVSlider.h,
@@ -474,6 +478,7 @@
 				Player/ARVideoPlayerViewController.h,
 				Player/PlayerView.h,
 				Player/PlayerViewController.h,
+				Player/VideoPlayerListViewModel.h,
 				SVRunLoop.hpp,
 				TVSlider.h,
 				TVStepper.h,
@@ -493,6 +498,7 @@
 				Cam/CameraRootViewController.h,
 				CamPresentation.h,
 				Library/AssetCollections/AssetCollectionsViewController.h,
+				Player/VideoPlayerListViewController.h,
 				"UISceneConfiguration+CamPresentation.h",
 				XRCam/XRCamRootViewController.h,
 			);
@@ -1108,7 +1114,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++23";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -1170,7 +1176,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++23";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;

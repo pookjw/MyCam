@@ -9,25 +9,49 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
+#include <atomic>
 
 #warning TODO: Observer
 
-@interface AssetCollectionsItemModel () <PHPhotoLibraryChangeObserver>
-@property (assign, nonatomic) PHImageRequestID requestID;
+@interface _AssetCollectionsItemModelRequest : NSObject {
+@public std::atomic<PHImageRequestID> _requestID;
+}
+@property (copy, nonatomic, nullable) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount);
 @property (assign, nonatomic) CGSize targetSize;
 @property (copy, nonatomic, nullable) NSString *localizedTitle;
 @property (assign, nonatomic) NSInteger assetsCount;
-@property (retain, nonatomic, readonly) PHImageManager *imageManager;
-@property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, nullable) UIImage *result;
 @property (copy, nonatomic, nullable) NSDictionary *info;
+@end
+
+@implementation _AssetCollectionsItemModelRequest
+
+- (instancetype)init {
+    if (self = [super init]) {
+        _requestID = PHInvalidImageRequestID;
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [_resultHandler release];
+    [_localizedTitle release];
+    [_result release];
+    [_info release];
+    [super dealloc];
+}
+
+@end
+
+@interface AssetCollectionsItemModel () <PHPhotoLibraryChangeObserver>
+@property (retain, nonatomic, readonly) PHImageManager *imageManager;
+@property (retain, nonatomic, readonly) PHPhotoLibrary *photoLibrary;
 @property (retain, nonatomic, nullable) PHFetchResult<PHAsset *> *queue_assetsFetchResult;
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
+@property (retain, nonatomic, readonly) _AssetCollectionsItemModelRequest *request;
 @end
 
 @implementation AssetCollectionsItemModel
-@synthesize targetSize = _targetSize;
-@synthesize requestID = _requestID;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection {
     if (self = [super init]) {
@@ -39,6 +63,8 @@
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Asset Collection Item Model Queue", attr);
         _queue = queue;
+        
+        _request = [_AssetCollectionsItemModelRequest new];
     }
     
     return self;
@@ -48,34 +74,41 @@
     dispatch_release(_queue);
     
     [_collection release];
-    [_resultHandler release];
-    [_localizedTitle release];
     
-    if (_requestID != PHLivePhotoRequestIDInvalid) {
-        [_imageManager cancelImageRequest:_requestID];
+    PHImageRequestID requestID = _request->_requestID.load();
+    if (requestID != PHLivePhotoRequestIDInvalid) {
+        [_imageManager cancelImageRequest:requestID];
     }
+    
     [_imageManager release];
     [_photoLibrary release];
     [_queue_assetsFetchResult release];
-    
-    [_result release];
-    [_info release];
+    [_request release];
     
     [super dealloc];
 }
 
-- (void)requestImageWithTargetSize:(CGSize)targetSize {
-    self.targetSize = targetSize;
+- (void)requestImageWithTargetSize:(CGSize)targetSize resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount))resultHandler {
+    _AssetCollectionsItemModelRequest *request = self.request;
+    request.resultHandler = resultHandler;
+    
+    if (CGSizeEqualToSize(targetSize, request.targetSize)) {
+        resultHandler(request.result, request.info, request.localizedTitle, request.assetsCount);
+        return;
+    }
+    
     [self cancelRequest];
+    request.targetSize = targetSize;
+    
+    PHAssetCollection *collection = self.collection;
     
     dispatch_async(self.queue, ^{
-        PHAssetCollection *collection = self.collection;
         NSString *localizedTitle = collection.localizedTitle;
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.localizedTitle = localizedTitle;
+            request.localizedTitle = localizedTitle;
             
-            if (auto resultHandler = self.resultHandler) {
+            if (auto resultHandler = request.resultHandler) {
                 resultHandler(nil, nil, localizedTitle, 0);
             }
         });
@@ -97,21 +130,13 @@
 }
 
 - (void)cancelRequest {
-    PHImageRequestID requestID = self.requestID;
+    _AssetCollectionsItemModelRequest *request = self.request;
+    PHImageRequestID requestID = request->_requestID.load();
+    
     if (requestID != PHLivePhotoRequestIDInvalid) {
         [self.imageManager cancelImageRequest:requestID];
-        self.requestID = PHLivePhotoRequestIDInvalid;
+        requestID = PHLivePhotoRequestIDInvalid;
     }
-}
-
-- (CGSize)targetSize {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    return _targetSize;
-}
-
-- (void)setTargetSize:(CGSize)targetSize {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    _targetSize = targetSize;
 }
 
 + (BOOL)didFailForInfo:(NSDictionary *)info {
@@ -146,22 +171,27 @@
         self.queue_assetsFetchResult = fetchResultAfterChanges;
         
         __block CGSize targetSize;
+        __block void (^ _Nullable resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info, NSString * _Nullable localizedTitle, NSUInteger assetsCount) = nil;
+        
         dispatch_sync(dispatch_get_main_queue(), ^{
-            targetSize = self.targetSize;
+            targetSize = self.request.targetSize;
+            resultHandler = [self.request.resultHandler copy];
         });
         
         [self queue_updateWithAssetsFetchResult:fetchResultAfterChanges targetSize:targetSize];
+        [resultHandler release];
     });
 }
 
 - (void)queue_updateWithAssetsFetchResult:(PHFetchResult<PHAsset *> *)assetsFetchResult targetSize:(CGSize)targetSize {
     NSUInteger assetsCount = assetsFetchResult.count;
+    _AssetCollectionsItemModelRequest *request = self.request;
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.assetsCount = assetsCount;
+        self.request.assetsCount = assetsCount;
         
-        if (auto resultHandler = self.resultHandler) {
-            resultHandler(nil, nil, self.localizedTitle, assetsCount);
+        if (auto resultHandler = request.resultHandler) {
+            resultHandler(nil, nil, request.localizedTitle, assetsCount);
         }
     });
     
@@ -181,47 +211,42 @@
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), self.queue);
     
-    __weak auto weakSelf = self;
     
     PHImageManager *imageManager = self.imageManager;
     
-    self.requestID = [imageManager requestImageForAsset:asset
-                                             targetSize:targetSize
-                                            contentMode:PHImageContentModeAspectFill
-                                                options:options
-                                          resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-        if (auto unretained = weakSelf) {
+    request->_requestID = [imageManager requestImageForAsset:asset
+                                                  targetSize:targetSize
+                                                 contentMode:PHImageContentModeAspectFill
+                                                     options:options
+                                               resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+        if ([AssetCollectionsItemModel didFailForInfo:info]) {
+            return;
+        }
+        
+        [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
             if ([AssetCollectionsItemModel didFailForInfo:info]) {
                 return;
             }
             
-            [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (auto unretained = weakSelf) {
-                        if ([AssetCollectionsItemModel didFailForInfo:info]) {
-                            return;
-                        }
-                        
-                        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-                            if (unretained.requestID != requestIDNumber.integerValue && unretained.requestID) {
-                                NSLog(@"Request ID does not equal.");
-                                [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
-                                return;
-                            }
-                        } else {
-                            return;
-                        }
-                        
-                        unretained.result = result;
-                        unretained.info = info;
-                        
-                        if (auto resultHandler = unretained.resultHandler) {
-                            resultHandler(result, info, unretained.localizedTitle, unretained.assetsCount);
-                        }
-                    }
-                });
-            }];
-        }
+            if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
+                if (request->_requestID.load() != requestIDNumber.integerValue) {
+                    NSLog(@"Request ID does not equal.");
+                    [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
+                    return;
+                }
+            } else {
+                return;
+            }
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                request.result = result;
+                request.info = info;
+                
+                if (auto resultHandler = request.resultHandler) {
+                    resultHandler(result, info, request.localizedTitle, assetsCount);
+                }
+            });
+        }];
     }];
     
     [options release];

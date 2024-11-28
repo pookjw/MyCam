@@ -21,17 +21,20 @@
 @property (retain, nonatomic, readonly) AssetCollectionsDataSource *dataSource;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *switchLayoutBarButtonItem;
+@property (retain, nonatomic, readonly) UIButton *tmpButton;
 @end
 
 @implementation AssetCollectionsViewController
 @synthesize dataSource = _dataSource;
 @synthesize collectionView = _collectionView;
 @synthesize switchLayoutBarButtonItem = _switchLayoutBarButtonItem;
+@synthesize tmpButton = _tmpButton;
 
 - (void)dealloc {
     [_dataSource release];
     [_collectionView release];
     [_switchLayoutBarButtonItem release];
+    [_tmpButton release];
     [super dealloc];
 }
 
@@ -50,33 +53,7 @@
     
     [self dataSource];
     
-    __weak auto weakSelf = self;
-    UIAction *action = [UIAction actionWithTitle:@"TMP" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        // PHAssetCollectionSubtypeSmartAlbumSpatial
-        PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumVideos options:nil];
-        PHAssetCollection *collection = collections.firstObject;
-        assert(collection != nil);
-        
-        PHFetchOptions *options = [PHFetchOptions new];
-        options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeVideo];
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
-        [options release];
-        
-        if (assets.count == 0) return;
-        
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<NSUInteger> distr(0, assets.count - 1);
-        
-        PHAsset *asset = assets[distr(gen)];
-        assert(asset != nil);
-        
-        AssetViewController *viewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
-        [weakSelf.navigationController pushViewController:viewController animated:YES];
-        [viewController release];
-    }];
-    
-    self.navigationItem.titleView = [UIButton buttonWithType:UIButtonTypeSystem primaryAction:action];
+    self.navigationItem.titleView = self.tmpButton;
 }
 
 - (AssetCollectionsDataSource *)dataSource {
@@ -86,11 +63,16 @@
         cell.model = item;
     }];
     
-    __weak auto weakSelf = self;
-    
     UICollectionViewSupplementaryRegistration *headerRegistration = [UICollectionViewSupplementaryRegistration registrationWithSupplementaryClass:AssetCollectionsHeaderView.class elementKind:UICollectionElementKindSectionHeader configurationHandler:^(AssetCollectionsHeaderView * _Nonnull supplementaryView, NSString * _Nonnull elementKind, NSIndexPath * _Nonnull indexPath) {
+        UICollectionView * _Nullable collectionView = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(supplementaryView, sel_registerName("_collectionView"));
+        assert(collectionView != nil);
+        
+        auto dataSource = static_cast<AssetCollectionsDataSource *>(collectionView.dataSource);
+        assert(dataSource != nil);
+        assert([dataSource isKindOfClass:AssetCollectionsDataSource.class]);
+        
         if ([elementKind isEqualToString:UICollectionElementKindSectionHeader]) {
-            PHAssetCollectionType collectionType = [weakSelf.dataSource collectionTypeOfSectionIndex:indexPath.section];
+            PHAssetCollectionType collectionType = [dataSource collectionTypeOfSectionIndex:indexPath.section];
             
             NSString *title;
             switch (collectionType) {
@@ -211,6 +193,45 @@
 
 - (AssetCollectionsCollectionViewLayout *)newCustomCollectionViewLayout {
     return [AssetCollectionsCollectionViewLayout new];
+}
+
+- (UIButton *)tmpButton {
+    if (auto tmpButton = _tmpButton) return tmpButton;
+    
+    UIButton *tmpButton = [UIButton new];
+    
+    UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
+    configuration.title = @"TMP";
+    
+    tmpButton.configuration = configuration;
+    
+    _tmpButton = [tmpButton retain];
+    return [tmpButton autorelease];
+}
+
+- (void)didTriggerTmpButton:(UIButton *)sender {
+    // PHAssetCollectionSubtypeSmartAlbumSpatial
+    PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumVideos options:nil];
+    PHAssetCollection *collection = collections.firstObject;
+    assert(collection != nil);
+    
+    PHFetchOptions *options = [PHFetchOptions new];
+    options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeVideo];
+    PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
+    [options release];
+    
+    if (assets.count == 0) return;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<NSUInteger> distr(0, assets.count - 1);
+    
+    PHAsset *asset = assets[distr(gen)];
+    assert(asset != nil);
+    
+    AssetViewController *viewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {

@@ -10,12 +10,36 @@
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 
-@interface AssetsItemModel ()
+@interface _AssetsItemModelRequest : NSObject
+@property (copy, nonatomic, nullable) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @property (assign, nonatomic) PHImageRequestID requestID;
 @property (assign, nonatomic) CGSize targetSize;
-@property (retain, nonatomic, readonly) PHImageManager *imageManager;
 @property (retain, nonatomic, nullable) UIImage *result;
 @property (copy, nonatomic, nullable) NSDictionary *info;
+@end
+
+@implementation _AssetsItemModelRequest
+
+- (instancetype)init {
+    if (self = [super init]) {
+        _requestID = PHInvalidImageRequestID;
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [_resultHandler release];
+    [_result release];
+    [_info release];
+    [super dealloc];
+}
+
+@end
+
+
+@interface AssetsItemModel ()
+@property (retain, nonatomic, readonly) PHImageManager *imageManager;
+@property (retain, nonatomic, readonly) _AssetsItemModelRequest *request;
 @end
 
 @implementation AssetsItemModel
@@ -24,7 +48,7 @@
 - (instancetype)initWithAsset:(PHAsset *)asset {
     if (self = [super init]) {
         _asset = [asset retain];
-        _requestID = PHLivePhotoRequestIDInvalid;
+        _request = [_AssetsItemModelRequest new];
     }
     
     return self;
@@ -32,15 +56,13 @@
 
 - (void)dealloc {
     [_asset release];
-    [_resultHandler release];
     
-    if (_requestID != PHLivePhotoRequestIDInvalid) {
-        [_imageManager cancelImageRequest:_requestID];
+    if (_request.requestID != PHInvalidImageRequestID) {
+        [_imageManager cancelImageRequest:_request.requestID];
     }
     
     [_imageManager release];
-    [_result release];
-    [_info release];
+    [_request release];
     [super dealloc];
 }
 
@@ -67,33 +89,27 @@
 - (void)cancelRequest {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    PHImageRequestID requestID = self.requestID;
-    if (requestID != PHLivePhotoRequestIDInvalid) {
+    PHImageRequestID requestID = self.request.requestID;
+    if (requestID != PHInvalidImageRequestID) {
         [self.imageManager cancelImageRequest:requestID];
-        self.requestID = PHLivePhotoRequestIDInvalid;
+        self.request.requestID = PHInvalidImageRequestID;
     }
 }
 
-- (void)setResultHandler:(void (^)(UIImage * _Nonnull, NSDictionary * _Nonnull))resultHandler {
+- (void)requestImageWithTargetSize:(CGSize)targetSize resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    [_resultHandler release];
-    _resultHandler = [resultHandler copy];
+    _AssetsItemModelRequest *request = self.request;
     
-    UIImage * _Nullable result = self.result;
-    NSDictionary * _Nullable info = self.info;
-    
-    if (result != nil || info != nil) {
-        resultHandler(result, info);
+    if (CGSizeEqualToSize(request.targetSize, targetSize)) {
+        request.resultHandler = resultHandler;
+        resultHandler(request.result, request.info);
+        return;
     }
-}
-
-- (void)requestImageWithTargetSize:(CGSize)targetSize {
-    dispatch_assert_queue(dispatch_get_main_queue());
     
     [self cancelRequest];
     
-    self.targetSize = targetSize;
+    request.targetSize = targetSize;
     
     PHImageRequestOptions *options = [PHImageRequestOptions new];
     options.synchronous = NO;
@@ -106,50 +122,43 @@
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setAllowPlaceholder:"), YES);
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setPreferHDR:"), YES);
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
-    
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
     
     PHImageManager *imageManager = self.imageManager;
     
-    __weak auto weakSelf = self;
-    
-    self.requestID = [imageManager requestImageForAsset:self.asset
+    request.requestID = [imageManager requestImageForAsset:self.asset
                                              targetSize:targetSize
                                             contentMode:PHImageContentModeAspectFill
                                                 options:options
                                           resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-        if (auto unretained = weakSelf) {
-            if ([AssetsItemModel didFailForInfo:info]) {
-                return;
-            }
-            
-            [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (auto unretained = weakSelf) {
-                        if ([AssetsItemModel didFailForInfo:info]) {
-                            return;
-                        }
-                        
-                        if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
-                            if (unretained.requestID != requestIDNumber.integerValue) {
-                                NSLog(@"Request ID does not equal.");
-                                [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
-                                return;
-                            }
-                        } else {
-                            return;
-                        }
-                        
-                        unretained.result = result;
-                        unretained.info = info;
-                        
-                        if (auto resultHandler = unretained.resultHandler) {
-                            resultHandler(result, info);
-                        }
-                    }
-                });
-            }];
+        if ([AssetsItemModel didFailForInfo:info]) {
+            return;
         }
+        
+        [result prepareForDisplayWithCompletionHandler:^(UIImage * _Nullable result) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if ([AssetsItemModel didFailForInfo:info]) {
+                    return;
+                }
+                
+                if (NSNumber *requestIDNumber = info[PHImageResultRequestIDKey]) {
+                    if (request.requestID != requestIDNumber.integerValue) {
+                        NSLog(@"Request ID does not equal.");
+                        [imageManager cancelImageRequest:static_cast<PHImageRequestID>(requestIDNumber.integerValue)];
+                        return;
+                    }
+                } else {
+                    return;
+                }
+                
+                request.result = result;
+                request.info = info;
+                
+                if (auto resultHandler = request.resultHandler) {
+                    resultHandler(result, info);
+                }
+            });
+        }];
     }];
     
     [options release];
