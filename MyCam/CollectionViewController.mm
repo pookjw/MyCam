@@ -79,9 +79,9 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-    [self.navigationController pushViewController:viewController animated:YES];
-    [viewController release];
+//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];

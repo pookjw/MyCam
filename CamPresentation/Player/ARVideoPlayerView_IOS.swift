@@ -13,6 +13,7 @@ import SwiftUI
 import ARKit
 import RealityKit
 @preconcurrency import AVFoundation
+import Darwin.POSIX.dlfcn
 
 @_expose(Cxx)
 public nonisolated func newARVideoPlayerHostingController(
@@ -180,6 +181,15 @@ fileprivate struct ARVideoPlayerView: View {
                 rateTask.cancel()
                 didPlayToEndTimeTask.cancel()
             }
+        }
+        .onDisappear {
+            let handle = dlopen("/System/Library/Frameworks/RealityFoundation.framework/RealityFoundation", RTLD_NOW)!
+            
+            // static RealityFoundation.SpatialTrackingManager.shared.setter
+            let setter = dlsym(handle, "$s17RealityFoundation22SpatialTrackingManagerC6sharedACSgvsZ")!
+            let casted = unsafeBitCast(setter, to: (@convention(thin) (AnyObject?) -> Void).self)
+            
+            casted(nil)
         }
     }
     
