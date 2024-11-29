@@ -18,7 +18,6 @@
 @interface ARVideoPlayerViewController ()
 @property (retain, nonatomic, nullable) AVPlayer *player;
 @property (retain, nonatomic, nullable, readonly) AVSampleBufferVideoRenderer *videoRenderer;
-@property (retain, nonatomic, readonly) UIBarButtonItem *doneBarButtonItem;
 #if TARGET_OS_VISION
 @property (retain, nonatomic, readonly) UIButton *toggleImmersiveSceneButton;
 @property (readonly, nullable) UIScene *immersiveSpaceScene;
@@ -26,7 +25,6 @@
 @end
 
 @implementation ARVideoPlayerViewController
-@synthesize doneBarButtonItem = _doneBarButtonItem;
 #if TARGET_OS_VISION
 @synthesize toggleImmersiveSceneButton = _toggleImmersiveSceneButton;
 #endif
@@ -50,7 +48,6 @@
 - (void)dealloc {
     [_player release];
     [_videoRenderer release];
-    [_doneBarButtonItem release];
 #if TARGET_OS_VISION
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_toggleImmersiveSceneButton release];
@@ -65,7 +62,6 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
 #endif
     
-    self.navigationItem.rightBarButtonItem = self.doneBarButtonItem;
     [self attachPlayerView];
     
 #if TARGET_OS_VISION
@@ -81,15 +77,6 @@
     
     [self updateToggleImmersiveSceneButton];
 #endif
-}
-
-- (UIBarButtonItem *)doneBarButtonItem {
-    if (auto doneBarButtonItem = _doneBarButtonItem) return [[doneBarButtonItem retain] autorelease];
-    
-    UIBarButtonItem *doneBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Done" style:UIBarButtonItemStyleDone target:self action:@selector(didTriggerDoneBarButtonItem:)];
-    
-    _doneBarButtonItem = [doneBarButtonItem retain];
-    return [doneBarButtonItem autorelease];
 }
 
 - (void)didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {

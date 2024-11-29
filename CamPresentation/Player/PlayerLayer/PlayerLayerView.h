@@ -1,5 +1,5 @@
 //
-//  PlayerView.h
+//  PlayerLayerView.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/9/24.
@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PlayerView : UIView
+@interface PlayerLayerView : UIView
 @property (nonatomic, readonly) AVPlayerLayer *playerLayer;
 @end
 

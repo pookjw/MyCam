@@ -1,16 +1,16 @@
 //
-//  PlayerView.m
+//  PlayerLayerView.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/9/24.
 //
 
-#import <CamPresentation/PlayerView.h>
+#import <CamPresentation/PlayerLayerView.h>
 #import <MediaPlayer/MediaPlayer.h>
 #import <TargetConditionals.h>
 #import <CamPresentation/TVSlider.h>
 
-@interface PlayerView ()
+@interface PlayerLayerView ()
 @property (retain, nonatomic, readonly) UIStackView *stackView;
 @property (retain, nonatomic, readonly) UIButton *playbackButton;
 #if TARGET_OS_TV
@@ -27,7 +27,7 @@
 @property (assign, nonatomic) BOOL wasPlaying;
 @end
 
-@implementation PlayerView
+@implementation PlayerLayerView
 @synthesize stackView = _stackView;
 @synthesize playbackButton = _playbackButton;
 @synthesize seekingSlider = _seekingSlider;
@@ -77,7 +77,7 @@
         
         AVPlayerLayer *playerLayer = self.playerLayer;
         [playerLayer addObserver:self forKeyPath:@"player" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:NULL];
-        [PlayerView updateSeekingSlider:self.seekingSlider player:playerLayer.player];
+        [PlayerLayerView updateSeekingSlider:self.seekingSlider player:playerLayer.player];
     }
     
     return self;
@@ -346,7 +346,7 @@
     auto seekingSlider = self.seekingSlider;
     
     self.periodicTimeObserver = [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
-        [PlayerView updateSeekingSlider:seekingSlider player:player];
+        [PlayerLayerView updateSeekingSlider:seekingSlider player:player];
     }];
 }
 

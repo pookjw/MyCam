@@ -6,9 +6,10 @@
 //
 
 #import <CamPresentation/VideoPlayerListViewController.h>
-#import <CamPresentation/ARVideoPlayerViewController.h>
-#import <CamPresentation/PlayerViewController.h>
 #import <CamPresentation/VideoPlayerListViewModel.h>
+#import <CamPresentation/ARVideoPlayerViewController.h>
+#import <CamPresentation/PlayerLayerViewController.h>
+#import <CamPresentation/PlayerOutputViewController.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
@@ -30,7 +31,8 @@
 + (NSArray<Class> *)playerViewControllerClasses {
     return @[
         ARVideoPlayerViewController.class,
-        PlayerViewController.class
+        PlayerLayerViewController.class,
+        PlayerOutputViewController.class
     ];
 }
 
@@ -174,9 +176,15 @@
         [player release];
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
-    } else if (viewControllerClass == PlayerViewController.class) {
+    } else if (viewControllerClass == PlayerLayerViewController.class) {
         AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-        PlayerViewController *viewController = [[PlayerViewController alloc] initWithPlayer:player];
+        PlayerLayerViewController *viewController = [[PlayerLayerViewController alloc] initWithPlayer:player];
+        [player release];
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
+    } else if (viewControllerClass == PlayerOutputViewController.class) {
+        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+        PlayerOutputViewController *viewController = [[PlayerOutputViewController alloc] initWithPlayer:player];
         [player release];
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
