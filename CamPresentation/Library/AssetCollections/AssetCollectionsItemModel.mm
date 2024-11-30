@@ -11,8 +11,6 @@
 #import <UIKit/UIKit.h>
 #include <atomic>
 
-#warning TODO: Observer
-
 @interface _AssetCollectionsItemModelRequest : NSObject {
 @public std::atomic<PHImageRequestID> _requestID;
 }
@@ -135,7 +133,7 @@
     
     if (requestID != PHLivePhotoRequestIDInvalid) {
         [self.imageManager cancelImageRequest:requestID];
-        requestID = PHLivePhotoRequestIDInvalid;
+        _requestID = PHLivePhotoRequestIDInvalid;
     }
 }
 

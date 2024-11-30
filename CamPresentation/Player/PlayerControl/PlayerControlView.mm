@@ -12,8 +12,11 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import <AVKit/AVKit.h>
 #import <TargetConditionals.h>
+#import <os/lock.h>
 
-@interface PlayerControlView ()
+@interface PlayerControlView () {
+    os_unfair_lock _currentItemLock; // https://x.com/_silgen_name/status/1862891777839309219
+}
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @property (retain, nonatomic, readonly) UIButton *_playbackButton;
 #if TARGET_OS_TV
@@ -28,6 +31,7 @@
 @property (retain, nonatomic, readonly) UILabel *_reasonForWaitingToPlayLabel;
 @property (retain, nonatomic, nullable) id _periodicTimeObserver;
 @property (assign, nonatomic) BOOL _wasPlaying;
+@property (retain, nonatomic, nullable) AVPlayerItem *_observingPlayerItem;
 @end
 
 @implementation PlayerControlView
@@ -57,17 +61,82 @@
 }
 
 - (void)dealloc {
-    [_player release];
+    if (AVPlayer *player = _player) {
+        // removeObserver는 즉시 반영되지 않을 것이기에 lock을 먼저 건다.
+        os_unfair_lock_lock(&_currentItemLock);
+        [self _removeObserversForPlayer:player];
+        
+        if (AVPlayerItem *observingPlayerItem = self._observingPlayerItem) {
+            [self _removeObserversForPlayerItem:observingPlayerItem];
+        }
+        os_unfair_lock_unlock(&_currentItemLock);
+        
+        [player release];
+    }
+    
     [__stackView release];
     [__playbackButton release];
     [__seekingSlider release];
     [__volumeView release];
     [__routePickerView release];
     [__reasonForWaitingToPlayLabel release];
+    [__periodicTimeObserver release];
+    [__observingPlayerItem release];
     [super dealloc];
 }
 
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isKindOfClass:AVPlayer.class]) {
+        if ([keyPath isEqualToString:@"rate"] or [keyPath isEqualToString:@"status"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                assert([self.player isEqual:object]);
+                [self _updateAttributes];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"reasonForWaitingToPlay"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                assert([self.player isEqual:object]);
+                [self _updateReasonForWaitingToPlay];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"currentItem"]) {
+            os_unfair_lock_lock(&_currentItemLock);
+            
+            if (AVPlayerItem *oldPlayerItem = change[NSKeyValueChangeOldKey]) {
+                [self _removeObserversForPlayerItem:oldPlayerItem];
+            }
+            
+            if (AVPlayerItem *newPlayerItem = change[NSKeyValueChangeNewKey]) {
+                [self _addObserversForPlayerItem:newPlayerItem];
+                self._observingPlayerItem = newPlayerItem;
+            } else if (AVPlayerItem *playerItem = self.player.currentItem) {
+                // Initial
+                [self _addObserversForPlayerItem:newPlayerItem];
+                self._observingPlayerItem = playerItem;
+            }
+            
+            os_unfair_lock_unlock(&_currentItemLock);
+            return;
+        }
+    } else if ([object isKindOfClass:AVPlayerItem.class]) {
+        if ([keyPath isEqualToString:@"duration"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [PlayerControlView _updateSeekingSlider:self._seekingSlider player:self.player currentTime:kCMTimeInvalid];
+            });
+            return;
+        }
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
+
+- (CGSize)intrinsicContentSize {
+    return CGSizeMake(200., 40.);
+}
+
 - (void)_commonInit {
+    _currentItemLock = OS_UNFAIR_LOCK_INIT;
+    
     UIStackView *stackView = self._stackView;
     UILabel *reasonForWaitingToPlayLabel = self._reasonForWaitingToPlayLabel;
     
@@ -76,17 +145,26 @@
     
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), stackView);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), reasonForWaitingToPlayLabel);
+    
+    [self _updateAttributes];
 }
 
 - (void)setPlayer:(AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
     
     if (_player) {
+        // removeObserver는 즉시 반영되지 않을 것이기에 lock을 먼저 건다.
+        os_unfair_lock_lock(&_currentItemLock);
+        
         [self _removeObserversForPlayer:_player];
+        if (AVPlayerItem *observingPlayerItem = self._observingPlayerItem) {
+            [self _removeObserversForPlayerItem:observingPlayerItem];
+        }
+        
+        os_unfair_lock_unlock(&_currentItemLock);
+        
         [_player release];
     }
-    
-    // TODO: Player 없으면 버튼들 disable 처리, 처음에도
     
     if (player) {
         _player = [player retain];
@@ -94,9 +172,11 @@
     } else {
         _player = nil;
     }
+    
+    [self _updateAttributes];
 }
 
-- (UIStackView *)stackView {
+- (UIStackView *)_stackView {
     if (auto stackView = __stackView) return stackView;
     
     MPVolumeView *volumeView = self._volumeView;
@@ -121,7 +201,7 @@
     return [stackView autorelease];
 }
 
-- (UIButton *)playbackButton {
+- (UIButton *)_playbackButton {
     if (auto playbackButton = __playbackButton) return playbackButton;
     
     UIButton *playbackButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -132,11 +212,11 @@
 }
 
 #if TARGET_OS_TV
-- (TVSlider *)seekingSlider {
+- (TVSlider *)_seekingSlider {
     abort();
 }
 #else
-- (UISlider *)seekingSlider {
+- (UISlider *)_seekingSlider {
     if (auto seekingSlider = __seekingSlider) return seekingSlider;
     
     UISlider *seekingSlider = [UISlider new];
@@ -152,7 +232,7 @@
 }
 #endif
 
-- (MPVolumeView *)volumeView {
+- (MPVolumeView *)_volumeView {
     if (auto volumeView = __volumeView) return volumeView;
     
     MPVolumeView *volumeView = [MPVolumeView new];
@@ -162,7 +242,7 @@
 }
 
 #if !TARGET_OS_VISION
-- (AVRoutePickerView *)routePickerView {
+- (AVRoutePickerView *)_routePickerView {
     if (auto routePickerView = __routePickerView) return routePickerView;
     
     AVRoutePickerView *routePickerView = [AVRoutePickerView new];
@@ -172,7 +252,7 @@
 }
 #endif
 
-- (UILabel *)reasonForWaitingToPlayLabel {
+- (UILabel *)_reasonForWaitingToPlayLabel {
     if (auto reasonForWaitingToPlayLabel = __reasonForWaitingToPlayLabel) return reasonForWaitingToPlayLabel;
     
     UILabel *reasonForWaitingToPlayLabel = [UILabel new];
@@ -212,6 +292,10 @@
     UIButton *playbackButton = self._playbackButton;
     playbackButton.configuration = configuration;
     playbackButton.enabled = isEnabled;
+    
+    self._seekingSlider.enabled = isEnabled;
+    [PlayerControlView _updateSeekingSlider:self._seekingSlider player:self.player currentTime:kCMTimeInvalid];
+    [self _updateReasonForWaitingToPlay];
 }
 
 - (void)_updateReasonForWaitingToPlay {
@@ -226,21 +310,31 @@
     [player removeObserver:self forKeyPath:@"rate"];
     [player removeObserver:self forKeyPath:@"status"];
     [player removeObserver:self forKeyPath:@"reasonForWaitingToPlay"];
+    [player removeObserver:self forKeyPath:@"currentItem"];
     
     assert(self._periodicTimeObserver != nil);
     [player removeTimeObserver:self._periodicTimeObserver];
 }
 
 - (void)_addObserversForPlayer:(AVPlayer *)player {
-    [player addObserver:self forKeyPath:@"rate" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
-    [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
-    [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"rate" options:NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"currentItem" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     
     auto seekingSlider = self._seekingSlider;
     
     self._periodicTimeObserver = [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
-        [PlayerControlView _updateSeekingSlider:seekingSlider player:player];
+        [PlayerControlView _updateSeekingSlider:seekingSlider player:player currentTime:time];
     }];
+}
+
+- (void)_removeObserversForPlayerItem:(AVPlayerItem *)playerItem {
+    [playerItem removeObserver:self forKeyPath:@"duration"];
+}
+
+- (void)_addObserversForPlayerItem:(AVPlayerItem *)playerItem {
+    [playerItem addObserver:self forKeyPath:@"duration" options:NSKeyValueObservingOptionNew context:NULL];
 }
 
 - (void)_didTriggerPlaybackButton:(UIButton *)sender {
@@ -287,14 +381,18 @@
 #endif
 
 #if TARGET_OS_TV
-+ (void)_updateSeekingSlider:(TVSlider *)seekingSlider player:(AVPlayer * _Nullable)player
++ (void)_updateSeekingSlider:(TVSlider *)seekingSlider player:(AVPlayer * _Nullable)player currentTime:(CMTime)currentTime
 #else
-+ (void)_updateSeekingSlider:(UISlider *)seekingSlider player:(AVPlayer * _Nullable)player
++ (void)_updateSeekingSlider:(UISlider *)seekingSlider player:(AVPlayer * _Nullable)player currentTime:(CMTime)currentTime
 #endif
 {
     if (player == nil) {
         seekingSlider.enabled = NO;
         return;
+    }
+    
+    if (CMTIME_IS_INVALID(currentTime)) {
+        currentTime = player.currentTime;
     }
     
     seekingSlider.minimumValue = 0.;
@@ -304,7 +402,7 @@
     seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
 #else
     if (!seekingSlider.isTracking) {
-        seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
+        seekingSlider.value = CMTimeConvertScale(currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
     }
 #endif
     

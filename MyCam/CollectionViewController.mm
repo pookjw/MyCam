@@ -108,7 +108,7 @@
     Class viewControllerClass = [CollectionViewController viewControllerClasses][indexPath.item];
     
     if (viewControllerClass == VideoPlayerListViewController.class) {
-        NSURL *url = [NSBundle.mainBundle URLForResource:@"demo" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
+        NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_1" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
         AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
         VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithPlayerItem:playerItem];
         [playerItem release];
