@@ -161,27 +161,28 @@ namespace createViewForToolbar /* Legacy */ {
 const UIActionIdentifier actionIdentifier = @"cp_actionIdentifier";
 __kindof UIView * (*original)(UIBarButtonItem *self, SEL _cmd, __kindof UIView *toolbar);
 __kindof UIView * custom(UIBarButtonItem *self, SEL _cmd, __kindof UIView *toolbar) {
-    __kindof UIControl *result = original(self, _cmd, toolbar);
-    
-    __kindof UIButton *_info = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(result, sel_registerName("_info"));
-    
-    if (![_info isKindOfClass:objc_lookUpClass("UINavigationButton")]) {
-        return result;
-    }
-    
-    [_info removeActionForIdentifier:actionIdentifier forControlEvents:UIControlEventPrimaryActionTriggered];
-    
-    __weak auto weakResult = result;
-    UIAction *action = [UIAction actionWithTitle:@"" image:nil identifier:actionIdentifier handler:^(__kindof UIAction * _Nonnull action) {
-        [weakResult sendActionsForControlEvents:UIControlEventPrimaryActionTriggered];
-    }];
-    
-    [_info addAction:action forControlEvents:UIControlEventPrimaryActionTriggered];
-    _info.menu = self.menu;
-    _info.preferredMenuElementOrder = self.preferredMenuElementOrder;
-    _info.showsMenuAsPrimaryAction = YES;
-    
-    return result;
+//    __kindof UIControl *result = original(self, _cmd, toolbar);
+//    
+//    __kindof UIButton *_info = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(result, sel_registerName("_info"));
+//    
+//    if (![_info isKindOfClass:objc_lookUpClass("UINavigationButton")]) {
+//        return result;
+//    }
+//    
+//    [_info removeActionForIdentifier:actionIdentifier forControlEvents:UIControlEventPrimaryActionTriggered];
+//    
+//    __weak auto weakResult = result;
+//    UIAction *action = [UIAction actionWithTitle:@"" image:nil identifier:actionIdentifier handler:^(__kindof UIAction * _Nonnull action) {
+//        [weakResult sendActionsForControlEvents:UIControlEventPrimaryActionTriggered];
+//    }];
+//    
+//    [_info addAction:action forControlEvents:UIControlEventPrimaryActionTriggered];
+//    _info.menu = self.menu;
+//    _info.preferredMenuElementOrder = self.preferredMenuElementOrder;
+//    _info.showsMenuAsPrimaryAction = YES;
+//    
+//    return result;
+    abort();
 }
 void swizzle() {
     Method mehtod = class_getInstanceMethod(UIBarButtonItem.class, sel_registerName("createViewForToolbar:"));

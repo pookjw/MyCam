@@ -173,6 +173,8 @@
 }
 
 - (void)setEnabled:(BOOL)enabled {
+    if (_enabled == enabled) return;
+    
     _enabled = enabled;
     self._minimumTrackView.alpha = enabled ? 1. : 0.5;
     self._maximumTrackView.alpha = enabled ? 1. : 0.5;

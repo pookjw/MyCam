@@ -30,7 +30,9 @@
 #endif
 @property (retain, nonatomic, readonly) UILabel *_reasonForWaitingToPlayLabel;
 @property (retain, nonatomic, nullable) id _periodicTimeObserver;
+#if !TARGET_OS_TV
 @property (assign, nonatomic) BOOL _wasPlaying;
+#endif
 @property (retain, nonatomic, nullable) AVPlayerItem *_observingPlayerItem;
 @end
 
@@ -213,7 +215,18 @@
 
 #if TARGET_OS_TV
 - (TVSlider *)_seekingSlider {
-    abort();
+    if (auto seekingSlider = __seekingSlider) return seekingSlider;
+    
+    TVSlider *seekingSlider = [TVSlider new];
+    seekingSlider.continuous = YES;
+    
+    __block auto unretained = self;
+    [seekingSlider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+        [unretained _didChangeSeekingSliderValue:static_cast<TVSlider *>(action.sender)];
+    }]];
+    
+    __seekingSlider = [seekingSlider retain];
+    return [seekingSlider autorelease];
 }
 #else
 - (UISlider *)_seekingSlider {
@@ -353,7 +366,17 @@
     }
 }
 
-#if !TARGET_OS_TV
+#if TARGET_OS_TV
+- (void)_didChangeSeekingSliderValue:(TVSlider *)sender {
+    AVPlayer * _Nullable player = self.player;
+    if (player == nil) return;
+    
+    [player pause];
+    
+    CMTime time = CMTimeMake(sender.value, 1000000UL);
+    [player seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+}
+#else
 - (void)_didTouchDownSeekingSlider:(UISlider *)sender {
     AVPlayer * _Nullable player = self.player;
     if (player == nil) return;
@@ -397,9 +420,12 @@
     
     seekingSlider.minimumValue = 0.;
     seekingSlider.maximumValue = CMTimeConvertScale(player.currentItem.duration, 1000000UL, kCMTimeRoundingMethod_Default).value;
+    seekingSlider.stepValue = (seekingSlider.maximumValue - seekingSlider.minimumValue) / 100.f;
     
 #if TARGET_OS_TV
-    seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
+    if (!seekingSlider.isEditing) {
+        seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
+    }
 #else
     if (!seekingSlider.isTracking) {
         seekingSlider.value = CMTimeConvertScale(currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;

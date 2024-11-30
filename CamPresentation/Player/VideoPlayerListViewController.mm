@@ -127,7 +127,11 @@
 - (UICollectionView *)collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
+#if TARGET_OS_TV
+    UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceGrouped];
+#else
     UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceInsetGrouped];
+#endif
     UICollectionViewCompositionalLayout *collectionViewLayout = [UICollectionViewCompositionalLayout layoutWithListConfiguration:listConfiguration];
     [listConfiguration release];
     
@@ -180,12 +184,12 @@
         AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         PlayerLayerViewController *viewController = [[PlayerLayerViewController alloc] initWithPlayer:player];
         
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_2" withExtension:@"mov"];
-            AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
-            [player replaceCurrentItemWithPlayerItem:playerItem];
-            [playerItem release];
-        });
+//        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+//            NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_2" withExtension:@"mov"];
+//            AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
+//            [player replaceCurrentItemWithPlayerItem:playerItem];
+//            [playerItem release];
+//        });
         
         [player release];
         [self.navigationController pushViewController:viewController animated:YES];

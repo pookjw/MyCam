@@ -36,6 +36,7 @@
 		4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB62C9975E300F17348 /* PhotosUI.framework */; };
 		4FA73EBA2C99764100F17348 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73EB92C99764100F17348 /* CoreImage.framework */; };
 		4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FB474792CC0BD80003E8507 /* MediaPlayer.framework */; };
+		4FBD1EA82CFB7F0300851F07 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FBD1EA72CFB7F0300851F07 /* UniformTypeIdentifiers.framework */; };
 		4FD57C3F2C9AC4A50016FBF0 /* Symbols.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */; };
 		4FED1ACD2C997BC000174044 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACC2C997BC000174044 /* CoreGraphics.framework */; };
 		4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACE2C997E0B00174044 /* QuartzCore.framework */; };
@@ -153,6 +154,7 @@
 		4FA73EB62C9975E300F17348 /* PhotosUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PhotosUI.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/PhotosUI.framework; sourceTree = DEVELOPER_DIR; };
 		4FA73EB92C99764100F17348 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreImage.framework; sourceTree = DEVELOPER_DIR; };
 		4FB474792CC0BD80003E8507 /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/iOSSupport/System/Library/Frameworks/MediaPlayer.framework; sourceTree = DEVELOPER_DIR; };
+		4FBD1EA72CFB7F0300851F07 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = DEVELOPER_DIR; };
 		4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Symbols.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/Symbols.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1ACC2C997BC000174044 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		4FED1ACE2C997E0B00174044 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
@@ -620,6 +622,7 @@
 				4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */,
 				4FED1AD52C99999800174044 /* CoreLocation.framework in Frameworks */,
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
+				4FBD1EA82CFB7F0300851F07 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
 				4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */,
 				4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */,
@@ -652,6 +655,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4FBD1EA72CFB7F0300851F07 /* UniformTypeIdentifiers.framework */,
 				4F9AA48F2CED6B1100CCABDB /* ARKit.framework */,
 				4FF536522CE87EE2000FA763 /* VideoToolbox.framework */,
 				4F3806E92CE0FDCC002E96DF /* ModelIO.framework */,
