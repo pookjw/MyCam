@@ -1,8 +1,8 @@
 //
-//  PlayerOutputViewController.h
+//  PlayerOutputView.h
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 11/29/24.
+//  Created by Jinwoo Kim on 12/1/24.
 //
 
 #import <UIKit/UIKit.h>
@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PlayerOutputViewController : UIViewController
+@interface PlayerOutputView : UIView
 - (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification;
 @end
 

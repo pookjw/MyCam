@@ -77,6 +77,7 @@
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.rightBarButtonItem = self.progressBarButtonItem;
+    navigationItem.title = @"Players";
     
     __kindof UIView *progressView = self.progressView;
     UICollectionView *collectionView = self.collectionView;
@@ -196,6 +197,7 @@
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
         AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+        abort();
         PlayerOutputViewController *viewController = [[PlayerOutputViewController alloc] initWithPlayer:player];
         [player release];
         [self.navigationController pushViewController:viewController animated:YES];

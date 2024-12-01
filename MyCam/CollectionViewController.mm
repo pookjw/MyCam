@@ -75,6 +75,13 @@
     [super viewDidLoad];
     [self cellRegistration];
     
+    NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_1" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
+    AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
+    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithPlayerItem:playerItem];
+    [playerItem release];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
+    
 //    CameraRootViewController *viewController = [CameraRootViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];

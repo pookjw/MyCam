@@ -44,9 +44,13 @@
 - (instancetype)init {
     if (self = [super init]) {
         __block CAMetalLayer *metalLayer;
-        dispatch_sync(dispatch_get_main_queue(), ^{
+        if (NSThread.isMainThread) {
             metalLayer = [CAMetalLayer new];
-        });
+        } else {
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                metalLayer = [CAMetalLayer new];
+            });
+        }
         
 #if !TARGET_OS_TV
         self.wantsExtendedDynamicRangeContent = YES;
