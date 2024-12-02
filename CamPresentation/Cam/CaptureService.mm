@@ -2196,6 +2196,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(!movieFileOutput.isRecording);
     assert(!movieFileOutput.isRecordingPaused);
     
+    NSLog(@"%@", [movieFileOutput outputSettingsForConnection:movieFileOutput.connections[0]]);
+    
     __kindof BaseFileOutput *fileOutput = self.queue_fileOutput;
     NSURL *outputURL;
     

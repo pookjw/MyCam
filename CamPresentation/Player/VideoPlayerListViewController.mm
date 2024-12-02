@@ -14,6 +14,11 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
+#import <VideoToolbox/VideoToolbox.h>
+#include <algorithm>
+#include <vector>
+#include <ranges>
+#include <optional>
 
 @interface VideoPlayerListViewController () <UICollectionViewDataSource, UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) VideoPlayerListViewModel *viewModel;
@@ -197,6 +202,21 @@
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
+//        CMTagCollectionRef tagCollection;
+//        assert(CMTagCollectionCreateWithVideoOutputPreset(kCFAllocatorDefault, kCMTagCollectionVideoOutputPreset_Stereoscopic, &tagCollection) == 0);
+//        AVVideoOutputSpecification *specification = [[AVVideoOutputSpecification alloc] initWithTagCollections:@[(id)tagCollection]];
+//        CFRelease(tagCollection);
+//        
+//        PlayerOutputViewController *viewController = [PlayerOutputViewController new];
+//        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+//        [viewController updateWithPlayer:player specification:specification];
+//        [player release];
+//        
+//        [self.navigationController pushViewController:viewController animated:YES];
+//        [viewController release];
+        
+        //
+        
         AVAsset *asset = playerItem.asset;
         [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
             assert(error == nil);
@@ -211,19 +231,67 @@
                 CFArrayRef tagCollections;
                 assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
                 
+                std::vector<NSNumber *> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
+                | std::views::transform([&tagCollections](const CFIndex &index) {
+                    CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
+                    CMItemCount count = CMTagCollectionGetCount(tagCollection);
+                    
+                    CMTag *tags = new CMTag[count];
+                    CMItemCount numberOfTagsCopied;
+                    assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
+                    assert(count == numberOfTagsCopied);
+                    
+                    auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
+                        CMTagCategory category = CMTagGetCategory(tag);
+                        
+                        if (category == kCMTagCategory_VideoLayerID) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    });
+                    
+                    std::optional<CMTagValue> videoLayerID;
+                    if (videoLayerIDTag == nullptr) {
+                        videoLayerID = std::nullopt;
+                    } else {
+                        videoLayerID = CMTagGetValue(*videoLayerIDTag);
+                    }
+                    
+                    delete[] tags;
+                    
+                    return videoLayerID;
+                })
+                | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
+                | std::views::transform([](const std::optional<CMTagValue> &opt) { return @(opt.value()); })
+                | std::ranges::to<std::vector<NSNumber *>>();
+                
+                NSArray<NSNumber *> *videoLayerIDs = [[NSArray alloc] initWithObjects:videoLayerIDsVec.data() count:videoLayerIDsVec.size()];
+                
                 AVVideoOutputSpecification *specification = [[AVVideoOutputSpecification alloc] initWithTagCollections:(id)tagCollections];
                 CFRelease(tagCollections);
+                
+                NSLog(@"%@", videoLayerIDs);
+                
+                specification.defaultOutputSettings = @{
+                    AVVideoDecompressionPropertiesKey: @{
+                        (id)kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs: videoLayerIDs
+                    }
+                };
+                
+                [videoLayerIDs release];
                 
                 dispatch_async(dispatch_get_main_queue(), ^{
                     PlayerOutputViewController *viewController = [PlayerOutputViewController new];
                     AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
                     [viewController updateWithPlayer:player specification:specification];
                     [player release];
-                    [specification release];
                     
                     [self.navigationController pushViewController:viewController animated:YES];
                     [viewController release];
                 });
+                
+                [specification release];
             }];
         }];
     } else {

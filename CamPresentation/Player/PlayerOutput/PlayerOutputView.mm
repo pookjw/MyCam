@@ -13,7 +13,7 @@
 
 @interface PlayerOutputView ()
 @property (retain, nonatomic, nullable) AVPlayer * _player;
-@property (retain, nonatomic, nullable) AVPlayerVideoOutput *_videoOutput;
+@property (retain, atomic, nullable) AVPlayerVideoOutput *_videoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
 @property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
@@ -92,10 +92,13 @@
     [self _addObserversForPlayer:player];
     
     AVPlayerVideoOutput *videoOutput = [[AVPlayerVideoOutput alloc] initWithSpecification:specification];
+    assert(player.videoOutput == nil);
     player.videoOutput = videoOutput;
     self._videoOutput = videoOutput;
+    assert([player.videoOutput isEqual:videoOutput]);
     [videoOutput release];
     
+    // TODO: Video Layer ID 개수만큼만
     [self _updatePixelBufferLayerViewCount:specification.preferredTagCollections.count];
 }
 
@@ -114,9 +117,10 @@
     CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_didTriggerDisplayLink:)];
     
     displayLink.paused = YES;
-    [self._renderRunLoop runBlock:^{
-        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    }];
+//    [self._renderRunLoop runBlock:^{
+//        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+//    }];
+//    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     
     __displayLink = [displayLink retain];
     return displayLink;
@@ -174,8 +178,20 @@
 }
 
 - (void)_didTriggerDisplayLink:(CADisplayLink *)sender {
-//    CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:<#(CMTime)#> presentationTimeStamp:<#(CMTime * _Nullable)#> activeConfiguration:<#(AVPlayerVideoOutputConfiguration * _Nullable * _Nullable)#>];
-//    NSLog(@"%@", sender);
+//    CMTime hostTime = CMTimeMake(static_cast<int64_t>(sender.timestamp * USEC_PER_SEC), USEC_PER_SEC);
+    CMTime hostTime = CMClockGetTime(CMClockGetHostTimeClock());
+//    CMTimeShow(hostTime);
+    
+    CMTime presentationTimeStamp;
+    AVPlayerVideoOutputConfiguration *activeConfiguration;
+    CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:hostTime presentationTimeStamp:&presentationTimeStamp activeConfiguration:&activeConfiguration];
+    CMTimeShow(presentationTimeStamp);
+    if (taggedBufferGroup == NULL) {
+        NSLog(@"NULL");
+        return;
+    }
+    CFShow(taggedBufferGroup);
+    CFRelease(taggedBufferGroup);
 }
 
 @end
