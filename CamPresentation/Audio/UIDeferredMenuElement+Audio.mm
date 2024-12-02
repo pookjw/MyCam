@@ -1274,6 +1274,12 @@
 }
 #endif
 
+#if !TARGET_OS_TV
+//+ (UIMenu * _Nonnull)_cp_categoryOptionsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+//    abort();
+//}
+#endif
+
 // AVAusioApplication Mute
 //+ (UIAction * _Nonnull)
 

@@ -81,6 +81,42 @@
     };
 #endif
     
+    void (^requestMicrophoneInjectionPermission)() = ^{
+        AVAudioApplicationMicrophoneInjectionPermission permission = AVAudioApplication.sharedInstance.microphoneInjectionPermission;
+        
+        switch (permission) {
+            case AVAudioApplicationMicrophoneInjectionPermissionDenied:
+                completionHandler(NO);
+                break;
+            case AVAudioApplicationMicrophoneInjectionPermissionGranted:
+                requestLocationAuthorization();
+                break;
+            case AVAudioApplicationMicrophoneInjectionPermissionServiceDisabled:
+                requestLocationAuthorization();
+                break;
+            case AVAudioApplicationMicrophoneInjectionPermissionUndetermined:
+                [AVAudioApplication requestMicrophoneInjectionPermissionWithCompletionHandler:^(AVAudioApplicationMicrophoneInjectionPermission permission) {
+                    switch (permission) {
+                        case AVAudioApplicationMicrophoneInjectionPermissionDenied:
+                            completionHandler(NO);
+                            break;
+                        case AVAudioApplicationMicrophoneInjectionPermissionGranted:
+                            requestLocationAuthorization();
+                            break;
+                        case AVAudioApplicationMicrophoneInjectionPermissionServiceDisabled:
+                            requestLocationAuthorization();
+                            break;
+                        case AVAudioApplicationMicrophoneInjectionPermissionUndetermined:
+                            abort();
+                        default:
+                            break;
+                    }
+                }];
+            default:
+                abort();
+        }
+    };
+    
     void (^requestRecordPermission)() = ^{
         AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
         
@@ -91,7 +127,7 @@
                     completionHandler(granted);
 #else
                     if (granted) {
-                        requestLocationAuthorization();
+                        requestMicrophoneInjectionPermission();
                     } else {
                         completionHandler(NO);
                     }
@@ -102,7 +138,7 @@
 #if TARGET_OS_VISION
                 completionHandler(YES);
 #else
-                requestLocationAuthorization();
+                requestMicrophoneInjectionPermission();
 #endif
                 break;
             case AVAudioApplicationRecordPermissionDenied:

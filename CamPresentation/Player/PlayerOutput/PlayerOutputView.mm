@@ -15,11 +15,13 @@
 @property (retain, nonatomic, nullable) AVPlayer * _player;
 @property (retain, nonatomic, nullable) AVPlayerVideoOutput *_videoOutput;
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
+@property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @end
 
 @implementation PlayerOutputView
 @synthesize _renderRunLoop = __renderRunLoop;
+@synthesize _displayLink = __displayLink;
 @synthesize _stackView = __stackView;
 
 + (Class)layerClass {
@@ -43,9 +45,14 @@
 }
 
 - (void)dealloc {
-    [__player release];
+    if (AVPlayer *player = __player) {
+        [self _removeObserversForPlayer:player];
+        [player release];
+    }
     [__videoOutput release];
     [__renderRunLoop release];
+    __displayLink.paused = YES;
+    [__displayLink release];
     [__stackView release];
     [super dealloc];
 }
@@ -53,6 +60,11 @@
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isKindOfClass:[AVPlayer class]]) {
         if ([keyPath isEqualToString:@"rate"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                assert([self._player isEqual:object]);
+                float rate = self._player.rate;
+                self._displayLink.paused = (rate == 0.f);
+            });
             return;
         }
     }
@@ -94,6 +106,20 @@
     
     __renderRunLoop = [renderRunLoop retain];
     return [renderRunLoop autorelease];
+}
+
+- (CADisplayLink *)_displayLink {
+    if (auto displayLink = __displayLink) return displayLink;
+    
+    CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_didTriggerDisplayLink:)];
+    
+    displayLink.paused = YES;
+    [self._renderRunLoop runBlock:^{
+        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    }];
+    
+    __displayLink = [displayLink retain];
+    return displayLink;
 }
 
 - (UIStackView *)_stackView {
@@ -145,6 +171,11 @@
 - (void)_removeObserversForPlayer:(AVPlayer *)player {
     assert(player != nil);
     [player removeObserver:self forKeyPath:@"rate" context:NULL];
+}
+
+- (void)_didTriggerDisplayLink:(CADisplayLink *)sender {
+    CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:<#(CMTime)#> presentationTimeStamp:<#(CMTime * _Nullable)#> activeConfiguration:<#(AVPlayerVideoOutputConfiguration * _Nullable * _Nullable)#>];
+    NSLog(@"%@", sender);
 }
 
 @end

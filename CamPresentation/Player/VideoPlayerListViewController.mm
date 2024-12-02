@@ -10,6 +10,7 @@
 #import <CamPresentation/ARVideoPlayerViewController.h>
 #import <CamPresentation/PlayerLayerViewController.h>
 #import <CamPresentation/PlayerOutputViewController.h>
+#import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
@@ -196,12 +197,35 @@
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
-        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-        abort();
-        PlayerOutputViewController *viewController = [[PlayerOutputViewController alloc] initWithPlayer:player];
-        [player release];
-        [self.navigationController pushViewController:viewController animated:YES];
-        [viewController release];
+        AVAsset *asset = playerItem.asset;
+        [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
+            assert(error == nil);
+            AVAssetTrack *track = tracks.firstObject;
+            assert(track != nil);
+            
+            [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions"] completionHandler:^{
+                NSArray *formatDescriptions = track.formatDescriptions;
+                CMFormatDescriptionRef firstFormatDescription = (CMFormatDescriptionRef)formatDescriptions.firstObject;
+                assert(firstFormatDescription != NULL);
+                
+                CFArrayRef tagCollections;
+                assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
+                
+                AVVideoOutputSpecification *specification = [[AVVideoOutputSpecification alloc] initWithTagCollections:(id)tagCollections];
+                CFRelease(tagCollections);
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    PlayerOutputViewController *viewController = [PlayerOutputViewController new];
+                    AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+                    [viewController updateWithPlayer:player specification:specification];
+                    [player release];
+                    [specification release];
+                    
+                    [self.navigationController pushViewController:viewController animated:YES];
+                    [viewController release];
+                });
+            }];
+        }];
     } else {
         abort();
     }

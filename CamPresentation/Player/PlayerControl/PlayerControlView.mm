@@ -420,9 +420,10 @@
     
     seekingSlider.minimumValue = 0.;
     seekingSlider.maximumValue = CMTimeConvertScale(player.currentItem.duration, 1000000UL, kCMTimeRoundingMethod_Default).value;
-    seekingSlider.stepValue = (seekingSlider.maximumValue - seekingSlider.minimumValue) / 100.f;
     
 #if TARGET_OS_TV
+    seekingSlider.stepValue = (seekingSlider.maximumValue - seekingSlider.minimumValue) / 100.f;
+    
     if (!seekingSlider.isEditing) {
         seekingSlider.value = CMTimeConvertScale(player.currentTime, 1000000UL, kCMTimeRoundingMethod_Default).value;
     }

@@ -63,6 +63,7 @@
 
 - (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification {
     [self._outputView updateWithPlayer:player specification:specification];
+    self._controlView.player = player;
 }
 
 - (PlayerOutputView *)_outputView {
