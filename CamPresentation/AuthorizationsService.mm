@@ -89,10 +89,18 @@
                 completionHandler(NO);
                 break;
             case AVAudioApplicationMicrophoneInjectionPermissionGranted:
+#if TARGET_OS_VISION
+                completionHandler(YES);
+#else
                 requestLocationAuthorization();
+#endif
                 break;
             case AVAudioApplicationMicrophoneInjectionPermissionServiceDisabled:
+#if TARGET_OS_VISION
+                completionHandler(YES);
+#else
                 requestLocationAuthorization();
+#endif
                 break;
             case AVAudioApplicationMicrophoneInjectionPermissionUndetermined:
                 [AVAudioApplication requestMicrophoneInjectionPermissionWithCompletionHandler:^(AVAudioApplicationMicrophoneInjectionPermission permission) {
@@ -101,10 +109,18 @@
                             completionHandler(NO);
                             break;
                         case AVAudioApplicationMicrophoneInjectionPermissionGranted:
+#if TARGET_OS_VISION
+                            completionHandler(YES);
+#else
                             requestLocationAuthorization();
+#endif
                             break;
                         case AVAudioApplicationMicrophoneInjectionPermissionServiceDisabled:
+#if TARGET_OS_VISION
+                            completionHandler(YES);
+#else
                             requestLocationAuthorization();
+#endif
                             break;
                         case AVAudioApplicationMicrophoneInjectionPermissionUndetermined:
                             abort();
@@ -124,7 +140,7 @@
             case AVAudioApplicationRecordPermissionUndetermined:
                 [AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
 #if TARGET_OS_VISION
-                    completionHandler(granted);
+                    requestMicrophoneInjectionPermission();
 #else
                     if (granted) {
                         requestMicrophoneInjectionPermission();
@@ -136,7 +152,7 @@
                 break;
             case AVAudioApplicationRecordPermissionGranted:
 #if TARGET_OS_VISION
-                completionHandler(YES);
+                requestMicrophoneInjectionPermission();
 #else
                 requestMicrophoneInjectionPermission();
 #endif

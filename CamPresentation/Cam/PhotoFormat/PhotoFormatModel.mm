@@ -5,10 +5,11 @@
 //  Created by Jinwoo Kim on 9/16/24.
 //
 
-#import <CamPresentation/PhotoFormatModel.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
+
+#import <CamPresentation/PhotoFormatModel.h>
 
 @implementation PhotoFormatModel
 
@@ -36,18 +37,21 @@
 - (id)copyWithZone:(struct _NSZone *)zone {
     PhotoFormatModel *copy = [[PhotoFormatModel allocWithZone:zone] init];
     
-    copy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
-    copy->_codecType = [_codecType copyWithZone:zone];
-    copy->_quality = _quality;
-    copy->_rawEnabled = _rawEnabled;
-    copy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
-    copy->_rawFileType = [_rawFileType copyWithZone:zone];
-    copy->_processedFileType = [_processedFileType copyWithZone:zone];
-    copy->_photoQualityPrioritization = _photoQualityPrioritization;
-    copy->_flashMode = _flashMode;
-    copy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
-    copy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
-    copy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
+    if (copy) {
+        copy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
+        copy->_codecType = [_codecType copyWithZone:zone];
+        copy->_quality = _quality;
+        copy->_rawEnabled = _rawEnabled;
+        copy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
+        copy->_rawFileType = [_rawFileType copyWithZone:zone];
+        copy->_processedFileType = [_processedFileType copyWithZone:zone];
+        copy->_photoQualityPrioritization = _photoQualityPrioritization;
+        copy->_flashMode = _flashMode;
+        copy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
+        copy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
+        copy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
+        copy->_shutterSoundSuppressionEnabled = _shutterSoundSuppressionEnabled;
+    }
     
     return copy;
 }
@@ -55,18 +59,21 @@
 - (id)mutableCopyWithZone:(struct _NSZone *)zone {
     MutablePhotoFormatModel *mutableCopy = [[MutablePhotoFormatModel allocWithZone:zone] init];
     
-    mutableCopy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
-    mutableCopy->_codecType = [_codecType copyWithZone:zone];
-    mutableCopy->_quality = _quality;
-    mutableCopy->_rawEnabled = _rawEnabled;
-    mutableCopy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
-    mutableCopy->_rawFileType = [_rawFileType copyWithZone:zone];
-    mutableCopy->_processedFileType = [_processedFileType copyWithZone:zone];
-    mutableCopy->_photoQualityPrioritization = _photoQualityPrioritization;
-    mutableCopy->_flashMode = _flashMode;
-    mutableCopy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
-    mutableCopy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
-    mutableCopy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
+    if (mutableCopy) {
+        mutableCopy->_photoPixelFormatType = [_photoPixelFormatType copyWithZone:zone];
+        mutableCopy->_codecType = [_codecType copyWithZone:zone];
+        mutableCopy->_quality = _quality;
+        mutableCopy->_rawEnabled = _rawEnabled;
+        mutableCopy->_rawPhotoPixelFormatType = [_rawPhotoPixelFormatType copyWithZone:zone];
+        mutableCopy->_rawFileType = [_rawFileType copyWithZone:zone];
+        mutableCopy->_processedFileType = [_processedFileType copyWithZone:zone];
+        mutableCopy->_photoQualityPrioritization = _photoQualityPrioritization;
+        mutableCopy->_flashMode = _flashMode;
+        mutableCopy->_cameraCalibrationDataDeliveryEnabled = _cameraCalibrationDataDeliveryEnabled;
+        mutableCopy->_bracketedSettings = [_bracketedSettings copyWithZone:zone];
+        mutableCopy->_livePhotoVideoCodecType = [_livePhotoVideoCodecType copyWithZone:zone];
+        mutableCopy->_shutterSoundSuppressionEnabled = _shutterSoundSuppressionEnabled;
+    }
     
     return mutableCopy;
 }
@@ -87,7 +94,8 @@
         _flashMode == casted->_flashMode &&
         _cameraCalibrationDataDeliveryEnabled == casted->_cameraCalibrationDataDeliveryEnabled &&
         [_bracketedSettings isEqualToArray:casted->_bracketedSettings] &&
-        [_livePhotoVideoCodecType isEqualToString:casted->_livePhotoVideoCodecType];
+        [_livePhotoVideoCodecType isEqualToString:casted->_livePhotoVideoCodecType] &&
+        _shutterSoundSuppressionEnabled == casted->_shutterSoundSuppressionEnabled;
     }
 }
 
@@ -103,7 +111,8 @@
     _flashMode ^
     _cameraCalibrationDataDeliveryEnabled ^
     _bracketedSettings.hash ^
-    _livePhotoVideoCodecType.hash;
+    _livePhotoVideoCodecType.hash ^
+    _shutterSoundSuppressionEnabled;
 }
 
 @end
@@ -175,6 +184,10 @@
 - (void)setLivePhotoVideoCodecType:(AVVideoCodecType)livePhotoVideoCodecType {
     [_livePhotoVideoCodecType release];
     _livePhotoVideoCodecType = [livePhotoVideoCodecType copy];
+}
+
+- (void)setShutterSoundSuppressionEnabled:(BOOL)shutterSoundSuppressionEnabled {
+    _shutterSoundSuppressionEnabled = shutterSoundSuppressionEnabled;
 }
 
 - (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput {

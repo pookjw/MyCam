@@ -202,6 +202,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     [elements addObject:[UIDeferredMenuElement _cp_queue_exposureBracketedStillImageSettingsElementWithCaptureService:captureService captureDevice:captureDevice photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
     
+    [elements addObject:[UIDeferredMenuElement _cp_queue_toggleShutterSoundSuppressionEnabledActionWithCaptureService:captureService videoDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+    
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Photo" children:elements];
@@ -4040,6 +4042,27 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     action.state = isVideoGreenGhostMitigationEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     action.attributes = isVideoGreenGhostMitigationSupported ? 0 : UIMenuElementAttributesDisabled;
     action.subtitle = @"Requires Spatial Video Capture";
+    
+    return action;
+}
+
++ (UIAction *)_cp_queue_toggleShutterSoundSuppressionEnabledActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice photoOutput:(AVCapturePhotoOutput *)photoOutput photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isShutterSoundSuppressionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isShutterSoundSuppressionSupported"));
+    BOOL isShutterSoundSuppressionEnabled = photoFormatModel.isShutterSoundSuppressionEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Shutter Sound Suppression" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            MutablePhotoFormatModel *copy = [photoFormatModel mutableCopy];
+            copy.shutterSoundSuppressionEnabled = !isShutterSoundSuppressionEnabled;
+            [captureService queue_setPhotoFormatModel:copy forCaptureDevice:videoDevice];
+            [copy release];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.attributes = isShutterSoundSuppressionSupported ? 0 : UIMenuElementAttributesDisabled;
+    action.state = isShutterSoundSuppressionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
 }

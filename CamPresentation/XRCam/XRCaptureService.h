@@ -8,6 +8,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/Extern.h>
 #import <CamPresentation/MovieWriter.h>
+#import <CamPresentation/XRPhotoSettings.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -29,6 +30,9 @@ API_AVAILABLE(visionos(1.0))
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (XRPhotoSettings *)queue_photoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_setPhotoSettings:(XRPhotoSettings *)photoSettings forVideoDevice:(AVCaptureDevice *)videoDevice;
+
 - (void)queue_startPhotoCaptureWithVideoDevice:(AVCaptureDevice *)videoDevice;
 - (MovieWriter *)queue_movieWriterForVideoDevice:(AVCaptureDevice *)videoDevice;
 @end

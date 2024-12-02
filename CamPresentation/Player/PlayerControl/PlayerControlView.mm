@@ -80,7 +80,9 @@
     [__playbackButton release];
     [__seekingSlider release];
     [__volumeView release];
+#if !TARGET_OS_VISION
     [__routePickerView release];
+#endif
     [__reasonForWaitingToPlayLabel release];
     [__periodicTimeObserver release];
     [__observingPlayerItem release];

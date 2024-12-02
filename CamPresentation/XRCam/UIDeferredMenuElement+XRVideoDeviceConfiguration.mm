@@ -12,6 +12,7 @@
 #import <CamPresentation/UIDeferredMenuElement+XRVideoDeviceConfiguration.h>
 #import <CamPresentation/XRCaptureService.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <CamPresentation/XRPhotoSettings.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -105,6 +106,40 @@ UIMenu *formatsMenu(XRCaptureService *captureService, AVCaptureDevice *videoDevi
     return menu;
 }
 
+UIAction *toggleShutterSoundSuppressionEnabledActio(XRCaptureService *captureService, AVCaptureDevice *videoDevice, __kindof AVCaptureOutput *photoOutput, XRPhotoSettings *photoSettings, void (^ _Nullable didChangeHandler)()) {
+    BOOL isShutterSoundSuppressionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(photoOutput, sel_registerName("isShutterSoundSuppressionSupported"));
+    BOOL isShutterSoundSuppressionEnabled = photoSettings.isShutterSoundSuppressionEnabled;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Shutter Sound Suppression" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            MutableXRPhotoSettings *copy = [photoSettings mutableCopy];
+            copy.shutterSoundSuppressionEnabled = !isShutterSoundSuppressionEnabled;
+            [captureService queue_setPhotoSettings:copy forVideoDevice:videoDevice];
+            [copy release];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.attributes = isShutterSoundSuppressionSupported ? 0 : UIMenuElementAttributesDisabled;
+    action.state = isShutterSoundSuppressionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
+UIMenu *photoMenu(XRCaptureService *captureService, AVCaptureDevice *videoDevice, void (^ _Nullable didChangeHandler)()) {
+    __kindof AVCaptureOutput *photoOutput = [captureService queue_outputClass:objc_lookUpClass("AVCapturePhotoOutput") fromCaptureDevice:videoDevice].allObjects.firstObject;
+    assert(photoOutput != nil);
+    
+    XRPhotoSettings *photoSettings = [captureService queue_photoSettingsForVideoDevice:videoDevice];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Photo" children:@[
+        toggleShutterSoundSuppressionEnabledActio(captureService, videoDevice, photoOutput, photoSettings, didChangeHandler)
+    ]];
+    
+    return menu;
+}
+
 }
 }
 }
@@ -118,6 +153,7 @@ UIMenu *formatsMenu(XRCaptureService *captureService, AVCaptureDevice *videoDevi
             
             using namespace cp::xr::deviceConfiguration;
             
+            [elements addObject:photoMenu(captureService, videoDevice, didChangeHandler)];
             [elements addObject:setMetadataObjectTypesMenu(captureService, videoDevice, didChangeHandler)];
             [elements addObject:formatsMenu(captureService, videoDevice, @"Formats", YES, nil, didChangeHandler)];
             

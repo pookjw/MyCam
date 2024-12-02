@@ -23,7 +23,6 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <CoreMedia/CoreMedia.h>
-#import <CamPresentation/AuthorizationsService.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -232,27 +231,11 @@
     
     //
     
-    AuthorizationsService *authorizationsService = [AuthorizationsService new];
-    
-    [authorizationsService requestAuthorizationsWithCompletionHandler:^(BOOL authorized) {
-        if (authorized) {
-            CaptureService *captureService = self.captureService;
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
-                    [captureService queue_addCaptureDevice:defaultVideoCaptureDevice];
-                }
-            });
-        } else {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self.view.window.windowScene openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:nil completionHandler:^(BOOL success) {
-                    exit(EXIT_FAILURE);
-                }];
-            });
+    dispatch_async(captureService.captureSessionQueue, ^{
+        if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
+            [captureService queue_addCaptureDevice:defaultVideoCaptureDevice];
         }
-    }];
-    
-    [authorizationsService release];
+    });
 }
 
 - (UIStackView *)stackView {

@@ -174,8 +174,8 @@
 }
 
 - (void)_didTriggerDisplayLink:(CADisplayLink *)sender {
-    CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:<#(CMTime)#> presentationTimeStamp:<#(CMTime * _Nullable)#> activeConfiguration:<#(AVPlayerVideoOutputConfiguration * _Nullable * _Nullable)#>];
-    NSLog(@"%@", sender);
+//    CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:<#(CMTime)#> presentationTimeStamp:<#(CMTime * _Nullable)#> activeConfiguration:<#(AVPlayerVideoOutputConfiguration * _Nullable * _Nullable)#>];
+//    NSLog(@"%@", sender);
 }
 
 @end

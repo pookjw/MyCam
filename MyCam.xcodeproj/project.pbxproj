@@ -404,13 +404,14 @@
 				XRCam/XRCaptureService.mm,
 				XRCam/XRCaptureVideoPreviewView.h,
 				XRCam/XRCaptureVideoPreviewView.mm,
+				XRCam/XRPhotoSettings.h,
+				XRCam/XRPhotoSettings.mm,
 			);
 			privateHeaders = (
 				Audio/AudioSessionInfoView.h,
 				"Audio/UIDeferredMenuElement+Audio.h",
 				Audio/VolumeSlider.h,
 				Audio/VolumeStepper.h,
-				AuthorizationsService.h,
 				"Cam/AVCaptureDevice+ValidWhiteBalanceGains.h",
 				"Cam/AVCaptureSession+CP_Private.h",
 				"Cam/CaptureDevices/UIDeferredMenuElement+CaptureDevices.h",
@@ -507,8 +508,10 @@
 				"XRCam/UIDeferredMenuElement+XRVideoDeviceConfiguration.h",
 				XRCam/XRCamMenuViewController.h,
 				XRCam/XRCaptureService.h,
+				XRCam/XRPhotoSettings.h,
 			);
 			publicHeaders = (
+				AuthorizationsService.h,
 				Cam/CameraRootViewController.h,
 				CamPresentation.h,
 				Library/AssetCollections/AssetCollectionsViewController.h,

@@ -9,6 +9,7 @@
 #import <CamPresentation/CamPresentation.h>
 #import <TargetConditionals.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <CamPresentation/AuthorizationsService.h>
 
 @interface CollectionViewController ()
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
@@ -74,6 +75,22 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self cellRegistration];
+    
+    AuthorizationsService *authorizationsService = [AuthorizationsService new];
+    
+    [authorizationsService requestAuthorizationsWithCompletionHandler:^(BOOL authorized) {
+        if (!authorized) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.view.window.windowScene openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:nil completionHandler:^(BOOL success) {
+                    exit(EXIT_FAILURE);
+                }];
+            });
+        }
+    }];
+    
+    [authorizationsService release];
+    
+    //
     
     NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_1" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
     AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];

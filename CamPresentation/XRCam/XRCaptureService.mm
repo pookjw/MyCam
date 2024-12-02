@@ -22,9 +22,10 @@ NSNotificationName const XRCaptureServiceRemovedCaptureDeviceNotificationName = 
 NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDeviceKey";
 
 @interface XRCaptureService ()
-@property (retain, nonatomic, nullable) id queue_rotationCoordinator; // TODO
-@property (retain, nonatomic, nullable) id queue_photoOutputReadinessCoordinator; // TODO
+@property (retain, nonatomic, nullable, setter=queue_setRotationCoordinator:) id queue_rotationCoordinator; // TODO
+@property (retain, nonatomic, nullable, setter=queue_setPhotoOutputReadinessCoordinator:) id queue_photoOutputReadinessCoordinator; // TODO
 @property (retain, nonatomic, nullable) MovieWriter *queue_movieWriter;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, XRPhotoSettings *> *queue_photoSettingsByVideoDevice;
 @end
 
 @implementation XRCaptureService
@@ -53,9 +54,12 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
         AVCaptureSession *captureSession = [AVCaptureSession new];
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didReceiveWasDisconnectedNotification:) name:AVCaptureDeviceWasDisconnectedNotification object:nil];
         
+        NSMapTable<AVCaptureDevice *, XRPhotoSettings *> *photoSettingsByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
+        
         _captureSessionQueue = captureSessionQueue;
         _captureDeviceDiscoverySession = [captureDeviceDiscoverySession retain];
         _captureSession = captureSession;
+        _queue_photoSettingsByVideoDevice = [photoSettingsByVideoDevice retain];
     }
     
     return self;
@@ -69,6 +73,7 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     [_queue_rotationCoordinator release];
     [_queue_photoOutputReadinessCoordinator release];
     [_queue_movieWriter release];
+    [_queue_photoSettingsByVideoDevice release];
     [super dealloc];
 }
 
@@ -184,6 +189,20 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     return outputs;
 }
 
+- (XRPhotoSettings *)queue_photoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    XRPhotoSettings *photoSettings = [self.queue_photoSettingsByVideoDevice objectForKey:videoDevice];
+    assert(photoSettings != nil);
+    return [[photoSettings copy] autorelease];
+}
+
+- (void)queue_setPhotoSettings:(XRPhotoSettings *)photoSettings forVideoDevice:(AVCaptureDevice *)videoDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    XRPhotoSettings *copy = [photoSettings copy];
+    [self.queue_photoSettingsByVideoDevice setObject:copy forKey:videoDevice];
+    [copy release];
+}
+
 - (void)queue_startPhotoCaptureWithVideoDevice:(AVCaptureDevice *)videoDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     assert([self.queue_addedVideoDevices containsObject:videoDevice]);
@@ -192,6 +211,12 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     assert(photoOutput != nil);
     
     id photoSettings = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("AVCapturePhotoSettings"), sel_registerName("photoSettings"));
+    
+    XRPhotoSettings *xrPhotoSettings = [self.queue_photoSettingsByVideoDevice objectForKey:videoDevice];
+    assert(xrPhotoSettings != nil);
+    
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(photoSettings, sel_registerName("setShutterSoundSuppressionEnabled:"), xrPhotoSettings.isShutterSoundSuppressionEnabled);
+    
     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(photoOutput, sel_registerName("capturePhotoWithSettings:delegate:"), photoSettings, self);
 }
 
@@ -239,6 +264,9 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     assert(didRemove);
     
     [captureSession commitConfiguration];
+    
+    assert([self.queue_photoSettingsByVideoDevice objectForKey:videoDevice] != nil);
+    [self.queue_photoSettingsByVideoDevice removeObjectForKey:videoDevice];
     
     [self _postDidUpdatePreviewLayerNotification];
     [self _postRemovedCaptureDeviceNotificationWithCaptureDevice:videoDevice];
@@ -342,6 +370,11 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
     [deviceInput release];
     
     [captureSession commitConfiguration];
+    
+    XRPhotoSettings *photoSettings = [XRPhotoSettings new];
+    assert([self.queue_photoSettingsByVideoDevice objectForKey:videoDevice] == nil);
+    [self.queue_photoSettingsByVideoDevice setObject:photoSettings forKey:videoDevice];
+    [photoSettings release];
     
     reinterpret_cast<void (*)(Class, SEL, id)>(objc_msgSend)(AVCaptureDevice.class, sel_registerName("setUserPreferredCamera:"), videoDevice);
     

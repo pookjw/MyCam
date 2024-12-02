@@ -23,6 +23,7 @@ API_UNAVAILABLE(visionos)
     @package BOOL _cameraCalibrationDataDeliveryEnabled;
     @package NSArray<__kindof AVCaptureBracketedStillImageSettings *> *_bracketedSettings;
     @package AVVideoCodecType _livePhotoVideoCodecType;
+    @package BOOL _shutterSoundSuppressionEnabled;
 }
 @property (copy, nonatomic, readonly, nullable) NSNumber *photoPixelFormatType;
 @property (copy, nonatomic, readonly, nullable) AVVideoCodecType codecType;
@@ -41,6 +42,8 @@ API_UNAVAILABLE(visionos)
 @property (copy, nonatomic, readonly) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
 
 @property (copy, nonatomic, readonly) AVVideoCodecType livePhotoVideoCodecType;
+
+@property (assign, nonatomic, readonly, getter=isShutterSoundSuppressionEnabled) BOOL shutterSoundSuppressionEnabled;
 @end
 
 
@@ -66,6 +69,8 @@ API_UNAVAILABLE(visionos)
 @property (copy, nonatomic) NSArray<__kindof AVCaptureBracketedStillImageSettings *> *bracketedSettings;
 
 @property (copy, nonatomic) AVVideoCodecType livePhotoVideoCodecType;
+
+@property (assign, nonatomic, getter=isShutterSoundSuppressionEnabled) BOOL shutterSoundSuppressionEnabled;
 
 - (void)updateAllWithPhotoOutput:(AVCapturePhotoOutput *)photoOutput;
 
