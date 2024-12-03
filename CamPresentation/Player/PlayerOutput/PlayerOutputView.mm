@@ -248,6 +248,26 @@
         float rate = player.rate;
         self._displayLink.paused = (rate == 0.f);
     });
+    
+    
+    [player.currentItem.asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
+        assert(error == nil);
+        AVAssetTrack *track = tracks.firstObject;
+        assert(track != nil);
+        
+        [track loadValuesAsynchronouslyForKeys:@[@"nominalFrameRate"] completionHandler:^{
+            float rate = player.rate;
+            if (rate > 0.f) {
+                float nominalFrameRate = track.nominalFrameRate * rate;
+                CAFrameRateRange preferredFrameRateRange {
+                    .maximum = nominalFrameRate,
+                    .minimum = nominalFrameRate,
+                    .preferred = nominalFrameRate
+                };
+                self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
+            }
+        }];
+    }];
 }
 
 - (void)_didChangeCurrentItemForPlayer:(AVPlayer *)player {
@@ -261,7 +281,20 @@
         AVAssetTrack *track = tracks.firstObject;
         assert(track != nil);
         
-        [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions"] completionHandler:^{
+        [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions", @"nominalFrameRate"] completionHandler:^{
+            float rate = player.rate;
+            if (rate > 0.f) {
+                float nominalFrameRate = track.nominalFrameRate * rate;
+                CAFrameRateRange preferredFrameRateRange {
+                    .maximum = nominalFrameRate,
+                    .minimum = nominalFrameRate,
+                    .preferred = nominalFrameRate
+                };
+                self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
+            }
+            
+            //
+            
             NSArray *formatDescriptions = track.formatDescriptions;
             CMFormatDescriptionRef firstFormatDescription = (CMFormatDescriptionRef)formatDescriptions.firstObject;
             assert(firstFormatDescription != NULL);
