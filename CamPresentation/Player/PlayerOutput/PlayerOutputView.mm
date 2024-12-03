@@ -10,10 +10,15 @@
 #import <CamPresentation/SVRunLoop.hpp>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <algorithm>
+#include <vector>
+#include <ranges>
+#include <optional>
 
 @interface PlayerOutputView ()
 @property (retain, nonatomic, nullable) AVPlayer * _player;
 @property (retain, atomic, nullable) AVPlayerVideoOutput *_videoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
+@property (copy, atomic, nullable) NSArray<PixelBufferLayer *> *_pixelBufferLayers;
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
 @property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
@@ -50,6 +55,7 @@
         [player release];
     }
     [__videoOutput release];
+    [__pixelBufferLayers release];
     [__renderRunLoop release];
     __displayLink.paused = YES;
     [__displayLink release];
@@ -59,12 +65,13 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isKindOfClass:[AVPlayer class]]) {
+        auto player = static_cast<AVPlayer *>(object);
+        
         if ([keyPath isEqualToString:@"rate"]) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                assert([self._player isEqual:object]);
-                float rate = self._player.rate;
-                self._displayLink.paused = (rate == 0.f);
-            });
+            [self _didChangeRateForPlayer:player];
+            return;
+        } else if ([keyPath isEqualToString:@"currentItem"]) {
+            [self _didChangeCurrentItemForPlayer:player];
             return;
         }
     }
@@ -97,9 +104,6 @@
     self._videoOutput = videoOutput;
     assert([player.videoOutput isEqual:videoOutput]);
     [videoOutput release];
-    
-    // TODO: Video Layer ID 개수만큼만
-    [self _updatePixelBufferLayerViewCount:specification.preferredTagCollections.count];
 }
 
 - (SVRunLoop *)_renderRunLoop {
@@ -165,33 +169,151 @@
         
         [stackView updateConstraintsIfNeeded];
     }
+    
+    NSMutableArray<PixelBufferLayer *> *pixelBufferLayers = [[NSMutableArray alloc] initWithCapacity:count];
+    for (PixelBufferLayerView *pixelBufferLayerView in stackView.arrangedSubviews) {
+        [pixelBufferLayers addObject:pixelBufferLayerView.pixelBufferLayer];
+    }
+    self._pixelBufferLayers = pixelBufferLayers;
+    [pixelBufferLayers release];
 }
 
 - (void)_addObserversForPlayer:(AVPlayer *)player {
     assert(player != nil);
     [player addObserver:self forKeyPath:@"rate" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
+    [player addObserver:self forKeyPath:@"currentItem" options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
 }
 
 - (void)_removeObserversForPlayer:(AVPlayer *)player {
     assert(player != nil);
     [player removeObserver:self forKeyPath:@"rate" context:NULL];
+    [player removeObserver:self forKeyPath:@"currentItem"];
 }
 
 - (void)_didTriggerDisplayLink:(CADisplayLink *)sender {
-//    CMTime hostTime = CMTimeMake(static_cast<int64_t>(sender.timestamp * USEC_PER_SEC), USEC_PER_SEC);
-    CMTime hostTime = CMClockGetTime(CMClockGetHostTimeClock());
-//    CMTimeShow(hostTime);
+    CMTime hostTime = CMTimeMake(static_cast<int64_t>(sender.timestamp * USEC_PER_SEC), USEC_PER_SEC);
     
     CMTime presentationTimeStamp;
     AVPlayerVideoOutputConfiguration *activeConfiguration;
     CMTaggedBufferGroupRef _Nullable taggedBufferGroup = [self._videoOutput copyTaggedBufferGroupForHostTime:hostTime presentationTimeStamp:&presentationTimeStamp activeConfiguration:&activeConfiguration];
-    CMTimeShow(presentationTimeStamp);
+    
     if (taggedBufferGroup == NULL) {
-        NSLog(@"NULL");
         return;
     }
-    CFShow(taggedBufferGroup);
+    
+    for (CFIndex index : std::views::iota(0, CMTaggedBufferGroupGetCount(taggedBufferGroup))) {
+        CMTagCollectionRef tagCollection = CMTaggedBufferGroupGetTagCollectionAtIndex(taggedBufferGroup, index);
+        
+        CMItemCount tagCollectionCount = CMTagCollectionGetCount(tagCollection);
+        
+        CMTag *tags = new CMTag[tagCollectionCount];
+        CMItemCount numberOfTagsCopied;
+        assert(CMTagCollectionGetTags(tagCollection, tags, tagCollectionCount, &numberOfTagsCopied) == 0);
+        assert(tagCollectionCount == numberOfTagsCopied);
+        
+        for (const CMTag *tagPtr : std::views::iota(tags, tags + numberOfTagsCopied)) {
+            CMTag tag = *tagPtr;
+            CMTagCategory category = CMTagGetCategory(tag);
+            if (category != kCMTagCategory_StereoView) continue;
+            
+            CMTagValue value = CMTagGetValue(tag);
+            CVPixelBufferRef _Nullable pixelBuffer = CMTaggedBufferGroupGetCVPixelBufferAtIndex(taggedBufferGroup, index);
+            if (pixelBuffer == nil) break;
+            
+            NSInteger index;
+            if (value == kCMStereoView_LeftEye) {
+                index = 0;
+            } else if (value == kCMStereoView_RightEye) {
+                index = 1;
+            } else {
+                abort();
+            }
+            
+            NSArray<PixelBufferLayer *> *pixelBufferLayers = self._pixelBufferLayers;
+            if (pixelBufferLayers.count <= index) break;
+            
+            PixelBufferLayer * pixelBufferLayer = pixelBufferLayers[index];
+            [pixelBufferLayer updateWithPixelBuffer:pixelBuffer];
+        }
+        
+        delete[] tags;
+    }
+    
     CFRelease(taggedBufferGroup);
+}
+
+- (void)_didChangeRateForPlayer:(AVPlayer *)player {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        assert([self._player isEqual:player]);
+        float rate = player.rate;
+        self._displayLink.paused = (rate == 0.f);
+    });
+}
+
+- (void)_didChangeCurrentItemForPlayer:(AVPlayer *)player {
+    AVPlayerItem * _Nullable currentItem = player.currentItem;
+    if (currentItem == nil) return;
+    
+    AVAsset *asset = currentItem.asset;
+    
+    [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
+        assert(error == nil);
+        AVAssetTrack *track = tracks.firstObject;
+        assert(track != nil);
+        
+        [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions"] completionHandler:^{
+            NSArray *formatDescriptions = track.formatDescriptions;
+            CMFormatDescriptionRef firstFormatDescription = (CMFormatDescriptionRef)formatDescriptions.firstObject;
+            assert(firstFormatDescription != NULL);
+            
+            CFArrayRef tagCollections;
+            assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
+            
+            std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
+            | std::views::transform([&tagCollections](const CFIndex &index) {
+                CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
+                CMItemCount count = CMTagCollectionGetCount(tagCollection);
+                
+                CMTag *tags = new CMTag[count];
+                CMItemCount numberOfTagsCopied;
+                assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
+                assert(count == numberOfTagsCopied);
+                
+                auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
+                    CMTagCategory category = CMTagGetCategory(tag);
+                    
+                    if (category == kCMTagCategory_VideoLayerID) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+                
+                std::optional<CMTagValue> videoLayerID;
+                if (videoLayerIDTag == nullptr) {
+                    videoLayerID = std::nullopt;
+                } else {
+                    videoLayerID = CMTagGetValue(*videoLayerIDTag);
+                }
+                
+                delete[] tags;
+                
+                return videoLayerID;
+            })
+            | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
+            | std::views::transform([](const std::optional<CMTagValue> &opt) { return opt.value(); })
+            | std::ranges::to<std::vector<CMTagValue>>();
+            
+            CFRelease(tagCollections);
+            
+            size_t videoLayersCount = videoLayerIDsVec.size();
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (![self._player.currentItem isEqual:currentItem]) return;
+                [self _updatePixelBufferLayerViewCount:videoLayersCount];
+            });
+        }];
+    }];
 }
 
 @end

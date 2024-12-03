@@ -273,8 +273,11 @@
     UILabel *reasonForWaitingToPlayLabel = [UILabel new];
     reasonForWaitingToPlayLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
     reasonForWaitingToPlayLabel.textColor = UIColor.labelColor;
-#if !TARGET_OS_TV
-    reasonForWaitingToPlayLabel.backgroundColor = UIColor.systemBackgroundColor;
+    reasonForWaitingToPlayLabel.userInteractionEnabled = NO;
+#if TARGET_OS_TV
+    reasonForWaitingToPlayLabel.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.3];
+#else
+    reasonForWaitingToPlayLabel.backgroundColor = [UIColor.systemBackgroundColor colorWithAlphaComponent:0.3];
 #endif
     reasonForWaitingToPlayLabel.textAlignment = NSTextAlignmentCenter;
     

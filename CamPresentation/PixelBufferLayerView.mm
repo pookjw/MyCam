@@ -17,4 +17,9 @@
     return static_cast<PixelBufferLayer *>(self.layer);
 }
 
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.layer.contentsScale = self.traitCollection.displayScale;
+}
+
 @end
