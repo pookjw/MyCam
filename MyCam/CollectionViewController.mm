@@ -92,7 +92,7 @@
     
     //
     
-    NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_5" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
+    NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_4" withExtension:UTTypeQuickTimeMovie.preferredFilenameExtension];
     AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
     VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithPlayerItem:playerItem];
     [playerItem release];

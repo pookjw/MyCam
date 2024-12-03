@@ -124,7 +124,7 @@
     [self._renderRunLoop runBlock:^{
         [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     }];
-//    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    //    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     
     __displayLink = [displayLink retain];
     return displayLink;
@@ -249,30 +249,14 @@
         self._displayLink.paused = (rate == 0.f);
     });
     
-    
-    [player.currentItem.asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
-        assert(error == nil);
-        AVAssetTrack *track = tracks.firstObject;
-        assert(track != nil);
-        
-        [track loadValuesAsynchronouslyForKeys:@[@"nominalFrameRate"] completionHandler:^{
-            float rate = player.rate;
-            if (rate > 0.f) {
-                float nominalFrameRate = track.nominalFrameRate * rate;
-                CAFrameRateRange preferredFrameRateRange {
-                    .maximum = nominalFrameRate,
-                    .minimum = nominalFrameRate,
-                    .preferred = nominalFrameRate
-                };
-                self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
-            }
-        }];
-    }];
+    [self _updatePreferredFrameRateRangeWithPlayer:player];
 }
 
 - (void)_didChangeCurrentItemForPlayer:(AVPlayer *)player {
     AVPlayerItem * _Nullable currentItem = player.currentItem;
     if (currentItem == nil) return;
+    
+    [self _updatePreferredFrameRateRangeWithPlayer:player];
     
     AVAsset *asset = currentItem.asset;
     
@@ -281,7 +265,7 @@
         AVAssetTrack *track = tracks.firstObject;
         assert(track != nil);
         
-        [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions", @"nominalFrameRate"] completionHandler:^{
+        [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions"] completionHandler:^{
             float rate = player.rate;
             if (rate > 0.f) {
                 float nominalFrameRate = track.nominalFrameRate * rate;
@@ -300,53 +284,91 @@
             assert(firstFormatDescription != NULL);
             
             CFArrayRef tagCollections;
-            assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
-            
-            std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
-            | std::views::transform([&tagCollections](const CFIndex &index) {
-                CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
-                CMItemCount count = CMTagCollectionGetCount(tagCollection);
-                
-                CMTag *tags = new CMTag[count];
-                CMItemCount numberOfTagsCopied;
-                assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
-                assert(count == numberOfTagsCopied);
-                
-                auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
-                    CMTagCategory category = CMTagGetCategory(tag);
+            if (CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0) {
+                // MultiView Video
+                std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
+                | std::views::transform([&tagCollections](const CFIndex &index) {
+                    CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
+                    CMItemCount count = CMTagCollectionGetCount(tagCollection);
                     
-                    if (category == kCMTagCategory_VideoLayerID) {
-                        return true;
+                    CMTag *tags = new CMTag[count];
+                    CMItemCount numberOfTagsCopied;
+                    assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
+                    assert(count == numberOfTagsCopied);
+                    
+                    auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
+                        CMTagCategory category = CMTagGetCategory(tag);
+                        
+                        if (category == kCMTagCategory_VideoLayerID) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    });
+                    
+                    std::optional<CMTagValue> videoLayerID;
+                    if (videoLayerIDTag == nullptr) {
+                        videoLayerID = std::nullopt;
                     } else {
-                        return false;
+                        videoLayerID = CMTagGetValue(*videoLayerIDTag);
                     }
+                    
+                    delete[] tags;
+                    
+                    return videoLayerID;
+                })
+                | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
+                | std::views::transform([](const std::optional<CMTagValue> &opt) { return opt.value(); })
+                | std::ranges::to<std::vector<CMTagValue>>();
+                
+                CFRelease(tagCollections);
+                
+                size_t videoLayersCount = videoLayerIDsVec.size();
+                
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (![self._player.currentItem isEqual:currentItem]) return;
+                    [self _updatePixelBufferLayerViewCount:videoLayersCount];
                 });
-                
-                std::optional<CMTagValue> videoLayerID;
-                if (videoLayerIDTag == nullptr) {
-                    videoLayerID = std::nullopt;
-                } else {
-                    videoLayerID = CMTagGetValue(*videoLayerIDTag);
-                }
-                
-                delete[] tags;
-                
-                return videoLayerID;
-            })
-            | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
-            | std::views::transform([](const std::optional<CMTagValue> &opt) { return opt.value(); })
-            | std::ranges::to<std::vector<CMTagValue>>();
-            
-            CFRelease(tagCollections);
-            
-            size_t videoLayersCount = videoLayerIDsVec.size();
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (![self._player.currentItem isEqual:currentItem]) return;
-                [self _updatePixelBufferLayerViewCount:videoLayersCount];
-            });
+            } else {
+                // 일반적인 Video
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (![self._player.currentItem isEqual:currentItem]) return;
+                    [self _updatePixelBufferLayerViewCount:1];
+                });
+            }
         }];
     }];
+}
+
+- (void)_updatePreferredFrameRateRangeWithPlayer:(AVPlayer *)player {
+    AVPlayerItem *currentItem = player.currentItem;
+    if (currentItem == nil) return;
+    
+    AVAsset *asset = currentItem.asset;
+    
+    [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
+        assert(error == nil);
+        AVAssetTrack *track = tracks.firstObject;
+        assert(track != nil);
+        
+        [track loadValuesAsynchronouslyForKeys:@[@"nominalFrameRate"] completionHandler:^{
+            [self _updatePreferredFrameRateRangeWithPlayer:player nominalFrameRate:track.nominalFrameRate];
+        }];
+    }];
+}
+
+- (void)_updatePreferredFrameRateRangeWithPlayer:(AVPlayer *)player nominalFrameRate:(float)nominalFrameRate {
+    float rate = player.rate;
+    
+    if (rate > 0.f) {
+        float frameRate = nominalFrameRate * rate;
+        CAFrameRateRange preferredFrameRateRange {
+            .maximum = frameRate,
+            .minimum = frameRate,
+            .preferred = frameRate
+        };
+        self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
+    }
 }
 
 @end

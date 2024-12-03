@@ -17,6 +17,22 @@
     return static_cast<PixelBufferLayer *>(self.layer);
 }
 
+- (instancetype)initWithCoder:(NSCoder *)coder {
+    if (self = [super initWithCoder:coder]) {
+        self.layer.contentsScale = self.traitCollection.displayScale;
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    if (self = [super initWithFrame:frame]) {
+        self.layer.contentsScale = self.traitCollection.displayScale;
+    }
+    
+    return self;
+}
+
 - (void)layoutSubviews {
     [super layoutSubviews];
     self.layer.contentsScale = self.traitCollection.displayScale;
