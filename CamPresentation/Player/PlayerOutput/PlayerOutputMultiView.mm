@@ -15,6 +15,10 @@
 #include <ranges>
 #include <optional>
 
+CA_EXTERN_C_BEGIN
+bool CAFrameRateRangeIsValid(CAFrameRateRange range);
+CA_EXTERN_C_END
+
 @interface PlayerOutputMultiView ()
 @property (retain, nonatomic, nullable) AVPlayer * _player;
 @property (retain, atomic, nullable) AVPlayerVideoOutput *_videoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
@@ -274,6 +278,7 @@
                     .minimum = nominalFrameRate,
                     .preferred = nominalFrameRate
                 };
+                assert(CAFrameRateRangeIsValid(preferredFrameRateRange));
                 self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
             }
             
@@ -360,6 +365,7 @@
             .minimum = frameRate,
             .preferred = frameRate
         };
+        assert(CAFrameRateRangeIsValid(preferredFrameRateRange));
         self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
     }
 }
