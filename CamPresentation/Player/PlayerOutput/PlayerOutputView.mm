@@ -117,9 +117,9 @@
     CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_didTriggerDisplayLink:)];
     
     displayLink.paused = YES;
-//    [self._renderRunLoop runBlock:^{
-//        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-//    }];
+    [self._renderRunLoop runBlock:^{
+        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    }];
 //    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     
     __displayLink = [displayLink retain];
