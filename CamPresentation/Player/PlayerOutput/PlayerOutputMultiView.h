@@ -1,5 +1,5 @@
 //
-//  PlayerOutputView.h
+//  PlayerOutputMultiView.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 12/1/24.
@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PlayerOutputView : UIView
+@interface PlayerOutputMultiView : UIView
 - (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification;
 @end
 

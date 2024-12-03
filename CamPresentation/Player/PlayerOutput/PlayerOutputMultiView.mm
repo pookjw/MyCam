@@ -1,11 +1,11 @@
 //
-//  PlayerOutputView.mm
+//  PlayerOutputMultiView.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 12/1/24.
 //
 
-#import <CamPresentation/PlayerOutputView.h>
+#import <CamPresentation/PlayerOutputMultiView.h>
 #import <CamPresentation/PixelBufferLayerView.h>
 #import <CamPresentation/SVRunLoop.hpp>
 #import <objc/message.h>
@@ -15,7 +15,7 @@
 #include <ranges>
 #include <optional>
 
-@interface PlayerOutputView ()
+@interface PlayerOutputMultiView ()
 @property (retain, nonatomic, nullable) AVPlayer * _player;
 @property (retain, atomic, nullable) AVPlayerVideoOutput *_videoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (copy, atomic, nullable) NSArray<PixelBufferLayer *> *_pixelBufferLayers;
@@ -24,7 +24,7 @@
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @end
 
-@implementation PlayerOutputView
+@implementation PlayerOutputMultiView
 @synthesize _renderRunLoop = __renderRunLoop;
 @synthesize _displayLink = __displayLink;
 @synthesize _stackView = __stackView;
@@ -284,58 +284,51 @@
             assert(firstFormatDescription != NULL);
             
             CFArrayRef tagCollections;
-            if (CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0) {
-                // MultiView Video
-                std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
-                | std::views::transform([&tagCollections](const CFIndex &index) {
-                    CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
-                    CMItemCount count = CMTagCollectionGetCount(tagCollection);
+            assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
+            
+            std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
+            | std::views::transform([&tagCollections](const CFIndex &index) {
+                CMTagCollectionRef tagCollection = static_cast<CMTagCollectionRef>(CFArrayGetValueAtIndex(tagCollections, index));
+                CMItemCount count = CMTagCollectionGetCount(tagCollection);
+                
+                CMTag *tags = new CMTag[count];
+                CMItemCount numberOfTagsCopied;
+                assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
+                assert(count == numberOfTagsCopied);
+                
+                auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
+                    CMTagCategory category = CMTagGetCategory(tag);
                     
-                    CMTag *tags = new CMTag[count];
-                    CMItemCount numberOfTagsCopied;
-                    assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
-                    assert(count == numberOfTagsCopied);
-                    
-                    auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
-                        CMTagCategory category = CMTagGetCategory(tag);
-                        
-                        if (category == kCMTagCategory_VideoLayerID) {
-                            return true;
-                        } else {
-                            return false;
-                        }
-                    });
-                    
-                    std::optional<CMTagValue> videoLayerID;
-                    if (videoLayerIDTag == nullptr) {
-                        videoLayerID = std::nullopt;
+                    if (category == kCMTagCategory_VideoLayerID) {
+                        return true;
                     } else {
-                        videoLayerID = CMTagGetValue(*videoLayerIDTag);
+                        return false;
                     }
-                    
-                    delete[] tags;
-                    
-                    return videoLayerID;
-                })
-                | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
-                | std::views::transform([](const std::optional<CMTagValue> &opt) { return opt.value(); })
-                | std::ranges::to<std::vector<CMTagValue>>();
-                
-                CFRelease(tagCollections);
-                
-                size_t videoLayersCount = videoLayerIDsVec.size();
-                
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (![self._player.currentItem isEqual:currentItem]) return;
-                    [self _updatePixelBufferLayerViewCount:videoLayersCount];
                 });
-            } else {
-                // 일반적인 Video
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (![self._player.currentItem isEqual:currentItem]) return;
-                    [self _updatePixelBufferLayerViewCount:1];
-                });
-            }
+                
+                std::optional<CMTagValue> videoLayerID;
+                if (videoLayerIDTag == nullptr) {
+                    videoLayerID = std::nullopt;
+                } else {
+                    videoLayerID = CMTagGetValue(*videoLayerIDTag);
+                }
+                
+                delete[] tags;
+                
+                return videoLayerID;
+            })
+            | std::views::filter([](const std::optional<CMTagValue> &opt) { return opt.has_value(); })
+            | std::views::transform([](const std::optional<CMTagValue> &opt) { return opt.value(); })
+            | std::ranges::to<std::vector<CMTagValue>>();
+            
+            CFRelease(tagCollections);
+            
+            size_t videoLayersCount = videoLayerIDsVec.size();
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (![self._player.currentItem isEqual:currentItem]) return;
+                [self _updatePixelBufferLayerViewCount:videoLayersCount];
+            });
         }];
     }];
 }

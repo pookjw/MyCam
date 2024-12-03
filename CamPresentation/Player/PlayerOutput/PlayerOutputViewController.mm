@@ -6,7 +6,8 @@
 //
 
 #import <CamPresentation/PlayerOutputViewController.h>
-#import <CamPresentation/PlayerOutputView.h>
+#import <CamPresentation/PlayerOutputSingleView.h>
+#import <CamPresentation/PlayerOutputMultiView.h>
 #import <CamPresentation/PlayerControlView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -14,12 +15,13 @@
 
 @interface PlayerOutputViewController ()
 @property (retain, nonatomic, readonly) AVPlayer *_player;
-@property (retain, nonatomic, readonly) PlayerOutputView *_outputView;
+@property (retain, nonatomic, readonly, nullable) PlayerOutputSingleView *_outputSingleView;
+@property (retain, nonatomic, readonly, nullable) PlayerOutputMultiView *_outputMultiView;
 @property (retain, nonatomic, readonly) PlayerControlView *_controlView;
 @end
 
 @implementation PlayerOutputViewController
-@synthesize _outputView = __outputView;
+@synthesize _outputMultiView = __outputMultiView;
 @synthesize _controlView = __controlView;
 
 - (instancetype)initWithPlayer:(AVPlayer *)player {
@@ -32,7 +34,8 @@
 
 - (void)dealloc {
     [__player release];
-    [__outputView release];
+    [__outputSingleView release];
+    [__outputMultiView release];
     [__controlView release];
     [super dealloc];
 }
@@ -44,7 +47,7 @@
     self.view.backgroundColor = UIColor.systemBackgroundColor;
 #endif
     
-    PlayerOutputView *outputView = self._outputView;
+    PlayerOutputMultiView *outputView = self._outputMultiView;
     PlayerControlView *controlView = self._controlView;
     
     controlView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -69,17 +72,17 @@
 }
 
 - (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification {
-    [self._outputView updateWithPlayer:player specification:specification];
+    [self._outputMultiView updateWithPlayer:player specification:specification];
     self._controlView.player = player;
 }
 
-- (PlayerOutputView *)_outputView {
-    if (auto outputView = __outputView) return outputView;
+- (PlayerOutputMultiView *)_outputMultiView {
+    if (auto outputMultiView = __outputMultiView) return outputMultiView;
     
-    PlayerOutputView *outputView = [PlayerOutputView new];
+    PlayerOutputMultiView *outputMultiView = [PlayerOutputMultiView new];
     
-    __outputView = [outputView retain];
-    return [outputView autorelease];
+    __outputMultiView = [outputMultiView retain];
+    return [outputMultiView autorelease];
 }
 
 - (PlayerControlView *)_controlView {
