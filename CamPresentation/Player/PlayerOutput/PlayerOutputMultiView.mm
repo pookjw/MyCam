@@ -15,6 +15,8 @@
 #include <ranges>
 #include <optional>
 
+#warning TODO : Leak
+
 CA_EXTERN_C_BEGIN
 bool CAFrameRateRangeIsValid(CAFrameRateRange range);
 CA_EXTERN_C_END
