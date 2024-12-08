@@ -99,7 +99,7 @@
     AVPlayerItem *playerItem_4 = [[AVPlayerItem alloc] initWithURL:url_4];
     AVPlayerItem *playerItem_5 = [[AVPlayerItem alloc] initWithURL:url_5];
     AVPlayerItem *playerItem_4_2 = [[AVPlayerItem alloc] initWithURL:url_4];
-    AVQueuePlayer *player = [[AVQueuePlayer alloc] initWithItems:@[playerItem_3, playerItem_4, playerItem_5, playerItem_4_2]];
+    AVQueuePlayer *player = [[AVQueuePlayer alloc] initWithItems:@[playerItem_3, playerItem_5, playerItem_4]];
     [playerItem_3 release];
     [playerItem_4 release];
     [playerItem_5 release];
