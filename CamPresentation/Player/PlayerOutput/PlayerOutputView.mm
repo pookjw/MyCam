@@ -15,7 +15,7 @@
 #include <ranges>
 #include <optional>
 
-#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기, AVAssetReader와 Audio Track 재생 직접 구현
+#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택
 
 CA_EXTERN_C_BEGIN
 BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
