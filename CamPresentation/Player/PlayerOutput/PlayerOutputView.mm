@@ -15,7 +15,7 @@
 #include <ranges>
 #include <optional>
 
-#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기
+#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기, AVAssetReader와 Audio Track 재생 직접 구현
 
 CA_EXTERN_C_BEGIN
 BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
@@ -163,6 +163,9 @@ CA_EXTERN_C_END
     if (currentCount == count) {
         return;
     } else if (currentCount < count) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        
         NSUInteger newCount = count - currentCount;
         
         for (NSUInteger i = 0; i < newCount; i++) {
@@ -172,7 +175,12 @@ CA_EXTERN_C_END
         }
         
         [stackView updateConstraintsIfNeeded];
+        
+        [CATransaction commit];
     } else if (count < currentCount) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        
         NSUInteger deletedCount = currentCount - count;
         
         for (NSUInteger i = 0; i < deletedCount; i++) {
@@ -182,6 +190,8 @@ CA_EXTERN_C_END
         }
         
         [stackView updateConstraintsIfNeeded];
+        
+        [CATransaction commit];
     }
     
     NSMutableArray<PixelBufferLayer *> *pixelBufferLayers = [[NSMutableArray alloc] initWithCapacity:count];
