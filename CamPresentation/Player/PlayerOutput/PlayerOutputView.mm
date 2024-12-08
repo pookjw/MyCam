@@ -467,7 +467,6 @@ CA_EXTERN_C_END
                     dispatch_async(dispatch_get_main_queue(), ^{
                         if (![self.player isEqual:player]) return;
                         if (![self.player.currentItem isEqual:currentItem]) return;
-                        NSLog(@"%lf", track.nominalFrameRate);
                         [self _updatePreferredFrameRateRangeWithPlayer:player nominalFrameRate:track.nominalFrameRate];
                     });
                 }];
@@ -477,7 +476,6 @@ CA_EXTERN_C_END
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (![self.player isEqual:player]) return;
                     if (![self.player.currentItem isEqual:currentItem]) return;
-                    NSLog(@"%lf", track.nominalFrameRate);
                     [self _updatePreferredFrameRateRangeWithPlayer:player nominalFrameRate:track.nominalFrameRate];
                 });
             }];
