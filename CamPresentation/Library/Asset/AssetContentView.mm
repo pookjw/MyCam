@@ -64,7 +64,16 @@
     imageView.alpha = 0.;
     imageView.frame = CGRectZero;
     
-    [model requestImageWithTargetSize:PHImageManagerMaximumSize resultHandler:self.resultHandler];
+    PHImageRequestOptions *options = [PHImageRequestOptions new];
+    options.synchronous = NO;
+    options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
+    options.resizeMode = PHImageRequestOptionsResizeModeNone;
+    options.networkAccessAllowed = YES;
+    options.allowSecondaryDegradedImage = YES;
+    
+    [model requestImageWithTargetSize:PHImageManagerMaximumSize options:options resultHandler:self.resultHandler];
+    
+    [options release];
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {

@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PlayerOutputMultiView : UIView
-- (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification;
+- (void)updateWithPlayer:(AVPlayer * _Nullable)player specification:(AVVideoOutputSpecification * _Nullable)specification;
 @end
 
 NS_ASSUME_NONNULL_END

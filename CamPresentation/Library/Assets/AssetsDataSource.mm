@@ -157,7 +157,20 @@
         
         AssetsItemModel *model = [[AssetsItemModel alloc] initWithAsset:assetsFetchResult[indexPath.item]];
         prefetchingModelsByIndexPath[indexPath] = model;
-        [model requestImageWithTargetSize:targetSize resultHandler:nil];
+        
+        PHImageRequestOptions *options = [PHImageRequestOptions new];
+        options.synchronous = NO;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
+        options.networkAccessAllowed = YES;
+        options.allowSecondaryDegradedImage = YES;
+        
+        if (self.requestMaximumSize) {
+            options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        } else {
+            options.resizeMode = PHImageRequestOptionsResizeModeFast;
+        }
+        
+        [model requestImageWithTargetSize:targetSize options:options resultHandler:nil];
         [model release];
     }
 }

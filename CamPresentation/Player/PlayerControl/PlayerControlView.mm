@@ -325,6 +325,8 @@
 }
 
 - (void)_removeObserversForPlayer:(AVPlayer *)player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     [player removeObserver:self forKeyPath:@"rate"];
     [player removeObserver:self forKeyPath:@"status"];
     [player removeObserver:self forKeyPath:@"reasonForWaitingToPlay"];
@@ -335,6 +337,8 @@
 }
 
 - (void)_addObserversForPlayer:(AVPlayer *)player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
     [player addObserver:self forKeyPath:@"rate" options:NSKeyValueObservingOptionNew context:NULL];
     [player addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:NULL];
     [player addObserver:self forKeyPath:@"reasonForWaitingToPlay" options:NSKeyValueObservingOptionNew context:NULL];

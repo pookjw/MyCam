@@ -62,6 +62,14 @@
     return self;
 }
 
+- (instancetype)initWithPlayer:(AVPlayer *)player {
+    if (self = [super initWithNibName:nil bundle:nil]) {
+        _viewModel = [[VideoPlayerListViewModel alloc] initWithPlayer:player];
+    }
+    
+    return self;
+}
+
 - (void)dealloc {
     /*
      -loadPlayerItemWithProgressHandler:이 불리는 도중에 이게 불릴 일은 없을 것.
@@ -92,7 +100,7 @@
     __kindof UIView *progressView = self.progressView;
     UICollectionView *collectionView = self.collectionView;
     
-    [self.viewModel loadPlayerItemWithProgressHandler:^(double progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
+    [self.viewModel loadPlayerWithProgressHandler:^(double progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
         assert(error == nil);
         
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -180,19 +188,20 @@
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
-    AVPlayerItem *playerItem = self.viewModel.playerItem;
-    assert(playerItem != nil);
+    AVPlayer *player = self.viewModel.player;
+    if (player == nil) {
+        NSLog(@"No Player!");
+        [collectionView deselectItemAtIndexPath:indexPath animated:YES];
+        return;
+    }
     
     Class viewControllerClass = [VideoPlayerListViewController playerViewControllerClasses][indexPath.item];
     
     if (viewControllerClass == ARVideoPlayerViewController.class) {
-        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         ARVideoPlayerViewController *viewController = [[ARVideoPlayerViewController alloc] initWithPlayer:player];
-        [player release];
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerLayerViewController.class) {
-        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         PlayerLayerViewController *viewController = [[PlayerLayerViewController alloc] initWithPlayer:player];
         
 //        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -202,19 +211,11 @@
 //            [playerItem release];
 //        });
         
-        [player release];
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
-        CMTagCollectionRef tagCollection;
-        assert(CMTagCollectionCreateWithVideoOutputPreset(kCFAllocatorDefault, kCMTagCollectionVideoOutputPreset_Stereoscopic, &tagCollection) == 0);
-        AVVideoOutputSpecification *specification = [[AVVideoOutputSpecification alloc] initWithTagCollections:@[(id)tagCollection]];
-        CFRelease(tagCollection);
-        
         PlayerOutputViewController *viewController = [PlayerOutputViewController new];
-        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-        [viewController updateWithPlayer:player specification:specification];
-        [player release];
+        viewController.player = player;
         
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];

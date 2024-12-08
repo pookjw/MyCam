@@ -202,16 +202,17 @@
     
     UIButtonConfiguration *configuration = [UIButtonConfiguration plainButtonConfiguration];
     configuration.title = @"TMP";
-    
     tmpButton.configuration = configuration;
+    
+    [tmpButton addTarget:self action:@selector(didTriggerTmpButton:) forControlEvents:UIControlEventPrimaryActionTriggered];
     
     _tmpButton = [tmpButton retain];
     return [tmpButton autorelease];
 }
 
 - (void)didTriggerTmpButton:(UIButton *)sender {
-    // PHAssetCollectionSubtypeSmartAlbumSpatial
-    PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumVideos options:nil];
+    // PHAssetCollectionSubtypeSmartAlbumSpatial PHAssetCollectionSubtypeSmartAlbumVideos
+    PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumSpatial options:nil];
     PHAssetCollection *collection = collections.firstObject;
     assert(collection != nil);
     

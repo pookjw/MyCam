@@ -12,6 +12,7 @@
 @interface AssetsContentView ()
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (assign, nonatomic, readonly) CGSize targetSize;
+@property (nonatomic, readonly) PHImageRequestOptions *imageRequestOptions;
 @end
 
 @implementation AssetsContentView
@@ -47,12 +48,12 @@
     imageView.image = nil;
     imageView.alpha = 0.;
     
-    [model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
+    [model requestImageWithTargetSize:self.targetSize options:self.imageRequestOptions resultHandler:[self resultHandler]];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    [self.model requestImageWithTargetSize:self.targetSize resultHandler:[self resultHandler]];
+    [self.model requestImageWithTargetSize:self.targetSize options:self.imageRequestOptions resultHandler:[self resultHandler]];
 }
 
 - (UIImageView *)imageView {
@@ -74,6 +75,16 @@
     targetSize.height *= displayScale;
     
     return targetSize;
+}
+
+- (PHImageRequestOptions *)imageRequestOptions {
+    PHImageRequestOptions *options = [PHImageRequestOptions new];
+    options.synchronous = NO;
+    options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
+    options.resizeMode = PHImageRequestOptionsResizeModeFast;
+    options.networkAccessAllowed = YES;
+    options.allowSecondaryDegradedImage = YES;
+    return [options autorelease];
 }
 
 - (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {

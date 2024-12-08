@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PlayerOutputViewController : UIViewController
-- (void)updateWithPlayer:(AVPlayer *)player specification:(AVVideoOutputSpecification *)specification;
+@property (retain, nonatomic, nullable) AVPlayer *player;
 @end
 
 NS_ASSUME_NONNULL_END

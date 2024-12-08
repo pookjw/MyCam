@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithCollectionViewLayout:(UICollectionViewLayout *)layout NS_UNAVAILABLE;
 - (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem;
 - (instancetype)initWithAsset:(PHAsset *)asset;
+- (instancetype)initWithPlayer:(AVPlayer *)player;
 @end
 
 NS_ASSUME_NONNULL_END

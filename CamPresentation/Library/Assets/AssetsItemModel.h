@@ -22,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithAsset:(PHAsset *)asset;
 - (void)cancelRequest;
-- (void)requestImageWithTargetSize:(CGSize)targetSize resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler;
+- (void)requestImageWithTargetSize:(CGSize)targetSize options:(PHImageRequestOptions * _Nullable)options resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -11,7 +11,7 @@
 #include <atomic>
 
 @interface VideoPlayerListViewModel ()
-@property (retain, nonatomic, nullable) AVPlayerItem *playerItem;
+@property (retain, nonatomic, nullable) AVPlayer *player;
 @property (retain, nonatomic, readonly) PHAsset *asset;
 @property (assign, nonatomic) PHImageRequestID requestID;
 @end
@@ -29,7 +29,16 @@
 
 - (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem {
     if (self = [super init]) {
-        _playerItem = [playerItem retain];
+        _player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+        _requestID = PHInvalidImageRequestID;
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithPlayer:(AVPlayer *)player {
+    if (self = [super init]) {
+        _player = [player retain];
         _requestID = PHInvalidImageRequestID;
     }
     
@@ -38,7 +47,7 @@
 
 - (void)dealloc {
     [_asset release];
-    [_playerItem release];
+    [_player release];
     
     PHImageRequestID requestID = self.requestID;
     if (requestID != PHInvalidImageRequestID) {
@@ -46,10 +55,6 @@
     }
     
     [super dealloc];
-}
-
-- (AVPlayerItem *)playerItem {
-    return [[_playerItem copy] autorelease];
 }
 
 - (void)cancelLoading {
@@ -61,10 +66,10 @@
     }
 }
 
-- (void)loadPlayerItemWithProgressHandler:(PHAssetVideoProgressHandler)progressHandler comletionHandler:(void (^)())completionHandler {
+- (void)loadPlayerWithProgressHandler:(PHAssetVideoProgressHandler)progressHandler comletionHandler:(void (^)())completionHandler {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    if (_playerItem != nil) {
+    if (self.player != nil) {
         if (completionHandler) completionHandler();
         return;
     }
@@ -82,7 +87,11 @@
     
     PHImageRequestID requestID = [PHImageManager.defaultManager requestPlayerItemForVideo:asset options:options resultHandler:^(AVPlayerItem * _Nullable playerItem, NSDictionary * _Nullable info) {
         dispatch_assert_queue(dispatch_get_main_queue());
-        self.playerItem = playerItem;
+        assert(playerItem != nil);
+        
+        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+        self.player = player;
+        [player release];
     }];
     
     [options release];

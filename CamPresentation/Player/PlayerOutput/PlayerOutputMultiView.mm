@@ -18,7 +18,7 @@
 #warning TODO : Leak
 
 CA_EXTERN_C_BEGIN
-bool CAFrameRateRangeIsValid(CAFrameRateRange range);
+BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
 CA_EXTERN_C_END
 
 @interface PlayerOutputMultiView ()
@@ -99,6 +99,12 @@ CA_EXTERN_C_END
         assert([oldPlayer.videoOutput isEqual:self._videoOutput]);
         oldPlayer.videoOutput = nil;
         [self _removeObserversForPlayer:oldPlayer];
+        self._displayLink.paused = YES;
+    }
+    
+    if (player == nil) {
+        [self _updatePixelBufferLayerViewCount:0];
+        return;
     }
     
     self._player = player;
@@ -269,7 +275,12 @@ CA_EXTERN_C_END
     [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
         assert(error == nil);
         AVAssetTrack *track = tracks.firstObject;
-        assert(track != nil);
+        if (track == nil) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (![self._player.currentItem isEqual:currentItem]) return;
+                [self _updatePixelBufferLayerViewCount:0];
+            });
+        }
         
         [track loadValuesAsynchronouslyForKeys:@[@"formatDescriptions"] completionHandler:^{
             float rate = player.rate;
@@ -349,7 +360,7 @@ CA_EXTERN_C_END
     [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
         assert(error == nil);
         AVAssetTrack *track = tracks.firstObject;
-        assert(track != nil);
+        if (track == nil) return;
         
         [track loadValuesAsynchronouslyForKeys:@[@"nominalFrameRate"] completionHandler:^{
             [self _updatePreferredFrameRateRangeWithPlayer:player nominalFrameRate:track.nominalFrameRate];

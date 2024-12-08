@@ -96,13 +96,14 @@
     }
 }
 
-- (void)requestImageWithTargetSize:(CGSize)targetSize resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler {
+- (void)requestImageWithTargetSize:(CGSize)targetSize options:(PHImageRequestOptions * _Nullable)options resultHandler:(void (^ _Nullable)(UIImage * _Nullable result, NSDictionary * _Nullable info))resultHandler {
     dispatch_assert_queue(dispatch_get_main_queue());
     
     _AssetsItemModelRequest *request = self.request;
     
+    request.resultHandler = resultHandler;
+    
     if (CGSizeEqualToSize(request.targetSize, targetSize)) {
-        request.resultHandler = resultHandler;
         resultHandler(request.result, request.info);
         return;
     }
@@ -111,12 +112,15 @@
     
     request.targetSize = targetSize;
     
-    PHImageRequestOptions *options = [PHImageRequestOptions new];
-    options.synchronous = NO;
-    options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
-    options.resizeMode = PHImageRequestOptionsResizeModeFast;
-    options.networkAccessAllowed = YES;
-    options.allowSecondaryDegradedImage = YES;
+    if (options == nil) {
+        options = [PHImageRequestOptions new];
+        options.synchronous = NO;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeOpportunistic;
+        options.resizeMode = PHImageRequestOptionsResizeModeFast;
+        options.networkAccessAllowed = YES;
+        options.allowSecondaryDegradedImage = YES;
+        [options autorelease];
+    }
     
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setCannotReturnSmallerImage:"), YES);
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setAllowPlaceholder:"), YES);
@@ -160,8 +164,6 @@
             });
         }];
     }];
-    
-    [options release];
 }
 
 - (PHImageManager *)imageManager {
