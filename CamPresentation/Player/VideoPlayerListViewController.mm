@@ -15,7 +15,6 @@
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
 #import <VideoToolbox/VideoToolbox.h>
-#import <CamPresentation/AVPlayerVideoOutput+Category.h>
 
 @interface VideoPlayerListViewController () <UICollectionViewDataSource, UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) VideoPlayerListViewModel *viewModel;
@@ -32,18 +31,11 @@
 @synthesize cellRegistration = _cellRegistration;
 
 + (NSArray<Class> *)playerViewControllerClasses {
-    if (AVPlayerVideoOutput.cp_isSupported) {
-        return @[
-            ARVideoPlayerViewController.class,
-            PlayerLayerViewController.class,
-            PlayerOutputViewController.class
-        ];
-    } else {
-        return @[
-            ARVideoPlayerViewController.class,
-            PlayerLayerViewController.class
-        ];
-    }
+    return @[
+        ARVideoPlayerViewController.class,
+        PlayerLayerViewController.class,
+        PlayerOutputViewController.class
+    ];
 }
 
 - (instancetype)initWithAsset:(PHAsset *)asset {

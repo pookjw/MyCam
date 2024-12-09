@@ -8,6 +8,7 @@
 #import <CamPresentation/PlayerOutputView.h>
 #import <CamPresentation/PixelBufferLayerView.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <CamPresentation/AVPlayerVideoOutput+Category.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <algorithm>
@@ -334,6 +335,28 @@ CA_EXTERN_C_END
     //
     
     AVAsset *asset = currentItem.asset;
+    
+    if (!AVPlayerVideoOutput.cp_isSupported) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (![self.player isEqual:player]) return;
+            if (![self.player.currentItem isEqual:currentItem]) return;
+            
+            [self _updatePixelBufferLayerViewCount:1];
+            
+            //
+            
+            assert(self._playerVideoOutput == nil);
+            assert(self._playerItemVideoOutput == nil);
+            
+            AVPlayerItemVideoOutput *playerItemVideoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:nil];
+#warning TODO - setup delegate
+            self._playerItemVideoOutput = playerItemVideoOutput;
+            [currentItem addOutput:playerItemVideoOutput];
+            [playerItemVideoOutput release];
+        });
+        
+        return;
+    }
     
     [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
         assert(error == nil);
