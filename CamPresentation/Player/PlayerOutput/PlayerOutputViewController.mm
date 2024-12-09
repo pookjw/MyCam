@@ -19,6 +19,7 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 };
 
 @interface PlayerOutputViewController ()
+@property (assign, nonatomic, readonly) PlayerOutputLayerType _layerType;
 @property (retain, nonatomic, nullable) PlayerOutputView *_outputView;
 @property (retain, nonatomic, readonly) PlayerControlView *_controlView;
 @end
@@ -27,6 +28,14 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 @synthesize player = _player;
 @synthesize _outputView = __outputView;
 @synthesize _controlView = __controlView;
+
+- (instancetype)initWithLayerType:(PlayerOutputLayerType)layerType {
+    if (self = [super initWithNibName:nil bundle:nil]) {
+        __layerType = layerType;
+    }
+    
+    return self;
+}
 
 - (void)dealloc {
     [_player release];
@@ -73,7 +82,7 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 - (PlayerOutputView *)_outputView {
     if (auto outputView = __outputView) return outputView;
     
-    PlayerOutputView *outputView = [[PlayerOutputView alloc] initWithFrame:CGRectNull layerType:PlayerOutputLayerTypeSampleBufferDisplayLayer];
+    PlayerOutputView *outputView = [[PlayerOutputView alloc] initWithFrame:CGRectNull layerType:self._layerType];
     
     __outputView = [outputView retain];
     return [outputView autorelease];

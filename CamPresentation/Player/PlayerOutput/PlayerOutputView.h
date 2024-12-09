@@ -7,13 +7,9 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/PlayerOutputLayerType.h>
 
 NS_ASSUME_NONNULL_BEGIN
-
-typedef NS_ENUM(NSUInteger, PlayerOutputLayerType) {
-    PlayerOutputLayerTypePixelBufferLayer,
-    PlayerOutputLayerTypeSampleBufferDisplayLayer
-};
 
 @interface PlayerOutputView : UIView
 + (instancetype)new NS_UNAVAILABLE;

@@ -34,6 +34,7 @@
     return @[
         ARVideoPlayerViewController.class,
         PlayerLayerViewController.class,
+        PlayerOutputViewController.class,
         PlayerOutputViewController.class
     ];
 }
@@ -172,6 +173,10 @@
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    if (self.viewModel.player == nil) {
+        return 0;
+    }
+    
     return [VideoPlayerListViewController playerViewControllerClasses].count;
 }
 
@@ -206,7 +211,16 @@
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
-        PlayerOutputViewController *viewController = [PlayerOutputViewController new];
+        PlayerOutputLayerType layerType;
+        if (indexPath.item == 2) {
+            layerType = PlayerOutputLayerTypePixelBufferLayer;
+        } else if (indexPath.item == 3) {
+            layerType = PlayerOutputLayerTypeSampleBufferDisplayLayer;
+        } else {
+            abort();
+        }
+        
+        PlayerOutputViewController *viewController = [[PlayerOutputViewController alloc] initWithLayerType:layerType];
         viewController.player = player;
         
         [self.navigationController pushViewController:viewController animated:YES];

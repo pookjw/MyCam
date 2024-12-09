@@ -92,6 +92,8 @@
         AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         self.player = player;
         [player release];
+        
+        if (completionHandler) completionHandler();
     }];
     
     [options release];
