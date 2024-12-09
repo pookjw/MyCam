@@ -99,7 +99,7 @@ CA_EXTERN_C_END
     
     self._stackView.frame = bounds;
     self._stackView.transform = CGAffineTransformIdentity;
-    self._userTransformView.untransformedContentFrame = bounds;
+    [self _updateUserTransformView];
 }
 
 - (void)_commonInit {
@@ -370,7 +370,7 @@ CA_EXTERN_C_END
             if (![self.player.currentItem isEqual:currentItem]) return;
             
             [self _updatePixelBufferLayerViewCount:1];
-            self._userTransformView.contentPixelSize = currentItem.presentationSize;
+            [self _updateUserTransformView];
             
             //
             
@@ -402,7 +402,7 @@ CA_EXTERN_C_END
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
                     [self _updatePixelBufferLayerViewCount:1];
-                    self._userTransformView.contentPixelSize = currentItem.presentationSize;
+                    [self _updateUserTransformView];
                     
                     //
                     
@@ -483,7 +483,7 @@ CA_EXTERN_C_END
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
                     [self _updatePixelBufferLayerViewCount:videoLayersCount];
-                    self._userTransformView.contentPixelSize = currentItem.presentationSize;
+                    [self _updateUserTransformView];
                     
                     //
                     
@@ -560,6 +560,23 @@ CA_EXTERN_C_END
         assert(CAFrameRateRangeIsValid(preferredFrameRateRange));
         self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
     }
+}
+
+- (void)_updateUserTransformView {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    AVPlayerItem *currentItem = self.player.currentItem;
+    if (currentItem == nil) return;
+    
+    NSUInteger viewCount = self._stackView.arrangedSubviews.count;
+    if (viewCount == 0) return;
+    
+    CGSize size = currentItem.presentationSize;
+    size.width *= viewCount;
+    
+    CGRect rect = AVMakeRectWithAspectRatioInsideRect(size, self._userTransformView.frame);
+    self._userTransformView.contentPixelSize = rect.size;
+    self._userTransformView.untransformedContentFrame = rect;
 }
 
 - (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting {
