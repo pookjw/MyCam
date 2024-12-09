@@ -186,7 +186,7 @@ NSString * const XRCaptureServiceCaptureDeviceKey = @"XRCaptureServiceCaptureDev
         }
     }
     
-    return outputs;
+    return [outputs autorelease];
 }
 
 - (XRPhotoSettings *)queue_photoSettingsForVideoDevice:(AVCaptureDevice *)videoDevice {

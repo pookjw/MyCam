@@ -171,6 +171,7 @@
         }
         
         [model requestImageWithTargetSize:targetSize options:options resultHandler:nil];
+        [options release];
         [model release];
     }
 }

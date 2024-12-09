@@ -10,7 +10,17 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSUInteger, PlayerOutputLayerType) {
+    PlayerOutputLayerTypePixelBufferLayer,
+    PlayerOutputLayerTypeSampleBufferDisplayLayer
+};
+
 @interface PlayerOutputView : UIView
++ (instancetype)new NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithFrame:(CGRect)frame layerType:(PlayerOutputLayerType)layerType;
 @property (retain, nonatomic, nullable) AVPlayer *player;
 @end
 

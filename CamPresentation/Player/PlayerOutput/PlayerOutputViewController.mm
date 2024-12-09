@@ -73,7 +73,7 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 - (PlayerOutputView *)_outputView {
     if (auto outputView = __outputView) return outputView;
     
-    PlayerOutputView *outputView = [PlayerOutputView new];
+    PlayerOutputView *outputView = [[PlayerOutputView alloc] initWithFrame:CGRectNull layerType:PlayerOutputLayerTypeSampleBufferDisplayLayer];
     
     __outputView = [outputView retain];
     return [outputView autorelease];

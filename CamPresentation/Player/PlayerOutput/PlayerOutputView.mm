@@ -7,9 +7,12 @@
 
 #import <CamPresentation/PlayerOutputView.h>
 #import <CamPresentation/PixelBufferLayerView.h>
+#import <CamPresentation/SampleBufferDisplayLayerView.h>
 #import <CamPresentation/SVRunLoop.hpp>
 #import <CamPresentation/AVPlayerVideoOutput+Category.h>
 #import <CamPresentation/UserTransformView.h>
+#import <CoreImage/CoreImage.h>
+#import <Metal/Metal.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <algorithm>
@@ -24,13 +27,16 @@ BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
 CA_EXTERN_C_END
 
 @interface PlayerOutputView () <UserTransformViewDelegate>
+@property (assign, nonatomic, readonly) PlayerOutputLayerType _layerType;
 @property (retain, atomic, nullable) AVPlayerVideoOutput *_playerVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (retain, atomic, nullable) AVPlayerItemVideoOutput *_playerItemVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (copy, atomic, nullable) NSArray<PixelBufferLayer *> *_pixelBufferLayers;
+@property (copy, atomic, nullable) NSArray<AVSampleBufferDisplayLayer *> *_sampleBufferDisplayLayers;
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
 @property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
 @property (retain, nonatomic, readonly) UserTransformView *_userTransformView;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
+@property (retain, nonatomic, readonly) CIContext *_ciContext;
 @end
 
 @implementation PlayerOutputView
@@ -39,16 +45,9 @@ CA_EXTERN_C_END
 @synthesize _userTransformView = __userTransformView;
 @synthesize _stackView = __stackView;
 
-- (instancetype)initWithCoder:(NSCoder *)coder {
-    if (self = [super initWithCoder:coder]) {
-        [self _commonInit];
-    }
-    
-    return self;
-}
-
-- (instancetype)initWithFrame:(CGRect)frame {
+- (instancetype)initWithFrame:(CGRect)frame layerType:(PlayerOutputLayerType)layerType {
     if (self = [super initWithFrame:frame]) {
+        __layerType = layerType;
         [self _commonInit];
     }
     
@@ -69,11 +68,13 @@ CA_EXTERN_C_END
     [__playerVideoOutput release];
     [__playerItemVideoOutput release];
     [__pixelBufferLayers release];
+    [__sampleBufferDisplayLayers release];
     [__renderRunLoop release];
     __displayLink.paused = YES;
     [__displayLink release];
     [__userTransformView release];
     [__stackView release];
+    [__ciContext release];
     [super dealloc];
 }
 
@@ -109,14 +110,17 @@ CA_EXTERN_C_END
     UserTransformView *userTransformView = self._userTransformView;
     [self addSubview:userTransformView];
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), userTransformView);
+    
+    id<MTLDevice> mtlDevice = MTLCreateSystemDefaultDevice();
+    CIContext *ciContext = [CIContext contextWithMTLDevice:mtlDevice options:nil];
+    [mtlDevice release];
+    __ciContext = [ciContext retain];
 }
 
 - (void)setPlayer:(AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    dispatch_assert_queue(dispatch_get_main_queue());
-    
-    if (AVPlayer *oldPlayer = self.player) {
+    if (AVPlayer *oldPlayer = _player) {
         assert(oldPlayer.videoOutput != nil);
         assert([oldPlayer.videoOutput isEqual:self._playerVideoOutput]);
         oldPlayer.videoOutput = nil;
@@ -127,7 +131,7 @@ CA_EXTERN_C_END
     
     if (player == nil) {
         _player = nil;
-        [self _updatePixelBufferLayerViewCount:0];
+        [self _updateLayerViewCount:0];
         return;
     }
     
@@ -183,7 +187,8 @@ CA_EXTERN_C_END
     return [stackView autorelease];
 }
 
-- (void)_updatePixelBufferLayerViewCount:(NSUInteger)count {
+- (void)_updateLayerViewCount:(NSUInteger)count {
+    PlayerOutputLayerType layerType = self._layerType;
     UIStackView *stackView = self._stackView;
     NSUInteger currentCount = stackView.arrangedSubviews.count;
     
@@ -196,9 +201,24 @@ CA_EXTERN_C_END
         NSUInteger newCount = count - currentCount;
         
         for (NSUInteger i = 0; i < newCount; i++) {
-            PixelBufferLayerView *pixelBufferLayerView = [PixelBufferLayerView new];
-            [stackView addArrangedSubview:pixelBufferLayerView];
-            [pixelBufferLayerView release];
+            switch (layerType) {
+                case PlayerOutputLayerTypePixelBufferLayer:
+                {
+                    PixelBufferLayerView *pixelBufferLayerView = [PixelBufferLayerView new];
+                    [stackView addArrangedSubview:pixelBufferLayerView];
+                    [pixelBufferLayerView release];
+                    break;
+                }
+                case PlayerOutputLayerTypeSampleBufferDisplayLayer:
+                {
+                    SampleBufferDisplayLayerView *sampleBufferDisplayLayerView = [SampleBufferDisplayLayerView new];
+                    [stackView addArrangedSubview:sampleBufferDisplayLayerView];
+                    [sampleBufferDisplayLayerView release];
+                    break;
+                }
+                default:
+                    abort();
+            }
         }
         
         [stackView updateConstraintsIfNeeded];
@@ -211,9 +231,9 @@ CA_EXTERN_C_END
         NSUInteger deletedCount = currentCount - count;
         
         for (NSUInteger i = 0; i < deletedCount; i++) {
-            auto pixelBufferLayerView = static_cast<PixelBufferLayerView *>(stackView.arrangedSubviews.lastObject);
-            assert(pixelBufferLayerView != nil);
-            [stackView removeArrangedSubview:pixelBufferLayerView];
+            __kindof UIView *arrangedSubview = stackView.arrangedSubviews.lastObject;
+            assert(arrangedSubview != nil);
+            [stackView removeArrangedSubview:arrangedSubview];
         }
         
         [stackView updateConstraintsIfNeeded];
@@ -221,12 +241,30 @@ CA_EXTERN_C_END
         [CATransaction commit];
     }
     
-    NSMutableArray<PixelBufferLayer *> *pixelBufferLayers = [[NSMutableArray alloc] initWithCapacity:count];
-    for (PixelBufferLayerView *pixelBufferLayerView in stackView.arrangedSubviews) {
-        [pixelBufferLayers addObject:pixelBufferLayerView.pixelBufferLayer];
+    switch (layerType) {
+        case PlayerOutputLayerTypePixelBufferLayer:
+        {
+            NSMutableArray<PixelBufferLayer *> *pixelBufferLayers = [[NSMutableArray alloc] initWithCapacity:count];
+            for (PixelBufferLayerView *pixelBufferLayerView in stackView.arrangedSubviews) {
+                [pixelBufferLayers addObject:pixelBufferLayerView.pixelBufferLayer];
+            }
+            self._pixelBufferLayers = pixelBufferLayers;
+            [pixelBufferLayers release];
+            break;
+        }
+        case PlayerOutputLayerTypeSampleBufferDisplayLayer:
+        {
+            NSMutableArray<AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayers = [[NSMutableArray alloc] initWithCapacity:count];
+            for (SampleBufferDisplayLayerView *sampleBufferDisplayLayerView in stackView.arrangedSubviews) {
+                [sampleBufferDisplayLayers addObject:sampleBufferDisplayLayerView.sampleBufferDisplayLayer];
+            }
+            self._sampleBufferDisplayLayers = sampleBufferDisplayLayers;
+            [sampleBufferDisplayLayers release];
+            break;
+        }
+        default:
+            abort();
     }
-    self._pixelBufferLayers = pixelBufferLayers;
-    [pixelBufferLayers release];
 }
 
 - (void)_addObserversForPlayer:(AVPlayer *)player {
@@ -272,20 +310,43 @@ CA_EXTERN_C_END
                 CVPixelBufferRef _Nullable pixelBuffer = CMTaggedBufferGroupGetCVPixelBufferAtIndex(taggedBufferGroup, index);
                 if (pixelBuffer == nil) break;
                 
-                NSInteger index;
+                NSInteger viewIndex;
                 if (value == kCMStereoView_LeftEye) {
-                    index = 0;
+                    viewIndex = 0;
                 } else if (value == kCMStereoView_RightEye) {
-                    index = 1;
+                    viewIndex = 1;
                 } else {
                     abort();
                 }
                 
-                NSArray<PixelBufferLayer *> *pixelBufferLayers = self._pixelBufferLayers;
-                if (pixelBufferLayers.count <= index) break;
-                
-                PixelBufferLayer * pixelBufferLayer = pixelBufferLayers[index];
-                [pixelBufferLayer updateWithPixelBuffer:pixelBuffer];
+                switch (self._layerType) {
+                    case PlayerOutputLayerTypePixelBufferLayer:
+                    {
+                        NSArray<PixelBufferLayer *> *pixelBufferLayers = self._pixelBufferLayers;
+                        if (viewIndex < pixelBufferLayers.count) {
+                            PixelBufferLayer * pixelBufferLayer = pixelBufferLayers[viewIndex];
+                            [pixelBufferLayer updateWithPixelBuffer:pixelBuffer];
+                        }
+                        break;
+                    }
+                    case PlayerOutputLayerTypeSampleBufferDisplayLayer:
+                    {
+                        CMSampleBufferRef sampleBuffer = [self _sampleBufferRefFromPixelBuffer:pixelBuffer];
+                        
+                        NSArray<AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayers = self._sampleBufferDisplayLayers;
+                        if (viewIndex < sampleBufferDisplayLayers.count) {
+                            AVSampleBufferDisplayLayer *sampleBufferDisplayLayer = sampleBufferDisplayLayers[viewIndex];
+                            AVSampleBufferVideoRenderer *sampleBufferRenderer = sampleBufferDisplayLayer.sampleBufferRenderer;
+                            [sampleBufferRenderer flush];
+                            [sampleBufferRenderer enqueueSampleBuffer:sampleBuffer];
+                        }
+                        
+                        CFRelease(sampleBuffer);
+                        break;
+                    }
+                    default:
+                        abort();
+                }
             }
             
             delete[] tags;
@@ -306,15 +367,40 @@ CA_EXTERN_C_END
             return;
         }
         
-        NSArray<PixelBufferLayer *> *pixelBufferLayers = self._pixelBufferLayers;
-        PixelBufferLayer *pixelBufferLayer = pixelBufferLayers.firstObject;
-        if (pixelBufferLayer == nil) return;
-        
         CMTime displayItem;
         CVPixelBufferRef _Nullable pixelBuffer = [playerItemVideoOutput copyPixelBufferForItemTime:currentTime itemTimeForDisplay:&displayItem];
         
         if (pixelBuffer) {
-            [pixelBufferLayer updateWithPixelBuffer:pixelBuffer];
+            switch (self._layerType) {
+                case PlayerOutputLayerTypePixelBufferLayer:
+                {
+                    NSArray<PixelBufferLayer *> *pixelBufferLayers = self._pixelBufferLayers;
+                    PixelBufferLayer *pixelBufferLayer = pixelBufferLayers.firstObject;
+                    if (pixelBufferLayer != nil) {
+                        [pixelBufferLayer updateWithPixelBuffer:pixelBuffer];
+                    }
+                    break;
+                }
+                case PlayerOutputLayerTypeSampleBufferDisplayLayer:
+                {
+                    NSArray<AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayers = self._sampleBufferDisplayLayers;
+                    AVSampleBufferDisplayLayer *sampleBufferDisplayLayer = sampleBufferDisplayLayers.firstObject;
+                    if (sampleBufferDisplayLayer != nil) {
+                        CMSampleBufferRef sampleBuffer = [self _sampleBufferRefFromPixelBuffer:pixelBuffer];
+                        
+                        AVSampleBufferVideoRenderer *sampleBufferRenderer = sampleBufferDisplayLayer.sampleBufferRenderer;
+                        [sampleBufferRenderer flush];
+                        [sampleBufferRenderer enqueueSampleBuffer:sampleBuffer];
+                        
+                        CFRelease(sampleBuffer);
+                    }
+                    
+                    break;
+                }
+                default:
+                    abort();
+            }
+            
             CVPixelBufferRelease(pixelBuffer);
         }
     }
@@ -369,7 +455,7 @@ CA_EXTERN_C_END
             if (![self.player isEqual:player]) return;
             if (![self.player.currentItem isEqual:currentItem]) return;
             
-            [self _updatePixelBufferLayerViewCount:1];
+            [self _updateLayerViewCount:1];
             [self _updateUserTransformView];
             
             //
@@ -401,7 +487,7 @@ CA_EXTERN_C_END
                     if (![self.player isEqual:player]) return;
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
-                    [self _updatePixelBufferLayerViewCount:1];
+                    [self _updateLayerViewCount:1];
                     [self _updateUserTransformView];
                     
                     //
@@ -482,7 +568,7 @@ CA_EXTERN_C_END
                     if (![self.player isEqual:player]) return;
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
-                    [self _updatePixelBufferLayerViewCount:videoLayersCount];
+                    [self _updateLayerViewCount:videoLayersCount];
                     [self _updateUserTransformView];
                     
                     //
@@ -582,6 +668,22 @@ CA_EXTERN_C_END
 - (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting {
 //    NSLog(@"%@", NSStringFromCGAffineTransform(userAffineTransform));
     self._stackView.transform = userAffineTransform;
+}
+
+- (CMSampleBufferRef)_sampleBufferRefFromPixelBuffer:(CVPixelBufferRef)pixelBufferRef CM_RETURNS_RETAINED {
+    CMVideoFormatDescriptionRef desc;
+    assert(CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, pixelBufferRef, &desc) == kCVReturnSuccess);
+    
+    CMSampleTimingInfo timing = {
+        .duration = kCMTimeZero,
+        .presentationTimeStamp = kCMTimeZero,
+        .decodeTimeStamp = kCMTimeInvalid
+    };
+    CMSampleBufferRef sampleBuffer;
+    assert(CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, pixelBufferRef, desc, &timing, &sampleBuffer) == kCVReturnSuccess);
+    CFRelease(desc);
+    
+    return sampleBuffer;
 }
 
 @end
