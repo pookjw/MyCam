@@ -3905,11 +3905,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 + (UIMenu *)_cp_queue_selectPreviewLayerMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     BOOL isNativeSelected = [captureService queue_isPreviewLayerEnabledForVideoDevice:videoDevice];
     BOOL isCustomSelected = [captureService queue_isCustomPreviewLayerEnabledForVideoDevice:videoDevice];
+    BOOL isSampleBufferDisplayLayerEnabled = [captureService queue_isSampleBufferDisplayLayerEnabledForVideoDevice:videoDevice];
     
     UIAction *nativePreviewLayerAction = [UIAction actionWithTitle:NSStringFromClass(AVCaptureVideoPreviewLayer.class) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
             [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setSampleBufferDisplayLayerEnabled:NO forVideoDeivce:videoDevice];
             if (didChangeHandler) didChangeHandler();
         });
     }];
@@ -3919,14 +3921,26 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
             [captureService queue_setCustomPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
+            [captureService queue_setSampleBufferDisplayLayerEnabled:NO forVideoDeivce:videoDevice];
             if (didChangeHandler) didChangeHandler();
         });
     }];
     customPreviewLayerAction.state = isCustomSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
     
+    UIAction *sampleBufferDisplayLayerAction = [UIAction actionWithTitle:@"SampleBufferDisplayLayer" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setSampleBufferDisplayLayerEnabled:YES forVideoDeivce:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    sampleBufferDisplayLayerAction.state = isSampleBufferDisplayLayerEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
     UIMenu *menu = [UIMenu menuWithTitle:@"Preview Layer Type" children:@[
         nativePreviewLayerAction,
-        customPreviewLayerAction
+        customPreviewLayerAction,
+        sampleBufferDisplayLayerAction
     ]];
     
     if (isNativeSelected) {

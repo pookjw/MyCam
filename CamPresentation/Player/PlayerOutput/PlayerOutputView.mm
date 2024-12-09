@@ -260,7 +260,7 @@ CA_EXTERN_C_END
             
             CMTag *tags = new CMTag[tagCollectionCount];
             CMItemCount numberOfTagsCopied;
-            assert(CMTagCollectionGetTags(tagCollection, tags, tagCollectionCount, &numberOfTagsCopied) == 0);
+            assert(CMTagCollectionGetTags(tagCollection, tags, tagCollectionCount, &numberOfTagsCopied) == kCVReturnSuccess);
             assert(tagCollectionCount == numberOfTagsCopied);
             
             for (const CMTag *tagPtr : std::views::iota(tags, tags + numberOfTagsCopied)) {
@@ -437,7 +437,7 @@ CA_EXTERN_C_END
                 assert(firstFormatDescription != NULL);
                 
                 CFArrayRef tagCollections;
-                assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == 0);
+                assert(CMVideoFormatDescriptionCopyTagCollectionArray(firstFormatDescription, &tagCollections) == kCVReturnSuccess);
                 
                 std::vector<CMTagValue> videoLayerIDsVec = std::views::iota(0, CFArrayGetCount(tagCollections))
                 | std::views::transform([&tagCollections](const CFIndex &index) {
@@ -446,7 +446,7 @@ CA_EXTERN_C_END
                     
                     CMTag *tags = new CMTag[count];
                     CMItemCount numberOfTagsCopied;
-                    assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == 0);
+                    assert(CMTagCollectionGetTags(tagCollection, tags, count, &numberOfTagsCopied) == kCVReturnSuccess);
                     assert(count == numberOfTagsCopied);
                     
                     auto videoLayerIDTag = std::ranges::find_if(tags, tags + count, [](const CMTag &tag) {
@@ -491,7 +491,7 @@ CA_EXTERN_C_END
                     assert(self._playerItemVideoOutput == nil);
                     
                     CMTagCollectionRef tagCollection;
-                    assert(CMTagCollectionCreateWithVideoOutputPreset(kCFAllocatorDefault, kCMTagCollectionVideoOutputPreset_Stereoscopic, &tagCollection) == 0);
+                    assert(CMTagCollectionCreateWithVideoOutputPreset(kCFAllocatorDefault, kCMTagCollectionVideoOutputPreset_Stereoscopic, &tagCollection) == kCVReturnSuccess);
                     AVVideoOutputSpecification *specification = [[AVVideoOutputSpecification alloc] initWithTagCollections:@[(id)tagCollection]];
                     CFRelease(tagCollection);
                     
