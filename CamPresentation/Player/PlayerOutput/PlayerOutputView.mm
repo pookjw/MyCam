@@ -9,6 +9,7 @@
 #import <CamPresentation/PixelBufferLayerView.h>
 #import <CamPresentation/SVRunLoop.hpp>
 #import <CamPresentation/AVPlayerVideoOutput+Category.h>
+#import <CamPresentation/UserTransformView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <algorithm>
@@ -16,24 +17,26 @@
 #include <ranges>
 #include <optional>
 
-#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택, AVPlayerLooper
+#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택, AVPlayerLooper 확대시 흐릴려나? 화면만큼만 랜더링해서?
 
 CA_EXTERN_C_BEGIN
 BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
 CA_EXTERN_C_END
 
-@interface PlayerOutputView ()
+@interface PlayerOutputView () <UserTransformViewDelegate>
 @property (retain, atomic, nullable) AVPlayerVideoOutput *_playerVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (retain, atomic, nullable) AVPlayerItemVideoOutput *_playerItemVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
 @property (copy, atomic, nullable) NSArray<PixelBufferLayer *> *_pixelBufferLayers;
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
 @property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
+@property (retain, nonatomic, readonly) UserTransformView *_userTransformView;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @end
 
 @implementation PlayerOutputView
 @synthesize _renderRunLoop = __renderRunLoop;
 @synthesize _displayLink = __displayLink;
+@synthesize _userTransformView = __userTransformView;
 @synthesize _stackView = __stackView;
 
 - (instancetype)initWithCoder:(NSCoder *)coder {
@@ -69,6 +72,7 @@ CA_EXTERN_C_END
     [__renderRunLoop release];
     __displayLink.paused = YES;
     [__displayLink release];
+    [__userTransformView release];
     [__stackView release];
     [super dealloc];
 }
@@ -89,10 +93,22 @@ CA_EXTERN_C_END
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
+// AssetContentView도 bounds로
+- (void)setBounds:(CGRect)bounds {
+    [super setBounds:bounds];
+    
+    self._stackView.frame = bounds;
+    self._stackView.transform = CGAffineTransformIdentity;
+    self._userTransformView.untransformedContentFrame = bounds;
+}
+
 - (void)_commonInit {
     UIStackView *stackView = self._stackView;
     [self addSubview:stackView];
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), stackView);
+    
+    UserTransformView *userTransformView = self._userTransformView;
+    [self addSubview:userTransformView];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), userTransformView);
 }
 
 - (void)setPlayer:(AVPlayer *)player {
@@ -145,10 +161,20 @@ CA_EXTERN_C_END
     return displayLink;
 }
 
+- (UserTransformView *)_userTransformView {
+    if (auto userTransformView = __userTransformView) return userTransformView;
+    
+    UserTransformView *userTransformView = [[UserTransformView alloc] initWithFrame:self.bounds];
+    userTransformView.delegate = self;
+    
+    __userTransformView = [userTransformView retain];
+    return [userTransformView autorelease];
+}
+
 - (UIStackView *)_stackView {
     if (auto stackView = __stackView) return stackView;
     
-    UIStackView *stackView = [UIStackView new];
+    UIStackView *stackView = [[UIStackView alloc] initWithFrame:self.bounds];
     stackView.axis = UILayoutConstraintAxisHorizontal;
     stackView.distribution = UIStackViewDistributionFillEqually;
     stackView.alignment = UIStackViewAlignmentFill;
@@ -308,6 +334,8 @@ CA_EXTERN_C_END
     AVPlayerItem * _Nullable currentItem = player.currentItem;
     if (currentItem == nil) return;
     
+    NSLog(@"%@", NSStringFromCGSize(player.currentItem.presentationSize));
+    
     [self _updatePreferredFrameRateRangeWithPlayer:player];
     
     //
@@ -342,6 +370,7 @@ CA_EXTERN_C_END
             if (![self.player.currentItem isEqual:currentItem]) return;
             
             [self _updatePixelBufferLayerViewCount:1];
+            self._userTransformView.contentPixelSize = currentItem.presentationSize;
             
             //
             
@@ -373,6 +402,7 @@ CA_EXTERN_C_END
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
                     [self _updatePixelBufferLayerViewCount:1];
+                    self._userTransformView.contentPixelSize = currentItem.presentationSize;
                     
                     //
                     
@@ -453,6 +483,7 @@ CA_EXTERN_C_END
                     if (![self.player.currentItem isEqual:currentItem]) return;
                     
                     [self _updatePixelBufferLayerViewCount:videoLayersCount];
+                    self._userTransformView.contentPixelSize = currentItem.presentationSize;
                     
                     //
                     
@@ -529,6 +560,11 @@ CA_EXTERN_C_END
         assert(CAFrameRateRangeIsValid(preferredFrameRateRange));
         self._displayLink.preferredFrameRateRange = preferredFrameRateRange;
     }
+}
+
+- (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting {
+//    NSLog(@"%@", NSStringFromCGAffineTransform(userAffineTransform));
+    self._stackView.transform = userAffineTransform;
 }
 
 @end
