@@ -25,7 +25,6 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 @end
 
 @implementation PlayerOutputViewController
-@synthesize player = _player;
 @synthesize _outputView = __outputView;
 @synthesize _controlView = __controlView;
 
@@ -38,7 +37,6 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 }
 
 - (void)dealloc {
-    [_player release];
     [__outputView release];
     [__controlView release];
     [super dealloc];
@@ -71,10 +69,15 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
     ]];
 }
 
+- (AVPlayer *)player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    assert([self._outputView.player isEqual:self._controlView.player]);
+    return self._outputView.player;
+}
+
 - (void)setPlayer:(AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    _player = [player retain];
     self._outputView.player = player;
     self._controlView.player = player;
 }

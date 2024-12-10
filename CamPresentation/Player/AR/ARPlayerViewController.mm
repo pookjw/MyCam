@@ -1,53 +1,63 @@
 //
-//  ARVideoPlayerViewController.m
+//  ARPlayerViewController.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/18/24.
 //
 
-#import <CamPresentation/ARVideoPlayerViewController.h>
-#import <CamPresentation/CamPresentation-Swift.h>
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_TV
+
+#import <CamPresentation/ARPlayerViewController.h>
 #import <CamPresentation/UIApplication+mrui_requestSceneWrapper.hpp>
+#import <CamPresentation/ARPlayerViewControllerVisualProvider.h>
+#import <CamPresentation/ARPlayerViewControllerVisualProvider_IOS.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import <TargetConditionals.h>
-#if !TARGET_OS_TV
 #import <ARKit/ARKit.h>
-#endif
 
-@interface ARVideoPlayerViewController ()
-@property (retain, nonatomic, nullable) AVPlayer *player;
-@property (retain, nonatomic, nullable, readonly) AVSampleBufferVideoRenderer *videoRenderer;
+@interface ARPlayerViewController ()
+@property (retain, nonatomic, readonly) __kindof ARPlayerViewControllerVisualProvider *_visualProvider;
 #if TARGET_OS_VISION
 @property (retain, nonatomic, readonly) UIButton *toggleImmersiveSceneButton;
 @property (readonly, nullable) UIScene *immersiveSpaceScene;
 #endif
 @end
 
-@implementation ARVideoPlayerViewController
+@implementation ARPlayerViewController
+@synthesize _visualProvider = __visualProvider;
 #if TARGET_OS_VISION
 @synthesize toggleImmersiveSceneButton = _toggleImmersiveSceneButton;
 #endif
 
-- (instancetype)initWithPlayer:(AVPlayer *)player {
-    if (self = [super initWithNibName:nil bundle:nil]) {
-        _player = [player retain];
-    }
-    
++ (void)load {
+    Protocol *_UIVisualStyleStylable = NSProtocolFromString(@"_UIVisualStyleStylable");
+    assert(_UIVisualStyleStylable != NULL);
+    assert(class_addProtocol(self, _UIVisualStyleStylable));
+}
+
++ (id)visualStyleRegistryIdentity {
     return self;
 }
 
-- (instancetype)initWithVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
-    if (self = [super initWithNibName:nil bundle:nil]) {
-        _videoRenderer = [videoRenderer retain];
-    }
-    
-    return self;
++ (void)_registerDefaultStylesIfNeeded {
+#if TARGET_OS_IOS
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        id defaultRegistry = reinterpret_cast<id (*)(id, SEL, UIUserInterfaceIdiom)>(objc_msgSend)(objc_lookUpClass("_UIVisualStyleRegistry"), sel_registerName("defaultRegistry"), UIUserInterfaceIdiomPhone);
+        
+        reinterpret_cast<void (*)(id, SEL, Class, Class)>(objc_msgSend)(defaultRegistry, sel_registerName("registerVisualStyleClass:forStylableClass:"), ARPlayerViewControllerVisualProvider_IOS.class, self);
+    });
+#elif TARGET_OS_VISION
+    abort();
+#else
+    abort();
+#endif
 }
 
 - (void)dealloc {
-    [_player release];
-    [_videoRenderer release];
+    [__visualProvider release];
 #if TARGET_OS_VISION
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_toggleImmersiveSceneButton release];
@@ -58,11 +68,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-#if !TARGET_OS_TV
-    self.view.backgroundColor = UIColor.systemBackgroundColor;
-#endif
-    
-    [self attachPlayerView];
+    [self._visualProvider viewDidLoad];
     
 #if TARGET_OS_VISION
     [NSNotificationCenter.defaultCenter addObserver:self
@@ -79,8 +85,39 @@
 #endif
 }
 
-- (void)didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {
-    [self dismissViewControllerAnimated:YES completion:nil];
+- (AVPlayer *)player {
+    return self._visualProvider.player;
+}
+
+- (void)setPlayer:(AVPlayer *)player {
+    self._visualProvider.player = player;
+}
+
+- (AVSampleBufferVideoRenderer *)videoRenderer {
+    return self._visualProvider.videoRenderer;
+}
+
+- (void)setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
+    self._visualProvider.videoRenderer = videoRenderer;
+}
+
+- (__kindof ARPlayerViewControllerVisualProvider *)_visualProvider {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    if (auto visualProvider = __visualProvider) return visualProvider;
+    
+    [ARPlayerViewController _registerDefaultStylesIfNeeded];
+    
+    id defaultRegistry = reinterpret_cast<id (*)(id, SEL, UIUserInterfaceIdiom)>(objc_msgSend)(objc_lookUpClass("_UIVisualStyleRegistry"), sel_registerName("defaultRegistry"), UIUserInterfaceIdiomPhone);
+    
+    Class providerClass = reinterpret_cast<Class (*)(id, SEL, id)>(objc_msgSend)(defaultRegistry, sel_registerName("visualStyleClassForStylableClass:"), [ARPlayerViewController class]);
+    
+    assert(providerClass != nil);
+    
+    __kindof ARPlayerViewControllerVisualProvider *visualProvider = [(__kindof ARPlayerViewControllerVisualProvider *)[providerClass alloc] initWithPlayerViewController:self];
+    
+    __visualProvider = [visualProvider retain];
+    return [visualProvider autorelease];
 }
 
 #if TARGET_OS_VISION
@@ -131,25 +168,7 @@
 
 - (void)attachPlayerView {
 #if TARGET_OS_IOS
-    UIView *view = self.view;
     
-    __kindof UIViewController *arVideoPlayerViewController = CamPresentation::newARVideoPlayerHostingController(self.player, ^ (ARSession *arSession) {
-        ARCoachingOverlayView *overlayView = [[ARCoachingOverlayView alloc] initWithFrame:view.bounds];
-        overlayView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        [view addSubview:overlayView];
-        
-        overlayView.session = arSession;
-        overlayView.goal = ARCoachingGoalAnyPlane;
-        [overlayView release];
-    });
-    
-    [self addChildViewController:arVideoPlayerViewController];
-    arVideoPlayerViewController.view.frame = self.view.bounds;
-    arVideoPlayerViewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview:arVideoPlayerViewController.view];
-    [arVideoPlayerViewController didMoveToParentViewController:self];
-    
-    [arVideoPlayerViewController release];
 #elif TARGET_OS_VISION
     UIButton *toggleImmersiveSceneButton = self.toggleImmersiveSceneButton;
     toggleImmersiveSceneButton.frame = self.view.bounds;
@@ -159,3 +178,5 @@
 }
 
 @end
+
+#endif

@@ -13,6 +13,15 @@
 
 @implementation CPImmersiveSceneDelegate
 
+- (void)dealloc {
+    [_window release];
+    [super dealloc];
+}
+
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+    abort();
+}
+
 @end
 
 #endif

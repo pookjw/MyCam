@@ -1,5 +1,5 @@
 //
-//  ARVideoPlayerView.swift
+//  RealityPlayerView_IOS.swift
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/18/24.
@@ -8,65 +8,19 @@
 #if os(iOS)
 
 @preconcurrency import Foundation
-import UIKit
 import SwiftUI
 import ARKit
 import RealityKit
-@preconcurrency import AVFoundation
+import AVFoundation
 import Darwin.POSIX.dlfcn
 
-@_expose(Cxx)
-public nonisolated func newARVideoPlayerHostingController(
-    avPlayer: AVPlayer,
-    arSessionHandler: UnsafeRawPointer
-) -> UIViewController {
-    MainActor.assumeIsolated {
-        let rootView: ARVideoPlayerView
-        
-        if Int(bitPattern: arSessionHandler) == .zero {
-            rootView = ARVideoPlayerView(avPlayer: avPlayer, arSessionHandler: nil)
-        } else {
-            let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
-            
-            rootView = ARVideoPlayerView(avPlayer: avPlayer) { arSession in
-                let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
-                block(arSession)
-            }
-        }
-        
-        return UIHostingController(rootView: rootView)
-    }
-}
-
-@_expose(Cxx)
-public nonisolated func newARVideoPlayerHostingController(
-    videoRenderer: AVSampleBufferVideoRenderer,
-    arSessionHandler: UnsafeRawPointer
-) -> UIViewController {
-    MainActor.assumeIsolated {
-        let rootView: ARVideoPlayerView
-        
-        if Int(bitPattern: arSessionHandler) == .zero {
-            rootView = ARVideoPlayerView(videoRenderer: videoRenderer, arSessionHandler: nil)
-        } else {
-            let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
-            
-            rootView = ARVideoPlayerView(videoRenderer: videoRenderer) { arSession in
-                let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
-                block(arSession)
-            }
-        }
-        
-        return UIHostingController(rootView: rootView)
-    }
-}
-
-fileprivate struct ARVideoPlayerView: View {
+struct RealityPlayerView_IOS: View {
     private static let videoPlayerEntityName = "videoPlayerEntity"
     
     private enum Input {
         case avPlayer(AVPlayer)
         case videoRenderer(AVSampleBufferVideoRenderer)
+        case none
     }
     
     private enum Playback {
@@ -75,18 +29,60 @@ fileprivate struct ARVideoPlayerView: View {
         case paused
     }
     
-    private let input: Input
+    var avPlayer: AVPlayer? {
+        get {
+            guard case let .avPlayer(avPlayer) = input else {
+                return nil
+            }
+            
+            return avPlayer
+        }
+        set {
+            if let newValue {
+                input = .avPlayer(newValue)
+            } else {
+                input = .none
+            }
+        }
+    }
+    
+    var videoRenderer: AVSampleBufferVideoRenderer? {
+        get {
+            guard case let .videoRenderer(videoRenderer) = input else {
+                return nil
+            }
+            
+            return videoRenderer
+        }
+        set {
+            if let newValue {
+                input = .videoRenderer(newValue)
+            } else {
+                input = .none
+            }
+        }
+    }
+    
+    private var input: Input
     @State private var viewModel = ARVideoPlayerViewModel()
     @State private var status: AVPlayer.Status?
     @State private var rate: Float?
     
-    init(avPlayer: AVPlayer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
-        input = .avPlayer(avPlayer)
+    init(avPlayer: AVPlayer?, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        if let avPlayer {
+            input = .avPlayer(avPlayer)
+        } else {
+            input = .none
+        }
         viewModel.arSessionHandler = arSessionHandler
     }
     
-    init (videoRenderer: AVSampleBufferVideoRenderer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
-        input = .videoRenderer(videoRenderer)
+    init (videoRenderer: AVSampleBufferVideoRenderer?, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        if let videoRenderer {
+            input = .videoRenderer(videoRenderer)
+        } else {
+            input = .none
+        }
         viewModel.arSessionHandler = arSessionHandler
     }
     
@@ -107,13 +103,13 @@ fileprivate struct ARVideoPlayerView: View {
                     }
                     
                     let entity: Entity
-                    if let _entity = content.entities.first(where: { $0.name == ARVideoPlayerView.videoPlayerEntityName }) {
+                    if let _entity = content.entities.first(where: { $0.name == RealityPlayerView_IOS.videoPlayerEntityName }) {
                         entity = _entity
                     } else {
                         let videoPlayerComponent: VideoPlayerComponent = makeVideoPlayerComponent()
                         entity = .init()
                         entity.components.set(videoPlayerComponent)
-                        entity.name = ARVideoPlayerView.videoPlayerEntityName
+                        entity.name = RealityPlayerView_IOS.videoPlayerEntityName
                         content.add(entity)
                     }
                     
@@ -194,16 +190,17 @@ fileprivate struct ARVideoPlayerView: View {
     }
     
     private func makeVideoPlayerComponent() -> VideoPlayerComponent {
-        var component: VideoPlayerComponent
-        switch input {
-        case .avPlayer(let avPlayer):
-            print(avPlayer)
-            component = .init(avPlayer: avPlayer)
-        case .videoRenderer(let videoRenderer):
-            component = .init(videoRenderer: videoRenderer)
-        }
-        
-        return component
+//        var component: VideoPlayerComponent
+//        switch input {
+//        case .avPlayer(let avPlayer):
+//            print(avPlayer)
+//            component = .init(avPlayer: avPlayer)
+//        case .videoRenderer(let videoRenderer):
+//            component = .init(videoRenderer: videoRenderer)
+//        }
+//        
+//        return component
+        fatalError()
     }
 }
 
