@@ -20,7 +20,7 @@
 #include <ranges>
 #include <optional>
 
-#warning TODO Memory Leak, PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택, AVPlayerLooper 확대시 흐릴려나? 화면만큼만 랜더링해서?
+#warning PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택, AVPlayerLooper 확대시 흐릴려나? 화면만큼만 랜더링해서?
 
 CA_EXTERN_C_BEGIN
 BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
@@ -33,7 +33,7 @@ CA_EXTERN_C_END
 @property (copy, atomic, nullable) NSArray<PixelBufferLayer *> *_pixelBufferLayers;
 @property (copy, atomic, nullable) NSArray<AVSampleBufferDisplayLayer *> *_sampleBufferDisplayLayers;
 @property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
-@property (retain, nonatomic, readonly) CADisplayLink *_displayLink;
+@property (retain, nonatomic, nullable) CADisplayLink *_displayLink;
 @property (retain, nonatomic, readonly) UserTransformView *_userTransformView;
 @property (retain, nonatomic, readonly) UIStackView *_stackView;
 @property (retain, nonatomic, readonly) CIContext *_ciContext;
@@ -41,7 +41,6 @@ CA_EXTERN_C_END
 
 @implementation PlayerOutputView
 @synthesize _renderRunLoop = __renderRunLoop;
-@synthesize _displayLink = __displayLink;
 @synthesize _userTransformView = __userTransformView;
 @synthesize _stackView = __stackView;
 
@@ -70,7 +69,7 @@ CA_EXTERN_C_END
     [__pixelBufferLayers release];
     [__sampleBufferDisplayLayers release];
     [__renderRunLoop release];
-    __displayLink.paused = YES;
+    [__displayLink invalidate];
     [__displayLink release];
     [__userTransformView release];
     [__stackView release];
@@ -101,6 +100,36 @@ CA_EXTERN_C_END
     self._stackView.frame = bounds;
     self._stackView.transform = CGAffineTransformIdentity;
     [self _updateUserTransformView];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    
+    if (self.window) {
+        if (self._displayLink != nil) return;
+        
+        CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_didTriggerDisplayLink:)];
+        
+        BOOL isPaused;
+        if (AVPlayer *player = self.player) {
+            isPaused = (player.rate == 0.f);
+        } else {
+            isPaused = YES;
+        }
+        displayLink.paused = isPaused;
+        
+        [self._renderRunLoop runBlock:^{
+            [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+        }];
+        //    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+        
+        self._displayLink = displayLink;
+    } else {
+        if (CADisplayLink *displayLink = self._displayLink) {
+            [displayLink invalidate];
+            displayLink = nil;
+        }
+    }
 }
 
 - (void)_commonInit {
@@ -146,23 +175,6 @@ CA_EXTERN_C_END
     
     __renderRunLoop = [renderRunLoop retain];
     return [renderRunLoop autorelease];
-}
-
-- (CADisplayLink *)_displayLink {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    
-    if (auto displayLink = __displayLink) return displayLink;
-    
-    CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(_didTriggerDisplayLink:)];
-    
-    displayLink.paused = YES;
-    [self._renderRunLoop runBlock:^{
-        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    }];
-    //    [displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
-    
-    __displayLink = [displayLink retain];
-    return displayLink;
 }
 
 - (UserTransformView *)_userTransformView {
