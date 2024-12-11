@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 12/10/24.
 //
 
+#import <TargetConditionals.h>
+
+#if TARGET_OS_IOS
+
 #import <CamPresentation/ARPlayerViewControllerVisualProvider_IOS.h>
 #import <CamPresentation/CamPresentation-Swift.h>
 #import <objc/message.h>
@@ -87,7 +91,7 @@
     } else if (AVSampleBufferVideoRenderer *videoRenderer = self.videoRenderer) {
         realityPlayerHostingController = CamPresentation::newRealityPlayerHostingControllerFromVideoRenderer_IOS(videoRenderer, arSessionHandler);
     } else {
-        abort();
+        realityPlayerHostingController = CamPresentation::newRealityPlayerHostingController_IOS(arSessionHandler);
     }
     
     self._realityPlayerHostingController = realityPlayerHostingController;
@@ -102,3 +106,5 @@
 }
 
 @end
+
+#endif

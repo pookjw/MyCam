@@ -75,21 +75,20 @@ struct RealityPlayerView_IOS: View {
     @State private var status: AVPlayer.Status?
     @State private var rate: Float?
     
-    init(avPlayer: AVPlayer?, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
-        if let avPlayer {
-            input = .avPlayer(avPlayer)
-        } else {
-            input = nil
-        }
-        viewModel.arSessionHandler = arSessionHandler
+    init(avPlayer: AVPlayer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        self.init(input: .avPlayer(avPlayer), arSessionHandler: arSessionHandler)
     }
     
-    init (videoRenderer: AVSampleBufferVideoRenderer?, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
-        if let videoRenderer {
-            input = .videoRenderer(videoRenderer)
-        } else {
-            input = nil
-        }
+    init(videoRenderer: AVSampleBufferVideoRenderer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        self.init(input: .videoRenderer(videoRenderer), arSessionHandler: arSessionHandler)
+    }
+    
+    init(arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        self.init(input: nil, arSessionHandler: arSessionHandler)
+    }
+    
+    private init(input: Input?, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
+        self.input = input
         viewModel.arSessionHandler = arSessionHandler
     }
     

@@ -8,6 +8,8 @@
 #import <CamPresentation/ARPlayerViewControllerVisualProvider.h>
 
 @implementation ARPlayerViewControllerVisualProvider
+@dynamic player;
+@dynamic videoRenderer;
 
 - (instancetype)initWithPlayerViewController:(ARPlayerViewController *)playerViewController {
     if (self = [super init]) {
@@ -15,22 +17,6 @@
     }
     
     return self;
-}
-
-- (AVPlayer *)player {
-    abort();
-}
-
-- (void)setPlayer:(AVPlayer *)player {
-    abort();
-}
-
-- (AVSampleBufferVideoRenderer *)videoRenderer {
-    abort();
-}
-
-- (void)setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
-    abort();
 }
 
 - (void)viewDidLoad {

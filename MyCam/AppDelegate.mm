@@ -19,7 +19,7 @@
 }
 
 - (UISceneConfiguration *)application:(UIApplication *)application configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options {
-    if (UISceneConfiguration *cp_sceneConfiguration = [UISceneConfiguration cp_sceneConfigurationWithOptions:options]) {
+    if (UISceneConfiguration *cp_sceneConfiguration = [UISceneConfiguration cp_sceneConfigurationForConnectingSceneSession:connectingSceneSession options:options]) {
         return cp_sceneConfiguration;
     }
     

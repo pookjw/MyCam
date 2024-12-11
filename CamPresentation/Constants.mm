@@ -8,3 +8,5 @@
 #import <CamPresentation/Constants.h>
 
 NSString * const CPSceneActivityType = @"CPSceneActivityType";
+NSString * const CPSceneTypeKey = @"CPSceneTypeKey";
+NSString * const CPARPlayerScene = @"CPARPlayerScene";

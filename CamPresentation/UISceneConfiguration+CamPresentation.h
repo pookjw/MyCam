@@ -10,7 +10,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface UISceneConfiguration (CamPresentation)
-+ (UISceneConfiguration * _Nullable)cp_sceneConfigurationWithOptions:(UISceneConnectionOptions *)options;
++ (UISceneConfiguration *)cp_sceneConfigurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options;
 @end
 
 NS_ASSUME_NONNULL_END

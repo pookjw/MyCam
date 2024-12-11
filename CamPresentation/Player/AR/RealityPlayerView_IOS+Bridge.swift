@@ -14,7 +14,7 @@ import ARKit
 
 @_expose(Cxx)
 public nonisolated func newRealityPlayerHostingControllerFromPlayer_IOS(
-    avPlayer: AVPlayer?,
+    avPlayer: AVPlayer,
     arSessionHandler: UnsafeRawPointer
 ) -> UIViewController {
     MainActor.assumeIsolated {
@@ -37,7 +37,7 @@ public nonisolated func newRealityPlayerHostingControllerFromPlayer_IOS(
 
 @_expose(Cxx)
 public nonisolated func newRealityPlayerHostingControllerFromVideoRenderer_IOS(
-    videoRenderer: AVSampleBufferVideoRenderer?,
+    videoRenderer: AVSampleBufferVideoRenderer,
     arSessionHandler: UnsafeRawPointer
 ) -> UIViewController {
     MainActor.assumeIsolated {
@@ -49,6 +49,28 @@ public nonisolated func newRealityPlayerHostingControllerFromVideoRenderer_IOS(
             let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
             
             rootView = RealityPlayerView_IOS(videoRenderer: videoRenderer) { arSession in
+                let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
+                block(arSession)
+            }
+        }
+        
+        return UIHostingController(rootView: rootView)
+    }
+}
+
+@_expose(Cxx)
+public nonisolated func newRealityPlayerHostingController_IOS(
+    arSessionHandler: UnsafeRawPointer
+) -> UIViewController {
+    MainActor.assumeIsolated {
+        let rootView: RealityPlayerView_IOS
+        
+        if Int(bitPattern: arSessionHandler) == .zero {
+            rootView = RealityPlayerView_IOS(arSessionHandler: nil)
+        } else {
+            let copy = unsafeBitCast(arSessionHandler, to: AnyObject.self).copy()
+            
+            rootView = RealityPlayerView_IOS { arSession in
                 let block = unsafeBitCast(copy, to: (@convention(block) (ARSession) -> Void).self)
                 block(arSession)
             }

@@ -5,10 +5,11 @@
 //  Created by Jinwoo Kim on 10/23/24.
 //
 
-#import <CamPresentation/CaptureDeviceExposureSlidersView.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
+
+#import <CamPresentation/CaptureDeviceExposureSlidersView.h>
 
 #import <CamPresentation/UIView+MenuElementDynamicHeight.h>
 
