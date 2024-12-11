@@ -20,7 +20,22 @@ struct RealityPlayerView_IOS: View {
     private enum Input {
         case avPlayer(AVPlayer)
         case videoRenderer(AVSampleBufferVideoRenderer)
-        case none
+        
+        var avPlayer: AVPlayer? {
+            guard case let .avPlayer(avPlayer) = self else {
+                return nil
+            }
+            
+            return avPlayer
+        }
+        
+        var videoRenderer: AVSampleBufferVideoRenderer? {
+            guard case let .videoRenderer(videoRenderer) = self else {
+                return nil
+            }
+            
+            return videoRenderer
+        }
     }
     
     private enum Playback {
@@ -31,39 +46,31 @@ struct RealityPlayerView_IOS: View {
     
     var avPlayer: AVPlayer? {
         get {
-            guard case let .avPlayer(avPlayer) = input else {
-                return nil
-            }
-            
-            return avPlayer
+            input?.avPlayer
         }
         set {
             if let newValue {
                 input = .avPlayer(newValue)
             } else {
-                input = .none
+                input = nil
             }
         }
     }
     
     var videoRenderer: AVSampleBufferVideoRenderer? {
         get {
-            guard case let .videoRenderer(videoRenderer) = input else {
-                return nil
-            }
-            
-            return videoRenderer
+            input?.videoRenderer
         }
         set {
             if let newValue {
                 input = .videoRenderer(newValue)
             } else {
-                input = .none
+                input = nil
             }
         }
     }
     
-    private var input: Input
+    private var input: Input?
     @State private var viewModel = ARVideoPlayerViewModel()
     @State private var status: AVPlayer.Status?
     @State private var rate: Float?
@@ -72,7 +79,7 @@ struct RealityPlayerView_IOS: View {
         if let avPlayer {
             input = .avPlayer(avPlayer)
         } else {
-            input = .none
+            input = nil
         }
         viewModel.arSessionHandler = arSessionHandler
     }
@@ -81,7 +88,7 @@ struct RealityPlayerView_IOS: View {
         if let videoRenderer {
             input = .videoRenderer(videoRenderer)
         } else {
-            input = .none
+            input = nil
         }
         viewModel.arSessionHandler = arSessionHandler
     }
@@ -95,30 +102,112 @@ struct RealityPlayerView_IOS: View {
                 
                 content.camera = .spatialTracking
             } update: { (content: inout RealityViewCameraContent) in
-                if viewModel.originID != viewModel.lastUpdatedOriginID {
-                    let frame = proxy.frame(in: .local)
-                    let center = CGPoint(x: frame.midX, y: frame.midY)
-                    guard let hit = content.hitTest(point: center, in: .local, query: .nearest, mask: .sceneUnderstanding).first else {
-                        return
-                    }
-                    
+                let addedEntity = content.entities.first { $0.name == RealityPlayerView_IOS.videoPlayerEntityName }
+                
+                if let input {
                     let entity: Entity
-                    if let _entity = content.entities.first(where: { $0.name == RealityPlayerView_IOS.videoPlayerEntityName }) {
-                        entity = _entity
+                    
+                    if let addedEntity {
+                        let videoPlayerComponent = addedEntity.components[VideoPlayerComponent.self]!
+                        
+                        let shouldUpdate: Bool
+                        if let avPlayer = input.avPlayer, videoPlayerComponent.avPlayer != avPlayer {
+                            shouldUpdate = true
+                        } else if let videoRenderer = input.videoRenderer, videoPlayerComponent.videoRenderer != videoRenderer {
+                            shouldUpdate = true
+                        } else {
+                            shouldUpdate = false
+                        }
+                        
+                        if shouldUpdate {
+                            addedEntity.components.remove(VideoPlayerComponent.self)
+                            addedEntity.components.set(makeVideoPlayerComponent()!)
+                        }
+                        
+                        entity = addedEntity
                     } else {
-                        let videoPlayerComponent: VideoPlayerComponent = makeVideoPlayerComponent()
                         entity = .init()
-                        entity.components.set(videoPlayerComponent)
+                        entity.components.set(makeVideoPlayerComponent()!)
                         entity.name = RealityPlayerView_IOS.videoPlayerEntityName
                         content.add(entity)
+                        
                     }
                     
-                    entity.transform = .init(rotation: .init(vector: .init(hit.normal, .zero)), translation: hit.position)
-                    viewModel.lastUpdatedOriginID = viewModel.__originID
+                    if viewModel.originID != viewModel.lastUpdatedOriginID {
+                        viewModel.lastUpdatedOriginID = viewModel.__originID
+                        
+                        let arView = Mirror(reflecting: content).descendant("view") as! ARView
+                        let arSession = arView.session
+                        
+                        let bounds: CGRect = arView.bounds
+                        
+                        guard let query: ARRaycastQuery = arView
+                            .makeRaycastQuery(from: CGPoint(x: bounds.midX, y: bounds.midY),
+                                              allowing: .estimatedPlane,
+                                              alignment: .any) else {
+                            return
+                        }
+                        
+                        let raycasts: [ARRaycastResult] = arSession.raycast(query)
+                        guard let firstRaycast: ARRaycastResult = raycasts.first else { return }
+                        
+                        
+                        var transform = Transform(matrix: firstRaycast.worldTransform)
+                        
+                        viewModel.originalScale = transform.scale
+                        
+                        if let minXHitTest = content.hitTest(point: CGPoint(x: bounds.minX, y: bounds.midY), in: .local, query: .nearest, mask: .sceneUnderstanding).first,
+                           let maxXHitTest = content.hitTest(point: CGPoint(x: bounds.maxX, y: bounds.midY), in: .local, query: .nearest, mask: .sceneUnderstanding).first,
+                           let minYHitTest = content.hitTest(point: CGPoint(x: bounds.midX, y: bounds.minY), in: .local, query: .nearest, mask: .sceneUnderstanding).first,
+                           let maxYHitTest = content.hitTest(point: CGPoint(x: bounds.midX, y: bounds.maxY), in: .local, query: .nearest, mask: .sceneUnderstanding).first
+                        {
+                            let distanceToEntity = simd_distance(arView.cameraTransform.translation, transform.translation)
+                            let videoSize = entity.components[VideoPlayerComponent.self]!.playerScreenSize
+                            let screenRatio = (maxXHitTest.position.x - minXHitTest.position.x) / (maxYHitTest.position.y - minYHitTest.position.y)
+                            let vidioRatio = (videoSize.x / videoSize.y)
+                            
+                            var scale: Float
+                            if screenRatio > vidioRatio {
+                                let screenWorldWidth = maxXHitTest.position.x - minXHitTest.position.x
+                                scale = (screenWorldWidth / videoSize.x) * (1.0 / distanceToEntity)
+                            } else {
+                                let screenWorldHeight = maxYHitTest.position.y - minYHitTest.position.y
+                                scale = (screenWorldHeight / videoSize.y) * (1.0 / distanceToEntity)
+                            }
+                            
+                            viewModel.__scale = scale
+                        }
+                        
+                        transform.rotation *= simd_quatf(angle: .pi / 2.0, axis: SIMD3<Float>(1.0, .zero, .zero))
+                        
+                        entity.transform = transform
+                    }
+                    
+                    entity.transform.scale.x = viewModel.originalScale.x * viewModel.scale
+                    entity.transform.scale.y = viewModel.originalScale.y * viewModel.scale
+                } else {
+                    addedEntity?.components.remove(VideoPlayerComponent.self)
                 }
             }
         }
         .ignoresSafeArea()
+        .gesture(
+            MagnifyGesture()
+                .onChanged { value in
+                    let magnificationOriginalScale: Float
+                    if let _magnificationOriginalScale = viewModel.magnificationOriginalScale {
+                        magnificationOriginalScale = _magnificationOriginalScale
+                    } else {
+                        viewModel.magnificationOriginalScale = viewModel.__scale
+                        magnificationOriginalScale = viewModel.__scale
+                    }
+                    
+                    viewModel.scale = magnificationOriginalScale * Float(value.magnification)
+                }
+                .onEnded { _ in
+                    viewModel.magnificationOriginalScale = nil
+                }
+        )
         .overlay(alignment: .bottom) {
             HStack {
                 Button("Locate") {
@@ -189,18 +278,18 @@ struct RealityPlayerView_IOS: View {
         }
     }
     
-    private func makeVideoPlayerComponent() -> VideoPlayerComponent {
-//        var component: VideoPlayerComponent
-//        switch input {
-//        case .avPlayer(let avPlayer):
-//            print(avPlayer)
-//            component = .init(avPlayer: avPlayer)
-//        case .videoRenderer(let videoRenderer):
-//            component = .init(videoRenderer: videoRenderer)
-//        }
-//        
-//        return component
-        fatalError()
+    private func makeVideoPlayerComponent() -> VideoPlayerComponent? {
+        var component: VideoPlayerComponent
+        switch input {
+        case .avPlayer(let avPlayer):
+            component = .init(avPlayer: avPlayer)
+        case .videoRenderer(let videoRenderer):
+            component = .init(videoRenderer: videoRenderer)
+        case nil:
+            return nil
+        }
+        
+        return component
     }
 }
 
@@ -213,6 +302,17 @@ fileprivate final class ARVideoPlayerViewModel {
     }
     @ObservationIgnored var lastUpdatedOriginID: UUID?
     @ObservationIgnored var arSessionHandler: (@MainActor (ARSession) -> Void)?
+    @ObservationIgnored var originalScale: SIMD3<Float> = .zero
+    var scale: Float = 0.75
+    var __scale: Float {
+        get {
+            _scale
+        }
+        set {
+            _scale = newValue
+        }
+    }
+    @ObservationIgnored var magnificationOriginalScale: Float?
 }
 
 extension _KeyValueCodingAndObserving {
