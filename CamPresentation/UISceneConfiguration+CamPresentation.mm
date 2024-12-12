@@ -7,9 +7,9 @@
 
 #import <TargetConditionals.h>
 #import <CamPresentation/UISceneConfiguration+CamPresentation.h>
-#import <CamPresentation/ARPlayerSceneDelegate.h>
+#import <CamPresentation/ARPlayerSceneDelegate_Vision.h>
 #import <CamPresentation/Constants.h>
-#import <CamPresentation/ARPlayerWindowScene.h>
+#import <CamPresentation/ARPlayerWindowScene_Vision.h>
 
 @implementation UISceneConfiguration (CamPresentation)
 
@@ -19,8 +19,8 @@
         if ([userActivity.activityType isEqualToString:CPSceneActivityType]) {
             if ([userActivity.userInfo[CPSceneTypeKey] isEqualToString:CPARPlayerScene]) {
                 UISceneConfiguration *configuration = [connectingSceneSession.configuration copy];
-                configuration.sceneClass = ARPlayerWindowScene.class;
-                configuration.delegateClass = ARPlayerSceneDelegate.class;
+                configuration.sceneClass = ARPlayerWindowScene_Vision.class;
+                configuration.delegateClass = ARPlayerSceneDelegate_Vision.class;
                 return [configuration autorelease];
             } else {
                 abort();

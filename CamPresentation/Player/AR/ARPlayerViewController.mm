@@ -17,12 +17,14 @@
 #import <objc/runtime.h>
 #import <ARKit/ARKit.h>
 
-@interface ARPlayerViewController ()
+@interface ARPlayerViewController () <ARPlayerViewControllerVisualProviderDelegate>
 @property (retain, nonatomic, readonly) __kindof ARPlayerViewControllerVisualProvider *_visualProvider;
+@property (retain, nonatomic, nullable, setter=_setVideoRenderer:) AVSampleBufferVideoRenderer *_videoRenderer;
 @end
 
 @implementation ARPlayerViewController
 @synthesize _visualProvider = __visualProvider;
+@synthesize _videoRenderer = __videoRenderer;
 
 + (void)load {
     Protocol *_UIVisualStyleStylable = NSProtocolFromString(@"_UIVisualStyleStylable");
@@ -56,6 +58,7 @@
 
 - (void)dealloc {
     [__visualProvider release];
+    [__videoRenderer release];
     [super dealloc];
 }
 
@@ -72,11 +75,11 @@
     self._visualProvider.player = player;
 }
 
-- (AVSampleBufferVideoRenderer *)videoRenderer {
+- (AVSampleBufferVideoRenderer *)_videoRenderer {
     return self._visualProvider.videoRenderer;
 }
 
-- (void)setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
+- (void)_setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
     self._visualProvider.videoRenderer = videoRenderer;
 }
 
@@ -95,8 +98,18 @@
     
     __kindof ARPlayerViewControllerVisualProvider *visualProvider = [(__kindof ARPlayerViewControllerVisualProvider *)[providerClass alloc] initWithPlayerViewController:self];
     
+    visualProvider.delegate = self;
+    
     __visualProvider = [visualProvider retain];
     return [visualProvider autorelease];
+}
+
+- (void)playerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider didSelectRenderType:(ARPlayerRenderType)renderType { 
+    abort();
+}
+
+- (ARPlayerRenderType)rednerTypeWithPlayerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider { 
+    return ARPlayerRenderTypeAVPlayer;
 }
 
 @end

@@ -1,5 +1,5 @@
 //
-//  ARPlayerSceneDelegate.mm
+//  ARPlayerSceneDelegate_Vision.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/19/24.
@@ -9,11 +9,11 @@
 
 #if TARGET_OS_VISION
 
-#import <CamPresentation/ARPlayerSceneDelegate.h>
-#import <CamPresentation/ARPlayerWindowScene.h>
+#import <CamPresentation/ARPlayerSceneDelegate_Vision.h>
+#import <CamPresentation/ARPlayerWindowScene_Vision.h>
 #import <CamPresentation/CamPresentation-Swift.h>
 
-@implementation ARPlayerSceneDelegate
+@implementation ARPlayerSceneDelegate_Vision
 
 - (void)dealloc {
     [_window release];
@@ -21,8 +21,8 @@
 }
 
 - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
-    auto windowScene = static_cast<ARPlayerWindowScene *>(scene);
-    assert([windowScene isKindOfClass:[ARPlayerWindowScene class]]);
+    auto windowScene = static_cast<ARPlayerWindowScene_Vision *>(scene);
+    assert([windowScene isKindOfClass:[ARPlayerWindowScene_Vision class]]);
     
     __kindof UIViewController *rootViewController = CamPresentation::newRealityPlayerHostingController_Vision();
     

@@ -1,5 +1,5 @@
 //
-//  ARPlayerSceneDelegate.h
+//  ARPlayerSceneDelegate_Vision.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 11/19/24.
@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_AVAILABLE(visionos(1.0))
-@interface ARPlayerSceneDelegate : UIResponder <UIWindowSceneDelegate>
+@interface ARPlayerSceneDelegate_Vision : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow *window;
 @end
 

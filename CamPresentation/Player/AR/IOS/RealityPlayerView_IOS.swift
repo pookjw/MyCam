@@ -7,7 +7,6 @@
 
 #if os(iOS)
 
-@preconcurrency import Foundation
 import SwiftUI
 import ARKit
 import RealityKit
@@ -71,9 +70,7 @@ struct RealityPlayerView_IOS: View {
     }
     
     private var input: Input?
-    @State private var viewModel = ARVideoPlayerViewModel()
-    @State private var status: AVPlayer.Status?
-    @State private var rate: Float?
+    @State private var viewModel = ViewModel()
     
     init(avPlayer: AVPlayer, arSessionHandler: (@MainActor (ARSession) -> Void)?) {
         self.init(input: .avPlayer(avPlayer), arSessionHandler: arSessionHandler)
@@ -207,64 +204,11 @@ struct RealityPlayerView_IOS: View {
                     viewModel.magnificationOriginalScale = nil
                 }
         )
-        .overlay(alignment: .bottom) {
-            HStack {
-                Button("Locate") {
-                    viewModel.originID = .init()
-                }
-                .buttonStyle(.bordered)
-                
-                if case let .avPlayer(avPlayer) = input {
-                    Button {
-                        if avPlayer.rate == .zero {
-                            avPlayer.play()
-                        } else {
-                            avPlayer.pause()
-                        }
-                    } label: {
-                        if let rate, rate > .zero {
-                            Image(systemName: "pause.fill")
-                        } else {
-                            Image(systemName: "play.fill")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(status != .readyToPlay)
-                }
+        .overlay(alignment: .center) {
+            Button("Locate") {
+                viewModel.originID = .init()
             }
-        }
-        .task {
-            guard case let .avPlayer(avPlayer) = input else { return }
-            
-            let statusTask = Task { [statusState = _status] in
-                for await _ in avPlayer.observe(\.status, options: [.initial, .new]) {
-                    statusState.wrappedValue = avPlayer.status
-                }
-            }
-            
-            let rateTask = Task { [rateState = _rate] in
-                for await _ in avPlayer.observe(\.rate, options: [.initial, .new]) {
-                    rateState.wrappedValue = avPlayer.rate
-                }
-            }
-            
-            let didPlayToEndTimeTask = Task {
-                for await notification in NotificationCenter.default.notifications(named: .AVPlayerItemDidPlayToEndTime) {
-                    if avPlayer.currentItem?.isEqual(notification.object) ?? false {
-                        await avPlayer.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
-                    }
-                }
-            }
-            
-            await withTaskCancellationHandler {
-                await statusTask.value
-                await rateTask.value
-                await didPlayToEndTimeTask.value
-            } onCancel: {
-                statusTask.cancel()
-                rateTask.cancel()
-                didPlayToEndTimeTask.cancel()
-            }
+            .buttonStyle(.bordered)
         }
         .onDisappear {
             let handle = dlopen("/System/Library/Frameworks/RealityFoundation.framework/RealityFoundation", RTLD_NOW)!
@@ -289,48 +233,6 @@ struct RealityPlayerView_IOS: View {
         }
         
         return component
-    }
-}
-
-@MainActor
-@Observable
-fileprivate final class ARVideoPlayerViewModel {
-    var originID: UUID?
-    var __originID: UUID? {
-        _originID
-    }
-    @ObservationIgnored var lastUpdatedOriginID: UUID?
-    @ObservationIgnored var arSessionHandler: (@MainActor (ARSession) -> Void)?
-    @ObservationIgnored var originalScale: SIMD3<Float> = .zero
-    var scale: Float = 0.75
-    var __scale: Float {
-        get {
-            _scale
-        }
-        set {
-            _scale = newValue
-        }
-    }
-    @ObservationIgnored var magnificationOriginalScale: Float?
-}
-
-extension _KeyValueCodingAndObserving {
-    func observe<Value>(
-        _ keyPath: KeyPath<Self, Value>,
-        options: NSKeyValueObservingOptions = [],
-        bufferingPolicy limit: AsyncStream<NSKeyValueObservedChange<Value>>.Continuation.BufferingPolicy = .unbounded
-    ) -> AsyncStream<NSKeyValueObservedChange<Value>> {
-        let (stream, continuation) = AsyncStream<NSKeyValueObservedChange<Value>>.makeStream(bufferingPolicy: limit)
-        
-        let observation = observe(keyPath, options: options) { object, change in
-            continuation.yield(change)
-        }
-        
-        continuation.onTermination = { _ in
-            observation.invalidate()
-        }
-        
-        return stream
     }
 }
 

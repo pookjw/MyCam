@@ -13,7 +13,6 @@ NS_ASSUME_NONNULL_BEGIN
 API_UNAVAILABLE(tvos)
 @interface ARPlayerViewController : UIViewController
 @property (retain, nonatomic, nullable) AVPlayer *player;
-@property (retain, nonatomic, nullable) AVSampleBufferVideoRenderer *videoRenderer;
 @end
 
 NS_ASSUME_NONNULL_END
