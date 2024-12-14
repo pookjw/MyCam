@@ -32,7 +32,9 @@
 
 + (NSArray<Class> *)playerViewControllerClasses {
     return @[
+#if !TARGET_OS_TV
         ARPlayerViewController.class,
+#endif
         PlayerLayerViewController.class,
         PlayerOutputViewController.class,
         PlayerOutputViewController.class
@@ -194,12 +196,7 @@
     
     Class viewControllerClass = [VideoPlayerListViewController playerViewControllerClasses][indexPath.item];
     
-    if (viewControllerClass == ARPlayerViewController.class) {
-        ARPlayerViewController *viewController = [ARPlayerViewController new];
-        viewController.player = player;
-        [self.navigationController pushViewController:viewController animated:YES];
-        [viewController release];
-    } else if (viewControllerClass == PlayerLayerViewController.class) {
+    if (viewControllerClass == PlayerLayerViewController.class) {
         PlayerLayerViewController *viewController = [[PlayerLayerViewController alloc] initWithPlayer:player];
         
 //        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -226,6 +223,13 @@
         
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
+#if !TARGET_OS_TV
+    } else if (viewControllerClass == ARPlayerViewController.class) {
+        ARPlayerViewController *viewController = [ARPlayerViewController new];
+        viewController.player = player;
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
+#endif
     } else {
         abort();
     }
