@@ -13,13 +13,23 @@
 #import <CamPresentation/ARPlayerViewControllerVisualProvider.h>
 #import <CamPresentation/ARPlayerViewControllerVisualProvider_IOS.h>
 #import <CamPresentation/ARPlayerViewControllerVisualProvider_Vision.h>
+#import <CamPresentation/AVPlayerVideoOutput+Category.h>
+#import <CamPresentation/SVRunLoop.hpp>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <ARKit/ARKit.h>
 
+CA_EXTERN_C_BEGIN
+BOOL CAFrameRateRangeIsValid(CAFrameRateRange range);
+CA_EXTERN_C_END
+
 @interface ARPlayerViewController () <ARPlayerViewControllerVisualProviderDelegate>
 @property (retain, nonatomic, readonly) __kindof ARPlayerViewControllerVisualProvider *_visualProvider;
 @property (retain, nonatomic, nullable, setter=_setVideoRenderer:) AVSampleBufferVideoRenderer *_videoRenderer;
+@property (retain, atomic, nullable) AVPlayerVideoOutput *_playerVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
+@property (retain, atomic, nullable) AVPlayerItemVideoOutput *_playerItemVideoOutput; // SVRunLoop와 Main Thread에서 접근되므로 atomic
+@property (retain, nonatomic, readonly) SVRunLoop *_renderRunLoop;
+@property (retain, nonatomic, nullable) CADisplayLink *_displayLink;
 @end
 
 @implementation ARPlayerViewController
@@ -56,10 +66,45 @@
 #endif
 }
 
+- (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
+        [self _commonInit];
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder {
+    if (self = [super initWithCoder:coder]) {
+        [self _commonInit];
+    }
+    
+    return self;
+}
+
 - (void)dealloc {
     [__visualProvider release];
     [__videoRenderer release];
+    [__playerVideoOutput release];
+    [__playerItemVideoOutput release];
+    [__displayLink invalidate];
+    [__displayLink release];
+    [__renderRunLoop release];
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isKindOfClass:AVPlayer.class] and [keyPath isEqualToString:@"currentItem"]) {
+        auto player = static_cast<AVPlayer *>(object);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (![self.player isEqual:player]) return;
+            [self _didChangeCurrentItemForPlayer:player];
+        });
+        return;
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)viewDidLoad {
@@ -67,12 +112,26 @@
     [self._visualProvider viewDidLoad];
 }
 
+- (void)_commonInit {
+    __renderRunLoop = [[SVRunLoop alloc] initWithThreadName:@"ARPlayerViewController Render Thread"];
+}
+
 - (AVPlayer *)player {
     return self._visualProvider.player;
 }
 
 - (void)setPlayer:(AVPlayer *)player {
+    if ([self._visualProvider.player isEqual:player]) return;
+    
+    BOOL usingVideoRenderer = (self._videoRenderer != nil);
+    if (usingVideoRenderer) {
+        self._videoRenderer = nil;
+    }
+    
     self._visualProvider.player = player;
+    if (usingVideoRenderer) {
+        [self _configureVideoRenderer];
+    }
 }
 
 - (AVSampleBufferVideoRenderer *)_videoRenderer {
@@ -104,12 +163,53 @@
     return [visualProvider autorelease];
 }
 
-- (void)playerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider didSelectRenderType:(ARPlayerRenderType)renderType { 
-    abort();
+- (void)_configureVideoRenderer {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    assert(self.player);
+    
+    AVSampleBufferVideoRenderer *videoRenderer = [AVSampleBufferVideoRenderer new];
+    self._videoRenderer = videoRenderer;
+    [videoRenderer release];
 }
 
-- (ARPlayerRenderType)rednerTypeWithPlayerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider { 
-    return ARPlayerRenderTypeAVPlayer;
+- (void)_addObserversForPlayer:(AVPlayer *)player {
+    [player addObserver:self forKeyPath:@"currentItem" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
+}
+
+- (void)_removeObserversForPlayer:(AVPlayer *)player {
+    [player removeObserver:self forKeyPath:@"currentItem"];
+}
+
+- (void)_didChangeCurrentItemForPlayer:(AVPlayer *)player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    
+}
+
+- (void)playerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider didSelectRenderType:(ARPlayerRenderType)renderType { 
+    switch (renderType) {
+        case ARPlayerRenderTypeAVPlayer: {
+            if (self._videoRenderer == nil) return;
+            self._videoRenderer = nil;
+            break;
+        }
+        case ARPlayerRenderTypeVideoRenderer: {
+            if (self._videoRenderer != nil) return;
+            [self _configureVideoRenderer];
+            break;
+        }
+        default:
+            abort();
+    }
+}
+
+- (ARPlayerRenderType)rednerTypeWithPlayerViewControllerVisualProvider:(nonnull ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider {
+    if (self._videoRenderer != nil) {
+        return ARPlayerRenderTypeVideoRenderer;
+    } else {
+        return ARPlayerRenderTypeAVPlayer;
+    }
 }
 
 @end

@@ -79,7 +79,7 @@
     
     CamPresentation::setAVPlayer_Vision(player, self._arPlayerHostingController);
     self._immersiveSpaceScene.player = player;
-    self._controlViewController.player = player;
+    self._controlViewController.controlView.player = player;
 }
 
 - (AVSampleBufferVideoRenderer *)videoRenderer {
@@ -92,6 +92,12 @@
     
     CamPresentation::setVideoRenderer_Vision(videoRenderer, self._arPlayerHostingController);
     self._immersiveSpaceScene.videoRenderer = videoRenderer;
+    
+    if (videoRenderer == nil) {
+        AVPlayer * _Nullable player = self.player;
+        CamPresentation::setAVPlayer_Vision(player, self._arPlayerHostingController);
+        self._immersiveSpaceScene.player = player;
+    }
 }
 
 - (UIBarButtonItem *)_toggleImmersiveSceneBarButtonItem {

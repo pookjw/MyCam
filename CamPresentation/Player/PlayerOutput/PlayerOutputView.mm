@@ -81,6 +81,7 @@ CA_EXTERN_C_END
     if ([object isKindOfClass:[AVPlayer class]]) {
         auto player = static_cast<AVPlayer *>(object);
         
+#warning Thread 문제 없는지
         if ([keyPath isEqualToString:@"rate"]) {
             [self _didChangeRateForPlayer:player];
             return;
@@ -431,8 +432,6 @@ CA_EXTERN_C_END
 - (void)_didChangeCurrentItemForPlayer:(AVPlayer *)player change:(NSDictionary *)change {
     AVPlayerItem * _Nullable currentItem = player.currentItem;
     if (currentItem == nil) return;
-    
-    NSLog(@"%@", NSStringFromCGSize(player.currentItem.presentationSize));
     
     [self _updatePreferredFrameRateRangeWithPlayer:player];
     

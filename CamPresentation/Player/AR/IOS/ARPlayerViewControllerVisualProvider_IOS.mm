@@ -71,6 +71,10 @@
     
     if (auto realityPlayerHostingController = self._realityPlayerHostingController) {
         CamPresentation::setVideoRenderer_IOS(videoRenderer, realityPlayerHostingController);
+        
+        if (videoRenderer == nil) {
+            CamPresentation::setAVPlayer_IOS(self.player, realityPlayerHostingController);
+        }
     }
 }
 

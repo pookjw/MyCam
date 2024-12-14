@@ -109,10 +109,6 @@
     [self.navigationController pushViewController:viewController animated:NO];
     [viewController release];
     
-//    CameraRootViewController *viewController = [CameraRootViewController new];
-//    [self.navigationController pushViewController:viewController animated:YES];
-//    [viewController release];
-    
 //    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];

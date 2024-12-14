@@ -89,7 +89,9 @@ __attribute__((objc_direct_members))
         
         os_unfair_lock_lock(lockPtr);
         
-        if (auto runLoop = reinterpret_cast<CFRunLoopRef _Nullable>(dictionary[@"runLoop"])) {
+        auto runLoop = reinterpret_cast<CFRunLoopRef _Nullable>(dictionary[@"runLoop"]);
+        
+        if (runLoop) {
             // 이미 RunLoop가 돌아가고 있다면 중단
             CFRunLoopStop(runLoop);
         }
@@ -98,6 +100,13 @@ __attribute__((objc_direct_members))
         dictionary[@"needsStop"] = @YES;
         
         os_unfair_lock_unlock(lockPtr);
+        
+        // -thread에서 os_unfair_lock_unlock이 끝나고 CFRunLoopRun이 불리기 직전에 -dealloc이 불린다면, 위에서 CFRunLoopStop이 불려도 CFRunLoopRun이 불린 상태가 아니기에 작동하지 않을 것. 따라서 RunLoop Event로 Stop하도록 예약
+        if (runLoop) {
+            [self runBlock:^{
+                CFRunLoopStop(runLoop);
+            }];
+        }
         
         [_thread release]; 
     }

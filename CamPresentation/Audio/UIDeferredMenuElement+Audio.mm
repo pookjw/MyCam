@@ -60,7 +60,7 @@
             UIAction *generateImpactFeecbackAction = [UIDeferredMenuElement _cp_generateImpactFeecbackAction];
 #endif
             
-#if !TARGET_OS_TV
+#if TARGET_OS_IOS
             UIAction *prepareRouteSelectionForPlaybackAction = [UIDeferredMenuElement _cp_prepareRouteSelectionForPlaybackActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
 #endif
             
@@ -86,6 +86,7 @@
             
 #if !TARGET_OS_TV
             UIMenu *aggregatedIOPreferenceMenu = [UIDeferredMenuElement _cp_aggregatedIOPreferenceMenuWithAudioSession:audioSession didChangeHandler:didChangeHandler];
+            UIAction *togglePrefersEchoCancelledInputAction = [UIDeferredMenuElement _cp_togglePrefersEchoCancelledInputActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
 #endif
             
             NSArray<__kindof UIMenuElement *> *children = @[
@@ -107,7 +108,7 @@
                 generateImpactFeecbackAction,
 #endif
                 
-#if !TARGET_OS_TV
+#if TARGET_OS_IOS
                 prepareRouteSelectionForPlaybackAction,
 #endif
                 setPrefersNoInterruptionsFromSystemAlertsAction,
@@ -126,7 +127,8 @@
                 currentRouteMenu,
                 overrideOutputAudioPortMenu,
 #if !TARGET_OS_TV
-                aggregatedIOPreferenceMenu
+                aggregatedIOPreferenceMenu,
+                togglePrefersEchoCancelledInputAction
 #endif
             ];
             
@@ -1275,7 +1277,37 @@
 #endif
 
 #if !TARGET_OS_TV
-
++ (UIAction *)_cp_togglePrefersEchoCancelledInputActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
+    BOOL isEchoCancelledInputAvailable = audioSession.isEchoCancelledInputAvailable;
+    
+#if TARGET_OS_VISION
+    BOOL isEchoCancelledInputEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(audioSession, sel_registerName("isEchoCancelledInputEnabled"));
+    BOOL prefersEchoCancelledInput = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(audioSession, sel_registerName("prefersEchoCancelledInput"));
+#else
+    BOOL isEchoCancelledInputEnabled = audioSession.isEchoCancelledInputEnabled;
+    BOOL prefersEchoCancelledInput = audioSession.prefersEchoCancelledInput;
+#endif
+    
+    UIAction *action = [UIAction actionWithTitle:@"prefersEchoCancelledInput" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            NSError * _Nullable error = nil;
+#if TARGET_OS_VISION
+            reinterpret_cast<void (*)(id, SEL, BOOL, id *)>(objc_msgSend)(audioSession, sel_registerName("setPrefersEchoCancelledInput:error:"), !prefersEchoCancelledInput, &error);
+#else
+            [audioSession setPrefersEchoCancelledInput:!prefersEchoCancelledInput error:&error];
+#endif
+            assert(error == nil);
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.subtitle = [NSString stringWithFormat:@"isEchoCancelledInputEnabled: %d", isEchoCancelledInputEnabled];
+    action.attributes = isEchoCancelledInputAvailable ? 0 : UIMenuElementAttributesDisabled;
+    action.state = prefersEchoCancelledInput ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
 #endif
 
 #if !TARGET_OS_TV
