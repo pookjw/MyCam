@@ -12,11 +12,14 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @class ARPlayerViewControllerVisualProvider;
+
+API_AVAILABLE(visionos(1.0), ios(18.0))
 @protocol ARPlayerViewControllerVisualProviderDelegate <NSObject>
 - (ARPlayerRenderType)rednerTypeWithPlayerViewControllerVisualProvider:(ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider;
 - (void)playerViewControllerVisualProvider:(ARPlayerViewControllerVisualProvider *)playerViewControllerVisualProvider didSelectRenderType:(ARPlayerRenderType)renderType;
 @end
 
+API_AVAILABLE(visionos(1.0), ios(18.0))
 @interface ARPlayerViewControllerVisualProvider : NSObject
 @property (assign, nonatomic, readonly) ARPlayerViewController *playerViewController;
 @property (retain, nonatomic, nullable) AVPlayer *player;

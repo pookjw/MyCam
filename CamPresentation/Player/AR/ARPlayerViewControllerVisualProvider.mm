@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 12/10/24.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_TV
+
 #import <CamPresentation/ARPlayerViewControllerVisualProvider.h>
 
 @implementation ARPlayerViewControllerVisualProvider
@@ -24,3 +28,5 @@
 }
 
 @end
+
+#endif

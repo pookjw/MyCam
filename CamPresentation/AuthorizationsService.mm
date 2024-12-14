@@ -81,6 +81,7 @@
     };
 #endif
     
+#if !TARGET_OS_TV
     void (^requestMicrophoneInjectionPermission)() = ^{
         AVAudioApplicationMicrophoneInjectionPermission permission = AVAudioApplication.sharedInstance.microphoneInjectionPermission;
         
@@ -132,6 +133,7 @@
                 abort();
         }
     };
+#endif
     
     void (^requestRecordPermission)() = ^{
         AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
@@ -143,7 +145,11 @@
                     requestMicrophoneInjectionPermission();
 #else
                     if (granted) {
+#if TARGET_OS_TV
+                        requestLocationAuthorization();
+#else
                         requestMicrophoneInjectionPermission();
+#endif
                     } else {
                         completionHandler(NO);
                     }
@@ -151,8 +157,8 @@
                 }];
                 break;
             case AVAudioApplicationRecordPermissionGranted:
-#if TARGET_OS_VISION
-                requestMicrophoneInjectionPermission();
+#if TARGET_OS_TV
+                requestLocationAuthorization();
 #else
                 requestMicrophoneInjectionPermission();
 #endif
