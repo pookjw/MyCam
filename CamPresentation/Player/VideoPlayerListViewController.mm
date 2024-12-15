@@ -15,6 +15,8 @@
 #import <objc/runtime.h>
 #import <TargetConditionals.h>
 #import <VideoToolbox/VideoToolbox.h>
+#import <AVKit/AVKit.h>
+#import <CamPresentation/AVPlayerViewController+Category.h>
 
 @interface VideoPlayerListViewController () <UICollectionViewDataSource, UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) VideoPlayerListViewModel *viewModel;
@@ -37,7 +39,8 @@
 #endif
         PlayerLayerViewController.class,
         PlayerOutputViewController.class,
-        PlayerOutputViewController.class
+        PlayerOutputViewController.class,
+        AVPlayerViewController.class
     ];
 }
 
@@ -199,13 +202,21 @@
     if (viewControllerClass == PlayerLayerViewController.class) {
         PlayerLayerViewController *viewController = [[PlayerLayerViewController alloc] initWithPlayer:player];
         
-//        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-//            NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_2" withExtension:@"mov"];
-//            AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
-//            [player replaceCurrentItemWithPlayerItem:playerItem];
-//            [playerItem release];
-//        });
+        //        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        //            NSURL *url = [NSBundle.mainBundle URLForResource:@"demo_2" withExtension:@"mov"];
+        //            AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithURL:url];
+        //            [player replaceCurrentItemWithPlayerItem:playerItem];
+        //            [playerItem release];
+        //        });
         
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
+    } else if (viewControllerClass == AVPlayerViewController.class) {
+        AVPlayerViewController *viewController = [AVPlayerViewController new];
+#if TARGET_OS_VISION
+        viewController.cp_overrideEffectivelyFullScreen = NO;
+#endif
+        viewController.player = player;
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {

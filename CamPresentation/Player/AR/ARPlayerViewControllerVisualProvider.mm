@@ -13,7 +13,6 @@
 
 @implementation ARPlayerViewControllerVisualProvider
 @dynamic player;
-@dynamic videoRenderer;
 
 - (instancetype)initWithPlayerViewController:(ARPlayerViewController *)playerViewController {
     if (self = [super init]) {

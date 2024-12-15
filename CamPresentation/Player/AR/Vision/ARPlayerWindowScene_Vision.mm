@@ -27,14 +27,6 @@
     CamPresentation::setAVPlayer_Vision(player, self._playerHostingController);
 }
 
-- (AVSampleBufferVideoRenderer *)videoRenderer {
-    return CamPresentation::videoRendererFromRealityPlayerHostingController_Vision(self._playerHostingController);
-}
-
-- (void)setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
-    CamPresentation::setVideoRenderer_Vision(videoRenderer, self._playerHostingController);
-}
-
 - (__kindof UIViewController *)_playerHostingController {
     auto delegate = static_cast<ARPlayerSceneDelegate_Vision *>(self.delegate);
     __kindof UIViewController *rootViewController = delegate.window.rootViewController;

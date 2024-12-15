@@ -82,24 +82,6 @@
     self._controlViewController.controlView.player = player;
 }
 
-- (AVSampleBufferVideoRenderer *)videoRenderer {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    return CamPresentation::videoRendererFromRealityPlayerHostingController_Vision(self._arPlayerHostingController);
-}
-
-- (void)setVideoRenderer:(AVSampleBufferVideoRenderer *)videoRenderer {
-    dispatch_assert_queue(dispatch_get_main_queue());
-    
-    CamPresentation::setVideoRenderer_Vision(videoRenderer, self._arPlayerHostingController);
-    self._immersiveSpaceScene.videoRenderer = videoRenderer;
-    
-    if (videoRenderer == nil) {
-        AVPlayer * _Nullable player = self.player;
-        CamPresentation::setAVPlayer_Vision(player, self._arPlayerHostingController);
-        self._immersiveSpaceScene.player = player;
-    }
-}
-
 - (UIBarButtonItem *)_toggleImmersiveSceneBarButtonItem {
     if (auto toggleImmersiveSceneBarButtonItem = __toggleImmersiveSceneBarButtonItem) return toggleImmersiveSceneBarButtonItem;
     
@@ -160,12 +142,7 @@
             
             ARPlayerWindowScene_Vision *scene = self._immersiveSpaceScene;
             assert(scene != nil);
-            
-            if (AVPlayer *player = self.player) {
-                scene.player = player;
-            } else if (AVSampleBufferVideoRenderer *videoRenderer = self.videoRenderer) {
-                scene.videoRenderer = videoRenderer;
-            }
+            scene.player = self.player;
         }];
         
         [userActivity release];
