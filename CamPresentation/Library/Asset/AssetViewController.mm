@@ -140,6 +140,8 @@
                                                                                              asset:asset
                                                                                   requestIDHandler:nil
                                                                          didSelectModelTypeHandler:^(NerualAnalyzerModelType modelType) {
+            if (unretainedSelf.modelType == modelType) return;
+            
             unretainedSelf.modelType = modelType;
             reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(unretainedSelf.nerualAnalzyerBarButtonItem, sel_registerName("_updateMenuInPlace"));
         }];
