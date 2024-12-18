@@ -21,8 +21,6 @@
 		4F3806E72CE0FDC8002E96DF /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E52CE0FDC8002E96DF /* MetalKit.framework */; };
 		4F3806E82CE0FDC8002E96DF /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E62CE0FDC8002E96DF /* Metal.framework */; };
 		4F3806EA2CE0FDCC002E96DF /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E92CE0FDCC002E96DF /* ModelIO.framework */; };
-		4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); };
-		4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F3B94412D12AC32001235FC /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3B94402D12AC32001235FC /* CoreML.framework */; };
 		4F3B94432D12AC36001235FC /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3B94422D12AC36001235FC /* Vision.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
@@ -88,7 +86,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
-				4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -685,7 +682,6 @@
 				4FBD1EA82CFB7F0300851F07 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,
 				4FA73EB32C99741A00F17348 /* PhotosUI.framework in Frameworks */,
-				4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */,
 				4F32A2D82C95ABC30010F295 /* AVFoundation.framework in Frameworks */,
 				4F2A41982C98148000726F2F /* CamPresentation.framework in Frameworks */,
 			);

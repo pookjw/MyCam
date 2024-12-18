@@ -13,7 +13,6 @@
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PointCloudPreviewView.h>
-#import <CamPresentation/PhotoFormatModel.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
@@ -44,8 +43,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 #endif
 @property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureSessionBarButton;
+#if !TARGET_OS_TV
+@property (nonatomic, readonly) NSArray<UIBarButtonItem *> *cp_toolbarButtonItems;
+#endif
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (copy, nonatomic) PhotoFormatModel *photoFormatModel;
 @end
 
 @implementation CameraRootViewController
@@ -77,9 +78,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)commonInit_CameraRootViewController {
-    PhotoFormatModel *photoFormatModel = [PhotoFormatModel new];
-    self.photoFormatModel = photoFormatModel;
-    [photoFormatModel release];
+    
 }
 
 - (void)dealloc {
@@ -100,7 +99,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         [captureService.externalStorageDeviceDiscoverySession removeObserver:self forKeyPath:@"externalStorageDevices"];
         [captureService release];
     }
-    [_photoFormatModel release];
     [super dealloc];
 }
 
@@ -144,6 +142,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [super viewWillAppear:animated];
     
 #if !TARGET_OS_TV
+    self.toolbarItems = self.cp_toolbarButtonItems;
     [self.navigationController setToolbarHidden:NO animated:YES];
 #endif
 }
@@ -152,26 +151,24 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [super viewWillDisappear:animated];
     
 #if !TARGET_OS_TV
-    [self.navigationController setToolbarHidden:YES animated:YES];
-#endif
-}
-
-- (void)viewDidMoveToWindow:(UIWindow *)window shouldAppearOrDisappear:(BOOL)shouldAppearOrDisappear {
-    objc_super superInfo = { self, [self class] };
-    reinterpret_cast<void (*)(objc_super *, SEL, id, BOOL)>(objc_msgSendSuper2)(&superInfo, _cmd, window, shouldAppearOrDisappear);
-    
-    if (window != nil) {
-        [self setToolbarItems:@[
-            self.photosBarButtonItem,
-            [UIBarButtonItem flexibleSpaceItem],
-            self.captureSessionBarButton,
-            self.audioBarButtonItem,
-            self.fileOutputsBarButtonItem,
-            self.captureDevicesBarButtonItem
-        ]];
+    if (id<UIViewControllerTransitionCoordinator> transitionCoordinator = self.transitionCoordinator) {
+        UINavigationController *navigationController = self.navigationController;
+        
+        [transitionCoordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            self.toolbarItems = @[];
+            [navigationController setToolbarHidden:YES animated:YES];
+        }
+                                               completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+            if (context.isCancelled) {
+                self.toolbarItems = self.cp_toolbarButtonItems;
+                [navigationController setToolbarHidden:NO animated:YES];
+            }
+        }];
     } else {
-        [self setToolbarItems:@[]];
+        self.toolbarItems = @[];
+        [self.navigationController setToolbarHidden:YES animated:YES];
     }
+#endif
 }
 
 - (void)viewDidLoad {
@@ -337,7 +334,17 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     _captureSessionBarButton = [captureSessionBarButton retain];
     return [captureSessionBarButton autorelease];
-    
+}
+
+- (NSArray<UIBarButtonItem *> *)cp_toolbarButtonItems {
+    return @[
+        self.photosBarButtonItem,
+        [UIBarButtonItem flexibleSpaceItem],
+        self.captureSessionBarButton,
+        self.audioBarButtonItem,
+        self.fileOutputsBarButtonItem,
+        self.captureDevicesBarButtonItem
+    ];
 }
 
 - (CaptureService *)captureService {
