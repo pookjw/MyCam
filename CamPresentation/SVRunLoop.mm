@@ -39,7 +39,6 @@ namespace ns_SVRunLoop {
 __attribute__((objc_direct_members))
 @interface SVRunLoop ()
 @property (copy, readonly, nonatomic) NSString * _Nullable threadName;
-@property (retain, readonly, nonatomic) NSThread *thread;
 @end
 
 @implementation SVRunLoop
