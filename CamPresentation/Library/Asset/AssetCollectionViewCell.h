@@ -7,12 +7,11 @@
 
 #import <UIKit/UIKit.h>
 #import <CamPresentation/AssetsItemModel.h>
-#import <CamPresentation/AssetContentView.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetCollectionViewCell : UICollectionViewCell
-@property (nonatomic, readonly) AssetContentView *ownContentView;
+@property (retain, nonatomic, nullable) AssetsItemModel *model;
 @end
 
 NS_ASSUME_NONNULL_END

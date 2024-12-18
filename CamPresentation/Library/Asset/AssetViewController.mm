@@ -25,6 +25,7 @@
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *nerualAnalzyerBarButtonItem;
+@property (assign, nonatomic) NerualAnalyzerModelType modelType;
 @end
 
 @implementation AssetViewController
@@ -37,6 +38,7 @@
     if (self = [super initWithNibName:nil bundle:nil]) {
         _collection = [collection retain];
         _asset = [asset retain];
+        _modelType = NerualAnalyzerModelTypeCatOrDogV2;
     }
     
     return self;
@@ -103,22 +105,8 @@
 - (AssetsDataSource *)dataSource {
     if (auto dataSource = _dataSource) return dataSource;
     
-    UIBarButtonItem *nerualAnalzyerBarButtonItem = self.nerualAnalzyerBarButtonItem;
-    
-    // _viewControllerForAncestor
-    // TODO: 현재 Asset 확인
     UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetCollectionViewCell.class configurationHandler:^(AssetCollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetsItemModel * _Nonnull item) {
-        AssetContentView *contentView = cell.ownContentView;
-        
-        [contentView setModel:item imageHandler:^(UIImage * _Nullable image, BOOL isDegraded) {
-            if (image != nil and !isDegraded) {
-                UIDeferredMenuElement *element = [UIDeferredMenuElement cp_nerualAnalyzerMenuWithModelType:NerualAnalyzerModelTypeCatOrDogV2 image:image didSelectModelTypeHandler:^(NerualAnalyzerModelType modelType) {
-                    
-                }];
-                
-                nerualAnalzyerBarButtonItem.menu = [UIMenu menuWithChildren:@[element]];
-            }
-        }];
+        cell.model = item;
     }];
     
     AssetsDataSource *dataSource = [[AssetsDataSource alloc] initWithCollectionView:self.collectionView cellRegistration:cellRegistration requestMaximumSize:YES];
@@ -139,7 +127,29 @@
 - (UIBarButtonItem *)nerualAnalzyerBarButtonItem {
     if (auto nerualAnalzyerBarButtonItem = _nerualAnalzyerBarButtonItem) return nerualAnalzyerBarButtonItem;
     
-    UIBarButtonItem *nerualAnalzyerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"staroflife.fill"] menu:nil];
+    __block auto unretainedSelf = self;
+    
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        PHAsset *asset = [unretainedSelf currentAsset];
+        if (asset == nil) {
+            completion(@[]);
+            return;
+        }
+        
+        UIDeferredMenuElement *element = [UIDeferredMenuElement cp_nerualAnalyzerMenuWithModelType:unretainedSelf.modelType
+                                                                                             asset:asset
+                                                                                  requestIDHandler:nil
+                                                                         didSelectModelTypeHandler:^(NerualAnalyzerModelType modelType) {
+            unretainedSelf.modelType = modelType;
+            reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(unretainedSelf.nerualAnalzyerBarButtonItem, sel_registerName("_updateMenuInPlace"));
+        }];
+        
+        completion(@[element]);
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[element]];
+    
+    UIBarButtonItem *nerualAnalzyerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"staroflife.fill"] menu:menu];
     
     _nerualAnalzyerBarButtonItem = [nerualAnalzyerBarButtonItem retain];
     return [nerualAnalzyerBarButtonItem autorelease];
@@ -153,7 +163,7 @@
     [viewController release];
 }
 
-- (PHAsset * _Nullable)currentVideoAsset {
+- (PHAsset * _Nullable)currentAsset {
     UICollectionView *collectionView = self.collectionView;
     
     NSIndexPath * _Nullable indexPath = [collectionView indexPathForItemAtPoint:CGPointMake(CGRectGetMidX(collectionView.bounds), CGRectGetMidY(collectionView.bounds))];
@@ -162,6 +172,11 @@
     }
     
     PHAsset * _Nullable asset = [self.dataSource assetAtIndexPath:indexPath];
+    return asset;
+}
+
+- (PHAsset * _Nullable)currentVideoAsset {
+    PHAsset * _Nullable asset = [self currentAsset];
     if (asset == nil) {
         return nil;
     }

@@ -18,15 +18,23 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return AssetContentView.class;
 }
 
-- (AssetContentView *)ownContentView {
-    return static_cast<AssetContentView *>(self.contentView);
+- (void)dealloc {
+    [_model release];
+    [super dealloc];
+}
+
+- (void)setModel:(AssetsItemModel *)model {
+    [_model release];
+    _model = [model retain];
+    
+    static_cast<AssetContentView *>(self.contentView).model = model;
 }
 
 - (void)_notifyIsDisplaying:(BOOL)isDisplaying {
     objc_super superInfo = { self, [self class] };
     reinterpret_cast<void (*)(objc_super *, SEL, BOOL)>(objc_msgSendSuper2)(&superInfo, _cmd, isDisplaying);
     
-    [self.ownContentView didChangeIsDisplaying:isDisplaying];
+    [static_cast<AssetContentView *>(self.contentView) didChangeIsDisplaying:isDisplaying];
 }
 
 @end
