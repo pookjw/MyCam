@@ -149,7 +149,7 @@ __attribute__((objc_direct_members))
     
     CGRect frame = self.bounds;
     frame = CGRectInset(frame, 5., 5.);
-    frame.size.height = 200.;
+    frame.size.height /= 3.;
     
     textLayer.frame = frame;
 }
