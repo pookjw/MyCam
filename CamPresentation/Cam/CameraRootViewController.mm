@@ -26,6 +26,8 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
+
 #warning AVCaptureDeviceSubjectAreaDidChangeNotification, +[AVCaptureDevice cinematicFramingControlMode], Memory Leak Test, exposureMode
 
 #if TARGET_OS_TV
@@ -151,10 +153,25 @@
     
 #if !TARGET_OS_TV
     [self.navigationController setToolbarHidden:YES animated:YES];
-    
-    // 이거 안해주면 UIBarButtonItem이 계속 살아 있음. -[UIViewController setToolbarItems:]도 소용 없음
-    self.navigationController.toolbar.items = @[];
 #endif
+}
+
+- (void)viewDidMoveToWindow:(UIWindow *)window shouldAppearOrDisappear:(BOOL)shouldAppearOrDisappear {
+    objc_super superInfo = { self, [self class] };
+    reinterpret_cast<void (*)(objc_super *, SEL, id, BOOL)>(objc_msgSendSuper2)(&superInfo, _cmd, window, shouldAppearOrDisappear);
+    
+    if (window != nil) {
+        [self setToolbarItems:@[
+            self.photosBarButtonItem,
+            [UIBarButtonItem flexibleSpaceItem],
+            self.captureSessionBarButton,
+            self.audioBarButtonItem,
+            self.fileOutputsBarButtonItem,
+            self.captureDevicesBarButtonItem
+        ]];
+    } else {
+        [self setToolbarItems:@[]];
+    }
 }
 
 - (void)viewDidLoad {
@@ -219,14 +236,7 @@
         self.captureDevicesBarButtonItem
     ];
 #else
-    [self setToolbarItems:@[
-        self.photosBarButtonItem,
-        [UIBarButtonItem flexibleSpaceItem],
-        self.captureSessionBarButton,
-        self.audioBarButtonItem,
-        self.fileOutputsBarButtonItem,
-        self.captureDevicesBarButtonItem
-    ]];
+    
 #endif
     
     //
