@@ -12,6 +12,7 @@
 #import <CamPresentation/PhotoLibraryFileOutput.h>
 #import <CamPresentation/PixelBufferLayer.h>
 #import <CamPresentation/MovieWriter.h>
+#import <CamPresentation/NerualAnalyzerLayer.h>
 #import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -37,6 +38,7 @@ CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotifi
 //
 
 API_UNAVAILABLE(visionos)
+__attribute__((objc_direct_members))
 @interface CaptureService : NSObject
 @property (retain, nonatomic, readonly, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) dispatch_queue_t captureSessionQueue;
@@ -55,6 +57,7 @@ API_UNAVAILABLE(visionos)
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *queue_nerualAnalyzerLayersByVideoDeviceCopiedMapTable;
 
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;
@@ -74,11 +77,15 @@ API_UNAVAILABLE(visionos)
 - (BOOL)queue_isSampleBufferDisplayLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
 - (void)queue_setSampleBufferDisplayLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;
 
+- (BOOL)queue_isNerualAnalyzerLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_setNerualAnalyzerLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;
+
 - (AVCaptureVideoPreviewLayer * _Nullable)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureDevice * _Nullable)queue_captureDeviceFromPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
 - (__kindof CALayer * _Nullable)queue_depthMapLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_visionLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (__kindof CALayer * _Nullable)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (NerualAnalyzerLayer * _Nullable)queue_nerualAnalyzerLayerFromVideoDevice:(AVCaptureDevice *)videoDevice;
 - (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (AVCaptureMovieFileOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 

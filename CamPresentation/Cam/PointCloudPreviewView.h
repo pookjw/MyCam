@@ -10,6 +10,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
+__attribute__((objc_direct_members))
 @interface PointCloudPreviewView : UIView
 @property (retain, nonatomic, readonly) CALayer *pointCloudLayer;
 + (instancetype)new NS_UNAVAILABLE;

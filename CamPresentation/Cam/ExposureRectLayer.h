@@ -11,6 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
+__attribute__((objc_direct_members))
 @interface ExposureRectLayer : CALayer
 + (instancetype)layer NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;

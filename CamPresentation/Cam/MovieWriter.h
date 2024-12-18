@@ -26,6 +26,7 @@ typedef NS_ENUM(NSUInteger, MovieWriterStatus) {
     MovieWriterStatusPaused
 };
 
+__attribute__((objc_direct_members))
 @interface MovieWriter : NSObject
 @property (retain, nonatomic, nullable) __kindof BaseFileOutput *fileOutput;
 @property (retain, nonatomic, readonly) AVCaptureVideoDataOutput *videoDataOutput;

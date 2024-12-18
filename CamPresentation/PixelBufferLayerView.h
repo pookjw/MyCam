@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+__attribute__((objc_direct_members))
 @interface PixelBufferLayerView : UIView
 @property (readonly) PixelBufferLayer *pixelBufferLayer;
 @end

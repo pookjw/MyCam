@@ -62,6 +62,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
+            [elements addObject:[UIDeferredMenuElement _cp_queue_nerualAnalyzerModelTypeMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
             [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
@@ -4079,6 +4081,65 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     action.state = isShutterSoundSuppressionEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     return action;
+}
+
++ (UIMenu *)_cp_queue_nerualAnalyzerModelTypeMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    NerualAnalyzerLayer *layer = [captureService queue_nerualAnalyzerLayerFromVideoDevice:videoDevice];
+    assert(layer != nil);
+    
+    const std::optional<NerualAnalyzerModelType> selectedType = layer.modelType;
+    
+    UIAction *noneAction = [UIAction actionWithTitle:@"None" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            layer.modelType = std::nullopt;
+            [captureService queue_setNerualAnalyzerLayerEnabled:NO forVideoDeivce:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    noneAction.state = selectedType.has_value() ? UIMenuElementStateOff : UIMenuElementStateOn;
+    
+    NSUInteger count;
+    const NerualAnalyzerModelType *allTypes = allNerualAnalyzerModelTypes(&count);
+    
+    auto actionsVec = std::views::iota(allTypes, allTypes + count)
+    | std::views::transform([captureService, videoDevice, didChangeHandler, layer, selectedType](const NerualAnalyzerModelType *ptr) -> UIAction * {
+        const NerualAnalyzerModelType modelType = *ptr;
+        
+        UIAction *action = [UIAction actionWithTitle:NSStringFromNerualAnalyzerModelType(modelType) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                layer.modelType = modelType;
+                [captureService queue_setNerualAnalyzerLayerEnabled:YES forVideoDeivce:videoDevice];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        BOOL isSelected;
+        if (auto ptr = selectedType) {
+            isSelected = (*ptr == modelType);
+        } else {
+            isSelected = NO;
+        }
+        
+        action.state = isSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+    [actions insertObject:noneAction atIndex:0];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Nerual Analyzer Models" children:actions];
+    
+    if (auto ptr = selectedType) {
+        menu.subtitle = NSStringFromNerualAnalyzerModelType(*ptr);
+    } else {
+        menu.subtitle = @"None";
+    }
+    
+    [actions release];
+    
+    return menu;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

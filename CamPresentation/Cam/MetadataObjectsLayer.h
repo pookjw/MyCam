@@ -11,6 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
+__attribute__((objc_direct_members))
 @interface MetadataObjectsLayer : CALayer
 - (void)updateWithMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer;
 @end

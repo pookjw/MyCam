@@ -67,6 +67,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) AVSampleBufferDisplayLayer *sampleBufferDisplayLayer;
 @property (retain, nonatomic, readonly) FocusRectLayer *focusRectLayer;
 @property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
+@property (retain, nonatomic, readonly) NerualAnalyzerLayer *nerualAnalyzerLayer;
 @property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
 @end
 
@@ -87,7 +88,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer customPreviewLayer:(PixelBufferLayer *)customPreviewLayer sampleBufferDisplayLayer:(AVSampleBufferDisplayLayer *)sampleBufferDisplayLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer customPreviewLayer:(PixelBufferLayer *)customPreviewLayer sampleBufferDisplayLayer:(AVSampleBufferDisplayLayer *)sampleBufferDisplayLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer nerualAnalyzerLayer:(NerualAnalyzerLayer *)nerualAnalyzerLayer {
     assert(previewLayer != nil);
     
     if (self = [super init]) {
@@ -99,6 +100,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         _sampleBufferDisplayLayer = [sampleBufferDisplayLayer retain];
         _depthMapLayer = [depthMapLayer retain];
         _visionLayer = [visionLayer retain];
+        _nerualAnalyzerLayer = [nerualAnalyzerLayer retain];
         _metadataObjectsLayer = [metadataObjectsLayer retain];
         
         CALayer *layer = self.layer;
@@ -131,6 +133,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             metadataObjectsLayer.frame = bounds;
             [layer addSublayer:metadataObjectsLayer];
         }
+        
+        nerualAnalyzerLayer.frame = bounds;
+        [layer addSublayer:nerualAnalyzerLayer];
         
         FocusRectLayer *focusRectLayer = [[FocusRectLayer alloc] initWithCaptureDevice:captureDevice videoPreviewLayer:previewLayer];
         [layer addSublayer:focusRectLayer];
@@ -238,6 +243,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_metadataObjectsLayer release];
     [_focusRectLayer release];
     [_exposureRectLayer release];
+    [_nerualAnalyzerLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_menuBarButtonItem release];
     [_captureProgressActivityIndicatorView release];
@@ -305,6 +311,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.metadataObjectsLayer.frame = bounds;
     self.focusRectLayer.frame = bounds;
     self.exposureRectLayer.frame = bounds;
+    self.nerualAnalyzerLayer.frame = bounds;
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {
@@ -691,6 +698,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.metadataObjectsLayer.contentsScale = displayScale;
     self.focusRectLayer.contentsScale = displayScale;
     self.exposureRectLayer.contentsScale = displayScale;
+    self.nerualAnalyzerLayer.contentsScale = displayScale;
 }
 
 - (void)willBeginSnapshotSessionNotification:(NSNotification *)notification {
