@@ -14,7 +14,6 @@
 @interface AssetContentView () <UserTransformViewDelegate>
 @property (retain, nonatomic, readonly) UIImageView *imageView;
 @property (retain, nonatomic, readonly) UserTransformView *userTransformView;
-@property (nonatomic, readonly) void (^resultHandler)(UIImage * _Nullable result, NSDictionary * _Nullable info);
 @end
 
 @implementation AssetContentView
@@ -52,7 +51,7 @@
     }
 }
 
-- (void)setModel:(AssetsItemModel *)model {
+- (void)setModel:(AssetsItemModel *)model imageHandler:(void (^)(UIImage * _Nullable, BOOL))imageHandler {
     if ([_model.asset isEqual:model.asset]) return;
     
     [_model cancelRequest];
@@ -71,9 +70,13 @@
     options.networkAccessAllowed = YES;
     options.allowSecondaryDegradedImage = YES;
     
-    [model requestImageWithTargetSize:PHImageManagerMaximumSize options:options resultHandler:self.resultHandler];
+    [model requestImageWithTargetSize:PHImageManagerMaximumSize options:options resultHandler:[self resultHandlerWithImageHandler:imageHandler]];
     
     [options release];
+}
+
+- (UIImage *)image {
+    return self.imageView.image;
 }
 
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying {
@@ -107,7 +110,7 @@
     return [userTransformView autorelease];
 }
 
-- (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandler {
+- (void (^)(UIImage * _Nullable, NSDictionary * _Nullable))resultHandlerWithImageHandler:(void (^ _Nullable)(UIImage * _Nullable image, BOOL isDegraded))imageHandler {
     UIImageView *imageView = self.imageView;
     UserTransformView *userTransformView = self.userTransformView;
     
@@ -134,6 +137,11 @@
         }
         
         imageView.image = result;
+        
+        if (imageHandler) {
+            BOOL isDegraded = static_cast<NSNumber *>(info[PHImageResultIsDegradedKey]).boolValue;
+            imageHandler(result, isDegraded);
+        }
         
         [UIView animateWithDuration:0.2 animations:^{
             imageView.alpha = 1.;

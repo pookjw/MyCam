@@ -11,8 +11,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetContentView : UIView
-@property (retain, nonatomic, nullable) AssetsItemModel *model;
+@property (retain, nonatomic, readonly, nullable) AssetsItemModel *model;
 - (void)didChangeIsDisplaying:(BOOL)isDisplaying;
+- (void)setModel:(AssetsItemModel * _Nullable)model imageHandler:(void (^ _Nullable)(UIImage * _Nullable image, BOOL isDegraded))imageHandler;
 @end
 
 NS_ASSUME_NONNULL_END

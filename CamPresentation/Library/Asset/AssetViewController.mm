@@ -11,6 +11,7 @@
 #import <CamPresentation/AssetCollectionViewCell.h>
 #import <CamPresentation/AssetCollectionViewLayout.h>
 #import <CamPresentation/VideoPlayerListViewController.h>
+#import <CamPresentation/UIDeferredMenuElement+NerualAnalyzer.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -23,12 +24,14 @@
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *nerualAnalzyerBarButtonItem;
 @end
 
 @implementation AssetViewController
 @synthesize collectionView = _collectionView;
 @synthesize dataSource = _dataSource;
 @synthesize playerBarButtonItem = _playerBarButtonItem;
+@synthesize nerualAnalzyerBarButtonItem = _nerualAnalzyerBarButtonItem;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection asset:(PHAsset *)asset {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -45,6 +48,7 @@
     [_collectionView release];
     [_dataSource release];
     [_playerBarButtonItem release];
+    [_nerualAnalzyerBarButtonItem release];
     [super dealloc];
 }
 
@@ -56,6 +60,7 @@
     [super viewDidLoad];
     
     self.navigationItem.rightBarButtonItems = @[
+        self.nerualAnalzyerBarButtonItem,
         self.playerBarButtonItem
     ];
     
@@ -98,8 +103,22 @@
 - (AssetsDataSource *)dataSource {
     if (auto dataSource = _dataSource) return dataSource;
     
+    UIBarButtonItem *nerualAnalzyerBarButtonItem = self.nerualAnalzyerBarButtonItem;
+    
+    // _viewControllerForAncestor
+    // TODO: 현재 Asset 확인
     UICollectionViewCellRegistration *cellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:AssetCollectionViewCell.class configurationHandler:^(AssetCollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, AssetsItemModel * _Nonnull item) {
-        cell.model = item;
+        AssetContentView *contentView = cell.ownContentView;
+        
+        [contentView setModel:item imageHandler:^(UIImage * _Nullable image, BOOL isDegraded) {
+            if (image != nil and !isDegraded) {
+                UIDeferredMenuElement *element = [UIDeferredMenuElement cp_nerualAnalyzerMenuWithModelType:NerualAnalyzerModelTypeCatOrDogV2 image:image didSelectModelTypeHandler:^(NerualAnalyzerModelType modelType) {
+                    
+                }];
+                
+                nerualAnalzyerBarButtonItem.menu = [UIMenu menuWithChildren:@[element]];
+            }
+        }];
     }];
     
     AssetsDataSource *dataSource = [[AssetsDataSource alloc] initWithCollectionView:self.collectionView cellRegistration:cellRegistration requestMaximumSize:YES];
@@ -115,6 +134,15 @@
     
     _playerBarButtonItem = [playerBarButtonItem retain];
     return [playerBarButtonItem autorelease];
+}
+
+- (UIBarButtonItem *)nerualAnalzyerBarButtonItem {
+    if (auto nerualAnalzyerBarButtonItem = _nerualAnalzyerBarButtonItem) return nerualAnalzyerBarButtonItem;
+    
+    UIBarButtonItem *nerualAnalzyerBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"staroflife.fill"] menu:nil];
+    
+    _nerualAnalzyerBarButtonItem = [nerualAnalzyerBarButtonItem retain];
+    return [nerualAnalzyerBarButtonItem autorelease];
 }
 
 - (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {

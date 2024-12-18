@@ -360,6 +360,8 @@
 				Nerual/NerualAnalyzerLayer.mm,
 				Nerual/NerualAnalyzerModelType.h,
 				Nerual/NerualAnalyzerModelType.mm,
+				"Nerual/UIDeferredMenuElement+NerualAnalyzer.h",
+				"Nerual/UIDeferredMenuElement+NerualAnalyzer.mm",
 				"NSObject+Foundation_IvarDescription.h",
 				"NSObject+Foundation_IvarDescription.mm",
 				"NSURL+CP.h",

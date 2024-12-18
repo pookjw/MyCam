@@ -6,7 +6,7 @@
 //
 
 #import <CamPresentation/NerualAnalyzerModelType.h>
-#import <ranges>
+#include <ranges>
 
 @interface __CP_NerualAnalyzerModelType : NSObject
 @end

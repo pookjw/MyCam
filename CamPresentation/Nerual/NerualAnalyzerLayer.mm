@@ -57,7 +57,7 @@ __attribute__((objc_direct_members))
     auto casted = static_cast<NerualAnalyzerLayer *>(layer);
     
     if (self = [super initWithLayer:casted]) {
-        _modelType = casted->_modelType;
+        self.modelType = casted.modelType;
         __runLoop = [casted->__runLoop retain];
         __textLayer = [[CATextLayer alloc] initWithLayer:casted->__textLayer];
         
@@ -84,9 +84,19 @@ __attribute__((objc_direct_members))
     [self _layoutTextLayer];
 }
 
-- (void)setModelType:(std::optional<NerualAnalyzerModelType>)modelType {
-    _modelType = modelType;
+- (std::optional<NerualAnalyzerModelType>)modelType {
+    MLModel * _Nullable model = __model;
+    if (model == nil) {
+        return std::nullopt;
+    }
     
+    NSString *modelDisplayName = model.configuration.modelDisplayName;
+    NerualAnalyzerModelType modelType = NerualAnalyzerModelTypeFromNSString(modelDisplayName);
+    
+    return modelType;
+}
+
+- (void)setModelType:(std::optional<NerualAnalyzerModelType>)modelType {
     if (auto ptr = modelType) {
         NerualAnalyzerModelType modelType = *ptr;
         
@@ -96,7 +106,7 @@ __attribute__((objc_direct_members))
         configuration.computeUnits = MLComputeUnitsAll;
         
         MLOptimizationHints * optimizationHints = [MLOptimizationHints new];
-        optimizationHints.reshapeFrequency = MLReshapeFrequencyHintInfrequent;
+        optimizationHints.reshapeFrequency = MLReshapeFrequencyHintFrequent;
         optimizationHints.specializationStrategy = MLSpecializationStrategyFastPrediction;
         
         configuration.optimizationHints = optimizationHints;

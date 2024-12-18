@@ -482,13 +482,17 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 - (UIBarButtonItem *)gestureModeMenuBarButtonItem {
     if (auto gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem) return gestureModeMenuBarButtonItem;
     
+    __block auto unreaintedSelf = self;
+    
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        CaptureVideoPreview::GestureMode currentGestureMode = self.gestureMode;
+        CaptureVideoPreview::GestureMode currentGestureMode = unreaintedSelf.gestureMode;
+        
+        auto _unreaintedSelf = unreaintedSelf;
         
         auto actionsVec = CaptureVideoPreview::allGestureModes
-        | std::views::transform([currentGestureMode, self](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
+        | std::views::transform([currentGestureMode, _unreaintedSelf](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
             UIAction *action = [UIAction actionWithTitle:CaptureVideoPreview::NSStringFromGestureMode(gestureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                self.gestureMode = gestureMode;
+                _unreaintedSelf.gestureMode = gestureMode;
             }];
             
             action.state = (currentGestureMode == gestureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -496,10 +500,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             BOOL isSupported;
             switch (gestureMode) {
                 case CaptureVideoPreview::GestureMode::Focus:
-                    isSupported = self.captureDevice.isFocusPointOfInterestSupported;
+                    isSupported = _unreaintedSelf.captureDevice.isFocusPointOfInterestSupported;
                     break;
                 case CaptureVideoPreview::GestureMode::Exposure:
-                    isSupported = self.captureDevice.isExposurePointOfInterestSupported;
+                    isSupported = _unreaintedSelf.captureDevice.isExposurePointOfInterestSupported;
                     break;
                 default:
                     abort();
