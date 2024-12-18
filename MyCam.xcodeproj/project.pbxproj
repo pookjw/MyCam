@@ -23,6 +23,8 @@
 		4F3806EA2CE0FDCC002E96DF /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3806E92CE0FDCC002E96DF /* ModelIO.framework */; };
 		4F394BF42CDE654F009EE83A /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); };
 		4F394BF52CDE654F009EE83A /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; platformFilters = (ios, tvos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		4F3B94412D12AC32001235FC /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3B94402D12AC32001235FC /* CoreML.framework */; };
+		4F3B94432D12AC36001235FC /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3B94422D12AC36001235FC /* Vision.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9AA48F2CED6B1100CCABDB /* ARKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
@@ -139,6 +141,8 @@
 		4F3806E52CE0FDC8002E96DF /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		4F3806E62CE0FDC8002E96DF /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		4F3806E92CE0FDCC002E96DF /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/ModelIO.framework; sourceTree = DEVELOPER_DIR; };
+		4F3B94402D12AC32001235FC /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/CoreML.framework; sourceTree = DEVELOPER_DIR; };
+		4F3B94422D12AC36001235FC /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/Vision.framework; sourceTree = DEVELOPER_DIR; };
 		4F47801A2C98388800813671 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreMedia.framework; sourceTree = DEVELOPER_DIR; };
 		4F4780332C984BE500813671 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -649,6 +653,7 @@
 				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
 				4F2A41D52C981A6400726F2F /* AVKit.framework in Frameworks */,
 				4F3806EA2CE0FDCC002E96DF /* ModelIO.framework in Frameworks */,
+				4F3B94412D12AC32001235FC /* CoreML.framework in Frameworks */,
 				4F2A41D22C981A6000726F2F /* UIKit.framework in Frameworks */,
 				4FD57C3F2C9AC4A50016FBF0 /* Symbols.framework in Frameworks */,
 				4FED1ACD2C997BC000174044 /* CoreGraphics.framework in Frameworks */,
@@ -656,6 +661,7 @@
 				4FA73EBA2C99764100F17348 /* CoreImage.framework in Frameworks */,
 				4F3806E82CE0FDC8002E96DF /* Metal.framework in Frameworks */,
 				4F2A41D62C981A6400726F2F /* AVFoundation.framework in Frameworks */,
+				4F3B94432D12AC36001235FC /* Vision.framework in Frameworks */,
 				4FED1AD12C997E2C00174044 /* ImageIO.framework in Frameworks */,
 				4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */,
 				4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */,
@@ -704,6 +710,8 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F3B94422D12AC36001235FC /* Vision.framework */,
+				4F3B94402D12AC32001235FC /* CoreML.framework */,
 				4FBD1EA72CFB7F0300851F07 /* UniformTypeIdentifiers.framework */,
 				4F9AA48F2CED6B1100CCABDB /* ARKit.framework */,
 				4FF536522CE87EE2000FA763 /* VideoToolbox.framework */,

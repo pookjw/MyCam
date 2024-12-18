@@ -17,5 +17,7 @@ typedef NS_ENUM(NSUInteger, NerualAnalyzerModelType) {
 const NerualAnalyzerModelType * allNerualAnalyzerModelTypes(NSUInteger * _Nullable countOut);
 
 NSString * NSStringFromNerualAnalyzerModelType(NerualAnalyzerModelType type);
+NerualAnalyzerModelType NerualAnalyzerModelTypeFromNSString(NSString *string);
+NSURL *mlmodelcURLFromNerualAnalyzerModelType(NerualAnalyzerModelType type);
 
 NS_ASSUME_NONNULL_END
