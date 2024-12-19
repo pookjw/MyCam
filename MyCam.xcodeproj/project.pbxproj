@@ -351,6 +351,7 @@
 				Library/Assets/AssetsViewController.h,
 				Library/Assets/AssetsViewController.mm,
 				lock_private.h,
+				MobileNetV2.mlmodel,
 				"Nerual/MLModelAsset+Category.h",
 				"Nerual/MLModelAsset+Category.mm",
 				Nerual/NerualAnalyzerLayer.h,

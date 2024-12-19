@@ -11,10 +11,14 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <Vision/Vision.h>
+#import <Accelerate/Accelerate.h>
+#include <ranges>
 
 __attribute__((objc_direct_members))
 @interface NerualAnalyzerLayer ()
 @property (retain, nonatomic, nullable) MLModel *_model;
+@property (retain, nonatomic, nullable) VNCoreMLRequest *_vnRequest;
 @property (retain, nonatomic, readonly) SVRunLoop *_runLoop;
 @property (retain, nonatomic, readonly) CATextLayer *_textLayer;
 @end
@@ -23,6 +27,7 @@ __attribute__((objc_direct_members))
 
 - (instancetype)init {
     if (self = [super init]) {
+        
         __runLoop = [[SVRunLoop alloc] initWithThreadName:@"NerualAnalyzerLayer"];
         
         CATextLayer *textLayer = [CATextLayer new];
@@ -69,6 +74,7 @@ __attribute__((objc_direct_members))
 
 - (void)dealloc {
     [__model release];
+    [__vnRequest release];
     [__runLoop release];
     [__textLayer release];
     [super dealloc];
@@ -121,6 +127,36 @@ __attribute__((objc_direct_members))
         assert(error == nil);
         
         self._model = model;
+        
+        
+        VNCoreMLModel *visionModel = [VNCoreMLModel modelForMLModel:model error:&error];
+        assert(error == nil);
+        
+        CATextLayer *textLayer = __textLayer;
+        SVRunLoop *runLoop = __runLoop;
+        
+        VNCoreMLRequest *vnRequest = [[VNCoreMLRequest alloc] initWithModel:visionModel completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+            __kindof VNObservation *maxObs = nil;
+            for (__kindof VNObservation *result in request.results) {
+                if (maxObs == nil) {
+                    maxObs = result;
+                    continue;
+                }
+                
+                if (maxObs.confidence < result.confidence) {
+                    maxObs = result;
+                    continue;
+                }
+            }
+            
+            [runLoop runBlock:^{
+                textLayer.string = static_cast<VNClassificationObservation *>(maxObs).identifier;
+            }];
+        }];
+        vnRequest.preferBackgroundProcessing = YES;
+        
+        self._vnRequest = vnRequest;
+        [vnRequest release];
     } else {
         self._model = nil;
     }
@@ -129,27 +165,33 @@ __attribute__((objc_direct_members))
 - (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     
-    MLFeatureValue *featureValue = [MLFeatureValue featureValueWithPixelBuffer:pixelBuffer];
+//    MLFeatureValue *featureValue = [MLFeatureValue featureValueWithPixelBuffer:pixelBuffer];
+//    NSError * _Nullable error = nil;
+//    MLDictionaryFeatureProvider *inputProvider = [[MLDictionaryFeatureProvider alloc] initWithDictionary:@{@"image": featureValue} error:&error];
+//    assert(error == nil);
+//    MLModel *model = __model;
+//    CATextLayer *textLayer = __textLayer;
+//    
+//    [__runLoop runBlock:^{
+//        NSError * _Nullable error = nil;
+//        id<MLFeatureProvider> outputProvider = [model predictionFromFeatures:inputProvider error:&error];
+//        assert(error == nil);
+//        NSString *target = [outputProvider featureValueForName:@"target"].stringValue;
+//        assert(target != nil);
+//        NSDictionary<NSString *, NSNumber *> *targetProbability = [outputProvider featureValueForName:@"targetProbability"].dictionaryValue;
+//        assert(targetProbability != nil);
+//        
+//        textLayer.string = [NSString stringWithFormat:@"%@\n%@", target, targetProbability];
+////        [self setNeedsDisplay];
+//    }];
+//    
+//    [inputProvider release];
+    
+    VNImageRequestHandler *handler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{}];
     NSError * _Nullable error = nil;
-    MLDictionaryFeatureProvider *inputProvider = [[MLDictionaryFeatureProvider alloc] initWithDictionary:@{@"image": featureValue} error:&error];
+    [handler performRequests:@[self._vnRequest] error:&error];
     assert(error == nil);
-    MLModel *model = __model;
-    CATextLayer *textLayer = __textLayer;
-    
-    [__runLoop runBlock:^{
-        NSError * _Nullable error = nil;
-        id<MLFeatureProvider> outputProvider = [model predictionFromFeatures:inputProvider error:&error];
-        assert(error == nil);
-        NSString *target = [outputProvider featureValueForName:@"target"].stringValue;
-        assert(target != nil);
-        NSDictionary<NSString *, NSNumber *> *targetProbability = [outputProvider featureValueForName:@"targetProbability"].dictionaryValue;
-        assert(targetProbability != nil);
-        
-        textLayer.string = [NSString stringWithFormat:@"%@\n%@", target, targetProbability];
-//        [self setNeedsDisplay];
-    }];
-    
-    [inputProvider release];
+    [handler release];
     
     [pool release];
 }
@@ -159,7 +201,8 @@ __attribute__((objc_direct_members))
     
     CGRect frame = self.bounds;
     frame = CGRectInset(frame, 5., 5.);
-    frame.size.height /= 3.;
+//    frame.size.height /= 3.;
+    frame.size.height = 27.;
     
     textLayer.frame = frame;
 }

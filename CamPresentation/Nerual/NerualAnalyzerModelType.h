@@ -11,7 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, NerualAnalyzerModelType) {
     NerualAnalyzerModelTypeCatOrDogV1 = 1, // nullopt일 경우 0과 충돌
-    NerualAnalyzerModelTypeCatOrDogV2
+    NerualAnalyzerModelTypeCatOrDogV2,
+    NerualAnalyzerModelTypeMobileNetV2
 };
 
 const NerualAnalyzerModelType * allNerualAnalyzerModelTypes(NSUInteger * _Nullable countOut);
