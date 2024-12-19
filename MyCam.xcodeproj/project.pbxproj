@@ -305,6 +305,7 @@
 				Cam/PointCloudPreviewView.h,
 				Cam/PointCloudPreviewView.mm,
 				CamPresentation.h,
+				"Cat and Dog Detection.mlmodel",
 				"Cat or Dog V1.mlmodel",
 				"Cat or Dog V2.mlmodel",
 				Constants.h,
