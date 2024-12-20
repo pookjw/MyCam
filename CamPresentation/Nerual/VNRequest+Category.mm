@@ -193,12 +193,14 @@ id custom(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect 
         return nil;
     }
     
+    id nsObj = (id)croppedPixelBuffer;
+    
 //    id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
 //    
 //    return result_2;
     
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
+        id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, (CVPixelBufferRef)nsObj, options, qosClass, warningRecorder, error, nil);
         
         if (result_2 == nil) {
             request.completionHandler(request, *error);
