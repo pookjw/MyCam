@@ -17,13 +17,71 @@
 
 namespace cp_keys {
 static void *flagKey = &flagKey;
+static void *completionHandlerKey = &completionHandlerKey;
 }
 
 namespace cp_VNCoreMLRequest {
 namespace internalPerformRevision_inContext_error_ {
 BOOL (*original)(VNCoreMLModel *self, SEL _cmd, NSUInteger revision, id context, NSError * _Nullable __autoreleasing * _Nullable error);
 BOOL custom(VNCoreMLModel *self, SEL _cmd, NSUInteger revision, id context, NSError * _Nullable __autoreleasing * _Nullable error) {
-    return original(self, _cmd, revision, context, error);
+    BOOL isAsyncEnabled = static_cast<NSNumber *>(objc_getAssociatedObject(self, cp_keys::flagKey)).boolValue;
+    
+    if (!isAsyncEnabled) {
+        return original(self, _cmd, revision, context, error);
+    }
+    
+    id imageBuffer = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(context, sel_registerName("imageBufferAndReturnError:"), error);
+    if (imageBuffer == nil) {
+        return NO;
+    }
+    
+    id session = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(context, sel_registerName("session"));
+    
+    /*
+     {
+         "VNDetectorInitOption_MemoryPoolId" = 0;
+         "VNDetectorInitOption_ModelBackingStore" = 0;
+         "VNDetectorOption_ComputeStageDeviceAssignments" =     {
+         };
+         "VNDetectorOption_EspressoPlanPriority" = 0;
+         "VNDetectorOption_OriginatingRequestSpecifier" = VNCoreMLRequestRevision1;
+         "VNDetectorOption_PreferBackgroundProcessing" = 0;
+         "VNDetectorProcessOption_Session" = "<_VNGlobalSession: 0x302394190>";
+     }
+     */
+    NSMutableDictionary *options = reinterpret_cast<id (*)(id, SEL, NSUInteger, id)>(objc_msgSend)(self, sel_registerName("newDefaultDetectorOptionsForRequestRevision:session:"), revision, session);
+    [options autorelease];
+    
+    NSUInteger imageCropAndScaleOption = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("imageCropAndScaleOption"));
+    options[@"VNDetectorProcessOption_ImageCropAndScaleOption"] = @(imageCropAndScaleOption);
+    
+    VNCoreMLModel *model = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("model"));
+    
+    id transformer = reinterpret_cast<id (*)(id, SEL, id, id, id *)>(objc_msgSend)([objc_lookUpClass("VNCoreMLTransformer") alloc], sel_registerName("initWithOptions:model:error:"), options, model, error);
+    assert(transformer != nil); // TOOD: Error
+    
+    options[@"VNDetectorProcessOption_InputImageBuffers"] = [NSArray arrayWithObjects:&imageBuffer count:1];
+    
+    
+    if (reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(model, sel_registerName("scenePrintRequestSpecifier")) != nil) {
+        abort();
+        // TODO: <+336>
+    } else if (reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(model, sel_registerName("detectionPrintRequestSpecifier")) != nil) {
+        abort();
+        // TODO: <+488>
+    }
+    
+    NSUInteger qosClass = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(context, sel_registerName("qosClass"));
+    CGRect regionOfInterest = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("regionOfInterest"));
+    
+    id results = reinterpret_cast<id (*)(id, SEL, NSUInteger, id, CGRect, id, id *, id)>(objc_msgSend)(transformer, sel_registerName("processUsingQualityOfServiceClass:options:regionOfInterest:warningRecorder:error:progressHandler:"), qosClass, options, regionOfInterest, self, error, nil);
+    
+    if (results == nil) {
+        return NO;
+    }
+    
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("setResults:"), results);
+    return YES;
 }
 void swizzle() {
     Method method = class_getInstanceMethod([VNCoreMLRequest class], sel_registerName("internalPerformRevision:inContext:error:"));
@@ -33,6 +91,7 @@ void swizzle() {
 }
 }
 
+// setResults: 호출만 막아주는게 목적이라 이건 필요 없는 것 같음
 namespace cp_VNRequest {
 namespace performInContext_error_ {
 BOOL (*original)(__kindof VNRequest *self, SEL _cmd, id context, NSError * _Nullable __autoreleasing * _Nullable error);
@@ -121,8 +180,40 @@ void swizzle() {
 }
 }
 
-namespace cp_VNDetector {
 
+namespace cp_VNDetector {
+namespace internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_ {
+id (*original)(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect regionOfInterest, id warningRecorder, NSError * _Nullable __autoreleasing * _Nullable error);
+id custom(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect regionOfInterest, id warningRecorder, NSError * _Nullable __autoreleasing * _Nullable error) {
+    BOOL isAsyncEnabled = static_cast<NSNumber *>(objc_getAssociatedObject(warningRecorder, cp_keys::flagKey)).boolValue;
+    if (!isAsyncEnabled) {
+        return original(self, _cmd, qosClass, options, regionOfInterest, warningRecorder, error);
+    }
+    
+    CVPixelBufferRef croppedPixelBuffer;
+    BOOL result_1 = reinterpret_cast<BOOL (*)(id, SEL, CGRect, id, NSUInteger, id, CVPixelBufferRef *, id *, id)>(objc_msgSend)(self, sel_registerName("createRegionOfInterestCrop:options:qosClass:warningRecorder:pixelBuffer:error:progressHandler:"), regionOfInterest, options, qosClass, warningRecorder, &croppedPixelBuffer, error, nil);
+    
+    if (!result_1) {
+        return nil;
+    }
+    
+    id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
+    
+    return result_2;
+    
+    // block_invoke -> block_invoke_2
+    // block_invoke_2 -> -[VNCoreMLTransformer createRegionOfInterestCrop:options:qosClass:warningRecorder:pixelBuffer:error:progressHandler:] (objc_method)
+    // Back to current frame
+    // block_invoke_3 -> block_invoke_4
+    // block_invoke_4 -> block_invoke_5
+    // block_invoke_5 -> -[VNCoreMLTransformer processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:]
+}
+void swizzle() {
+    Method method = class_getInstanceMethod(objc_lookUpClass("VNDetector"), sel_registerName("internalProcessUsingQualityOfServiceClass:options:regionOfInterest:warningRecorder:error:progressHandler:"));
+    original = reinterpret_cast<decltype(original)>(method_getImplementation(method));
+    method_setImplementation(method, reinterpret_cast<IMP>(custom));
+}
+}
 }
 
 
@@ -130,7 +221,8 @@ namespace cp_VNDetector {
 
 + (void)load {
     cp_VNCoreMLRequest::internalPerformRevision_inContext_error_::swizzle();
-    cp_VNRequest::performInContext_error_::swizzle();
+//    cp_VNRequest::performInContext_error_::swizzle();
+    cp_VNDetector::internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_::swizzle();
 }
 
 - (void)cp_setProcessAsynchronously:(BOOL)cp_processAsynchronously {
