@@ -14,6 +14,7 @@
 #import <Vision/Vision.h>
 #import <Accelerate/Accelerate.h>
 #include <ranges>
+#import <CamPresentation/VNRequest+Category.h>
 
 __attribute__((objc_direct_members))
 @interface NerualAnalyzerLayer ()
@@ -153,7 +154,8 @@ __attribute__((objc_direct_members))
                 textLayer.string = static_cast<VNClassificationObservation *>(maxObs).identifier;
             }];
         }];
-        vnRequest.preferBackgroundProcessing = YES;
+//        vnRequest.preferBackgroundProcessing = YES;
+        vnRequest.cp_processAsynchronously = YES;
         
         self._vnRequest = vnRequest;
         [vnRequest release];
