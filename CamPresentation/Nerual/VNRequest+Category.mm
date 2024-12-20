@@ -91,7 +91,6 @@ void swizzle() {
 }
 }
 
-// setResults: 호출만 막아주는게 목적이라 이건 필요 없는 것 같음
 namespace cp_VNRequest {
 namespace performInContext_error_ {
 BOOL (*original)(__kindof VNRequest *self, SEL _cmd, id context, NSError * _Nullable __autoreleasing * _Nullable error);
@@ -221,7 +220,7 @@ void swizzle() {
 
 + (void)load {
     cp_VNCoreMLRequest::internalPerformRevision_inContext_error_::swizzle();
-//    cp_VNRequest::performInContext_error_::swizzle();
+    cp_VNRequest::performInContext_error_::swizzle();
     cp_VNDetector::internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_::swizzle();
 }
 
