@@ -9,12 +9,6 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-/*
- 1. [VNDetector processUsingQualityOfServiceClass:options:regionOfInterest:warningRecorder:error:progressHandler:]와 -[VNDetector internalProcessUsingQualityOfServiceClass:options:regionOfInterest:warningRecorder:error:progressHandler:]를 재작성 해야함
- 2. -[VNDetector internalProcessUsingQualityOfServiceClass:options:regionOfInterest:warningRecorder:error:progressHandler:]에서 block 0이 resize, block 3가 실제 처리 blraa가 두번 불리는거 보임 <+624>
- 3. -[VNRequest performInContext:error:]을 재작성 해야함 위 API로 
- */
-
 namespace cp_keys {
 static void *flagKey = &flagKey;
 static void *completionHandlerKey = &completionHandlerKey;
