@@ -74,7 +74,7 @@ BOOL custom(VNCoreMLModel *self, SEL _cmd, NSUInteger revision, id context, NSEr
         return NO;
     }
     
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("setResults:"), results);
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("setResults:"), results);
     return YES;
 }
 void swizzle() {
@@ -137,33 +137,34 @@ BOOL custom(__kindof VNRequest *self, SEL _cmd, id context, NSError * _Nullable 
         return NO;
     }
     
-    BOOL setsTimeRangeOnResults = reinterpret_cast<BOOL (*)(Class, SEL)>(objc_msgSend)(frameworkClass, sel_registerName("setsTimeRangeOnResults"));
-    
-    if (setsTimeRangeOnResults) {
-        abort();
-        // TODO: <+1036>
-    }
-    
-    // VNImageBuffer *
-    id imageBuffer = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(context, sel_registerName("imageBufferAndReturnError:"), error);
-    
-    if (imageBuffer == nil) {
-        abort();
-        // TODO: <+724>
-    }
-    
-    CMTime timingInfo = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(imageBuffer, sel_registerName("timingInfo"));
-    
-    NSArray<VNObservation *> *results = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("results"));
-    
-    // TODO: Loop results and -setTimeRange:
-    
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(context, sel_registerName("recordSequencedObservationsOfRequest:"), self);
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(context, sel_registerName("cacheObservationsOfRequest:"), self);
-    
-    self.completionHandler(self, nil);
-    
     return YES;
+//    BOOL setsTimeRangeOnResults = reinterpret_cast<BOOL (*)(Class, SEL)>(objc_msgSend)(frameworkClass, sel_registerName("setsTimeRangeOnResults"));
+//    
+//    if (setsTimeRangeOnResults) {
+//        abort();
+//        // TODO: <+1036>
+//    }
+//    
+//    // VNImageBuffer *
+//    id imageBuffer = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(context, sel_registerName("imageBufferAndReturnError:"), error);
+//    
+//    if (imageBuffer == nil) {
+//        abort();
+//        // TODO: <+724>
+//    }
+//    
+//    CMTime timingInfo = reinterpret_cast<CMTime (*)(id, SEL)>(objc_msgSend)(imageBuffer, sel_registerName("timingInfo"));
+//    
+//    NSArray<VNObservation *> *results = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("results"));
+//    
+//    // TODO: Loop results and -setTimeRange:
+//    
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(context, sel_registerName("recordSequencedObservationsOfRequest:"), self);
+//    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(context, sel_registerName("cacheObservationsOfRequest:"), self);
+//    
+//    self.completionHandler(self, nil);
+//    
+//    return YES;
 }
 void swizzle() {
     Method method = class_getInstanceMethod([VNRequest class], sel_registerName("performInContext:error:"));
@@ -178,9 +179,11 @@ namespace cp_VNDetector {
 namespace internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_ {
 id (*original)(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect regionOfInterest, id warningRecorder, NSError * _Nullable __autoreleasing * _Nullable error);
 id custom(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect regionOfInterest, id warningRecorder, NSError * _Nullable __autoreleasing * _Nullable error) {
-    BOOL isAsyncEnabled = static_cast<NSNumber *>(objc_getAssociatedObject(warningRecorder, cp_keys::flagKey)).boolValue;
+    auto request = static_cast<__kindof VNRequest *>(warningRecorder);
+    
+    BOOL isAsyncEnabled = static_cast<NSNumber *>(objc_getAssociatedObject(request, cp_keys::flagKey)).boolValue;
     if (!isAsyncEnabled) {
-        return original(self, _cmd, qosClass, options, regionOfInterest, warningRecorder, error);
+        return original(self, _cmd, qosClass, options, regionOfInterest, request, error);
     }
     
     CVPixelBufferRef croppedPixelBuffer;
@@ -190,9 +193,25 @@ id custom(id self, SEL _cmd, NSUInteger qosClass, NSDictionary *options, CGRect 
         return nil;
     }
     
-    id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
+//    id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
+//    
+//    return result_2;
     
-    return result_2;
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        id result_2 = reinterpret_cast<id (*)(id, SEL, CGRect, CVPixelBufferRef, id, NSUInteger, id, id *, id)>(objc_msgSend)(self, sel_registerName("processRegionOfInterest:croppedPixelBuffer:options:qosClass:warningRecorder:error:progressHandler:"), regionOfInterest, croppedPixelBuffer, options, qosClass, warningRecorder, error, nil);
+        
+        if (result_2 == nil) {
+            request.completionHandler(request, *error);
+            return;
+        }
+        
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setResults:"), result_2);
+        request.completionHandler(request, nil);
+    });
+    
+    CVPixelBufferRelease(croppedPixelBuffer);
+    
+    return @[];
     
     // block_invoke -> block_invoke_2
     // block_invoke_2 -> -[VNCoreMLTransformer createRegionOfInterestCrop:options:qosClass:warningRecorder:pixelBuffer:error:progressHandler:] (objc_method)
