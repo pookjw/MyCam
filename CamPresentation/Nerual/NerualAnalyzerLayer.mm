@@ -15,6 +15,9 @@
 #import <Accelerate/Accelerate.h>
 #include <ranges>
 #import <CamPresentation/VNRequest+Category.h>
+#import <CamPresentation/BoundingBoxLayer.h>
+#import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
 
 __attribute__((objc_direct_members))
 @interface NerualAnalyzerLayer ()
@@ -22,32 +25,23 @@ __attribute__((objc_direct_members))
 @property (retain, nonatomic, nullable) VNCoreMLRequest *_vnRequest;
 @property (retain, nonatomic, readonly) SVRunLoop *_runLoop;
 @property (retain, nonatomic, readonly) CATextLayer *_textLayer;
+@property (retain, nonatomic, readonly) BoundingBoxLayer *_boundingBoxLayer;
+@property (assign, nonatomic) CGSize _pixelBufferSize;
 @end
 
 @implementation NerualAnalyzerLayer
 
 - (instancetype)init {
     if (self = [super init]) {
-        
-        __runLoop = [[SVRunLoop alloc] initWithThreadName:@"NerualAnalyzerLayer"];
-        
-        CATextLayer *textLayer = [CATextLayer new];
-        
-        CGColorRef backgroundColor = CGColorCreateSRGB(0.0, 0.0, 0.0, 0.5);
-        textLayer.backgroundColor = backgroundColor;
-        CGColorRelease(backgroundColor);
-        
-        CGColorRef foregroundColor = CGColorCreateSRGB(1.0, 1.0, 1.0, 1.0);
-        textLayer.foregroundColor = foregroundColor;
-        CGColorRelease(foregroundColor);
-        
-        textLayer.fontSize = 17.;
-        textLayer.alignmentMode = kCAAlignmentCenter;
-        
-        __textLayer = textLayer;
-        [self addSublayer:textLayer];
-        
-        [self _layoutTextLayer];
+        [self _commonInit];
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)coder {
+    if (self = [super initWithCoder:coder]) {
+        [self _commonInit];
     }
     
     return self;
@@ -78,6 +72,7 @@ __attribute__((objc_direct_members))
     [__vnRequest release];
     [__runLoop release];
     [__textLayer release];
+    [__boundingBoxLayer release];
     [super dealloc];
 }
 
@@ -88,7 +83,37 @@ __attribute__((objc_direct_members))
 
 - (void)setBounds:(CGRect)bounds {
     [super setBounds:bounds];
-    [self _layoutTextLayer];
+    [self _layoutSublayers];
+}
+
+- (void)_commonInit {
+    __runLoop = [[SVRunLoop alloc] initWithThreadName:@"NerualAnalyzerLayer"];
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    CGColorRef backgroundColor = CGColorCreateSRGB(0.0, 0.0, 0.0, 0.5);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    CGColorRef foregroundColor = CGColorCreateSRGB(1.0, 1.0, 1.0, 1.0);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    textLayer.fontSize = 17.;
+    textLayer.alignmentMode = kCAAlignmentCenter;
+    
+    __textLayer = textLayer;
+    [self addSublayer:textLayer];
+    
+    BoundingBoxLayer *boundingBoxLayer = [BoundingBoxLayer new];
+    CGColorRef strokeColor = CGColorCreateSRGB(1., 0., 0., 1.);
+    boundingBoxLayer.strokeColor = strokeColor;
+    CGColorRelease(strokeColor);
+    boundingBoxLayer.strokeWidth = 10.;
+    __boundingBoxLayer = boundingBoxLayer;
+    [self addSublayer:boundingBoxLayer];
+    
+    [self _layoutSublayers];
 }
 
 - (std::optional<NerualAnalyzerModelType>)modelType {
@@ -134,28 +159,58 @@ __attribute__((objc_direct_members))
         assert(error == nil);
         
         CATextLayer *textLayer = __textLayer;
+        BoundingBoxLayer *boundingBoxLayer = __boundingBoxLayer;
         SVRunLoop *runLoop = __runLoop;
         
         VNCoreMLRequest *vnRequest = [[VNCoreMLRequest alloc] initWithModel:visionModel completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
-            __kindof VNObservation *maxObs = nil;
+            __kindof VNObservation *maxObservation = nil;
             for (__kindof VNObservation *result in request.results) {
-                if (maxObs == nil) {
-                    maxObs = result;
+                if (maxObservation == nil) {
+                    maxObservation = result;
                     continue;
                 }
                 
-                if (maxObs.confidence < result.confidence) {
-                    maxObs = result;
+                if (maxObservation.confidence < result.confidence) {
+                    maxObservation = result;
                     continue;
                 }
             }
             
-            [runLoop runBlock:^{
-                textLayer.string = static_cast<VNClassificationObservation *>(maxObs).identifier;
-            }];
+            if ([maxObservation isKindOfClass:[VNClassificationObservation class]]) {
+                [runLoop runBlock:^{
+                    boundingBoxLayer.hidden = YES;
+                    boundingBoxLayer.boundingBox = CGRectNull;
+                    textLayer.hidden = NO;
+                    textLayer.string = static_cast<VNClassificationObservation *>(maxObservation).identifier;
+                }];
+            } else if ([maxObservation isKindOfClass:[VNRecognizedObjectObservation class]]) {
+                auto casted = static_cast<VNRecognizedObjectObservation *>(maxObservation);
+                CGRect boundingBox = casted.boundingBox;
+                
+                [runLoop runBlock:^{
+                    boundingBoxLayer.hidden = NO;
+                    
+                    CGRect bounds = AVMakeRectWithAspectRatioInsideRect(self._pixelBufferSize, boundingBoxLayer.bounds);
+                    
+                    boundingBoxLayer.boundingBox = CGRectMake(CGRectGetMinX(bounds) + CGRectGetWidth(bounds) * CGRectGetMinX(boundingBox),
+                                                              CGRectGetMinY(bounds) + CGRectGetHeight(bounds) * (1. - CGRectGetMaxY(boundingBox)),
+                                                              CGRectGetWidth(bounds) * CGRectGetWidth(boundingBox),
+                                                              CGRectGetHeight(bounds) * CGRectGetHeight(boundingBox));
+                    
+                    textLayer.hidden = YES;
+                    textLayer.string = nil;
+                }];
+            } else {
+                [runLoop runBlock:^{
+                    boundingBoxLayer.hidden = YES;
+                    boundingBoxLayer.boundingBox = CGRectNull;
+                    textLayer.hidden = YES;
+                    textLayer.string = nil;
+                }];
+            }
         }];
 //        vnRequest.preferBackgroundProcessing = YES;
-        vnRequest.cp_processAsynchronously = YES;
+//        vnRequest.cp_processAsynchronously = YES;
         
         self._vnRequest = vnRequest;
         [vnRequest release];
@@ -166,6 +221,8 @@ __attribute__((objc_direct_members))
 
 - (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    
+    self._pixelBufferSize = CGSizeMake(CVPixelBufferGetWidth(pixelBuffer), CVPixelBufferGetHeight(pixelBuffer));
     
 //    MLFeatureValue *featureValue = [MLFeatureValue featureValueWithPixelBuffer:pixelBuffer];
 //    NSError * _Nullable error = nil;
@@ -198,7 +255,7 @@ __attribute__((objc_direct_members))
     [pool release];
 }
 
-- (void)_layoutTextLayer __attribute__((objc_direct)) {
+- (void)_layoutSublayers __attribute__((objc_direct)) {
     CATextLayer *textLayer = __textLayer;
     
     CGRect frame = self.bounds;
@@ -207,6 +264,9 @@ __attribute__((objc_direct_members))
     frame.size.height = 27.;
     
     textLayer.frame = frame;
+    
+    BoundingBoxLayer *boundingBoxLayer = __boundingBoxLayer;
+    boundingBoxLayer.frame = self.bounds;
 }
 
 @end

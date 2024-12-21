@@ -759,7 +759,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NerualAnalyzerLayer *nerualAnalyzerLayer = [NerualAnalyzerLayer new];
     [self.queue_nerualAnalyzerLayersByVideoDevice setObject:nerualAnalyzerLayer forKey:captureDevice];
 //    nerualAnalyzerLayer.hidden = YES;
-    nerualAnalyzerLayer.modelType = NerualAnalyzerModelTypeMobileNetV2;
+    nerualAnalyzerLayer.modelType = NerualAnalyzerModelTypeCatAndDogDetection;
     [nerualAnalyzerLayer release];
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];

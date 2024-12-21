@@ -17,11 +17,12 @@ const NerualAnalyzerModelType * allNerualAnalyzerModelTypes(NSUInteger * _Nullab
     static NerualAnalyzerModelType allTypes[] = {
         NerualAnalyzerModelTypeCatOrDogV1,
         NerualAnalyzerModelTypeCatOrDogV2,
-        NerualAnalyzerModelTypeMobileNetV2
+        NerualAnalyzerModelTypeMobileNetV2,
+        NerualAnalyzerModelTypeCatAndDogDetection
     };
     
     if (countOut != NULL) {
-        *countOut = 3;
+        *countOut = 4;
     }
     
     return allTypes;
@@ -35,6 +36,8 @@ NSString * NSStringFromNerualAnalyzerModelType(NerualAnalyzerModelType type) {
             return @"Cat or Dog V2";
         case NerualAnalyzerModelTypeMobileNetV2:
             return @"MobileNetV2";
+        case NerualAnalyzerModelTypeCatAndDogDetection:
+            return @"Cat and Dog Detection";
         default:
             abort();
     }
