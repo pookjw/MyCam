@@ -12,6 +12,7 @@
 #import <CamPresentation/AssetCollectionViewLayout.h>
 #import <CamPresentation/VideoPlayerListViewController.h>
 #import <CamPresentation/UIDeferredMenuElement+NerualAnalyzer.h>
+#import <CamPresentation/ImageVisionViewController.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -25,6 +26,7 @@
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *nerualAnalzyerBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *imageVisionBarButtonItem;
 @property (assign, nonatomic) NerualAnalyzerModelType modelType;
 @end
 
@@ -33,6 +35,7 @@
 @synthesize dataSource = _dataSource;
 @synthesize playerBarButtonItem = _playerBarButtonItem;
 @synthesize nerualAnalzyerBarButtonItem = _nerualAnalzyerBarButtonItem;
+@synthesize imageVisionBarButtonItem = _imageVisionBarButtonItem;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection asset:(PHAsset *)asset {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -51,6 +54,7 @@
     [_dataSource release];
     [_playerBarButtonItem release];
     [_nerualAnalzyerBarButtonItem release];
+    [_imageVisionBarButtonItem release];
     [super dealloc];
 }
 
@@ -63,7 +67,8 @@
     
     self.navigationItem.rightBarButtonItems = @[
         self.nerualAnalzyerBarButtonItem,
-        self.playerBarButtonItem
+        self.playerBarButtonItem,
+        self.imageVisionBarButtonItem
     ];
     
     [self.dataSource updateCollection:self.collection completionHandler:^{
@@ -157,12 +162,34 @@
     return [nerualAnalzyerBarButtonItem autorelease];
 }
 
+- (UIBarButtonItem *)imageVisionBarButtonItem {
+    if (auto imageVisionBarButtonItem = _imageVisionBarButtonItem) return imageVisionBarButtonItem;
+    
+    UIBarButtonItem *imageVisionBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"person.and.background.dotted"] style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerImageVisionBarButtonItem:)];
+    
+    _imageVisionBarButtonItem = [imageVisionBarButtonItem retain];
+    return [imageVisionBarButtonItem autorelease];
+}
+
 - (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {
     PHAsset *asset = [self currentVideoAsset];
     assert(asset != nil);
     VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
+}
+
+- (void)didTriggerImageVisionBarButtonItem:(UIBarButtonItem *)sender {
+    PHAsset *asset = [self currentAsset];
+    assert(asset != nil);
+    
+    ImageVisionViewController *rootViewController = [[ImageVisionViewController alloc] initWithAsset:asset];
+    
+    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:rootViewController];
+    [rootViewController release];
+    
+    [self presentViewController:navigationController animated:YES completion:nil];
+    [navigationController release];
 }
 
 - (PHAsset * _Nullable)currentAsset {

@@ -10,3 +10,4 @@
 NSString * const CPSceneActivityType = @"CPSceneActivityType";
 NSString * const CPSceneTypeKey = @"CPSceneTypeKey";
 NSString * const CPARPlayerScene = @"CPARPlayerScene";
+NSErrorDomain const CamPresentationErrorDomain = @"CamPresentationErrorDomain";
