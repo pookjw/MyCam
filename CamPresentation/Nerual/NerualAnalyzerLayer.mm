@@ -18,9 +18,12 @@
 #import <CamPresentation/BoundingBoxLayer.h>
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
+#import <os/lock.h>
 
 __attribute__((objc_direct_members))
-@interface NerualAnalyzerLayer ()
+@interface NerualAnalyzerLayer () {
+    os_unfair_lock _lock;
+}
 @property (retain, nonatomic, nullable) MLModel *_model;
 @property (retain, nonatomic, nullable) VNCoreMLRequest *_vnRequest;
 @property (retain, nonatomic, readonly) SVRunLoop *_runLoop;
@@ -58,6 +61,7 @@ __attribute__((objc_direct_members))
     
     if (self = [super initWithLayer:casted]) {
         self.modelType = casted.modelType;
+        _lock = casted->_lock;
         __runLoop = [casted->__runLoop retain];
         __textLayer = [[CATextLayer alloc] initWithLayer:casted->__textLayer];
         
@@ -86,7 +90,14 @@ __attribute__((objc_direct_members))
     [self _layoutSublayers];
 }
 
+- (void)drawInContext:(CGContextRef)ctx {
+    os_unfair_lock_lock(&_lock);
+    [super drawInContext:ctx];
+    os_unfair_lock_unlock(&_lock);
+}
+
 - (void)_commonInit {
+    _lock = OS_UNFAIR_LOCK_INIT;
     __runLoop = [[SVRunLoop alloc] initWithThreadName:@"NerualAnalyzerLayer"];
     
     CATextLayer *textLayer = [CATextLayer new];
@@ -178,16 +189,21 @@ __attribute__((objc_direct_members))
             
             if ([maxObservation isKindOfClass:[VNClassificationObservation class]]) {
                 [runLoop runBlock:^{
+                    os_unfair_lock_lock(&_lock);
+                    
                     boundingBoxLayer.hidden = YES;
                     boundingBoxLayer.boundingBox = CGRectNull;
                     textLayer.hidden = NO;
                     textLayer.string = static_cast<VNClassificationObservation *>(maxObservation).identifier;
+                    
+                    os_unfair_lock_unlock(&_lock);
                 }];
             } else if ([maxObservation isKindOfClass:[VNRecognizedObjectObservation class]]) {
                 auto casted = static_cast<VNRecognizedObjectObservation *>(maxObservation);
                 CGRect boundingBox = casted.boundingBox;
                 
                 [runLoop runBlock:^{
+                    os_unfair_lock_lock(&_lock);
                     boundingBoxLayer.hidden = NO;
                     
                     CGRect bounds = AVMakeRectWithAspectRatioInsideRect(self._pixelBufferSize, boundingBoxLayer.bounds);
@@ -199,13 +215,19 @@ __attribute__((objc_direct_members))
                     
                     textLayer.hidden = YES;
                     textLayer.string = nil;
+                    
+                    os_unfair_lock_unlock(&_lock);
                 }];
             } else {
                 [runLoop runBlock:^{
+                    os_unfair_lock_lock(&_lock);
+                    
                     boundingBoxLayer.hidden = YES;
                     boundingBoxLayer.boundingBox = CGRectNull;
                     textLayer.hidden = YES;
                     textLayer.string = nil;
+                    
+                    os_unfair_lock_unlock(&_lock);
                 }];
             }
         }];

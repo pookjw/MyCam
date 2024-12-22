@@ -10,7 +10,10 @@
 #import <objc/runtime.h>
 #import <CamPresentation/Constants.h>
 
+NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationName = @"ImageVisionViewModelDidChangeObservationsNotificationName";
+
 @interface ImageVisionViewModel ()
+@property (retain, nonatomic, readonly) dispatch_queue_t _queue;
 @property (assign, nonatomic) PHImageRequestID _queue_imageRequestID;
 @property (retain, nonatomic, readonly) NSMutableArray<__kindof VNRequest *> *_queue_requests;
 @property (retain, nonatomic, nullable) UIImage *_queue_image;
@@ -27,7 +30,7 @@
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Image Vision Queue", attr);
         
-        _queue = queue;
+        __queue = queue;
         __queue_imageRequestID = PHInvalidImageRequestID;
         __queue_requests = [NSMutableArray new];
     }
@@ -36,7 +39,7 @@
 }
 
 - (void)dealloc {
-    if (dispatch_queue_t queue = _queue) {
+    if (dispatch_queue_t queue = __queue) {
         dispatch_release(queue);
     }
     
@@ -49,133 +52,189 @@
     [super dealloc];
 }
 
-- (NSArray<__kindof VNRequest *> *)queue_requests {
-    dispatch_assert_queue(self.queue);
-    return [[self._queue_requests copy] autorelease];
-}
-
-- (NSProgress *)queue_addRequest:(__kindof VNRequest *)request completionHandler:(void (^)(NSError * _Nullable))completionHandler {
-    dispatch_assert_queue(self.queue);
-    NSMutableArray<__kindof VNRequest *> *requests = self._queue_requests;
-    assert(![requests containsObject:request]);
-    
-    [self willChangeValueForKey:@"queue_requests"];
-    [requests addObject:request];
-    [self didChangeValueForKey:@"queue_requests"];
-    
-    UIImage *image = self._queue_image;
-    if (image == nil) {
-        if (completionHandler) {
-            completionHandler(nil);
-        }
-        
-        NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
-        progress.totalUnitCount = 1;
-        return progress;
+- (void)requestsWithHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull))handler {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if (dispatch_get_current_queue() == self._queue) {
+#pragma clang diagnostic pop
+        NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
+        handler(requests);
+        [requests release];
+    } else {
+        dispatch_async(self._queue, ^{
+            NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
+            handler(requests);
+            [requests release];
+        });
     }
-    
-    return [self _queue_updateImage:image completionHandler:completionHandler];
 }
 
-- (void)queue_removeRequest:(__kindof VNRequest *)request {
-    dispatch_assert_queue(self.queue);
-    NSMutableArray<__kindof VNRequest *> *requests = self._queue_requests;
-    assert([requests containsObject:request]);
+- (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     
-    [self willChangeValueForKey:@"queue_requests"];
-    [requests removeObject:request];
-    [self didChangeValueForKey:@"queue_requests"];
-}
-
-- (NSProgress *)queue_updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable))completionHandler {
-    dispatch_assert_queue(self.queue);
-    self._queue_image = image;
-    return [self _queue_updateImage:image completionHandler:completionHandler];
-}
-
-- (NSProgress *)queue_updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable))completionHandler {
-    dispatch_assert_queue(self.queue);
-    
-    if (__queue_imageRequestID != PHInvalidImageRequestID) {
-        [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
-    }
-    
-    assert(asset != nil);
-    
-    NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
-    
-    PHImageRequestOptions *options = [PHImageRequestOptions new];
-    options.synchronous = NO;
-    options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-    options.resizeMode = PHImageRequestOptionsResizeModeNone;
-    options.networkAccessAllowed = YES;
-    options.allowSecondaryDegradedImage = NO;
-    options.progressHandler = ^(double _progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
-        progress.completedUnitCount = _progress * 1000000UL;
+    dispatch_async(self._queue, ^{
+        NSMutableArray<__kindof VNRequest *> *requests = self._queue_requests;
+        assert(![requests containsObject:request]);
+        [requests addObject:request];
         
-        if (error != nil) {
-            [progress setUserInfoObject:error forKey:PHImageErrorKey];
-            [progress pause];
-        }
-    };
-    
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), self.queue);
-    
-    PHImageRequestID requestID = [PHImageManager.defaultManager requestImageForAsset:asset targetSize:PHImageManagerMaximumSize contentMode:PHImageContentModeDefault options:options resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-        if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
-            BOOL cancelled = cancelledNumber.boolValue;
+        if (UIImage *image = self._queue_image) {
+            NSProgress *subprogress = [self _queue_updateImage:image completionHandler:completionHandler];
+            [progress addChild:subprogress withPendingUnitCount:1];
             
-            if (cancelled) {
-                [progress setUserInfoObject:cancelledNumber forKey:PHImageCancelledKey];
-                [progress pause];
-                
-                if (completionHandler) {
-                    completionHandler([ImageVisionViewModel _cancellationError]);
-                }
-                
-                return;
+            if (request.results.count > 0) {
+                [self _postDidChangeObservationsNotification];
             }
-        }
-        
-        if (NSError *error = info[PHImageErrorKey]) {
+        } else {
+            progress.completedUnitCount = 1;
             if (completionHandler) {
-                completionHandler(error);
+                completionHandler(nil);
             }
-            
+        }
+    });
+   
+    return progress;
+}
+
+- (void)removeRequest:(__kindof VNRequest *)request completionHandler:(void (^)())completionHandler {
+    dispatch_async(self._queue, ^{
+        NSMutableArray<__kindof VNRequest *> *requests = self._queue_requests;
+        assert([requests containsObject:request]);
+        [requests removeObject:request];
+        
+        if (request.results.count > 0) {
+            [self _postDidChangeObservationsNotification];
+        }
+        
+        if (completionHandler) {
+            completionHandler();
+        }
+    });
+}
+
+- (void)observationsWithHandler:(void (^)(NSArray<__kindof VNObservation *> * _Nonnull))handler {
+    dispatch_async(self._queue, ^{
+        NSArray<__kindof VNRequest *> *requests = self._queue_requests;
+        if (requests.count == 0) {
+            handler(@[]);
             return;
         }
         
-        if (NSNumber * _Nullable isDegraded = info[PHImageResultIsDegradedKey]) {
-            if (isDegraded.boolValue) {
-                return;
-            }
+        NSMutableArray<__kindof VNObservation *> *observations = [NSMutableArray new];
+        
+        for (__kindof VNRequest *request in requests) {
+            [observations addObjectsFromArray:request.results];
         }
         
-        assert(result != nil);
-        progress.completedUnitCount = 1000000UL;
-        
-        self._queue_image = result;
-        NSProgress *subprogress = [self _queue_updateImage:result completionHandler:completionHandler];
-        
-        [progress addChild:subprogress withPendingUnitCount:1000000UL];
-    }];
+        handler(observations);
+        [observations release];
+    });
+}
+
+- (NSProgress *)updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    assert(image != nil);
     
-    [options release];
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     
-    __queue_imageRequestID = requestID;
-    
-    if (progress.cancellationHandler == nil) {
-        // -_queue_updateImage:progress:completionHandler:가 먼저 불릴 수도 있기 때문
-        progress.cancellationHandler = ^{
-            [PHImageManager.defaultManager cancelImageRequest:requestID];
-        };
-    }
+    dispatch_async(self._queue, ^{
+        self._queue_image = image;
+        NSProgress *subprogress = [self _queue_updateImage:image completionHandler:completionHandler];
+        [progress addChild:subprogress withPendingUnitCount:1];
+    });
     
     return progress;
 }
 
-- (NSProgress *)_queue_updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable))completionHandler {
-    dispatch_assert_queue(self.queue);
+- (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable))completionHandler {
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
+    
+    dispatch_async(self._queue, ^{
+        if (__queue_imageRequestID != PHInvalidImageRequestID) {
+            [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
+        }
+        
+        assert(asset != nil);
+        
+        PHImageRequestOptions *options = [PHImageRequestOptions new];
+        options.synchronous = NO;
+        options.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+        options.resizeMode = PHImageRequestOptionsResizeModeNone;
+        options.networkAccessAllowed = YES;
+        options.allowSecondaryDegradedImage = NO;
+        options.progressHandler = ^(double _progress, NSError * _Nullable error, BOOL * _Nonnull stop, NSDictionary * _Nullable info) {
+            progress.completedUnitCount = _progress * 1000000UL;
+            
+            if (error != nil) {
+                [progress setUserInfoObject:error forKey:PHImageErrorKey];
+                [progress pause];
+            }
+        };
+        
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), self._queue);
+        
+        PHImageRequestID requestID = [PHImageManager.defaultManager requestImageForAsset:asset targetSize:PHImageManagerMaximumSize contentMode:PHImageContentModeDefault options:options resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+            if (NSNumber *cancelledNumber = info[PHImageCancelledKey]) {
+                BOOL cancelled = cancelledNumber.boolValue;
+                
+                if (cancelled) {
+                    [progress setUserInfoObject:cancelledNumber forKey:PHImageCancelledKey];
+                    [progress pause];
+                    
+                    if (completionHandler) {
+                        completionHandler(nil, [ImageVisionViewModel _cancellationError]);
+                    }
+                    
+                    return;
+                }
+            }
+            
+            if (NSError *error = info[PHImageErrorKey]) {
+                if (completionHandler) {
+                    completionHandler(nil, error);
+                }
+                
+                return;
+            }
+            
+            if (NSNumber * _Nullable isDegraded = info[PHImageResultIsDegradedKey]) {
+                if (isDegraded.boolValue) {
+                    return;
+                }
+            }
+            
+            assert(result != nil);
+            progress.completedUnitCount = 1000000UL;
+            
+            self._queue_image = result;
+            NSProgress *subprogress = [self _queue_updateImage:result completionHandler:^(NSError * _Nullable error) {
+                if (completionHandler) {
+                    if (error) {
+                        completionHandler(nil, error);
+                    } else {
+                        completionHandler(result, nil);
+                    }
+                }
+            }];
+            
+            [progress addChild:subprogress withPendingUnitCount:1000000UL];
+        }];
+        
+        [options release];
+        
+        __queue_imageRequestID = requestID;
+        
+        if (progress.cancellationHandler == nil) {
+            // -_queue_updateImage:progress:completionHandler:가 먼저 불릴 수도 있기 때문
+            progress.cancellationHandler = ^{
+                [PHImageManager.defaultManager cancelImageRequest:requestID];
+            };
+        }
+    });
+    
+    return progress;
+}
+
+- (NSProgress *)_queue_updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
+    dispatch_assert_queue(self._queue);
     
     NSArray<__kindof VNImageBasedRequest *> *requests = self._queue_requests;
     
@@ -208,7 +267,9 @@
     [imageRequestHandler performRequests:requests error:&error];
     [imageRequestHandler release];
     
-    progress.totalUnitCount = 1;
+    [self _postDidChangeObservationsNotification];
+    
+    progress.completedUnitCount += 1;
     assert(progress.isFinished);
     
     if (completionHandler) {
@@ -216,6 +277,10 @@
     }
     
     return progress;
+}
+
+- (void)_postDidChangeObservationsNotification {
+    [NSNotificationCenter.defaultCenter postNotificationName:ImageVisionViewModelDidChangeObservationsNotificationName object:self];
 }
 
 @end

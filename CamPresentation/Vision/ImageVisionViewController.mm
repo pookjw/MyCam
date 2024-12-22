@@ -11,19 +11,20 @@
 #import <CamPresentation/Constants.h>
 #import <CamPresentation/ImageVisionViewModel.h>
 #import <CamPresentation/UIDeferredMenuElement+ImageVision.h>
+#import <CamPresentation/ImageVisionView.h>
 
 @interface ImageVisionViewController ()
 @property (retain, nonatomic, nullable, readonly) PHAsset *_asset;
 @property (retain, nonatomic, nullable) UIImage *_image;
-@property (retain, nonatomic, readonly) ImageVisionViewModel *_viewModel;
-@property (retain, nonatomic, readonly) UIImageView *_imageView;
+@property (retain, nonatomic, nullable) ImageVisionViewModel *_viewModel;
+@property (retain, nonatomic, readonly) ImageVisionView *_imageVisionView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_requestsMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_doneBarButtonItem;
-// TODO progress
+@property (retain, nonatomic, nullable) NSProgress *_progress;
 @end
 
 @implementation ImageVisionViewController
-@synthesize _imageView = __imageView;
+@synthesize _imageVisionView = __imageVisionView;
 @synthesize _requestsMenuBarButtonItem = __requestsMenuBarButtonItem;
 @synthesize _doneBarButtonItem = __doneBarButtonItem;
 
@@ -44,15 +45,24 @@
 }
 
 - (void)dealloc {
-    [__imageView release];
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+    
+    [__image release];
+    [__asset release];
+    [__imageVisionView release];
     [__requestsMenuBarButtonItem release];
     [__doneBarButtonItem release];
+    
+    if (NSProgress *progress = __progress) {
+        [progress cancel];
+        [progress release];
+    }
     
     [super dealloc];
 }
 
 - (void)loadView {
-    self.view = self._imageView;
+    self.view = self._imageVisionView;
 }
 
 - (void)viewDidLoad {
@@ -60,6 +70,29 @@
     
     ImageVisionViewModel *viewModel = [ImageVisionViewModel new];
     
+    if (UIImage *image = self._image) {
+        self._progress = [viewModel updateImage:image completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+        
+        self._imageVisionView.imageVisionLayer.image = image;
+    } else if (PHAsset *asset = self._asset) {
+        ImageVisionView *imageVisionView = self._imageVisionView;
+        
+        self._progress = [viewModel updateImageWithPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+            assert(error == nil);
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                imageVisionView.imageVisionLayer.image = image;
+            });
+        }];
+    }
+    
+    self._viewModel = viewModel;
+    
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didChangeObservationsNotification:) name:ImageVisionViewModelDidChangeObservationsNotificationName object:viewModel];
+    
+    [viewModel release];
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
@@ -70,23 +103,24 @@
     ];
 }
 
-- (UIImageView *)_imageView {
-    if (auto imageView = __imageView) return imageView;
+- (ImageVisionView *)_imageVisionView {
+    if (auto imageVisionView = __imageVisionView) return imageVisionView;
     
-    UIImageView *imageView = [UIImageView new];
-    imageView.contentMode = UIViewContentModeScaleAspectFit;
-    imageView.backgroundColor = UIColor.systemBackgroundColor;
+    ImageVisionView *imageVisionView = [ImageVisionView new];
+    imageVisionView.backgroundColor = UIColor.systemBackgroundColor;
     
-    __imageView = [imageView retain];
-    return [imageView autorelease];
+    __imageVisionView = [imageVisionView retain];
+    return [imageVisionView autorelease];
 }
 
 - (UIBarButtonItem *)_requestsMenuBarButtonItem {
     if (auto requestsMenuBarButtonItem = __requestsMenuBarButtonItem) return requestsMenuBarButtonItem;
     
-//    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:requestClasses.count];
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_imageVisionElementWithViewModel:self._viewModel]
+    ]];
     
-    UIBarButtonItem *requestsMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"filemenu.and.selection"] menu:nil];
+    UIBarButtonItem *requestsMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"filemenu.and.selection"] menu:menu];
     
     __requestsMenuBarButtonItem = [requestsMenuBarButtonItem retain];
     return [requestsMenuBarButtonItem autorelease];
@@ -107,6 +141,14 @@
 
 - (void)_didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {
     [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)_didChangeObservationsNotification:(NSNotification *)notification {
+    [self._viewModel observationsWithHandler:^(NSArray<__kindof VNObservation *> * _Nonnull observations) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self._imageVisionView.imageVisionLayer.observations = observations;
+        });
+    }];
 }
 
 @end
