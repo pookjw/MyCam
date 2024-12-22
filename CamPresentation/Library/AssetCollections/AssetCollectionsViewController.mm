@@ -15,6 +15,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CamPresentation/MyCompositionalLayout.h>
+#import <CamPresentation/ImageVisionViewController.h>
 #include <random>
 
 @interface AssetCollectionsViewController () <UICollectionViewDelegate>
@@ -54,6 +55,8 @@
     [self dataSource];
     
     self.navigationItem.titleView = self.tmpButton;
+    
+    [self didTriggerTmpButton:nil];
 }
 
 - (AssetCollectionsDataSource *)dataSource {
@@ -212,27 +215,35 @@
 
 - (void)didTriggerTmpButton:(UIButton *)sender {
     // PHAssetCollectionSubtypeSmartAlbumSpatial PHAssetCollectionSubtypeSmartAlbumVideos
-    PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumSpatial options:nil];
-    PHAssetCollection *collection = collections.firstObject;
-    assert(collection != nil);
+//    PHFetchResult<PHAssetCollection *> *collections = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeSmartAlbumSpatial options:nil];
+//    PHAssetCollection *collection = collections.firstObject;
+//    assert(collection != nil);
+//    
+//    PHFetchOptions *options = [PHFetchOptions new];
+//    options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeVideo];
+//    PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
+//    [options release];
+//    
+//    if (assets.count == 0) return;
+//    
+//    std::random_device rd;
+//    std::mt19937 gen(rd());
+//    std::uniform_int_distribution<NSUInteger> distr(0, assets.count - 1);
+//    
+//    PHAsset *asset = assets[distr(gen)];
+//    assert(asset != nil);
+//    
+//    AssetViewController *viewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
     
-    PHFetchOptions *options = [PHFetchOptions new];
-    options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d", PHAssetMediaTypeVideo];
-    PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
-    [options release];
-    
-    if (assets.count == 0) return;
-    
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<NSUInteger> distr(0, assets.count - 1);
-    
-    PHAsset *asset = assets[distr(gen)];
-    assert(asset != nil);
-    
-    AssetViewController *viewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
-    [self.navigationController pushViewController:viewController animated:YES];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"E1806DB7-DCBD-496C-B728-0EE66FE086DF/L0/001"] options:nil][0];
+    ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
+    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
+    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+    [self presentViewController:navigationController animated:YES completion:nil];
+    [navigationController release];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {

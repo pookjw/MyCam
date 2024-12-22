@@ -9,6 +9,9 @@
 #import <objc/runtime.h>
 #import <AVFoundation/AVFoundation.h>
 #include <ranges>
+#include <vector>
+#import <Accelerate/Accelerate.h>
+#include <algorithm>
 
 OBJC_EXPORT void objc_setProperty_atomic(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
@@ -88,29 +91,74 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 - (void)_drawFaceObservation:(VNFaceObservation *)faceObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     CGContextSaveGState(ctx);
     
-    VNFaceLandmarkRegion2D *region = faceObservation.landmarks.allPoints;
+    CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
     
-    NSUInteger pointCount = region.pointCount;
-    const CGPoint *points = [region pointsInImageOfSize:aspectBounds.size];
+    CGRect boundingBox = faceObservation.boundingBox;
+    CGContextStrokeRectWithWidth(ctx,
+                                 CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * CGRectGetMinX(boundingBox),
+                                            CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - CGRectGetMinY(boundingBox) - CGRectGetHeight(boundingBox)),
+                                            CGRectGetWidth(aspectBounds) * CGRectGetWidth(boundingBox),
+                                            CGRectGetHeight(aspectBounds) * CGRectGetHeight(boundingBox)),
+                                 10.);
     
-    switch (region.pointsClassification) {
-        case VNPointsClassificationClosedPath:
-            break;
-        case VNPointsClassificationDisconnected:
-            break;
-        case VNPointsClassificationOpenPath:
-            break;
-        default:
-            abort();
-    }
-    
-    CGColorRef color = CGColorCreateGenericRGB(1., 0., 0., 1.);
-    CGContextSetStrokeColorWithColor(ctx, color);
-    CGColorRelease(color);
-    
-    for (const CGPoint *ptr : std::ranges::views::iota(points, points + pointCount)) {
-        const CGPoint point = *ptr;
-        CGContextStrokeRectWithWidth(ctx, CGRectMake(CGRectGetMinX(aspectBounds) + point.x, CGRectGetMinY(aspectBounds) + point.y, 10., 10.), 10.);
+    if (VNFaceLandmarkRegion2D *region = faceObservation.landmarks.allPoints) {
+        NSUInteger pointCount = region.pointCount;
+        const CGPoint *points = [region pointsInImageOfSize:aspectBounds.size];
+        
+#warning 이게 뭐임
+        switch (region.pointsClassification) {
+            case VNPointsClassificationClosedPath:
+                break;
+            case VNPointsClassificationDisconnected:
+                break;
+            case VNPointsClassificationOpenPath:
+                break;
+            default:
+                abort();
+        }
+        
+        //
+        
+#warning TODO
+        NSArray<NSNumber*> *precisionEstimatesPerPoint = region.precisionEstimatesPerPoint;
+        std::vector<float> precisionEstimatesPerPointVec {};
+        
+        if (precisionEstimatesPerPoint.count > 0) {
+            precisionEstimatesPerPointVec.reserve(precisionEstimatesPerPoint.count);
+            
+            for (NSNumber *number in precisionEstimatesPerPoint) {
+                precisionEstimatesPerPointVec.push_back(number.floatValue);
+            }
+            
+            float minValue, maxValue;
+            // stride (1) = 연속된 요소를 하나씩 접근. 배열의 모든 요소를 순차적으로 접근.
+            vDSP_minv(precisionEstimatesPerPointVec.data(), 1, &minValue, precisionEstimatesPerPointVec.size());
+            vDSP_maxv(precisionEstimatesPerPointVec.data(), 1, &maxValue, precisionEstimatesPerPointVec.size());
+            
+            
+        }
+        
+        
+        //
+        
+        for (NSUInteger idx : std::views::iota(0, (NSInteger)pointCount)) {
+            const CGPoint point = points[idx];
+            CGFloat precision;
+#if CGFLOAT_IS_DOUBLE
+            precision = region.precisionEstimatesPerPoint[idx].doubleValue;
+#else
+            precision = region.precisionEstimatesPerPoint[idx].floatValue;
+#endif
+            
+            CGContextSetRGBStrokeColor(ctx, 1., 0.5, 0.5, precision);
+            
+            CGContextStrokeRectWithWidth(ctx,
+                                         CGRectMake(CGRectGetMinX(aspectBounds) + point.x - 3.,
+                                                    CGRectGetHeight(aspectBounds) - (CGRectGetMinY(aspectBounds) + point.y) - 3.,
+                                                    1.,
+                                                    1.),
+                                         6.);
+        }
     }
     
     CGContextRestoreGState(ctx);

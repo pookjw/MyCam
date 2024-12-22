@@ -78,7 +78,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         [requests addObject:request];
         
         if (UIImage *image = self._queue_image) {
-            NSProgress *subprogress = [self _queue_updateImage:image completionHandler:completionHandler];
+            NSProgress *subprogress = [self _queue_performRequests:@[request] forImage:image completionHandler:completionHandler];
             [progress addChild:subprogress withPendingUnitCount:1];
             
             if (request.results.count > 0) {
@@ -111,6 +111,31 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     });
 }
 
+- (NSProgress *)updateRequest:(__kindof VNRequest *)request completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
+    
+    dispatch_async(self._queue, ^{
+        NSArray<__kindof VNRequest *> *requests = self._queue_requests;
+        assert([requests containsObject:request]);
+        
+        if (UIImage *image = self._queue_image) {
+            NSProgress *subprogress = [self _queue_performRequests:@[request] forImage:image completionHandler:completionHandler];
+            [progress addChild:subprogress withPendingUnitCount:1];
+            
+            if (request.results.count > 0) {
+                [self _postDidChangeObservationsNotification];
+            }
+        } else {
+            progress.completedUnitCount = 1;
+            if (completionHandler) {
+                completionHandler(nil);
+            }
+        }
+    });
+    
+    return progress;
+}
+
 - (void)observationsWithHandler:(void (^)(NSArray<__kindof VNObservation *> * _Nonnull))handler {
     dispatch_async(self._queue, ^{
         NSArray<__kindof VNRequest *> *requests = self._queue_requests;
@@ -137,7 +162,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     dispatch_async(self._queue, ^{
         self._queue_image = image;
-        NSProgress *subprogress = [self _queue_updateImage:image completionHandler:completionHandler];
+        NSProgress *subprogress = [self _queue_performRequests:self._queue_requests forImage:image completionHandler:completionHandler];
         [progress addChild:subprogress withPendingUnitCount:1];
     });
     
@@ -205,7 +230,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
             progress.completedUnitCount = 1000000UL;
             
             self._queue_image = result;
-            NSProgress *subprogress = [self _queue_updateImage:result completionHandler:^(NSError * _Nullable error) {
+            NSProgress *subprogress = [self _queue_performRequests:self._queue_requests forImage:result completionHandler:^(NSError * _Nullable error) {
                 if (completionHandler) {
                     if (error) {
                         completionHandler(nil, error);
@@ -233,10 +258,8 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     return progress;
 }
 
-- (NSProgress *)_queue_updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
+- (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
     dispatch_assert_queue(self._queue);
-    
-    NSArray<__kindof VNImageBasedRequest *> *requests = self._queue_requests;
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     

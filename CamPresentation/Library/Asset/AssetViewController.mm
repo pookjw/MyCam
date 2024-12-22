@@ -231,6 +231,8 @@
 #else
     self.playerBarButtonItem.hidden = [self currentVideoAsset] == nil;
 #endif
+    
+    NSLog(@"%@", [self currentAsset].localIdentifier);
 }
 
 @end

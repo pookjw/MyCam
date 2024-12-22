@@ -440,6 +440,8 @@
 				Vision/ImageVisionViewController.mm,
 				Vision/ImageVisionViewModel.h,
 				Vision/ImageVisionViewModel.mm,
+				"Vision/NSStringFrom+/NSStringFromVNRequestFaceLandmarksConstellation.h",
+				"Vision/NSStringFrom+/NSStringFromVNRequestFaceLandmarksConstellation.mm",
 				"Vision/UIDeferredMenuElement+ImageVision.h",
 				"Vision/UIDeferredMenuElement+ImageVision.mm",
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",

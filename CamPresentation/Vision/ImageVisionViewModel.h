@@ -19,6 +19,7 @@ CP_EXTERN NSNotificationName const ImageVisionViewModelDidChangeObservationsNoti
 - (void)requestsWithHandler:(void (^)(NSArray<__kindof VNRequest *> *requests))completionHandler;
 - (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 - (void)removeRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(void))completionHandler;
+- (NSProgress *)updateRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 
 - (void)observationsWithHandler:(void (^)(NSArray<__kindof VNObservation *> *observations))handler;
 
