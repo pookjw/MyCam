@@ -1353,8 +1353,40 @@
     
     //
     
+    __kindof UIMenuElement *contrastAdjustmentSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 3.f;
+        slider.value = request.contrastAdjustment;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            request.contrastAdjustment = value;
+            
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventTouchUpOutside];
+        [slider addAction:action forControlEvents:UIControlEventTouchUpInside];
+        
+        return [slider autorelease];
+    });
+    
+    UIMenu *contrastAdjustmentSliderMenu = [UIMenu menuWithTitle:@"contrastAdjustment" children:@[contrastAdjustmentSliderElement]];
+    
+    //
+    
+    // TOOD
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        contrastAdjustmentSliderMenu
     ]];
     
     return menu;

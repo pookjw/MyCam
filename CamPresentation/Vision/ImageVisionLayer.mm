@@ -1227,8 +1227,20 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawContoursObservation:(VNContoursObservation *)contoursObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    abort();
-    // normalizedPath은 CGContext를 scale하면 될듯
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformIdentity, CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds)), CGRectGetWidth(aspectBounds), CGRectGetHeight(aspectBounds)), 0., 1.), 1., -1.);
+    CGPathRef transformedPath = CGPathCreateCopyByTransformingPath(contoursObservation.normalizedPath, &transform);
+    
+    CGContextAddPath(ctx, transformedPath);
+    CGPathRelease(transformedPath);
+    CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
+    CGContextSetLineWidth(ctx, 3.);
+    CGContextStrokePath(ctx);
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
 }
 
 @end
