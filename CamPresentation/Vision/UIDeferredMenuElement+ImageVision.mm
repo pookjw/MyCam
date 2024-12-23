@@ -13,6 +13,8 @@
 #import <CamPresentation/NSStringFromVNRequestFaceLandmarksConstellation.h>
 #import <CamPresentation/NSStringFromVNGeneratePersonSegmentationRequestQualityLevel.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <CoreML/CoreML.h>
+#import <CamPresentation/MLModelAsset+Category.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -23,25 +25,25 @@
  VNClassifyFaceAttributesRequest,✅
  VNClassifyImageAestheticsRequest,✅
  VNClassifyImageRequest,✅
- VNClassifyJunkImageRequest,
- VNClassifyMemeImageRequest,
- VNVYvzEtX1JlUdu8xx5qhDI,
- VNClassifyPotentialLandmarkRequest,
- VN5kJNH3eYuyaLxNpZr5Z7zi,
- VN6Mb1ME89lyW3HpahkEygIG,
- VNCoreMLRequest,
- VNCreateAnimalprintRequest,
- VNCreateDetectionprintRequest,
- VNCreateFaceRegionMapRequest,
- VNCreateFaceprintRequest,
- VN6kBnCOr2mZlSV6yV1dLwB,
- VNCreateImageFingerprintsRequest,
- VNCreateImageprintRequest,
- VNCreateNeuralHashprintRequest,
- VNCreateSceneprintRequest,
- VNCreateSmartCamprintRequest,
- VNCreateTorsoprintRequest,
- VNDetectAnimalBodyPoseRequest,
+ VNClassifyJunkImageRequest,✅
+ VNClassifyMemeImageRequest,✅
+ VNVYvzEtX1JlUdu8xx5qhDI,✅
+ VNClassifyPotentialLandmarkRequest,✅
+ VN5kJNH3eYuyaLxNpZr5Z7zi,✅
+ VN6Mb1ME89lyW3HpahkEygIG,✅
+ VNCoreMLRequest,✅
+ VNCreateAnimalprintRequest,✅
+ VNCreateDetectionprintRequest,✅
+ VNCreateFaceRegionMapRequest,✅
+ VNCreateFaceprintRequest,✅
+ VN6kBnCOr2mZlSV6yV1dLwB,✅
+ VNCreateImageFingerprintsRequest,✅
+ VNCreateImageprintRequest,✅
+ VNCreateNeuralHashprintRequest,✅
+ VNCreateSceneprintRequest,✅
+ VNCreateSmartCamprintRequest,✅
+ VNCreateTorsoprintRequest,✅
+ VNDetectAnimalBodyPoseRequest,✅
  VNDetectBarcodesRequest,
  VNDetectContoursRequest,
  VNDetectDocumentSegmentationRequest,
@@ -69,13 +71,13 @@
  VNGenerateHumanAttributesSegmentationRequest,
  VNGenerateImageFeaturePrintRequest,
  VNGenerateInstanceMaskRequest,
- VNGenerateForegroundInstanceMaskRequest,
+ VNGenerateForegroundInstanceMaskRequest,✅
  VNGenerateImageSegmentationRequest,
  VNGenerateInstanceMaskGatingRequest,
  VNGenerateObjectnessBasedSaliencyImageRequest,
  VNGenerateOpticalFlowRequest,
  VN1JC7R3k4455fKQz0dY1VhQ,
- VNGeneratePersonInstanceMaskRequest,
+ VNGeneratePersonInstanceMaskRequest,✅
  VNGeneratePersonSegmentationRequest,✅
  VNGenerateSkySegmentationRequest,
  VNHomographicImageRegistrationRequest,
@@ -113,20 +115,44 @@
     
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         [viewModel requestsWithHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests) {
-            NSArray<__kindof UIMenuElement *> *elements = @[
-                [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:viewModel addedRequests:requests],
+            UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:@[
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateAnimalprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCoreMLRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyCityNatureImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyFaceAttributesRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyJunkImageRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyMemeImageRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyPotentialLandmarkRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageAestheticsRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests]
+            ]];
+            
+            UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
+                [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyFaceAttributesRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNVYvzEtX1JlUdu8xx5qhDIWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVN5kJNH3eYuyaLxNpZr5Z7ziWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVN6Mb1ME89lyW3HpahkEygIGWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateDetectionprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceRegionMapRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVN6kBnCOr2mZlSV6yV1dLwBWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageFingerprintsRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSceneprintRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests]
-            ];
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateNeuralHashprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+            ]];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(elements);
+                completion(@[usefulRequestsMenu, uselessRequestsMenu]);
             });
         }];
     }];
@@ -278,7 +304,546 @@
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNClassifyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNClassifyJunkImageRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNClassifyJunkImageRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyJunkImageRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyJunkImageRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyJunkImageRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNClassifyMemeImageRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNClassifyMemeImageRequest") addedRequests:requests];
+    NSString *subtitle = @"Not Meme. Document, Receipt, Boarding pass, etc...";
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyMemeImageRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyMemeImageRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        action.subtitle = subtitle;
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyMemeImageRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    menu.subtitle = subtitle;
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNVYvzEtX1JlUdu8xx5qhDIWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNClassifyPotentialLandmarkRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNClassifyPotentialLandmarkRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyPotentialLandmarkRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyPotentialLandmarkRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyPotentialLandmarkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVN5kJNH3eYuyaLxNpZr5Z7ziWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi") addedRequests:requests];
+    NSString *subtitle = @"landscale_cityscape, food";
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        action.subtitle = subtitle;
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    menu.subtitle = subtitle;
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVN6Mb1ME89lyW3HpahkEygIGWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCoreMLRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNCoreMLRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNCoreMLRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNCoreMLRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            NSError * _Nullable error = nil;
+            MLModelAsset *modelAsset = [MLModelAsset cp_modelAssetWithModelType:NerualAnalyzerModelTypeMobileNetV2 error:&error];
+            assert(error == nil);
+            
+            MLModelConfiguration *configuration = [MLModelConfiguration new];
+            configuration.allowLowPrecisionAccumulationOnGPU = NO;
+            configuration.computeUnits = MLComputeUnitsAll;
+            
+            MLOptimizationHints * optimizationHints = [MLOptimizationHints new];
+            optimizationHints.reshapeFrequency = MLReshapeFrequencyHintInfrequent;
+            optimizationHints.specializationStrategy = MLSpecializationStrategyDefault;
+            
+            configuration.optimizationHints = optimizationHints;
+            [optimizationHints release];
+            
+            MLModel *model = reinterpret_cast<id (*)(id, SEL, id, id *)>(objc_msgSend)(modelAsset, sel_registerName("modelWithConfiguration:error:"), configuration, &error);
+            [configuration release];
+            assert(error == nil);
+            
+            VNCoreMLModel *visionModel = [VNCoreMLModel modelForMLModel:model error:&error];
+            assert(error == nil);
+            
+            VNCoreMLRequest *request = [[VNCoreMLRequest alloc] initWithModel:visionModel completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+                
+            }];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNCoreMLRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateAnimalprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateAnimalprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateAnimalprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateAnimalprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateAnimalprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateDetectionprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateDetectionprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateDetectionprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateDetectionprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateDetectionprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateFaceRegionMapRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateFaceRegionMapRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceRegionMapRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateFaceRegionMapRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceRegionMapRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateFaceprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateFaceprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateFaceprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    BOOL forceFaceprintCreation = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("forceFaceprintCreation"));
+    UIAction *forceFaceprintCreationAction = [UIAction actionWithTitle:@"forceFaceprintCreation" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setForceFaceprintCreation:"), !forceFaceprintCreation);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    forceFaceprintCreationAction.state = forceFaceprintCreation ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        forceFaceprintCreationAction
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVN6kBnCOr2mZlSV6yV1dLwBWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        action.subtitle = @"???";
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    menu.subtitle = @"???";
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateImageFingerprintsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateImageFingerprintsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageFingerprintsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateImageFingerprintsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageFingerprintsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateImageprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateImageprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateImageprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateNeuralHashprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateNeuralHashprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateNeuralHashprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateNeuralHashprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateNeuralHashprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateSmartCamprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSmartCamprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateSmartCamprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSmartCamprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateTorsoprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateTorsoprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateTorsoprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateTorsoprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCreateSceneprintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNCreateSceneprintRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSceneprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNCreateSceneprintRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSceneprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectAnimalBodyPoseRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectAnimalBodyPoseRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectAnimalBodyPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectAnimalBodyPoseRequest *request = [[VNDetectAnimalBodyPoseRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -286,26 +851,127 @@
     //
     
     NSError * _Nullable error = nil;
-    NSArray<NSString *> *supportedIdentifiers = [request supportedIdentifiersAndReturnError:&error];
-    assert(error == nil);
-    
-    NSMutableArray<UIAction *> *supportedIdentifierActions = [[NSMutableArray alloc] initWithCapacity:supportedIdentifiers.count];
-    for (NSString *identifier in supportedIdentifiers) {
-        UIAction *action = [UIAction actionWithTitle:identifier image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            
-        }];
-        action.attributes = UIMenuElementAttributesDisabled;
-        [supportedIdentifierActions addObject:action];
-    }
-    UIMenu *suportedIdentifiersMenu = [UIMenu menuWithTitle:@"Supported Identifiers" children:supportedIdentifierActions];
-    suportedIdentifiersMenu.subtitle = [NSString stringWithFormat:@"%ld identifiers", supportedIdentifierActions.count];
-    [supportedIdentifierActions release];
     
     //
     
-    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNClassifyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+    NSArray<NSString *> *supportedJointNames = [request supportedJointNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointNames.count];
+    for (NSString *jointName in supportedJointNames) {
+        UIAction *action = [UIAction actionWithTitle:jointName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointNameActions addObject:action];
+    }
+    UIMenu *supportedJointNamesMenu = [UIMenu menuWithTitle:@"supportedJointNames" children:supportedJointNameActions];
+    supportedJointNamesMenu.subtitle = @(supportedJointNameActions.count).stringValue;
+    [supportedJointNameActions release];
+    
+    //
+    
+    NSArray<NSString *> *supportedJointsGroupNames = [request supportedJointsGroupNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointsGroupNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointsGroupNames.count];
+    for (NSString *jointsGroupName in supportedJointsGroupNames) {
+        UIAction *action = [UIAction actionWithTitle:jointsGroupName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointsGroupNameActions addObject:action];
+    }
+    UIMenu *supportedJointsGroupNamesMenu = [UIMenu menuWithTitle:@"supportedJointsGroupNames" children:supportedJointsGroupNameActions];
+    supportedJointsGroupNamesMenu.subtitle = @(supportedJointsGroupNameActions.count).stringValue;
+    [supportedJointsGroupNameActions release];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectAnimalBodyPoseRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
-        suportedIdentifiersMenu
+        supportedJointNamesMenu,
+        supportedJointsGroupNamesMenu
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateAnimalSegmentationRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateAnimalSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateAnimalSegmentationRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    VNGeneratePersonSegmentationRequestQualityLevel currentQualityLevel = reinterpret_cast<VNGeneratePersonSegmentationRequestQualityLevel (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("qualityLevel"));
+    
+    auto qualityLevelActionsVec = std::vector<VNGeneratePersonSegmentationRequestQualityLevel> {
+        VNGeneratePersonSegmentationRequestQualityLevelAccurate,
+        VNGeneratePersonSegmentationRequestQualityLevelBalanced,
+        VNGeneratePersonSegmentationRequestQualityLevelFast
+    }
+    | std::views::transform([viewModel, request, currentQualityLevel](const VNGeneratePersonSegmentationRequestQualityLevel qualityLevel) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(qualityLevel)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *qualityLevelActions = [[NSArray alloc] initWithObjects:qualityLevelActionsVec.data() count:qualityLevelActionsVec.size()];
+    UIMenu *qualityLevelsMenu = [UIMenu menuWithTitle:@"Quality Levels" children:qualityLevelActions];
+    [qualityLevelActions release];
+    qualityLevelsMenu.subtitle = NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(currentQualityLevel);
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateAnimalSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        qualityLevelsMenu
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNGenerateForegroundInstanceMaskRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateForegroundInstanceMaskRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateForegroundInstanceMaskRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNGenerateForegroundInstanceMaskRequest *request = [[VNGenerateForegroundInstanceMaskRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateForegroundInstanceMaskRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -571,10 +1237,15 @@
 }
 
 + (UIMenu *)_cp_imageVissionCommonMenuForRequest:(__kindof VNRequest *)request viewModel:(ImageVisionViewModel *)viewModel {
-    UIAction *removeRequest = [UIAction actionWithTitle:@"Remove Requrest" image:[UIImage systemImageNamed:@"trash"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+    
+    //
+    
+    UIAction *removeRequestAction = [UIAction actionWithTitle:@"Remove Requrest" image:[UIImage systemImageNamed:@"trash"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [viewModel removeRequest:request completionHandler:nil];
     }];
-    removeRequest.attributes = UIMenuElementAttributesDestructive;
+    removeRequestAction.attributes = UIMenuElementAttributesDestructive;
+    [children addObject:removeRequestAction];
     
     //
     
@@ -611,6 +1282,7 @@
     
     UIMenu *publicRevisionsMenu = [UIMenu menuWithTitle:@"Public Revisions" children:publicRevisionActions];
     [publicRevisionActions release];
+    [children addObject:publicRevisionsMenu];
     
     //
     
@@ -638,14 +1310,34 @@
     
     UIMenu *privateRevisionsMenu = [UIMenu menuWithTitle:@"Private Revisions" children:privateRevisionActions];
     [privateRevisionActions release];
+    [children addObject:privateRevisionsMenu];
     
     //
     
-    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
-        removeRequest,
-        publicRevisionsMenu,
-        privateRevisionsMenu
-    ]];
+    if ([request respondsToSelector:@selector(supportedIdentifiersAndReturnError:)]) {
+        NSError * _Nullable error = nil;
+        NSArray<NSString *> *supportedIdentifiers = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedIdentifiersAndReturnError:"), &error);
+        assert(error == nil);
+        
+        NSMutableArray<UIAction *> *supportedIdentifierActions = [[NSMutableArray alloc] initWithCapacity:supportedIdentifiers.count];
+        for (NSString *identifier in supportedIdentifiers) {
+            UIAction *action = [UIAction actionWithTitle:identifier image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
+            }];
+            action.attributes = UIMenuElementAttributesDisabled;
+            [supportedIdentifierActions addObject:action];
+        }
+        UIMenu *suportedIdentifiersMenu = [UIMenu menuWithTitle:@"Supported Identifiers" children:supportedIdentifierActions];
+        suportedIdentifiersMenu.subtitle = [NSString stringWithFormat:@"%ld identifiers", supportedIdentifierActions.count];
+        [supportedIdentifierActions release];
+        
+        [children addObject:suportedIdentifiersMenu];
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:children];
+    [children release];
     
     return menu;
 }

@@ -187,6 +187,7 @@
     
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:rootViewController];
     [rootViewController release];
+    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
     
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];

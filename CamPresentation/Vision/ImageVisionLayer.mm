@@ -32,6 +32,43 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 
 @implementation ImageVisionLayer
 
++ (NSString *)_stringFromFeaturePrintObservation:(VNFeaturePrintObservation *)featurePrintObservation {
+    NSString *elementTypeString;
+    NSString *dataString;
+    
+    VNElementType elementType = featurePrintObservation.elementType;
+    switch (elementType) {
+        case VNElementTypeFloat: {
+            elementTypeString = @"Float";
+            auto values = reinterpret_cast<const float *>(featurePrintObservation.data.bytes);
+            
+            NSMutableArray<NSString *> *array = [[NSMutableArray alloc] initWithCapacity:featurePrintObservation.elementCount];
+            for (const float *value : std::ranges::views::iota(values, values + featurePrintObservation.elementCount)) {
+                [array addObject:@(*value).stringValue];
+            }
+            dataString = [array componentsJoinedByString:@", "];
+            [array release];
+            break;
+        }
+        case VNElementTypeDouble: {
+            elementTypeString = @"Double";
+            auto values = reinterpret_cast<const double *>(featurePrintObservation.data.bytes);
+            
+            NSMutableArray<NSString *> *array = [[NSMutableArray alloc] initWithCapacity:featurePrintObservation.elementCount];
+            for (const double *value : std::ranges::views::iota(values, values + featurePrintObservation.elementCount)) {
+                [array addObject:@(*value).stringValue];
+            }
+            dataString = [array componentsJoinedByString:@", "];
+            [array release];
+            break;
+        }
+        default:
+            abort();
+    }
+    
+    return [NSString stringWithFormat:@"elementType: %@\ndata: %@", elementTypeString, dataString];
+}
+
 - (instancetype)init {
     if (self = [super init]) {
         id<MTLDevice> mtlDevice = MTLCreateSystemDefaultDevice();
@@ -141,10 +178,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     NSMutableArray<VNClassificationObservation *> *classificationObservations = [NSMutableArray new];
     
     for (__kindof VNObservation *observation in self.observations) {
-        if ([observation isKindOfClass:[VNFaceObservation class]]) {
+        if ([observation class] == [VNFaceObservation class]) {
             auto faceObservation = static_cast<VNFaceObservation *>(observation);
             [self _drawFaceObservation:faceObservation aspectBounds:aspectBounds inContext:ctx];
-        } else if ([observation isKindOfClass:[VNPixelBufferObservation class]]) {
+        } else if ([observation class] == [VNPixelBufferObservation class]) {
             auto pixelBufferObservation = static_cast<VNPixelBufferObservation *>(observation);
             id originatingRequestSpecifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(pixelBufferObservation, sel_registerName("originatingRequestSpecifier"));
             NSString *requestClassName = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(originatingRequestSpecifier, sel_registerName("requestClassName"));
@@ -154,14 +191,36 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             } else {
                 abort();
             }
-        } else if ([observation isKindOfClass:[VNImageAestheticsScoresObservation class]]) {
+        } else if ([observation class] == [VNImageAestheticsScoresObservation class]) {
             auto imageAestheticsScoresObservation = static_cast<VNImageAestheticsScoresObservation *>(observation);
             [self _drawImageAestheticsScoresObservation:imageAestheticsScoresObservation aspectBounds:aspectBounds inContext:ctx];
-        } else if ([observation isKindOfClass:[VNClassificationObservation class]]) {
+        } else if ([observation class] == [VNClassificationObservation class]) {
             auto classificationObservation = static_cast<VNClassificationObservation *>(observation);
             [classificationObservations addObject:classificationObservation];
-        } else if ([observation isKindOfClass:objc_lookUpClass("VNImageAestheticsObservation")]) {
+        } else if ([observation class] == objc_lookUpClass("VNImageAestheticsObservation")) {
             [self _drawImageAestheticsObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNAnimalObservation")) {
+            [self _drawImageAnimalObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNDetectionprintObservation")) {
+            [self _drawImageDetectionprintObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNImageFingerprintsObservation")) {
+            [self _drawImageFingerprintsObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNImageprintObservation")) {
+            [self _drawImageprintObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNImageNeuralHashprintObservation")) {
+            [self _drawImageNeuralHashprintObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNSceneObservation")) {
+            [self _drawSceneObservationObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNSmartCamObservation")) {
+            [self _drawSceneSmartCamObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNHumanObservation class]) {
+            [self _drawHumanObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNAnimalBodyPoseObservation class]) {
+            [self _drawAnimalBodyPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNRectangleObservation class]) {
+            [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNInstanceMaskObservation class]) {
+            [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:YES inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -179,7 +238,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             }
         }];
         
-        [self _drawClassificationObservations:classificationObservations aspectBounds:aspectBounds inContext:ctx];
+        [self _drawClassificationObservations:classificationObservations frame:CGRectNull aspectBounds:aspectBounds inContext:ctx];
     }
     
     [classificationObservations release];
@@ -187,20 +246,33 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     os_unfair_lock_unlock(&_lock);
 }
 
-- (void)_drawFaceObservation:(VNFaceObservation *)faceObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+- (void)_drawDetectedObjectObservation:(VNDetectedObjectObservation *)detectedObjectObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx convertedBoundingBox:(CGRect * _Nullable)convertedBoundingBoxOut {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
     CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
-    
-    //
-    
-    CGRect boundingBox = faceObservation.boundingBox;
+    CGRect boundingBox = detectedObjectObservation.boundingBox;
     CGRect convertedBoundingBox = CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * CGRectGetMinX(boundingBox),
                                              CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - CGRectGetMinY(boundingBox) - CGRectGetHeight(boundingBox)),
                                              CGRectGetWidth(aspectBounds) * CGRectGetWidth(boundingBox),
                                              CGRectGetHeight(aspectBounds) * CGRectGetHeight(boundingBox));
+    
+    if (convertedBoundingBoxOut != NULL) {
+        *convertedBoundingBoxOut = convertedBoundingBox;
+    }
+    
     CGContextStrokeRectWithWidth(ctx, convertedBoundingBox, 10.);
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawFaceObservation:(VNFaceObservation *)faceObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    CGRect convertedBoundingBox;
+    [self _drawDetectedObjectObservation:faceObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
     
     //
     
@@ -273,7 +345,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             
             CGContextStrokeRectWithWidth(ctx,
                                          CGRectMake(CGRectGetMinX(aspectBounds) + point.x - 3.,
-                                                    CGRectGetHeight(aspectBounds) - (CGRectGetMinY(aspectBounds) + point.y) - 3.,
+                                                    CGRectGetMaxY(aspectBounds) - point.y - 3.,
                                                     1.,
                                                     1.),
                                          6.);
@@ -288,6 +360,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CATextLayer *textLayer = [CATextLayer new];
     textLayer.string = isBlinking ? @"😔" : @"😳";
+    textLayer.wrapped = YES;
     textLayer.fontSize = 24.;
     textLayer.contentsScale = self.contentsScale;
     
@@ -322,7 +395,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         NSAutoreleasePool *pool = [NSAutoreleasePool new];
         CGContextSaveGState(ctx);
         
-        CIFilter<CIBlendWithMask> *blendWithAlphaMaskFilter = [CIFilter blendWithMaskFilter];
+        CIFilter<CIBlendWithMask> *blendWithMaskFilter = [CIFilter blendWithMaskFilter];
         
         //
         
@@ -330,7 +403,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         if (inputCIImage == nil) {
             inputCIImage = [[[CIImage alloc] initWithCGImage:self.image.CGImage options:nil] autorelease];
         }
-        blendWithAlphaMaskFilter.inputImage = inputCIImage;
+        blendWithMaskFilter.inputImage = inputCIImage;
         
         //
         
@@ -341,11 +414,11 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         CGAffineTransform transform = CGAffineTransformMakeScale(scaleX, sclaeY);
         CIImage *transformedCIImage = [maskCIImage imageByApplyingTransform:transform highQualityDownsample:YES];
         [maskCIImage release];
-        blendWithAlphaMaskFilter.maskImage = transformedCIImage;
+        blendWithMaskFilter.maskImage = transformedCIImage;
         
         //
         
-        CIImage *outputCIImage = [blendWithAlphaMaskFilter.outputImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
+        CIImage *outputCIImage = [blendWithMaskFilter.outputImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
         CGImageRef outputCGImage = [self._ciContext createCGImage:outputCIImage fromRect:outputCIImage.extent];
         
         CGContextDrawImage(ctx, aspectBounds, outputCGImage);
@@ -394,6 +467,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     textLayer.string = string;
     [string release];
     
+    textLayer.wrapped = YES;
     textLayer.fontSize = 17.;
     
     CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
@@ -419,7 +493,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     [pool release];
 }
 
-- (void)_drawClassificationObservations:(NSArray<VNClassificationObservation *> *)classificationObservations aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+- (void)_drawClassificationObservations:(NSArray<VNClassificationObservation *> *)classificationObservations frame:(CGRect)frame aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
@@ -441,6 +515,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     textLayer.string = string;
     [string release];
     
+    textLayer.wrapped = YES;
     textLayer.fontSize = 17.;
     
     CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
@@ -451,12 +526,18 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     textLayer.backgroundColor = backgroundColor;
     CGColorRelease(backgroundColor);
     
-    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
     textLayer.contentsScale = self.contentsScale;
     
-    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
-                                                                     CGRectGetMinY(aspectBounds));
-    
+    CGAffineTransform translation;
+    if (CGRectIsNull(frame)) {
+        textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+        translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                       CGRectGetMinY(aspectBounds));
+    } else {
+        textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(frame), CGRectGetHeight(frame));
+        translation = CGAffineTransformMakeTranslation(CGRectGetMinX(frame),
+                                                       CGRectGetMinY(frame));
+    }
     CGContextConcatCTM(ctx, translation);
     
     [textLayer renderInContext:ctx];
@@ -469,8 +550,6 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 - (void)_drawImageAestheticsObservation:(__kindof VNObservation *)imageAestheticsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
-    
-    CATextLayer *textLayer = [CATextLayer new];
     
     NSDictionary<NSString *, NSNumber *> *_scoresDictionary = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageAestheticsObservation, sel_registerName("_scoresDictionary"));
     __block std::vector<std::pair<std::string, std::float_t>> scorePairs {};
@@ -495,9 +574,12 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [string appendString:@"\n"];
         }
     }
+    
+    CATextLayer *textLayer = [CATextLayer new];
     textLayer.string = string;
     [string release];
     
+    textLayer.wrapped = YES;
     textLayer.fontSize = 17.;
     
     CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
@@ -518,6 +600,564 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     [textLayer renderInContext:ctx];
     [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawRecognizedObjectObservation:(__kindof VNRecognizedObjectObservation *)recognizedObjectObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx convertedBoundingBox:(CGRect * _Nullable)convertedBoundingBoxOut {
+    CGRect convertedBoundingBox;
+    [self _drawDetectedObjectObservation:recognizedObjectObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+    if (convertedBoundingBoxOut != NULL) {
+        *convertedBoundingBoxOut = convertedBoundingBox;
+    }
+    
+    [self _drawClassificationObservations:recognizedObjectObservation.labels frame:convertedBoundingBox aspectBounds:aspectBounds inContext:ctx];
+}
+
+- (void)_drawImageAnimalObservation:(__kindof VNRecognizedObjectObservation *)animalObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawRecognizedObjectObservation:animalObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+}
+
+- (void)_drawImageDetectionprintObservation:(__kindof VNObservation *)detectionprintObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    id detectionprint = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(detectionprintObservation, sel_registerName("detectionprint"));
+    
+    //
+    
+    NSArray<NSString *> *tensorKeys = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(detectionprint, sel_registerName("tensorKeys"));
+    NSMutableArray<NSString *> *strings = [[NSMutableArray alloc] initWithCapacity:tensorKeys.count];
+    
+    for (NSString *tensorKey in tensorKeys) {
+        NSError * _Nullable error = nil;
+        NSString *tensor = reinterpret_cast<id (*)(id, SEL, id, id *)>(objc_msgSend)(detectionprint, sel_registerName("tensorForKey:error:"), tensorKey, &error);
+        assert(error == nil);
+        NSString *tensorShape = reinterpret_cast<id (*)(Class, SEL, id, id *)>(objc_msgSend)(objc_lookUpClass("VNDetectionprint"), sel_registerName("tensorShapeForKey:error:"), tensorKey, &error);
+        assert(error == nil);
+        
+        [strings addObject:[NSString stringWithFormat:@"%@: %@ Shape: %@", tensorKey, tensor, tensorShape]];
+    }
+    
+    NSString *string = [strings componentsJoinedByString:@"\n"];
+    [strings release];
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    textLayer.string = string;
+    
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageFingerprintsObservation:(__kindof VNObservation *)imageFingerprintsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSArray *fingerprintHashes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageFingerprintsObservation, sel_registerName("fingerprintHashes"));
+    NSMutableArray<NSString *> *strings = [[NSMutableArray alloc] initWithCapacity:fingerprintHashes.count];
+    
+    for (id fingerprintHash in fingerprintHashes) {
+        NSString *hashString = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(fingerprintHash, sel_registerName("hashString"));
+        [strings addObject:hashString];
+    }
+    
+    NSString *string = [strings componentsJoinedByString:@"\n"];
+    [strings release];
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    textLayer.string = string;
+    
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageprintObservation:(__kindof VNObservation *)imageprintObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSString *imageprintVersion = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageprintObservation, sel_registerName("imageprintVersion"));
+    id imageprint = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageprintObservation, sel_registerName("imageprint"));
+    id descriptor = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageprint, sel_registerName("descriptor"));
+    
+    NSString *imagepointIvarDescription = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageprint, sel_registerName("_ivarDescription"));
+    NSString *descriptorIvarDescription = reinterpret_cast<id (*)(id ,SEL)>(objc_msgSend)(descriptor, sel_registerName("_ivarDescription"));
+    
+    NSString *string = [[NSString alloc] initWithFormat:@"imageprintVersion: %@\n\n%@\n\n%@", imageprintVersion, imagepointIvarDescription, descriptorIvarDescription];
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = string;
+    [string release];
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageNeuralHashprintObservation:(__kindof VNObservation *)imageNeuralHashprintObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSObject *imageNeuralHashprint = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageNeuralHashprintObservation, sel_registerName("imageNeuralHashprint"));
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = imageNeuralHashprint.description;
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawSceneObservationObservation:(__kindof VNFeaturePrintObservation *)sceneObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSString *featureprintObservationString = [ImageVisionLayer _stringFromFeaturePrintObservation:sceneObservation];
+    BOOL trimmed = (1500 < featureprintObservationString.length);
+    // 글자수 제한
+    featureprintObservationString = [featureprintObservationString substringWithRange:NSMakeRange(0, MIN(1500, featureprintObservationString.length))];
+    if (trimmed) {
+        featureprintObservationString = [featureprintObservationString stringByAppendingString:@"... (Trimmed)"];
+    }
+    
+    NSArray<NSObject *> *sceneprints = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sceneObservation, sel_registerName("sceneprints"));
+    NSMutableArray<NSString *> *sceneprintStringArray = [[NSMutableArray alloc] initWithCapacity:sceneprints.count];
+    for (NSObject *screenprint in sceneprints) {
+        [sceneprintStringArray addObject:screenprint.description];
+    }
+    NSString *screenprintsString = [sceneprintStringArray componentsJoinedByString:@", "];
+    [sceneprintStringArray release];
+    
+    NSString *string = [NSString stringWithFormat:@"%@\n\nscreenprints: %@", featureprintObservationString, screenprintsString];
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = string;
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawSceneSmartCamObservation:(__kindof VNObservation *)smartCamObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSArray<NSObject *> *smartCamprints = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(smartCamObservation, sel_registerName("smartCamprints"));
+    NSMutableArray<NSString *> *smartCamprintStringArray = [[NSMutableArray alloc] initWithCapacity:smartCamprints.count];
+    for (NSObject *smartCamprint in smartCamprints) {
+        [smartCamprintStringArray addObject:smartCamprint.description];
+    }
+    NSString *smartCamprintString = [smartCamprintStringArray componentsJoinedByString:@", "];
+    [smartCamprintStringArray release];
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = smartCamprintString;
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawHumanObservation:(VNHumanObservation *)humanObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    CGRect convertedBoundingBox;
+    [self _drawDetectedObjectObservation:humanObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSObject *torsoprint = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(humanObservation, sel_registerName("torsoprint"));
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = [NSString stringWithFormat:@"upperBodyOnly: %d\ntorsoprint: %@", humanObservation.upperBodyOnly, torsoprint.description];
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(convertedBoundingBox), CGRectGetHeight(convertedBoundingBox));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(convertedBoundingBox),
+                                                                     CGRectGetMinY(convertedBoundingBox));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawAnimalBodyPoseObservation:(VNAnimalBodyPoseObservation *)animalBodyPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawRecognizedPointsObservation:animalBodyPoseObservation aspectBounds:aspectBounds inContext:ctx];
+}
+
+- (void)_drawRecognizedPointsObservation:(VNRecognizedPointsObservation *)recognizedPointsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    NSError * _Nullable error = nil;
+    
+    for (NSString *groupKey in recognizedPointsObservation.availableGroupKeys) {
+        NSDictionary<VNRecognizedPointKey, VNRecognizedPoint *> * _Nullable recognizedPointsForGroupKey = [recognizedPointsObservation recognizedPointsForGroupKey:groupKey error:&error];
+        
+        __block std::optional<CGFloat> minX = std::nullopt;
+        __block std::optional<CGFloat> minY = std::nullopt;
+        __block std::optional<CGFloat> maxX = std::nullopt;
+        __block std::optional<CGFloat> maxY = std::nullopt;
+        
+        [recognizedPointsForGroupKey enumerateKeysAndObjectsUsingBlock:^(VNRecognizedPointKey  _Nonnull key, VNRecognizedPoint * _Nonnull obj, BOOL * _Nonnull stop) {
+            if (minX.has_value()) {
+                minX = std::min(minX.value(), obj.x);
+            } else {
+                minX = obj.x;
+            }
+            
+            if (minY.has_value()) {
+                minY = std::min(minY.value(), obj.y);
+            } else {
+                minY = obj.y;
+            }
+            
+            if (maxX.has_value()) {
+                maxX = std::max(maxX.value(), obj.x);
+            } else {
+                maxX = obj.x;
+            }
+            
+            if (maxY.has_value()) {
+                maxY = std::max(maxY.value(), obj.y);
+            } else {
+                maxY = obj.y;
+            }
+        }];
+        
+        if (!minX.has_value()) continue;
+        
+        CGRect rectangle = CGRectMake(CGRectGetMinX(aspectBounds) + minX.value() * CGRectGetWidth(aspectBounds),
+                                      CGRectGetMinY(aspectBounds) + (1. - maxY.value()) * CGRectGetHeight(aspectBounds),
+                                      (maxX.value() - minX.value()) * CGRectGetWidth(aspectBounds),
+                                      (maxY.value() - minY.value()) * CGRectGetHeight(aspectBounds));
+        
+        CGContextSetRGBStrokeColor(ctx, 0., 0.5, 0.5, 1.);
+        
+        CGContextStrokeRectWithWidth(ctx,
+                                     rectangle,
+                                     6.);
+        
+        if (self.shouldDrawDetails) {
+            CGContextSaveGState(ctx);
+            
+            CATextLayer *textLayer = [CATextLayer new];
+            
+            textLayer.string = groupKey;
+            textLayer.wrapped = YES;
+            textLayer.font = [UIFont systemFontOfSize:12.];
+            textLayer.fontSize = 12.;
+            
+            CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+            textLayer.foregroundColor = foregroundColor;
+            CGColorRelease(foregroundColor);
+            
+            CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+            textLayer.backgroundColor = backgroundColor;
+            CGColorRelease(backgroundColor);
+            
+            NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:groupKey attributes:@{NSFontAttributeName: (id)textLayer.font}];
+            CGSize size = attributedString.size;
+            [attributedString release];
+            textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+            
+            textLayer.contentsScale = self.contentsScale;
+            
+            CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(rectangle), CGRectGetMinY(rectangle) - size.height - 3.);
+            
+            CGContextConcatCTM(ctx, translation);
+            
+            [textLayer renderInContext:ctx];
+            [textLayer release];
+            
+            CGContextRestoreGState(ctx);
+        }
+    }
+    
+    //
+    
+    for (NSString *key in recognizedPointsObservation.availableKeys) {
+        VNRecognizedPoint *recognizedPoint = [recognizedPointsObservation recognizedPointForKey:key error:&error];
+        VNConfidence confidence = recognizedPoint.confidence;
+        CGContextSetRGBStrokeColor(ctx, 1., 0.5, 0.5, confidence);
+        
+        CGContextStrokeRectWithWidth(ctx,
+                                     CGRectMake(CGRectGetMinX(aspectBounds) + (recognizedPoint.x * CGRectGetWidth(aspectBounds)) - 3.,
+                                                CGRectGetMaxY(aspectBounds) - (recognizedPoint.y * CGRectGetHeight(aspectBounds)) - 3.,
+                                                1.,
+                                                1.),
+                                     6.);
+        
+        if (self.shouldDrawDetails) {
+            CGContextSaveGState(ctx);
+            
+            CATextLayer *textLayer = [CATextLayer new];
+            
+            textLayer.string = key;
+            textLayer.wrapped = YES;
+            textLayer.font = [UIFont systemFontOfSize:8.];
+            textLayer.fontSize = 8.;
+            
+            CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+            textLayer.foregroundColor = foregroundColor;
+            CGColorRelease(foregroundColor);
+            
+            CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+            textLayer.backgroundColor = backgroundColor;
+            CGColorRelease(backgroundColor);
+            
+            NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:key attributes:@{NSFontAttributeName: (id)textLayer.font}];
+            CGSize size = attributedString.size;
+            [attributedString release];
+            textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+            
+            textLayer.contentsScale = self.contentsScale;
+            
+            CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * recognizedPoint.x,
+                                                                             CGRectGetMaxY(aspectBounds) - CGRectGetHeight(aspectBounds) * recognizedPoint.y);
+            
+            CGContextConcatCTM(ctx, translation);
+            
+            [textLayer renderInContext:ctx];
+            [textLayer release];
+            
+            CGContextRestoreGState(ctx);
+        }
+    }
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawRectangleObservation:(VNRectangleObservation *)rectangleObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawDetectedObjectObservation:rectangleObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+}
+
+- (void)_drawInstanceMaskObservation:(VNInstanceMaskObservation *)instanceMaskObservation aspectBounds:(CGRect)aspectBounds maskImage:(BOOL)maskImage inContext:(CGContextRef)ctx {
+    NSIndexSet *allInstances = instanceMaskObservation.allInstances;
+    if (allInstances.count == 0) return;
+    
+    UIImage *image = self.image;
+    if (image == nil) return;
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+    CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+    
+    VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+    }];
+    
+    NSError * _Nullable error = nil;
+    CVPixelBufferRef maskPixelBuffer = [instanceMaskObservation generateScaledMaskForImageForInstances:allInstances fromRequestHandler:requestHandler error:&error];
+    assert(error == nil);
+    
+    if (maskImage) {
+        CIFilter<CIBlendWithMask> *blendWithMaskFilter = [CIFilter blendWithMaskFilter];
+        
+        CIImage *inputCIImage = image.CIImage;
+        if (inputCIImage == nil) {
+            inputCIImage = [[[CIImage alloc] initWithCGImage:image.CGImage options:nil] autorelease];
+        }
+        blendWithMaskFilter.inputImage = inputCIImage;
+        
+        CIImage *maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil];
+        CVPixelBufferRelease(maskPixelBuffer);
+        CGFloat scaleX = CGRectGetWidth(inputCIImage.extent) / CGRectGetWidth(maskCIImage.extent);
+        CGFloat sclaeY = CGRectGetHeight(inputCIImage.extent) / CGRectGetHeight(maskCIImage.extent);
+        CGAffineTransform transform = CGAffineTransformMakeScale(scaleX, sclaeY);
+        CIImage *transformedMaskCIImage = [maskCIImage imageByApplyingTransform:transform];
+        [maskCIImage release];
+        blendWithMaskFilter.maskImage = transformedMaskCIImage;
+        
+        CIImage *outputCIImage = [blendWithMaskFilter.outputImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
+        CGImageRef outputCGImage = [self._ciContext createCGImage:outputCIImage fromRect:outputCIImage.extent];
+        
+        CGContextDrawImage(ctx, aspectBounds, outputCGImage);
+        CGImageRelease(outputCGImage);
+    } else {
+        CIImage *maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil];
+        CVPixelBufferRelease(maskPixelBuffer);
+        CIImage *transformedMaskCIImage = [maskCIImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
+        [maskCIImage release];
+        
+        CGImageRef maskCGImage = [self._ciContext createCGImage:transformedMaskCIImage fromRect:transformedMaskCIImage.extent];
+        
+        CGContextDrawImage(ctx, aspectBounds, maskCGImage);
+        CGImageRelease(maskCGImage);
+    }
     
     CGContextRestoreGState(ctx);
     [pool release];
