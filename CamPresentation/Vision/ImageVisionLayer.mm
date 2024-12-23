@@ -221,6 +221,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNInstanceMaskObservation class]) {
             [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:YES inContext:ctx];
+        } else if ([observation class] == [VNBarcodeObservation class]) {
+            [self _drawBarcodeObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNContoursObservation class]) {
+            [self _drawContoursObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -1161,6 +1165,70 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CGContextRestoreGState(ctx);
     [pool release];
+}
+
+- (void)_drawBarcodeObservation:(VNBarcodeObservation *)barcodeObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    CGRect convertedBoundingBox;
+    [self _drawDetectedObjectObservation:barcodeObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    auto drawText = ^(NSString *string, CGPoint origin) {
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        
+        textLayer.string = string;
+        textLayer.wrapped = YES;
+        textLayer.font = [UIFont systemFontOfSize:8.];
+        textLayer.fontSize = 8.;
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+        CGSize size = attributedString.size;
+        [attributedString release];
+        textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+        
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(origin.x - size.width * 0.5, origin.y - size.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    };
+    
+    if (NSString *payloadStringValue = barcodeObservation.payloadStringValue) {
+        drawText(payloadStringValue, CGPointMake(CGRectGetMidX(convertedBoundingBox), CGRectGetMinY(convertedBoundingBox)));
+    }
+    
+    if (NSString *supplementalPayloadString = barcodeObservation.supplementalPayloadString) {
+        drawText(supplementalPayloadString, CGPointMake(CGRectGetMinX(convertedBoundingBox), CGRectGetMaxY(convertedBoundingBox)));
+    }
+    
+    if (self.shouldDrawDetails) {
+        NSString *string = [NSString stringWithFormat:@"symbology: %@\nisColorInverted: %d\nisGS1DataCarrier: %d", barcodeObservation.symbology, barcodeObservation.isColorInverted, barcodeObservation.isGS1DataCarrier];
+        drawText(string, CGPointMake(CGRectGetMidX(convertedBoundingBox), CGRectGetMidY(convertedBoundingBox)));
+    }
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawContoursObservation:(VNContoursObservation *)contoursObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    abort();
+    // normalizedPath은 CGContext를 scale하면 될듯
 }
 
 @end

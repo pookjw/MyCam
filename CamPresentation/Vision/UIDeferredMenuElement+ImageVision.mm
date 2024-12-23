@@ -44,8 +44,8 @@
  VNCreateSmartCamprintRequest,✅
  VNCreateTorsoprintRequest,✅
  VNDetectAnimalBodyPoseRequest,✅
- VNDetectBarcodesRequest,
- VNDetectContoursRequest,
+ VNDetectBarcodesRequest,✅
+ VNDetectContoursRequest,😀
  VNDetectDocumentSegmentationRequest,
  VNDetectFaceCaptureQualityRequest,
  VNDetectFaceLandmarksRequest,✅
@@ -128,7 +128,9 @@
                 [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageAestheticsRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests]
+                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests]
             ]];
             
             UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -1224,6 +1226,143 @@
     return menu;
 }
 
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectBarcodesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectBarcodesRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectBarcodesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectBarcodesRequest *request = [[VNDetectBarcodesRequest alloc] initWithCompletionHandler:nil];
+            [viewModel addRequest:request completionHandler:nil];
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSArray<VNBarcodeSymbology> *supportedSymbologies = [request supportedSymbologiesAndReturnError:&error];
+    assert(error == nil);
+    NSArray<VNBarcodeSymbology> *symbologies = request.symbologies;
+    NSMutableArray<UIAction *> *supportedSymbologyActions = [[NSMutableArray alloc] initWithCapacity:supportedSymbologies.count];
+    for (VNBarcodeSymbology symbology in supportedSymbologies) {
+        UIAction *action = [UIAction actionWithTitle:symbology image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            request.symbologies = [request.symbologies arrayByAddingObject:symbology];
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = ([symbologies containsObject:symbology]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [supportedSymbologyActions addObject:action];
+    }
+    UIMenu *supportedSymbologyMenu = [UIMenu menuWithTitle:@"Supported Symbologies" children:supportedSymbologyActions];
+    [supportedSymbologyActions release];
+    supportedSymbologyMenu.subtitle = [NSString stringWithFormat:@"%ld selected", symbologies.count];
+    
+    //
+    
+    BOOL coalesceCompositeSymbologies = request.coalesceCompositeSymbologies;
+    UIAction *coalesceCompositeSymbologiesAction = [UIAction actionWithTitle:@"coalesceCompositeSymbologies" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        request.coalesceCompositeSymbologies = !coalesceCompositeSymbologies;
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    coalesceCompositeSymbologiesAction.state = coalesceCompositeSymbologies ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL stopAtFirstPyramidWith2DCode = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("stopAtFirstPyramidWith2DCode"));
+    UIAction *stopAtFirstPyramidWith2DCodeAction = [UIAction actionWithTitle:@"stopAtFirstPyramidWith2DCode" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setStopAtFirstPyramidWith2DCode:"), !stopAtFirstPyramidWith2DCode);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    stopAtFirstPyramidWith2DCodeAction.state = stopAtFirstPyramidWith2DCode ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL useSegmentationPregating = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useSegmentationPregating"));
+    UIAction *useSegmentationPregatingAction = [UIAction actionWithTitle:@"useSegmentationPregating" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseSegmentationPregating:"), !useSegmentationPregating);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    useSegmentationPregatingAction.state = useSegmentationPregating ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL useMLDetector = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useMLDetector"));
+    UIAction *useMLDetectorAction = [UIAction actionWithTitle:@"useMLDetector" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseMLDetector:"), !useMLDetector);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    useMLDetectorAction.state = useMLDetector ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSArray<NSString *> *availableLocateModes = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("availableLocateModesAndReturnError:"), &error);
+    assert(error == nil);
+    NSString *currentLocateMode = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("locateMode"));
+    NSMutableArray<UIAction *> *availableLocateModeActions = [[NSMutableArray alloc] initWithCapacity:availableLocateModes.count];
+    for (NSString *locateMode in availableLocateModes) {
+        UIAction *action = [UIAction actionWithTitle:locateMode image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setLocateMode:"), locateMode);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = ([currentLocateMode isEqualToString:locateMode]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        action.cp_overrideNumberOfTitleLines = 0;
+        
+        [availableLocateModeActions addObject:action];
+    }
+    UIMenu *availableLocateModesMenu = [UIMenu menuWithTitle:@"availableLocateModes" children:availableLocateModeActions];
+    [availableLocateModeActions release];
+    availableLocateModesMenu.subtitle = currentLocateMode;
+    availableLocateModesMenu.cp_overrideNumberOfSubtitleLines = 0;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectBarcodesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        supportedSymbologyMenu,
+        coalesceCompositeSymbologiesAction,
+        stopAtFirstPyramidWith2DCodeAction,
+        useSegmentationPregatingAction,
+        useMLDetectorAction,
+        availableLocateModesMenu
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectContoursRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectContoursRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectContoursRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectContoursRequest *request = [[VNDetectContoursRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
+
+#pragma mark - Common
+
 + (__kindof VNRequest * _Nullable)_cp_imageVisionRequestForClass:(Class)requestClass addedRequests:(NSArray<__kindof VNRequest *> *)requests {
     assert([requestClass isSubclassOfClass:[VNRequest class]]);
     
@@ -1239,6 +1378,7 @@
 + (UIMenu *)_cp_imageVissionCommonMenuForRequest:(__kindof VNRequest *)request viewModel:(ImageVisionViewModel *)viewModel {
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
+#warning supportedComputeStageDevicesAndReturnError setComputeDevice:forComputeStage:
     //
     
     UIAction *removeRequestAction = [UIAction actionWithTitle:@"Remove Requrest" image:[UIImage systemImageNamed:@"trash"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -1289,7 +1429,10 @@
     NSIndexSet *privateRevisionsSet = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)([request class], sel_registerName("privateRevisionsSet"));
     NSMutableArray<UIAction *> *privateRevisionActions = [[NSMutableArray alloc] initWithCapacity:privateRevisionsSet.count];
     [privateRevisionsSet enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL * _Nonnull stop) {
-        UIAction *action = [UIAction actionWithTitle:reinterpret_cast<id (*)(Class, SEL, NSUInteger)>(objc_msgSend)([request class], sel_registerName("descriptionForPrivateRevision:"), idx)
+        NSString *description = reinterpret_cast<id (*)(Class, SEL, NSUInteger)>(objc_msgSend)([request class], sel_registerName("descriptionForPrivateRevision:"), idx);
+        NSString *title = [NSString stringWithFormat:@"%@ (%ld)", description, idx];
+        
+        UIAction *action = [UIAction actionWithTitle:title
                                                image:nil
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
