@@ -12,8 +12,10 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface ImageVisionLayer : CALayer
-@property (retain, nullable) UIImage *image;
-@property (copy) NSArray<__kindof VNObservation *> *observations;
+@property (retain, atomic, nullable) UIImage *image;
+@property (copy, atomic) NSArray<__kindof VNObservation *> *observations;
+@property (atomic) BOOL shouldDrawImage;
+@property (atomic) BOOL shouldDrawDetails;
 @end
 
 NS_ASSUME_NONNULL_END

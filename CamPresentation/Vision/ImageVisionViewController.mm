@@ -19,6 +19,8 @@
 @property (retain, nonatomic, nullable) ImageVisionViewModel *_viewModel;
 @property (retain, nonatomic, readonly) ImageVisionView *_imageVisionView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_requestsMenuBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *_drawImageBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *_drawDetailsBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_doneBarButtonItem;
 @property (retain, nonatomic, nullable) NSProgress *_progress;
 @end
@@ -26,6 +28,8 @@
 @implementation ImageVisionViewController
 @synthesize _imageVisionView = __imageVisionView;
 @synthesize _requestsMenuBarButtonItem = __requestsMenuBarButtonItem;
+@synthesize _drawImageBarButtonItem = __drawImageBarButtonItem;
+@synthesize _drawDetailsBarButtonItem = __drawDetailsBarButtonItem;
 @synthesize _doneBarButtonItem = __doneBarButtonItem;
 
 - (instancetype)initWithImage:(UIImage *)image {
@@ -51,6 +55,8 @@
     [__asset release];
     [__imageVisionView release];
     [__requestsMenuBarButtonItem release];
+    [__drawImageBarButtonItem release];
+    [__drawDetailsBarButtonItem release];
     [__doneBarButtonItem release];
     
     if (NSProgress *progress = __progress) {
@@ -96,11 +102,16 @@
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
-        self._requestsMenuBarButtonItem
+        self._requestsMenuBarButtonItem,
+        self._drawImageBarButtonItem,
+        self._drawDetailsBarButtonItem
     ];
     navigationItem.rightBarButtonItems = @[
         self._doneBarButtonItem
     ];
+    
+    [self _updateDrawImageBarButtonItem];
+    [self _updateDrawDetailsBarButtonItem];
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         __kindof UIControl *requestsMenuBarButton = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self._requestsMenuBarButtonItem, sel_registerName("view"));
@@ -138,6 +149,24 @@
     return [requestsMenuBarButtonItem autorelease];
 }
 
+- (UIBarButtonItem *)_drawImageBarButtonItem {
+    if (auto drawImageBarButtonItem = __drawImageBarButtonItem) return drawImageBarButtonItem;
+    
+    UIBarButtonItem *drawImageBarButtonItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(_didTriggerDrawImageBarButtonItem:)];
+    
+    __drawImageBarButtonItem = [drawImageBarButtonItem retain];
+    return [drawImageBarButtonItem autorelease];
+}
+
+- (UIBarButtonItem *)_drawDetailsBarButtonItem {
+    if (auto drawDetailsBarButtonItem = __drawDetailsBarButtonItem) return drawDetailsBarButtonItem;
+    
+    UIBarButtonItem *drawDetailsBarButtonItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(_didTriggerDrawDetailsBarButtonItem:)];
+    
+    __drawDetailsBarButtonItem = [drawDetailsBarButtonItem retain];
+    return [drawDetailsBarButtonItem autorelease];
+}
+
 - (UIBarButtonItem *)_doneBarButtonItem {
     if (auto doneBarButtonItem = __doneBarButtonItem) return doneBarButtonItem;
     
@@ -149,6 +178,38 @@
 
 - (void)_setReadyForProcess:(BOOL)ready {
     self._requestsMenuBarButtonItem.enabled = ready;
+}
+
+- (void)_updateDrawImageBarButtonItem {
+    UIImage *image;
+    if (self._imageVisionView.imageVisionLayer.shouldDrawImage) {
+        image = [UIImage systemImageNamed:@"photo.artframe.circle.fill"];
+    } else {
+        image = [UIImage systemImageNamed:@"photo.artframe.circle"];
+    }
+    
+    self._drawImageBarButtonItem.image = image;
+}
+
+- (void)_updateDrawDetailsBarButtonItem {
+    UIImage *image;
+    if (self._imageVisionView.imageVisionLayer.shouldDrawDetails) {
+        image = [UIImage systemImageNamed:@"text.page.fill"];
+    } else {
+        image = [UIImage systemImageNamed:@"text.page"];
+    }
+    
+    self._drawDetailsBarButtonItem.image = image;
+}
+
+- (void)_didTriggerDrawImageBarButtonItem:(UIBarButtonItem *)sender {
+    self._imageVisionView.imageVisionLayer.shouldDrawImage = !self._imageVisionView.imageVisionLayer.shouldDrawImage;
+    [self _updateDrawImageBarButtonItem];
+}
+
+- (void)_didTriggerDrawDetailsBarButtonItem:(UIBarButtonItem *)sender {
+    self._imageVisionView.imageVisionLayer.shouldDrawDetails = !self._imageVisionView.imageVisionLayer.shouldDrawDetails;
+    [self _updateDrawDetailsBarButtonItem];
 }
 
 - (void)_didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {

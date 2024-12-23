@@ -11,7 +11,100 @@
 #include <ranges>
 #include <vector>
 #import <CamPresentation/NSStringFromVNRequestFaceLandmarksConstellation.h>
+#import <CamPresentation/NSStringFromVNGeneratePersonSegmentationRequestQualityLevel.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+
+/*
+ (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
+ <__NSFrozenArrayM 0x3038c3840>(
+ VNAlignFaceRectangleRequest,✅
+ VNCalculateImageAestheticsScoresRequest,✅
+ VNClassifyCityNatureImageRequest,
+ VNClassifyFaceAttributesRequest,
+ VNClassifyImageAestheticsRequest,
+ VNClassifyImageRequest,
+ VNClassifyJunkImageRequest,
+ VNClassifyMemeImageRequest,
+ VNVYvzEtX1JlUdu8xx5qhDI,
+ VNClassifyPotentialLandmarkRequest,
+ VN5kJNH3eYuyaLxNpZr5Z7zi,
+ VN6Mb1ME89lyW3HpahkEygIG,
+ VNCoreMLRequest,
+ VNCreateAnimalprintRequest,
+ VNCreateDetectionprintRequest,
+ VNCreateFaceRegionMapRequest,
+ VNCreateFaceprintRequest,
+ VN6kBnCOr2mZlSV6yV1dLwB,
+ VNCreateImageFingerprintsRequest,
+ VNCreateImageprintRequest,
+ VNCreateNeuralHashprintRequest,
+ VNCreateSceneprintRequest,
+ VNCreateSmartCamprintRequest,
+ VNCreateTorsoprintRequest,
+ VNDetectAnimalBodyPoseRequest,
+ VNDetectBarcodesRequest,
+ VNDetectContoursRequest,
+ VNDetectDocumentSegmentationRequest,
+ VNDetectFaceCaptureQualityRequest,
+ VNDetectFaceLandmarksRequest,✅
+ VNDetectFace3DLandmarksRequest,
+ VNDetectFaceExpressionsRequest,
+ VNDetectFaceGazeRequest,
+ VNDetectFacePoseRequest,
+ VNDetectFaceRectanglesRequest,✅
+ VNDetectHorizonRequest,
+ VNDetectHumanBodyPoseRequest,
+ VNDetectHumanBodyPose3DRequest,
+ VNDetectHumanHandPoseRequest,
+ VNDetectHumanHeadRectanglesRequest,
+ VNDetectHumanRectanglesRequest,
+ VNDetectRectanglesRequest,
+ VNDetectScreenGazeRequest,
+ VNDetectTextRectanglesRequest,
+ VNDetectTrajectoriesRequest,
+ VNGenerateAnimalSegmentationRequest,
+ VNGenerateAttentionBasedSaliencyImageRequest,
+ VNGenerateFaceSegmentsRequest,
+ VNGenerateGlassesSegmentationRequest,
+ VNGenerateHumanAttributesSegmentationRequest,
+ VNGenerateImageFeaturePrintRequest,
+ VNGenerateInstanceMaskRequest,
+ VNGenerateForegroundInstanceMaskRequest,
+ VNGenerateImageSegmentationRequest,
+ VNGenerateInstanceMaskGatingRequest,
+ VNGenerateObjectnessBasedSaliencyImageRequest,
+ VNGenerateOpticalFlowRequest,
+ VN1JC7R3k4455fKQz0dY1VhQ,
+ VNGeneratePersonInstanceMaskRequest,
+ VNGeneratePersonSegmentationRequest,✅
+ VNGenerateSkySegmentationRequest,
+ VNHomographicImageRegistrationRequest,
+ VNIdentifyJunkRequest,
+ VNImageBlurScoreRequest,
+ VNImageExposureScoreRequest,
+ VNNOPRequest,
+ VNRecognizeAnimalsRequest,
+ VNRecognizeAnimalHeadsRequest,
+ VNRecognizeAnimalFacesRequest,
+ VNRecognizeFoodAndDrinkRequest,
+ VNRecognizeObjectsRequest,
+ VNRecognizeSportBallsRequest,
+ VNRecognizeTextRequest,
+ VNRecognizeDocumentElementsRequest,
+ VNRecognizeDocumentsRequest,
+ VNRemoveBackgroundRequest,
+ VNSceneClassificationRequest,
+ VNTrackHomographyRequest,
+ VNTrackHomographicImageRegistrationRequest,
+ VNTrackLegacyFaceCoreObjectRequest,
+ VNTrackMaskRequest,
+ VNTrackObjectRequest,
+ VNTrackOpticalFlowRequest,
+ VNTrackRectangleRequest,
+ VNTrackTranslationalImageRegistrationRequest,
+ VNTranslationalImageRegistrationRequest
+ )
+ */
 
 @implementation UIDeferredMenuElement (ImageVision)
 
@@ -21,6 +114,9 @@
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         [viewModel requestsWithHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests) {
             NSArray<__kindof UIMenuElement *> *elements = @[
+                [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests]
             ];
@@ -32,17 +128,49 @@
     }];
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
-    VNDetectFaceRectanglesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectFaceRectanglesRequest class] addedRequests:requests];
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNAlignFaceRectangleRequest") addedRequests:requests];
     
     if (request == nil) {
-        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            VNDetectFaceRectanglesRequest *request = [[VNDetectFaceRectanglesRequest alloc] initWithCompletionHandler:nil];
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNAlignFaceRectangleRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[objc_lookUpClass("VNAlignFaceRectangleRequest") alloc] initWithCompletionHandler:nil];
             
             [viewModel addRequest:request completionHandler:nil];
             
             [request release];
         }];
+        
+        action.subtitle = @"???";
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNAlignFaceRectangleRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    menu.subtitle = @"???";
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNCalculateImageAestheticsScoresRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNCalculateImageAestheticsScoresRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNRequest *request = [[VNCalculateImageAestheticsScoresRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        action.subtitle = @"???";
         
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
@@ -51,8 +179,155 @@
     
     //
     
-    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNCalculateImageAestheticsScoresRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    menu.subtitle = @"???";
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNGeneratePersonSegmentationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGeneratePersonSegmentationRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGeneratePersonSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNGeneratePersonSegmentationRequest *request = [[VNGeneratePersonSegmentationRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    auto qualityLevelActionsVec = std::vector<VNGeneratePersonSegmentationRequestQualityLevel> {
+        VNGeneratePersonSegmentationRequestQualityLevelAccurate,
+        VNGeneratePersonSegmentationRequestQualityLevelBalanced,
+        VNGeneratePersonSegmentationRequestQualityLevelFast
+    }
+    | std::views::transform([viewModel, request](const VNGeneratePersonSegmentationRequestQualityLevel qualityLevel) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(qualityLevel)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            request.qualityLevel = qualityLevel;
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = (request.qualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *qualityLevelActions = [[NSArray alloc] initWithObjects:qualityLevelActionsVec.data() count:qualityLevelActionsVec.size()];
+    UIMenu *qualityLevelsMenu = [UIMenu menuWithTitle:@"Quality Levels" children:qualityLevelActions];
+    [qualityLevelActions release];
+    qualityLevelsMenu.subtitle = NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(request.qualityLevel);
+    
+    //
+    
+    BOOL useTiling = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useTiling"));
+    UIAction *useTilingAction = [UIAction actionWithTitle:@"Use Tiling" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseTiling:"), !useTiling);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    useTilingAction.state = useTiling ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    UIAction *supportedOutputPixelFormatsAction = [UIAction actionWithTitle:[request supportedOutputPixelFormatsAndReturnError:&error].description
+                                                                      image:nil
+                                                                 identifier:nil
+                                                                    handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    assert(error == nil);
+    
+    supportedOutputPixelFormatsAction.attributes = UIMenuElementAttributesDisabled;
+    supportedOutputPixelFormatsAction.cp_overrideNumberOfTitleLines = 0;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGeneratePersonSegmentationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        qualityLevelsMenu,
+        useTilingAction,
+        supportedOutputPixelFormatsAction
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectFaceRectanglesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectFaceRectanglesRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectFaceRectanglesRequest *request = [[VNDetectFaceRectanglesRequest alloc] initWithCompletionHandler:nil];
+            
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreEnhanceEyesAndMouthLocalization:"), YES);
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractBlink:"), YES);
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractSmile:"), YES);
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    BOOL faceCoreEnhanceEyesAndMouthLocalization = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreEnhanceEyesAndMouthLocalization"));
+    
+    UIAction *faceCoreEnhanceEyesAndMouthLocalizationAction = [UIAction actionWithTitle:@"faceCoreEnhanceEyesAndMouthLocalization" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreEnhanceEyesAndMouthLocalization:"), !faceCoreEnhanceEyesAndMouthLocalization);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    faceCoreEnhanceEyesAndMouthLocalizationAction.subtitle = @"???";
+    faceCoreEnhanceEyesAndMouthLocalizationAction.state = faceCoreEnhanceEyesAndMouthLocalization ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL faceCoreExtractBlink = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreExtractBlink"));
+    
+    UIAction *faceCoreExtractBlinkAction = [UIAction actionWithTitle:@"faceCoreExtractBlink" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractBlink:"), !faceCoreExtractBlink);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    faceCoreExtractBlinkAction.subtitle = @"Not working";
+    faceCoreExtractBlinkAction.state = faceCoreExtractBlink ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL faceCoreExtractSmile = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreExtractSmile"));
+    
+    UIAction *faceCoreExtractSmileAction = [UIAction actionWithTitle:@"faceCoreExtractSmile" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractSmile:"), !faceCoreExtractSmile);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    faceCoreExtractSmileAction.subtitle = @"???";
+    faceCoreExtractSmileAction.state = faceCoreExtractSmile ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        faceCoreEnhanceEyesAndMouthLocalizationAction,
+        faceCoreExtractBlinkAction,
+        faceCoreExtractSmileAction
     ]];
     
     return menu;
@@ -64,14 +339,16 @@
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectFaceLandmarksRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectFaceLandmarksRequest *request = [VNDetectFaceLandmarksRequest new];
+            
             request.constellation = VNRequestFaceLandmarksConstellation76Points;
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setPerformBlinkDetection:"), YES);
             
             [viewModel addRequest:request completionHandler:nil];
             
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -107,9 +384,52 @@
     
     //
     
+    BOOL refineMouthRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineMouthRegion"));
+    UIAction *refineMouthRegionAction = [UIAction actionWithTitle:@"refineMouthRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineMouthRegion:"), !refineMouthRegion);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    refineMouthRegionAction.subtitle = @"???";
+    refineMouthRegionAction.state = refineMouthRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL refineLeftEyeRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineLeftEyeRegion"));
+    UIAction *refineLeftEyeRegionAction = [UIAction actionWithTitle:@"refineLeftEyeRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineLeftEyeRegion:"), !refineLeftEyeRegion);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    refineLeftEyeRegionAction.subtitle = @"???";
+    refineLeftEyeRegionAction.state = refineLeftEyeRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL refineRightEyeRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineRightEyeRegion"));
+    UIAction *refineRightEyeRegionAction = [UIAction actionWithTitle:@"refineRightEyeRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineRightEyeRegion:"), !refineRightEyeRegion);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    refineRightEyeRegionAction.subtitle = @"???";
+    refineRightEyeRegionAction.state = refineRightEyeRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL performBlinkDetection = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("performBlinkDetection"));
+    UIAction *performBlinkDetectionAction = [UIAction actionWithTitle:@"performBlinkDetection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setPerformBlinkDetection:"), !performBlinkDetection);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    performBlinkDetectionAction.state = performBlinkDetection ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceLandmarksRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
-        constellationMenu
+        constellationMenu,
+        performBlinkDetectionAction,
+        refineMouthRegionAction,
+        refineLeftEyeRegionAction,
+        refineRightEyeRegionAction
     ]];
     
     return menu;
@@ -128,9 +448,10 @@
 }
 
 + (UIMenu *)_cp_imageVissionCommonMenuForRequest:(__kindof VNRequest *)request viewModel:(ImageVisionViewModel *)viewModel {
-    UIAction *removeRequest = [UIAction actionWithTitle:@"Remove Requrest" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+    UIAction *removeRequest = [UIAction actionWithTitle:@"Remove Requrest" image:[UIImage systemImageNamed:@"trash"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [viewModel removeRequest:request completionHandler:nil];
     }];
+    removeRequest.attributes = UIMenuElementAttributesDestructive;
     
     //
     
