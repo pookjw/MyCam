@@ -12,16 +12,21 @@
 #include <vector>
 #include <optional>
 #include <algorithm>
+#include <utility>
+#include <string>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreImage/CoreImage.h>
 #import <Metal/Metal.h>
 #import <CoreImage/CIFilterBuiltins.h>
+#import <os/lock.h>
 
 OBJC_EXPORT void objc_setProperty_atomic(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 
-@interface ImageVisionLayer ()
+@interface ImageVisionLayer () {
+    os_unfair_lock _lock;
+}
 @property (retain, nonatomic, readonly) CIContext *_ciContext;
 @end
 
@@ -35,6 +40,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         _shouldDrawImage = YES;
         _shouldDrawDetails = YES;
+        _lock = OS_UNFAIR_LOCK_INIT;
     }
     
     return self;
@@ -50,6 +56,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         _observations = [casted.observations copy];
         _shouldDrawImage = casted->_shouldDrawImage;
         _shouldDrawDetails = casted->_shouldDrawDetails;
+        _lock = OS_UNFAIR_LOCK_INIT;
     }
     
     return self;
@@ -68,7 +75,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 #pragma clang diagnostic pop
     Ivar ivar = object_getInstanceVariable(self, "_image", NULL);
     assert(ivar);
+    
+    os_unfair_lock_lock(&_lock);
     objc_setProperty_atomic(self, _cmd, image, ivar_getOffset(ivar));
+    os_unfair_lock_unlock(&_lock);
     
     [self setNeedsDisplay];
 }
@@ -79,7 +89,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 #pragma clang diagnostic pop
     Ivar ivar = object_getInstanceVariable(self, "_observations", NULL);
     assert(ivar);
+    
+    os_unfair_lock_lock(&_lock);
     objc_setProperty_atomic(self, _cmd, observations, ivar_getOffset(ivar));
+    os_unfair_lock_unlock(&_lock);
     
     [self setNeedsDisplay];
 }
@@ -88,7 +101,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 #pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
 - (void)setShouldDrawImage:(BOOL)drawsImage {
 #pragma clang diagnostic pop
+    os_unfair_lock_lock(&_lock);
     _shouldDrawImage = drawsImage;
+    os_unfair_lock_unlock(&_lock);
+    
     [self setNeedsDisplay];
 }
 
@@ -96,15 +112,23 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 #pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
 - (void)setShouldDrawDetails:(BOOL)shouldDrawDetails {
 #pragma clang diagnostic pop
+    os_unfair_lock_lock(&_lock);
     _shouldDrawDetails = shouldDrawDetails;
+    os_unfair_lock_unlock(&_lock);
+    
     [self setNeedsDisplay];
 }
 
 - (void)drawInContext:(CGContextRef)ctx {
     [super drawInContext:ctx];
     
+    os_unfair_lock_lock(&_lock);
+    
     UIImage *image = self.image;
-    if (image == nil) return;
+    if (image == nil) {
+        os_unfair_lock_unlock(&_lock);
+        return;
+    }
     
     CGRect aspectBounds = AVMakeRectWithAspectRatioInsideRect(image.size, self.bounds);
     
@@ -113,6 +137,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         [image drawInRect:AVMakeRectWithAspectRatioInsideRect(image.size, aspectBounds)];
         UIGraphicsPopContext();
     }
+    
+    NSMutableArray<VNClassificationObservation *> *classificationObservations = [NSMutableArray new];
     
     for (__kindof VNObservation *observation in self.observations) {
         if ([observation isKindOfClass:[VNFaceObservation class]]) {
@@ -131,11 +157,34 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         } else if ([observation isKindOfClass:[VNImageAestheticsScoresObservation class]]) {
             auto imageAestheticsScoresObservation = static_cast<VNImageAestheticsScoresObservation *>(observation);
             [self _drawImageAestheticsScoresObservation:imageAestheticsScoresObservation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation isKindOfClass:[VNClassificationObservation class]]) {
+            auto classificationObservation = static_cast<VNClassificationObservation *>(observation);
+            [classificationObservations addObject:classificationObservation];
+        } else if ([observation isKindOfClass:objc_lookUpClass("VNImageAestheticsObservation")]) {
+            [self _drawImageAestheticsObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
         }
     }
+    
+    if (classificationObservations.count > 0) {
+        [classificationObservations sortUsingComparator:^NSComparisonResult(VNClassificationObservation * _Nonnull obj1, VNClassificationObservation * _Nonnull obj2) {
+            if (obj1.confidence == obj2.confidence) {
+                return NSOrderedSame;
+            } else if (obj1.confidence < obj2.confidence) {
+                return NSOrderedDescending;
+            } else {
+                return NSOrderedAscending;
+            }
+        }];
+        
+        [self _drawClassificationObservations:classificationObservations aspectBounds:aspectBounds inContext:ctx];
+    }
+    
+    [classificationObservations release];
+    
+    os_unfair_lock_unlock(&_lock);
 }
 
 - (void)_drawFaceObservation:(VNFaceObservation *)faceObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
@@ -296,10 +345,6 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         //
         
-        
-        
-        //
-        
         CIImage *outputCIImage = [blendWithAlphaMaskFilter.outputImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
         CGImageRef outputCGImage = [self._ciContext createCGImage:outputCIImage fromRect:outputCIImage.extent];
         
@@ -330,7 +375,149 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
-    abort();
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    BOOL isUtility = imageAestheticsScoresObservation.isUtility;
+    float overallScore = imageAestheticsScoresObservation.overallScore;
+    float aestheticScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("aestheticScore"));
+    float failureScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("failureScore"));
+    float junkNegativeScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("junkNegativeScore"));
+    float junkTragicFailureScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("junkTragicFailureScore"));
+    float poorQualityScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("poorQualityScore"));
+    float nonMemorableScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("nonMemorableScore"));
+    float screenShotScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("screenShotScore"));
+    float receiptOrDocumentScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("receiptOrDocumentScore"));
+    float textDocumentScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(imageAestheticsScoresObservation, sel_registerName("textDocumentScore"));
+    
+    NSString *string = [[NSString alloc] initWithFormat:@"isUtility: %d\noverallScore: %lf\naestheticScore: %lf\nfailureScore: %lf\njunkNegativeScore: %lf\njunkTragicFailureScore: %lf\npoorQualityScore: %lf\nnonMemorableScore: %lf\nscreenShotScore: %lf\nreceiptOrDocumentScore: %lf\ntextDocumentScore: %lf", isUtility, overallScore, aestheticScore, failureScore, junkNegativeScore, junkTragicFailureScore, poorQualityScore, nonMemorableScore, screenShotScore, receiptOrDocumentScore, textDocumentScore];
+
+    textLayer.string = string;
+    [string release];
+    
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawClassificationObservations:(NSArray<VNClassificationObservation *> *)classificationObservations aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    NSMutableString *string = [NSMutableString new];
+    [classificationObservations enumerateObjectsUsingBlock:^(VNClassificationObservation * _Nonnull observation, NSUInteger idx, BOOL * _Nonnull stop) {
+        BOOL isLast = (idx == classificationObservations.count - 1);
+        NSString *identifier = observation.identifier;
+        VNConfidence confidence = observation.confidence;
+        
+        [string appendFormat:@"%@ (%lf)", identifier, confidence];
+        
+        if (!isLast) {
+            [string appendString:@"\n"];
+        }
+    }];
+    
+    textLayer.string = string;
+    [string release];
+    
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageAestheticsObservation:(__kindof VNObservation *)imageAestheticsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    NSDictionary<NSString *, NSNumber *> *_scoresDictionary = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageAestheticsObservation, sel_registerName("_scoresDictionary"));
+    __block std::vector<std::pair<std::string, std::float_t>> scorePairs {};
+    scorePairs.reserve(_scoresDictionary.count);
+    
+    [_scoresDictionary enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, NSNumber * _Nonnull obj, BOOL * _Nonnull stop) {
+        std::string identifier = [key cStringUsingEncoding:NSUTF8StringEncoding];
+        std::float_t score = obj.floatValue;
+        scorePairs.push_back({identifier, score});
+    }];
+    
+    std::sort(scorePairs.begin(), scorePairs.end(), [](auto lhs, auto rhs) {
+        return rhs.second < lhs.second;
+    });
+    
+    NSMutableString *string = [NSMutableString new];
+    for (size_t idx : std::ranges::views::iota(0, (long long)scorePairs.size())) {
+        auto pair = scorePairs[idx];
+        [string appendFormat:@"%s: %lf", pair.first.data(), pair.second];
+        bool isLast = (idx == scorePairs.size() - 1);
+        if (!isLast) {
+            [string appendString:@"\n"];
+        }
+    }
+    textLayer.string = string;
+    [string release];
+    
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
     
     CGContextRestoreGState(ctx);
     [pool release];
