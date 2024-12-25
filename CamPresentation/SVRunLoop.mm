@@ -190,7 +190,7 @@ __attribute__((objc_direct_members))
     objc_sync_exit(self);
     
     [thread start];
-    return thread;
+    return [thread autorelease];
 }
 
 - (void)runBlock:(void (^)())block {
