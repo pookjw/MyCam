@@ -68,7 +68,7 @@ __attribute__((objc_direct_members))
 }
 
 - (instancetype)initWithThreadName:(NSString *)threadName {
-    if (self = [self init]) {
+    if (self = [super init]) {
         _threadName = [threadName copy];
     }
     
