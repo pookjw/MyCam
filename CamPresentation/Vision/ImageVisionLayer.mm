@@ -300,8 +300,25 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     //
     
-    if (VNFaceLandmarkRegion2D *region = faceObservation.landmarks.allPoints) {
+    __kindof VNFaceLandmarks *landmarks3d = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("landmarks3d"));
+    __kindof VNFaceLandmarkRegion *allPoints3d = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(landmarks3d, sel_registerName("allPoints"));
+    
+    if (allPoints3d != nil) {
+        struct Point3D {
+            float x, y, z;
+        };
+        
+        NSUInteger pointCount = allPoints3d.pointCount;
+        const Point3D *points = reinterpret_cast<const Point3D * (*)(id, SEL)>(objc_msgSend)(allPoints3d, sel_registerName("points"));
+        
+        for (const Point3D *point : std::ranges::views::iota(points, points + pointCount)) {
+            NSLog(@"%lf %lf %lf", point->x, point->y, point->z);
+        }
+        
+#warning TODO
+    } else if (VNFaceLandmarkRegion2D *region = faceObservation.landmarks.allPoints) {
         NSUInteger pointCount = region.pointCount;
+        
         const CGPoint *points = [region pointsInImageOfSize:aspectBounds.size];
         
         //
@@ -378,35 +395,79 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     //
     
-    CGContextSaveGState(ctx);
+    {
+        CGContextSaveGState(ctx);
+        
+        BOOL isBlinking = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("isBlinking"));
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = isBlinking ? @"😔" : @"😳";
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 24.;
+        textLayer.contentsScale = self.contentsScale;
+        
+        float blinkScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("blinkScore"));
+        CGColorRef backgroundColor = CGColorCreateSRGB(0., 1., 0., blinkScore);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     30.,
+                                     30.);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(convertedBoundingBox),
+                                                                         CGRectGetMinY(convertedBoundingBox) - 15.);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
     
-    BOOL isBlinking = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("isBlinking"));
+    //
     
-    CATextLayer *textLayer = [CATextLayer new];
-    textLayer.string = isBlinking ? @"😔" : @"😳";
-    textLayer.wrapped = YES;
-    textLayer.fontSize = 24.;
-    textLayer.contentsScale = self.contentsScale;
-    
-    float blinkScore = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("blinkScore"));
-    CGColorRef backgroundColor = CGColorCreateSRGB(0., 1., 0., blinkScore);
-    textLayer.backgroundColor = backgroundColor;
-    CGColorRelease(backgroundColor);
-    
-    textLayer.frame = CGRectMake(0.,
-                                 0.,
-                                 30.,
-                                 30.);
-    
-    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(convertedBoundingBox),
-                                                                     CGRectGetMinY(convertedBoundingBox) - 15.);
-    
-    CGContextConcatCTM(ctx, translation);
-    
-    [textLayer renderInContext:ctx];
-    [textLayer release];
-    
-    CGContextRestoreGState(ctx);
+    if (NSNumber *faceCaptureQuality = faceObservation.faceCaptureQuality) {
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = [NSString stringWithFormat:@"Face Quality: %@", faceCaptureQuality];
+        textLayer.wrapped = YES;
+        textLayer.font = [UIFont systemFontOfSize:10.];
+        textLayer.fontSize = 10.;
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(0., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+            NSFontAttributeName: (id)textLayer.font
+        }];
+        CGSize textSize = attributeString.size;
+        [attributeString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMaxX(convertedBoundingBox) - textSize.width,
+                                                                         CGRectGetMinY(convertedBoundingBox) - 5.);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
     
     //
     
@@ -1129,25 +1190,35 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
-    auto convertPoint = ^CGPoint (CGPoint normalizedPoint) {
-        return CGPointMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * normalizedPoint.x,
-                           CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - normalizedPoint.y));
-    };
+//    auto convertPoint = ^CGPoint (CGPoint normalizedPoint) {
+//        return CGPointMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * normalizedPoint.x,
+//                           CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - normalizedPoint.y));
+//    };
+//    
+//    CGPoint convTopLeft = convertPoint(rectangleObservation.bottomLeft);
+//    CGPoint convTopRight = convertPoint(rectangleObservation.bottomRight);
+//    CGPoint convBottomLeft = convertPoint(rectangleObservation.topLeft);
+//    CGPoint convBottomRight = convertPoint(rectangleObservation.topRight);
+//    
+//#warning CGPathCreateMutableCopyByTransformingPath으로 하는게 더 나은 것 같음
+//    
+//    CGMutablePathRef path = CGPathCreateMutable();
+//    CGPathMoveToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
+//    CGPathAddLineToPoint(path, NULL, convTopRight.x, convTopRight.y);
+//    CGPathAddLineToPoint(path, NULL, convBottomRight.x, convBottomRight.y);
+//    CGPathAddLineToPoint(path, NULL, convBottomLeft.x, convBottomLeft.y);
+//    CGPathAddLineToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
+//    CGPathCloseSubpath(path);
     
-    CGPoint convTopLeft = convertPoint(rectangleObservation.bottomLeft);
-    CGPoint convTopRight = convertPoint(rectangleObservation.bottomRight);
-    CGPoint convBottomLeft = convertPoint(rectangleObservation.topLeft);
-    CGPoint convBottomRight = convertPoint(rectangleObservation.topRight);
     
-#warning CGPathCreateMutableCopyByTransformingPath으로 하는게 더 나은 것 같음
+    CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds)), CGRectGetWidth(aspectBounds), -CGRectGetHeight(aspectBounds));
     
     CGMutablePathRef path = CGPathCreateMutable();
-    CGPathMoveToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
-    CGPathAddLineToPoint(path, NULL, convTopRight.x, convTopRight.y);
-    CGPathAddLineToPoint(path, NULL, convBottomRight.x, convBottomRight.y);
-    CGPathAddLineToPoint(path, NULL, convBottomLeft.x, convBottomLeft.y);
-    CGPathAddLineToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
-    CGPathCloseSubpath(path);
+    CGPathMoveToPoint(path, &transform, rectangleObservation.topLeft.x, rectangleObservation.topLeft.y);
+    CGPathAddLineToPoint(path, &transform, rectangleObservation.topRight.x, rectangleObservation.topRight.y);
+    CGPathAddLineToPoint(path, &transform, rectangleObservation.bottomRight.x, rectangleObservation.bottomRight.y);
+    CGPathAddLineToPoint(path, &transform, rectangleObservation.bottomLeft.x, rectangleObservation.bottomLeft.y);
+    CGPathAddLineToPoint(path, &transform, rectangleObservation.topLeft.x, rectangleObservation.topLeft.y);
     
     CGContextAddPath(ctx, path);
     CGPathRelease(path);

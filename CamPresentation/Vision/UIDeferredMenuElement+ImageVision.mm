@@ -46,8 +46,8 @@
  VNDetectAnimalBodyPoseRequest,✅
  VNDetectBarcodesRequest,✅
  VNDetectContoursRequest,✅
- VNDetectDocumentSegmentationRequest,
- VNDetectFaceCaptureQualityRequest,
+ VNDetectDocumentSegmentationRequest,✅
+ VNDetectFaceCaptureQualityRequest,✅
  VNDetectFaceLandmarksRequest,✅
  VNDetectFace3DLandmarksRequest,
  VNDetectFaceExpressionsRequest,
@@ -142,7 +142,9 @@
                 [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests]
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceCaptureQualityRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:viewModel addedRequests:requests]
             ]];
             
             UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -1619,7 +1621,7 @@
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -1627,6 +1629,58 @@
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFaceCaptureQualityRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectFaceCaptureQualityRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectFaceCaptureQualityRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectFaceCaptureQualityRequest *request = [[VNDetectFaceCaptureQualityRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceCaptureQualityRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectFace3DLandmarksRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFace3DLandmarksRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

@@ -244,7 +244,7 @@
      iPad Document 22CD02EC-B953-49EF-81AB-73AC38A33D8A/L0/001
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"22CD02EC-B953-49EF-81AB-73AC38A33D8A/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"E1806DB7-DCBD-496C-B728-0EE66FE086DF/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
