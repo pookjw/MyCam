@@ -17,6 +17,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 @property (assign, nonatomic) PHImageRequestID _queue_imageRequestID;
 @property (retain, nonatomic, readonly) NSMutableArray<__kindof VNRequest *> *_queue_requests;
 @property (retain, nonatomic, nullable) UIImage *_queue_image;
+@property (assign, atomic, getter=isLoading) BOOL loading;
 @end
 
 @implementation ImageVisionViewModel
@@ -269,6 +270,9 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         return progress;
     }
     
+    assert(!self.isLoading);
+    self.loading = YES;
+    
     CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
     CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
     
@@ -294,6 +298,8 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     progress.completedUnitCount += 1;
     assert(progress.isFinished);
+    
+    self.loading = NO;
     
     if (completionHandler) {
         completionHandler(error);

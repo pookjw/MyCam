@@ -45,7 +45,7 @@
  VNCreateTorsoprintRequest,✅
  VNDetectAnimalBodyPoseRequest,✅
  VNDetectBarcodesRequest,✅
- VNDetectContoursRequest,😀
+ VNDetectContoursRequest,✅
  VNDetectDocumentSegmentationRequest,
  VNDetectFaceCaptureQualityRequest,
  VNDetectFaceLandmarksRequest,✅
@@ -110,7 +110,18 @@
 
 @implementation UIDeferredMenuElement (ImageVision)
 
-+ (instancetype)cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel {
++ (instancetype)cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    assert(viewModel != nil);
+    
+    return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        UIDeferredMenuElement *viewModelElement = [UIDeferredMenuElement _cp_imageVisionElementWithViewModel:viewModel];
+        UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer];
+        
+        completion(@[viewModelElement, imageVisionLayerMenu]);
+    }];
+}
+
++ (UIDeferredMenuElement *)_cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel {
     assert(viewModel != nil);
     
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
@@ -130,7 +141,8 @@
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests]
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests]
             ]];
             
             UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -158,6 +170,40 @@
             });
         }];
     }];
+}
+
++ (UIMenu *)_cp_imageVisionMenuWithImageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    BOOL shouldDrawImage = imageVisionLayer.shouldDrawImage;
+    UIAction *shouldDrawImageAction = [UIAction actionWithTitle:@"shouldDrawImage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        imageVisionLayer.shouldDrawImage = !shouldDrawImage;
+    }];
+    shouldDrawImageAction.state = shouldDrawImage ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL shouldDrawDetails = imageVisionLayer.shouldDrawDetails;
+    UIAction *shouldDrawDetailsAction = [UIAction actionWithTitle:@"shouldDrawDetails" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        imageVisionLayer.shouldDrawDetails = !shouldDrawDetails;
+    }];
+    shouldDrawDetailsAction.state = shouldDrawDetails ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL shouldDrawContoursSeparately = imageVisionLayer.shouldDrawContoursSeparately;
+    UIAction *shouldDrawContoursSeparatelyAction = [UIAction actionWithTitle:@"shouldDrawContoursSeparately" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        imageVisionLayer.shouldDrawContoursSeparately = !shouldDrawContoursSeparately;
+    }];
+    shouldDrawContoursSeparatelyAction.state = shouldDrawContoursSeparately ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Image Vision Layer" children:@[
+        shouldDrawImageAction,
+        shouldDrawDetailsAction,
+        shouldDrawContoursSeparatelyAction
+    ]];
+    
+    return menu;
 }
 
 + (__kindof UIMenuElement *)_cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
@@ -1346,7 +1392,7 @@
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -1359,6 +1405,7 @@
         slider.minimumValue = 0.f;
         slider.maximumValue = 3.f;
         slider.value = request.contrastAdjustment;
+        slider.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
@@ -1370,13 +1417,176 @@
             [viewModel updateRequest:request completionHandler:nil];
         }];
         
-        [slider addAction:action forControlEvents:UIControlEventTouchUpOutside];
-        [slider addAction:action forControlEvents:UIControlEventTouchUpInside];
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
         
         return [slider autorelease];
     });
     
     UIMenu *contrastAdjustmentSliderMenu = [UIMenu menuWithTitle:@"contrastAdjustment" children:@[contrastAdjustmentSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *contrastPivotSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.contrastPivot.floatValue;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            request.contrastPivot = @(value);
+            
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        return [slider autorelease];
+    });
+    
+    UIAction *resetContrastPivotAction = [UIAction actionWithTitle:@"Reset" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.contrastPivot = nil;
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    
+    UIMenu *contrastPivotMenu = [UIMenu menuWithTitle:@"contrastPivot" children:@[
+        contrastPivotSliderElement,
+        resetContrastPivotAction
+    ]];
+    
+    //
+    
+    BOOL detectsDarkOnLight = request.detectsDarkOnLight;
+    
+    UIAction *detectsDarkOnLightAction = [UIAction actionWithTitle:@"detectsDarkOnLight" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        request.detectsDarkOnLight = !detectsDarkOnLight;
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    
+    detectsDarkOnLightAction.state = detectsDarkOnLight ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    __kindof UIMenuElement *maximumImageDimensionStepperElement_1 = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.maximumImageDimension).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        
+        slider.maximumValue = NSUIntegerMax;
+        slider.minimumValue = 64.f;
+        slider.value = request.maximumImageDimension;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(static_cast<NSUInteger>(value)).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.maximumImageDimension = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    __kindof UIMenuElement *maximumImageDimensionStepperElement_2 = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.maximumImageDimension).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        
+        slider.maximumValue = 2048.f;
+        slider.minimumValue = 64.f;
+        slider.value = request.maximumImageDimension;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(static_cast<NSUInteger>(value)).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.maximumImageDimension = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIAction *resetMaximumImageDimensionAction = [UIAction actionWithTitle:@"Reset" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.maximumImageDimension = 64;
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    
+    UIMenu *maximumImageDimensionMenu = [UIMenu menuWithTitle:@"maximumImageDimension" children:@[
+        maximumImageDimensionStepperElement_1,
+        maximumImageDimensionStepperElement_2,
+        resetMaximumImageDimensionAction
+    ]];
+    
+    //
+    
+    BOOL forceUseInputCVPixelBufferDirectly = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("forceUseInputCVPixelBufferDirectly"));
+    
+    UIAction *forceUseInputCVPixelBufferDirectlyAction = [UIAction actionWithTitle:@"forceUseInputCVPixelBufferDirectly" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setForceUseInputCVPixelBufferDirectly:"), !forceUseInputCVPixelBufferDirectly);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    forceUseInputCVPixelBufferDirectlyAction.subtitle = @"???";
+    forceUseInputCVPixelBufferDirectlyAction.state = forceUseInputCVPixelBufferDirectly ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL inHierarchy = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("inHierarchy"));
+    
+    UIAction *inHierarchyAction = [UIAction actionWithTitle:@"inHierarchy" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setInHierarchy:"), !inHierarchy);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    inHierarchyAction.subtitle = @"???";
+    inHierarchyAction.state = inHierarchy ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     //
     
@@ -1386,7 +1596,38 @@
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
-        contrastAdjustmentSliderMenu
+        contrastAdjustmentSliderMenu,
+        contrastPivotMenu,
+        detectsDarkOnLightAction,
+        maximumImageDimensionMenu,
+        forceUseInputCVPixelBufferDirectlyAction,
+        inHierarchyAction
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectDocumentSegmentationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectDocumentSegmentationRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectDocumentSegmentationRequest *request = [[VNDetectDocumentSegmentationRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;

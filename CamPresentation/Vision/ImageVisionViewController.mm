@@ -19,8 +19,8 @@
 @property (retain, nonatomic, nullable) ImageVisionViewModel *_viewModel;
 @property (retain, nonatomic, readonly) ImageVisionView *_imageVisionView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_requestsMenuBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *_drawImageBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *_drawDetailsBarButtonItem;
+@property (retain, nonatomic, readonly) UIActivityIndicatorView *_activityIndicatorView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *_activityIndicatorBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_doneBarButtonItem;
 @property (retain, nonatomic, nullable) NSProgress *_progress;
 @end
@@ -28,9 +28,9 @@
 @implementation ImageVisionViewController
 @synthesize _imageVisionView = __imageVisionView;
 @synthesize _requestsMenuBarButtonItem = __requestsMenuBarButtonItem;
-@synthesize _drawImageBarButtonItem = __drawImageBarButtonItem;
-@synthesize _drawDetailsBarButtonItem = __drawDetailsBarButtonItem;
 @synthesize _doneBarButtonItem = __doneBarButtonItem;
+@synthesize _activityIndicatorView = __activityIndicatorView;
+@synthesize _activityIndicatorBarButtonItem = __activityIndicatorBarButtonItem;
 
 - (instancetype)initWithImage:(UIImage *)image {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -55,9 +55,9 @@
     [__asset release];
     [__imageVisionView release];
     [__requestsMenuBarButtonItem release];
-    [__drawImageBarButtonItem release];
-    [__drawDetailsBarButtonItem release];
     [__doneBarButtonItem release];
+    [__activityIndicatorView release];
+    [__activityIndicatorBarButtonItem release];
     
     if (NSProgress *progress = __progress) {
         [progress cancel];
@@ -65,6 +65,19 @@
     }
     
     [super dealloc];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if ([object isKindOfClass:[ImageVisionViewModel class]]) {
+        if ([keyPath isEqualToString:@"loading"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self _didChangeLoadingStatus];
+            });
+            return;
+        }
+    }
+    
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
 - (void)loadView {
@@ -95,6 +108,7 @@
     }
     
     self._viewModel = viewModel;
+    [viewModel addObserver:self forKeyPath:@"loading" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
     
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didChangeObservationsNotification:) name:ImageVisionViewModelDidChangeObservationsNotificationName object:viewModel];
     
@@ -103,15 +117,11 @@
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
         self._requestsMenuBarButtonItem,
-        self._drawImageBarButtonItem,
-        self._drawDetailsBarButtonItem
+        self._activityIndicatorBarButtonItem
     ];
     navigationItem.rightBarButtonItems = @[
         self._doneBarButtonItem
     ];
-    
-    [self _updateDrawImageBarButtonItem];
-    [self _updateDrawDetailsBarButtonItem];
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         __kindof UIControl *requestsMenuBarButton = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self._requestsMenuBarButtonItem, sel_registerName("view"));
@@ -140,31 +150,13 @@
     if (auto requestsMenuBarButtonItem = __requestsMenuBarButtonItem) return requestsMenuBarButtonItem;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_imageVisionElementWithViewModel:self._viewModel]
+        [UIDeferredMenuElement cp_imageVisionElementWithViewModel:self._viewModel imageVisionLayer:self._imageVisionView.imageVisionLayer]
     ]];
     
     UIBarButtonItem *requestsMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"filemenu.and.selection"] menu:menu];
     
     __requestsMenuBarButtonItem = [requestsMenuBarButtonItem retain];
     return [requestsMenuBarButtonItem autorelease];
-}
-
-- (UIBarButtonItem *)_drawImageBarButtonItem {
-    if (auto drawImageBarButtonItem = __drawImageBarButtonItem) return drawImageBarButtonItem;
-    
-    UIBarButtonItem *drawImageBarButtonItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(_didTriggerDrawImageBarButtonItem:)];
-    
-    __drawImageBarButtonItem = [drawImageBarButtonItem retain];
-    return [drawImageBarButtonItem autorelease];
-}
-
-- (UIBarButtonItem *)_drawDetailsBarButtonItem {
-    if (auto drawDetailsBarButtonItem = __drawDetailsBarButtonItem) return drawDetailsBarButtonItem;
-    
-    UIBarButtonItem *drawDetailsBarButtonItem = [[UIBarButtonItem alloc] initWithImage:nil style:UIBarButtonItemStylePlain target:self action:@selector(_didTriggerDrawDetailsBarButtonItem:)];
-    
-    __drawDetailsBarButtonItem = [drawDetailsBarButtonItem retain];
-    return [drawDetailsBarButtonItem autorelease];
 }
 
 - (UIBarButtonItem *)_doneBarButtonItem {
@@ -176,40 +168,35 @@
     return [doneBarButtonItem autorelease];
 }
 
+- (UIActivityIndicatorView *)_activityIndicatorView {
+    if (auto activityIndicatorView = __activityIndicatorView) return activityIndicatorView;
+    
+    UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    activityIndicatorView.backgroundColor = UIColor.systemBackgroundColor;
+    
+    __activityIndicatorView = [activityIndicatorView retain];
+    return [activityIndicatorView autorelease];
+}
+
+- (UIBarButtonItem *)_activityIndicatorBarButtonItem {
+    if (auto activityIndicatorBarButtonItem = __activityIndicatorBarButtonItem) return activityIndicatorBarButtonItem;
+    
+    UIBarButtonItem *activityIndicatorBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:self._activityIndicatorView];
+    
+    __activityIndicatorBarButtonItem = [activityIndicatorBarButtonItem retain];
+    return [activityIndicatorBarButtonItem autorelease];
+}
+
 - (void)_setReadyForProcess:(BOOL)ready {
     self._requestsMenuBarButtonItem.enabled = ready;
 }
 
-- (void)_updateDrawImageBarButtonItem {
-    UIImage *image;
-    if (self._imageVisionView.imageVisionLayer.shouldDrawImage) {
-        image = [UIImage systemImageNamed:@"photo.artframe.circle.fill"];
-    } else {
-        image = [UIImage systemImageNamed:@"photo.artframe.circle"];
-    }
-    
-    self._drawImageBarButtonItem.image = image;
-}
-
-- (void)_updateDrawDetailsBarButtonItem {
-    UIImage *image;
-    if (self._imageVisionView.imageVisionLayer.shouldDrawDetails) {
-        image = [UIImage systemImageNamed:@"text.page.fill"];
-    } else {
-        image = [UIImage systemImageNamed:@"text.page"];
-    }
-    
-    self._drawDetailsBarButtonItem.image = image;
-}
-
 - (void)_didTriggerDrawImageBarButtonItem:(UIBarButtonItem *)sender {
     self._imageVisionView.imageVisionLayer.shouldDrawImage = !self._imageVisionView.imageVisionLayer.shouldDrawImage;
-    [self _updateDrawImageBarButtonItem];
 }
 
 - (void)_didTriggerDrawDetailsBarButtonItem:(UIBarButtonItem *)sender {
     self._imageVisionView.imageVisionLayer.shouldDrawDetails = !self._imageVisionView.imageVisionLayer.shouldDrawDetails;
-    [self _updateDrawDetailsBarButtonItem];
 }
 
 - (void)_didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {
@@ -222,6 +209,21 @@
             self._imageVisionView.imageVisionLayer.observations = observations;
         });
     }];
+}
+
+- (void)_didChangeLoadingStatus {
+    UIBarButtonItem *activityIndicatorBarButtonItem = self._activityIndicatorBarButtonItem;
+    BOOL isLoading = self._viewModel.isLoading;
+    
+    activityIndicatorBarButtonItem.hidden = !isLoading;
+    
+    UIActivityIndicatorView *activityIndicatorView = self._activityIndicatorView;
+    
+    if (isLoading) {
+        [activityIndicatorView startAnimating];
+    } else {
+        [activityIndicatorView stopAnimating];
+    }
 }
 
 @end

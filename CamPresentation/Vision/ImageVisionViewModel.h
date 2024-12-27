@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 CP_EXTERN NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationName;
 
 @interface ImageVisionViewModel : NSObject
+@property (assign, atomic, readonly, getter=isLoading) BOOL loading;
 
 - (void)requestsWithHandler:(void (^)(NSArray<__kindof VNRequest *> *requests))completionHandler;
 - (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;

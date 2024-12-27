@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, atomic) NSArray<__kindof VNObservation *> *observations;
 @property (atomic) BOOL shouldDrawImage;
 @property (atomic) BOOL shouldDrawDetails;
+@property (atomic) BOOL shouldDrawContoursSeparately;
 @end
 
 NS_ASSUME_NONNULL_END

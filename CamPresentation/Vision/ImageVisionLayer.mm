@@ -20,6 +20,8 @@
 #import <Metal/Metal.h>
 #import <CoreImage/CIFilterBuiltins.h>
 #import <os/lock.h>
+#include <iostream>
+#include <random>
 
 OBJC_EXPORT void objc_setProperty_atomic(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
@@ -77,6 +79,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         _shouldDrawImage = YES;
         _shouldDrawDetails = YES;
+        _shouldDrawContoursSeparately = YES;
         _lock = OS_UNFAIR_LOCK_INIT;
     }
     
@@ -136,10 +139,12 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
-- (void)setShouldDrawImage:(BOOL)drawsImage {
+- (void)setShouldDrawImage:(BOOL)shouldDrawImage {
 #pragma clang diagnostic pop
+    if (_shouldDrawImage == shouldDrawImage) return;
+    
     os_unfair_lock_lock(&_lock);
-    _shouldDrawImage = drawsImage;
+    _shouldDrawImage = shouldDrawImage;
     os_unfair_lock_unlock(&_lock);
     
     [self setNeedsDisplay];
@@ -149,8 +154,23 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 #pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
 - (void)setShouldDrawDetails:(BOOL)shouldDrawDetails {
 #pragma clang diagnostic pop
+    if (_shouldDrawDetails == shouldDrawDetails) return;
+    
     os_unfair_lock_lock(&_lock);
     _shouldDrawDetails = shouldDrawDetails;
+    os_unfair_lock_unlock(&_lock);
+    
+    [self setNeedsDisplay];
+}
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
+- (void)setShouldDrawContoursSeparately:(BOOL)shouldDrawContoursSeparately {
+#pragma clang diagnostic pop
+    if (_shouldDrawContoursSeparately == shouldDrawContoursSeparately) return;
+    
+    os_unfair_lock_lock(&_lock);
+    _shouldDrawContoursSeparately = shouldDrawContoursSeparately;
     os_unfair_lock_unlock(&_lock);
     
     [self setNeedsDisplay];
@@ -1105,6 +1125,38 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 
 - (void)_drawRectangleObservation:(VNRectangleObservation *)rectangleObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     [self _drawDetectedObjectObservation:rectangleObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    auto convertPoint = ^CGPoint (CGPoint normalizedPoint) {
+        return CGPointMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * normalizedPoint.x,
+                           CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - normalizedPoint.y));
+    };
+    
+    CGPoint convTopLeft = convertPoint(rectangleObservation.bottomLeft);
+    CGPoint convTopRight = convertPoint(rectangleObservation.bottomRight);
+    CGPoint convBottomLeft = convertPoint(rectangleObservation.topLeft);
+    CGPoint convBottomRight = convertPoint(rectangleObservation.topRight);
+    
+#warning CGPathCreateMutableCopyByTransformingPath으로 하는게 더 나은 것 같음
+    
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathMoveToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
+    CGPathAddLineToPoint(path, NULL, convTopRight.x, convTopRight.y);
+    CGPathAddLineToPoint(path, NULL, convBottomRight.x, convBottomRight.y);
+    CGPathAddLineToPoint(path, NULL, convBottomLeft.x, convBottomLeft.y);
+    CGPathAddLineToPoint(path, NULL, convTopLeft.x, convTopLeft.y);
+    CGPathCloseSubpath(path);
+    
+    CGContextAddPath(ctx, path);
+    CGPathRelease(path);
+    CGContextSetRGBStrokeColor(ctx, 0., 1., 0., 1.);
+    CGContextSetLineWidth(ctx, 3.);
+    CGContextDrawPath(ctx, kCGPathStroke);
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
 }
 
 - (void)_drawInstanceMaskObservation:(VNInstanceMaskObservation *)instanceMaskObservation aspectBounds:(CGRect)aspectBounds maskImage:(BOOL)maskImage inContext:(CGContextRef)ctx {
@@ -1230,14 +1282,87 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
-    CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformIdentity, CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds)), CGRectGetWidth(aspectBounds), CGRectGetHeight(aspectBounds)), 0., 1.), 1., -1.);
-    CGPathRef transformedPath = CGPathCreateCopyByTransformingPath(contoursObservation.normalizedPath, &transform);
+    //
     
-    CGContextAddPath(ctx, transformedPath);
-    CGPathRelease(transformedPath);
-    CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
-    CGContextSetLineWidth(ctx, 3.);
-    CGContextStrokePath(ctx);
+    CGContextSaveGState(ctx);
+    
+    CGContextSetRGBFillColor(ctx, 0., 0., 0., 0.7);
+    CGContextFillRect(ctx, self.bounds);
+    
+    CGContextRestoreGState(ctx);
+    
+    //
+    
+    CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformScale(CGAffineTransformTranslate(CGAffineTransformIdentity, CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds)), CGRectGetWidth(aspectBounds), CGRectGetHeight(aspectBounds)), 0., 1.), 1., -1.);
+    
+    if (self.shouldDrawContoursSeparately) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(0.5, 1.0);
+        
+        for (VNContour *topLevelContour in contoursObservation.topLevelContours) {
+            CGFloat r = dis(gen);
+            CGFloat g = dis(gen);
+            CGFloat b = dis(gen);
+            
+            void (^__block drawChilldContours)(NSArray<VNContour *> * childContours, BOOL isTop) = ^(NSArray<VNContour *> * childContours, BOOL isTop) {
+                for (VNContour *childContour in childContours) {
+                    drawChilldContours(childContour.childContours, NO);
+                    
+                    if (self.shouldDrawDetails) {
+                        NSError * _Nullable error = nil;
+                        VNCircle *boundingCircle = [VNGeometryUtils boundingCircleForContour:childContour error:&error];
+                        assert(error == nil);
+                        
+                        CGPoint convCenter = CGPointMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * boundingCircle.center.x,
+                                                         CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - boundingCircle.center.y));
+                        CGFloat convDiameter = CGRectGetWidth(aspectBounds) * boundingCircle.diameter;
+                        
+                        CGRect convRect = CGRectMake(convCenter.x - convDiameter * 0.5,
+                                                     convCenter.y - convDiameter * 0.5,
+                                                     convDiameter,
+                                                     convDiameter);
+                        
+                        CGContextAddEllipseInRect(ctx, convRect);
+                        CGContextAddEllipseInRect(ctx, CGRectInset(convRect, 3., 3.));
+                        CGContextSetRGBFillColor(ctx, 1., 1., 1., 0.3);
+                        CGContextEOFillPath(ctx);
+                        
+                        //
+                        
+                        VNContour *polygonApproximationContour = [childContour polygonApproximationWithEpsilon:0.01f error:&error];
+                        assert(error == nil);
+                        CGPathRef transformedPolygonApproximationPath = CGPathCreateCopyByTransformingPath(polygonApproximationContour.normalizedPath, &transform);
+                        
+                        CGContextAddPath(ctx, transformedPolygonApproximationPath);
+                        CGPathRelease(transformedPolygonApproximationPath);
+                        CGContextSetRGBStrokeColor(ctx, 1., 1., 1., 1.);
+                        CGContextSetLineWidth(ctx, 3.);
+                        CGContextStrokePath(ctx);
+                    }
+                    
+                    CGPathRef transformedChildPath = CGPathCreateCopyByTransformingPath(childContour.normalizedPath, &transform);
+                    
+                    CGContextAddPath(ctx, transformedChildPath);
+                    CGPathRelease(transformedChildPath);
+                    CGContextSetRGBStrokeColor(ctx, r, g, b, isTop ? 1. : 0.3);
+                    CGContextSetLineWidth(ctx, 3.);
+                    CGContextStrokePath(ctx);
+                }
+            };
+            
+            drawChilldContours(@[topLevelContour], YES);
+        }
+    } else {
+        CGPathRef transformedPath = CGPathCreateCopyByTransformingPath(contoursObservation.normalizedPath, &transform);
+        
+        CGContextAddPath(ctx, transformedPath);
+        CGPathRelease(transformedPath);
+        CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
+        CGContextSetLineWidth(ctx, 3.);
+        CGContextStrokePath(ctx);
+        CGContextClosePath(ctx);
+    }
     
     CGContextRestoreGState(ctx);
     [pool release];
