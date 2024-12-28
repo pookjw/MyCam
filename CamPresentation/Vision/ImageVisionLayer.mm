@@ -195,6 +195,13 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         UIGraphicsPopContext();
     }
     
+    CGContextSaveGState(ctx);
+    
+    CGContextSetRGBFillColor(ctx, 0., 0., 0., 0.7);
+    CGContextFillRect(ctx, self.bounds);
+    
+    CGContextRestoreGState(ctx);
+    
     NSMutableArray<VNClassificationObservation *> *classificationObservations = [NSMutableArray new];
     
     for (__kindof VNObservation *observation in self.observations) {
@@ -304,18 +311,70 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     __kindof VNFaceLandmarkRegion *allPoints3d = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(landmarks3d, sel_registerName("allPoints"));
     
     if (allPoints3d != nil) {
-        struct Point3D {
-            float x, y, z;
-        };
-        
         NSUInteger pointCount = allPoints3d.pointCount;
-        const Point3D *points = reinterpret_cast<const Point3D * (*)(id, SEL)>(objc_msgSend)(allPoints3d, sel_registerName("points"));
         
-        for (const Point3D *point : std::ranges::views::iota(points, points + pointCount)) {
-            NSLog(@"%lf %lf %lf", point->x, point->y, point->z);
+        if (pointCount > 0) {
+            NSPointerArray *requestImageBuffersCacheKeys = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("requestImageBuffersCacheKeys"));
+            
+            if (NSString *cacheKey = requestImageBuffersCacheKeys.allObjects.firstObject) {
+                // +[VNImageBufferCache cacheKeyWithBufferFormat:width:height:cropRect:]
+                
+                NSError * _Nullable error = nil;
+                NSRegularExpression *regex = [[NSRegularExpression alloc] initWithPattern:@"width=(\\d+)_height=(\\d+)" options:0 error:&error];
+                assert(error == nil);
+                NSTextCheckingResult *match = [regex firstMatchInString:cacheKey options:0 range:NSMakeRange(0, cacheKey.length)];
+                assert(match != nil);
+                [regex release];
+                
+                NSRange widthRange = [match rangeAtIndex:1];
+                NSRange heightRange = [match rangeAtIndex:2];
+                
+                NSString *widthString = [cacheKey substringWithRange:widthRange]; // 597
+                NSString *heightString = [cacheKey substringWithRange:heightRange]; // 448
+                
+                size_t width = [widthString integerValue];
+                size_t height = [heightString integerValue];
+                
+                CGRect boundingBox = faceObservation.boundingBox;
+                
+                struct Point3D {
+                    float x, y, z;
+                };
+                
+                const Point3D *points = reinterpret_cast<const Point3D * (*)(id, SEL)>(objc_msgSend)(allPoints3d, sel_registerName("points"));
+                
+                float maxZ = FLT_MIN;
+                float minZ = FLT_MAX;
+                for (const Point3D *point : std::ranges::views::iota(points, points + pointCount)) {
+                    maxZ = std::fmaxf(maxZ, point->z);
+                    minZ = std::fminf(minZ, point->z);
+                }
+                
+                
+                for (const Point3D *point : std::ranges::views::iota(points, points + pointCount)) {
+                    CGPoint normalizedPoint = CGPointMake(CGRectGetMinX(boundingBox) + (point->x + CGRectGetWidth(boundingBox) * width * 0.5) / width,
+                                                          CGRectGetMinY(boundingBox) + (point->y + CGRectGetHeight(boundingBox) * height * 0.5) / height);
+                    
+                    CGFloat normalizedZ;
+                    if (maxZ != minZ) {
+                        normalizedZ = (point->z - minZ) / (maxZ - minZ);
+                    } else {
+                        normalizedZ = 1.;
+                    }
+                    
+                    CGFloat dotSize = 2. + 20. * normalizedZ;
+                    
+                    CGContextSetRGBStrokeColor(ctx, 0., 1., 1., 1.);
+                    
+                    CGContextStrokeRectWithWidth(ctx,
+                                                 CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * normalizedPoint.x - dotSize * 0.5,
+                                                            CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - normalizedPoint.y) - dotSize * 0.5,
+                                                            1.,
+                                                            1.),
+                                                 dotSize);
+                }
+            }
         }
-        
-#warning TODO
     } else if (VNFaceLandmarkRegion2D *region = faceObservation.landmarks.allPoints) {
         NSUInteger pointCount = region.pointCount;
         
