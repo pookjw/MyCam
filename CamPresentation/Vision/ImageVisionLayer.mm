@@ -269,6 +269,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawBarcodeObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNContoursObservation class]) {
             [self _drawContoursObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNHorizonObservation class]) {
+            [self _drawHorizonObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNHumanBodyPoseObservation class]) {
+            [self _drawHumanBodyPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -737,6 +741,46 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMaxX(convertedBoundingBox),
                                                                          CGRectGetMinY(convertedBoundingBox) - textSize.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+    }
+    
+    //
+    
+    NSNumber * _Nullable roll = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("roll"));
+    NSNumber * _Nullable yaw = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("yaw"));
+    NSNumber * _Nullable pitch = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("pitch"));
+    
+    if (roll != nil or yaw != nil or pitch != nil) {
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = [NSString stringWithFormat:@"roll: %@ | yaw: %@ | pitch: %@", roll, yaw, pitch];
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 15.;
+        textLayer.font = [UIFont systemFontOfSize:15.];
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0., 1.);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+        CGSize textSize = attributedString.size;
+        [attributedString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(convertedBoundingBox) - textSize.width * 0.5,
+                                                                         CGRectGetMidY(convertedBoundingBox) - textSize.height * 0.5);
         
         CGContextConcatCTM(ctx, translation);
         
@@ -1712,6 +1756,52 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CGContextRestoreGState(ctx);
     [pool release];
+}
+
+- (void)_drawHorizonObservation:(VNHorizonObservation *)horizonObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = @(horizonObservation.angle).stringValue;
+    textLayer.wrapped = YES;
+    textLayer.font = [UIFont systemFontOfSize:20.];
+    textLayer.fontSize = 20.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+    CGSize size = attributedString.size;
+    [attributedString release];
+    textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+    
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - size.width * 0.5,
+                                                                     CGRectGetMidY(aspectBounds) - size.height * 0.5);
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawHumanBodyPoseObservation:(VNHumanBodyPoseObservation *)humanBodyPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawRecognizedPointsObservation:humanBodyPoseObservation aspectBounds:aspectBounds inContext:ctx];
 }
 
 @end

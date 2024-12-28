@@ -244,9 +244,11 @@
      iPad Document 22CD02EC-B953-49EF-81AB-73AC38A33D8A/L0/001
      iPad Expressions 3C6A7818-D74B-478F-B74D-C4D0AACCAFAA/L0/001
      iPad Gaze E5053E2B-67D0-41C0-9AAC-B9A86AAC05B0/L0/001
+     iPad Body Poses 395C32E2-2809-4C65-AC36-7FE45A09DFF6/L0/001
+     iPad Horizontal 8436B727-67CC-4AB6-B4D4-5CAD627AA545/L0/001
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"E5053E2B-67D0-41C0-9AAC-B9A86AAC05B0/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"395C32E2-2809-4C65-AC36-7FE45A09DFF6/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
