@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (atomic) BOOL shouldDrawImage;
 @property (atomic) BOOL shouldDrawDetails;
 @property (atomic) BOOL shouldDrawContoursSeparately;
+@property (atomic) BOOL shouldDrawOverlay;
 @end
 
 NS_ASSUME_NONNULL_END

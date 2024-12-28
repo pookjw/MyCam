@@ -80,6 +80,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         _shouldDrawImage = YES;
         _shouldDrawDetails = YES;
         _shouldDrawContoursSeparately = YES;
+        _shouldDrawOverlay = YES;
         _lock = OS_UNFAIR_LOCK_INIT;
     }
     
@@ -96,6 +97,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         _observations = [casted.observations copy];
         _shouldDrawImage = casted->_shouldDrawImage;
         _shouldDrawDetails = casted->_shouldDrawDetails;
+        _shouldDrawContoursSeparately = casted->_shouldDrawContoursSeparately;
+        _shouldDrawOverlay = casted->_shouldDrawOverlay;
         _lock = OS_UNFAIR_LOCK_INIT;
     }
     
@@ -176,6 +179,20 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     [self setNeedsDisplay];
 }
 
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-property-with-user-defined-accessor"
+- (void)setShouldDrawOverlay:(BOOL)shouldDrawOverlay {
+#pragma clang diagnostic pop
+    if (_shouldDrawOverlay == shouldDrawOverlay) return;
+    
+    os_unfair_lock_lock(&_lock);
+    _shouldDrawOverlay = shouldDrawOverlay;
+    os_unfair_lock_unlock(&_lock);
+    
+    [self setNeedsDisplay];
+}
+
 - (void)drawInContext:(CGContextRef)ctx {
     [super drawInContext:ctx];
     
@@ -195,12 +212,12 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         UIGraphicsPopContext();
     }
     
-    CGContextSaveGState(ctx);
-    
-    CGContextSetRGBFillColor(ctx, 0., 0., 0., 0.7);
-    CGContextFillRect(ctx, self.bounds);
-    
-    CGContextRestoreGState(ctx);
+    if (self.shouldDrawOverlay) {
+        CGContextSaveGState(ctx);
+        CGContextSetRGBFillColor(ctx, 0., 0., 0., 0.7);
+        CGContextFillRect(ctx, self.bounds);
+        CGContextRestoreGState(ctx);
+    }
     
     NSMutableArray<VNClassificationObservation *> *classificationObservations = [NSMutableArray new];
     
@@ -526,6 +543,205 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         [textLayer release];
         
         CGContextRestoreGState(ctx);
+    }
+    
+    //
+    
+    if (NSDictionary<NSString *, NSNumber *> *expressionsAndDetections = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("expressionsAndDetections"))) {
+        NSMutableArray<NSString *> *expressions = [NSMutableArray new];
+        [expressionsAndDetections enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, NSNumber * _Nonnull obj, BOOL * _Nonnull stop) {
+            if (obj.boolValue) {
+                [expressions addObject:key];
+            }
+        }];
+        NSString *string = [expressions componentsJoinedByString:@", "];
+        [expressions release];
+        
+        //
+        
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = string;
+        textLayer.wrapped = YES;
+        textLayer.font = [UIFont systemFontOfSize:20.];
+        textLayer.fontSize = 20.;
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(0., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+            NSFontAttributeName: (id)textLayer.font
+        }];
+        CGSize textSize = attributeString.size;
+        [attributeString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMaxX(convertedBoundingBox) - textSize.width,
+                                                                         CGRectGetMaxY(convertedBoundingBox) - 10.);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
+    
+    //
+    
+    if (id gaze = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("gaze"))) {
+        if (VNPixelBufferObservation *gazeMask = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(gaze, sel_registerName("gazeMask"))) {
+            CVPixelBufferRef gazeMaskPixelBuffer = gazeMask.pixelBuffer;
+            
+            CIImage *maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:gazeMaskPixelBuffer options:nil];
+            CIFilter<CIExposureAdjust> *exposureAdjustFilter = [CIFilter exposureAdjustFilter];
+            exposureAdjustFilter.inputImage = maskCIImage;
+            [maskCIImage release];
+            exposureAdjustFilter.EV = 2.5f;
+            CIImage *exposureAdjustedImage = exposureAdjustFilter.outputImage;
+            
+            CIFilter<CIMaskToAlpha> *maskToAlphaFilter = [CIFilter maskToAlphaFilter];
+            maskToAlphaFilter.inputImage = exposureAdjustedImage;
+            CIImage *maskedToAlphaImage = maskToAlphaFilter.outputImage;
+            
+            CIFilter<CIWhitePointAdjust> *whitePointAdjustFilter = [CIFilter whitePointAdjustFilter];
+            whitePointAdjustFilter.inputImage = maskedToAlphaImage;
+            whitePointAdjustFilter.color = [CIColor colorWithRed:0. green:1. blue:0. alpha:1.];
+            CIImage *whitePointAdjustedImage = whitePointAdjustFilter.outputImage;
+            
+            CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds)), CGRectGetWidth(aspectBounds) / CGRectGetWidth(whitePointAdjustedImage.extent), -CGRectGetHeight(aspectBounds) / CGRectGetHeight(whitePointAdjustedImage.extent));
+            CIImage *transformedImage = [whitePointAdjustedImage imageByApplyingTransform:transform];
+            
+            CGImageRef cgImage = [self._ciContext createCGImage:transformedImage fromRect:transformedImage.extent];
+            
+            CGContextSaveGState(ctx);
+            CGContextDrawImage(ctx, aspectBounds, cgImage);
+            CGImageRelease(cgImage);
+            CGContextRestoreGState(ctx);
+        }
+        
+        //
+        
+        CGRect locationBounds = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(gaze, sel_registerName("locationBounds"));
+        CGContextSetRGBStrokeColor(ctx, 1., 1., 0., 1.);
+        
+        CGContextStrokeRectWithWidth(ctx,
+                                     CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * CGRectGetMinX(locationBounds) - 2.,
+                                                CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - CGRectGetMaxY(locationBounds)) - 2.,
+                                                CGRectGetWidth(aspectBounds) * CGRectGetWidth(locationBounds),
+                                                CGRectGetHeight(aspectBounds) * CGRectGetHeight(locationBounds)),
+                                     4.);
+        
+        //
+        
+        CGPoint location = reinterpret_cast<CGPoint (*)(id, SEL)>(objc_msgSend)(gaze, sel_registerName("location"));
+        CGContextSetRGBStrokeColor(ctx, 1., 0., 0., 1.);
+        
+        CGContextStrokeRectWithWidth(ctx,
+                                     CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * location.x - 3.,
+                                                CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - location.y) - 3.,
+                                                1.,
+                                                1.),
+                                     6.);
+        
+        //
+        
+        NSInteger direction = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(gaze, sel_registerName("direction"));
+        float horizontalAngle = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(gaze, sel_registerName("horizontalAngle"));
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = [NSString stringWithFormat:@"direction: %ld | horizontalAngle : %lf", direction, horizontalAngle];
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 15.;
+        textLayer.font = [UIFont systemFontOfSize:15.];
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0., 1.);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+        CGSize textSize = attributedString.size;
+        [attributedString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(convertedBoundingBox),
+                                                                         CGRectGetMaxY(convertedBoundingBox) - textSize.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+    }
+    
+    //
+    
+    if (id faceScreenGaze = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(faceObservation, sel_registerName("faceScreenGaze"))) {
+        float lookingAtDevice = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(faceScreenGaze, sel_registerName("lookingAtDevice"));
+        float notLookingAtDevice = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(faceScreenGaze, sel_registerName("notLookingAtDevice"));
+        float difficultToSay = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(faceScreenGaze, sel_registerName("difficultToSay"));
+        
+        NSString *string;
+        if (notLookingAtDevice < lookingAtDevice and difficultToSay < lookingAtDevice) {
+            string = @"lookingAtDevice";
+        } else if (lookingAtDevice < notLookingAtDevice and difficultToSay < notLookingAtDevice) {
+            string = @"notLookingAtDevice";
+        } else if (lookingAtDevice < difficultToSay and notLookingAtDevice < difficultToSay) {
+            string = @"difficultToSay";
+        } else {
+            string = [NSString stringWithFormat:@"lookingAtDevice: %lf | notLookingAtDevice: %lf | difficultToSay : %lf", lookingAtDevice, notLookingAtDevice, difficultToSay];
+        }
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = string;
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 15.;
+        textLayer.font = [UIFont systemFontOfSize:15.];
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0., 1.);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+        CGSize textSize = attributedString.size;
+        [attributedString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMaxX(convertedBoundingBox),
+                                                                         CGRectGetMinY(convertedBoundingBox) - textSize.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
     }
     
     //

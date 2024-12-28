@@ -140,7 +140,7 @@
     if (auto imageVisionView = __imageVisionView) return imageVisionView;
     
     ImageVisionView *imageVisionView = [ImageVisionView new];
-    imageVisionView.backgroundColor = UIColor.systemBackgroundColor;
+    imageVisionView.backgroundColor = UIColor.blackColor;
     
     __imageVisionView = [imageVisionView retain];
     return [imageVisionView autorelease];

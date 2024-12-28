@@ -49,8 +49,8 @@
  VNDetectDocumentSegmentationRequest,✅
  VNDetectFaceCaptureQualityRequest,✅
  VNDetectFaceLandmarksRequest,✅
- VNDetectFace3DLandmarksRequest,
- VNDetectFaceExpressionsRequest,
+ VNDetectFace3DLandmarksRequest,✅
+ VNDetectFaceExpressionsRequest,✅
  VNDetectFaceGazeRequest,
  VNDetectFacePoseRequest,
  VNDetectFaceRectanglesRequest,✅
@@ -144,7 +144,9 @@
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceCaptureQualityRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:viewModel addedRequests:requests]
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceExpressionsRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceGazeRequestWithViewModel:viewModel addedRequests:requests]
             ]];
             
             UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -197,12 +199,19 @@
     }];
     shouldDrawContoursSeparatelyAction.state = shouldDrawContoursSeparately ? UIMenuElementStateOn : UIMenuElementStateOff;
     
+    BOOL shouldDrawOverlay = imageVisionLayer.shouldDrawOverlay;
+    UIAction *shouldDrawOverlayAction = [UIAction actionWithTitle:@"shouldDrawOverlay" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        imageVisionLayer.shouldDrawOverlay = !shouldDrawOverlay;
+    }];
+    shouldDrawOverlayAction.state = shouldDrawOverlay ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Image Vision Layer" children:@[
         shouldDrawImageAction,
         shouldDrawDetailsAction,
-        shouldDrawContoursSeparatelyAction
+        shouldDrawContoursSeparatelyAction,
+        shouldDrawOverlayAction
     ]];
     
     return menu;
@@ -1665,8 +1674,60 @@
     __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectFace3DLandmarksRequest") addedRequests:requests];
     
     if (request == nil) {
-        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFace3DLandmarksRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFaceExpressionsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectFaceExpressionsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceExpressionsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFaceExpressionsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceExpressionsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectFaceGazeRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectFaceGazeRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceGazeRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFaceGazeRequest") alloc] initWithCompletionHandler:nil];
             
             [viewModel addRequest:request completionHandler:nil];
             
@@ -1680,7 +1741,7 @@
     
     //
     
-    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceGazeRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
