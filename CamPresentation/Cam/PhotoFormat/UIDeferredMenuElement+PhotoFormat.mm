@@ -4177,8 +4177,6 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     }
                                                          didChangeHandler:didChangeHandler];
     
-    menu.subtitle = @"com.apple.avfoundation.allow-capture-filter-rendering";
-    
     return menu;
 }
 

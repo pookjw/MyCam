@@ -1074,7 +1074,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         
         //
         
-        __kindof AVCaptureControl *systemStyleSlider = reinterpret_cast<id (*)(id, SEL, id, id, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureSystemStyleSlider") alloc], sel_registerName("initWithSession:parameter:action:"), captureSession, nil, nil);
+        /*
+         0, 1, 2
+         */
+        __kindof AVCaptureControl *systemStyleSlider = reinterpret_cast<id (*)(id, SEL, id, NSInteger, id)>(objc_msgSend)([objc_lookUpClass("AVCaptureSystemStyleSlider") alloc], sel_registerName("initWithSession:parameter:action:"), captureSession, 0, nil);
         reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddControl:failureReason:"), systemStyleSlider, &failureReason);
         assert(failureReason == nil);
         [captureSession addControl:systemStyleSlider];
