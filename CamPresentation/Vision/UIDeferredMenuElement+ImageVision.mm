@@ -149,7 +149,8 @@
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceGazeRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFacePoseRequestWithViewModel:viewModel addedRequests:requests],
                 [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHorizonRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests]
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
+                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests]
             ]];
             
             UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -1826,7 +1827,7 @@
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -1882,6 +1883,32 @@
         detectsHandsAction,
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectHumanBodyPose3DRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanBodyPose3DRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectHumanBodyPose3DRequest *request = [[VNDetectHumanBodyPose3DRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
