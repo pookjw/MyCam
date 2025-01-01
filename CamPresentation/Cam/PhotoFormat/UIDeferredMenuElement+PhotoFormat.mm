@@ -43,6 +43,22 @@ AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
 AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
+AVF_EXPORT NSString * const AVSmartStyleCastTypeStandard;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeNeutral;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeBlushWarm;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeGoldWarm;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeTanWarm;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeCool;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeNoFilter;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeWarmAuthentic;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeColorful;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeEarthy;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeCloudCover;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeUrbanCool;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeDreamyHues;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeStarkBW;
+AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
+
 #warning AVSpatialOverCaptureVideoPreviewLayer
 #warning -[AVCaptureDevice isProResSupported]
 #warning videoMirrored
@@ -61,6 +77,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            
+#if !TARGET_OS_TV
+            [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+#endif
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_nerualAnalyzerModelTypeMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -121,10 +141,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             [elements addObject:[UIDeferredMenuElement _cp_queue_studioLightSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
-            
-#if !TARGET_OS_TV
-            [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
-#endif
             
             [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
             
@@ -3648,23 +3664,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
                                                          didChangeHandler:didChangeHandler];
 }
 
-#if !TARGET_OS_TV
-+ (UIMenu * _Nonnull)_cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
-                                                            captureDevice:captureDevice
-                                                                    title:@"Smart Style Rendering Supported Formats"
-                                                          includeSubtitle:NO
-                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
-        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
-    }
-                                                         didChangeHandler:didChangeHandler];
-    
-    menu.subtitle = @"com.apple.avfoundation.allow-capture-filter-rendering";
-    
-    return menu;
-}
-#endif
-
 + (UIAction * _Nonnull)_cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
@@ -4141,6 +4140,202 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     return menu;
 }
+
+#if !TARGET_OS_TV
++ (UIMenu *)_cp_queue_smartStyleMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIMenu menuWithTitle:@"Smart Style" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleSystemStyleEnabledActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_setSmartStyleMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+    ]];
+    
+    return menu;
+}
+
++ (UIAction *)_cp_queue_toggleSystemStyleEnabledActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    BOOL isSystemStyleEnabled = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureService.queue_captureSession, sel_registerName("isSystemStyleEnabled"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"System Style Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureService.queue_captureSession, sel_registerName("setSystemStyleEnabled:"), !isSystemStyleEnabled);
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = isSystemStyleEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    return action;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:videoDevice
+                                                                    title:@"Supported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+    
+    menu.subtitle = @"com.apple.avfoundation.allow-capture-filter-rendering";
+    
+    return menu;
+}
+
+// setSmartStyle:
+/*
+ -[AVCaptureSession smartStyle]
+ -[AVCaptureSession setSmartStyle:]
+ +[AVCaptureSmartStyle styleWithCast:intensity:toneBias:colorBias:]
+ */
++ (UIMenu *)_cp_queue_setSmartStyleMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    NSArray<NSString *> *allCastTypes = @[
+        AVSmartStyleCastTypeStandard,
+        AVSmartStyleCastTypeNeutral,
+        AVSmartStyleCastTypeBlushWarm,
+        AVSmartStyleCastTypeGoldWarm,
+        AVSmartStyleCastTypeTanWarm,
+        AVSmartStyleCastTypeCool,
+        AVSmartStyleCastTypeNoFilter,
+        AVSmartStyleCastTypeWarmAuthentic,
+        AVSmartStyleCastTypeColorful,
+        AVSmartStyleCastTypeEarthy,
+        AVSmartStyleCastTypeCloudCover,
+        AVSmartStyleCastTypeUrbanCool,
+        AVSmartStyleCastTypeDreamyHues,
+        AVSmartStyleCastTypeStarkBW,
+        AVSmartStyleCastTypeLongGray
+    ];
+    
+    __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
+    assert(captureSession != nil);
+    
+    id smartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
+    NSString *currentCast = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("cast"));
+    float intensity = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("intensity"));
+    float toneBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("toneBias"));
+    float colorBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("colorBias"));
+    
+    NSMutableArray<UIMenu *> *castTypesMenu = [[NSMutableArray alloc] initWithCapacity:allCastTypes.count];
+    
+    for (NSString *castType in allCastTypes) {
+        UIAction *setSmartStyleAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"Use %@", castType] image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                id smartStyle = reinterpret_cast<id (*)(Class, SEL, id, float, float, float)>(objc_msgSend)(objc_lookUpClass("AVCaptureSmartStyle"), sel_registerName("styleWithCast:intensity:toneBias:colorBias:"), castType, 1.f, 1.f, 1.f);
+                reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), smartStyle);
+                
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        setSmartStyleAction.state = ([currentCast isEqualToString:castType]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        __kindof UIMenuElement *intensitySliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            UISlider *slider = [UISlider new];
+            
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 1.f;
+            slider.value = intensity;
+            slider.continuous = YES;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                auto slider = reinterpret_cast<UISlider *>(action.sender);
+                float value = slider.value;
+                
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    id oldSmartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
+                    NSString *cast = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("cast"));
+                    float toneBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("toneBias"));
+                    float colorBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("colorBias"));
+                    
+                    id newSmartStyle = reinterpret_cast<id (*)(Class, SEL, id, float, float, float)>(objc_msgSend)(objc_lookUpClass("AVCaptureSmartStyle"), sel_registerName("styleWithCast:intensity:toneBias:colorBias:"), cast, value, toneBias, colorBias);
+                    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), newSmartStyle);
+                    
+                    if (didChangeHandler) didChangeHandler();
+                });
+            }];
+            
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+            
+            return [slider autorelease];
+        });
+        
+        __kindof UIMenuElement *toneBiasSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            UISlider *slider = [UISlider new];
+            
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 1.f;
+            slider.value = toneBias;
+            slider.continuous = YES;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                auto slider = reinterpret_cast<UISlider *>(action.sender);
+                float value = slider.value;
+                
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    id oldSmartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
+                    NSString *cast = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("cast"));
+                    float intensity = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("intensity"));
+                    float colorBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("colorBias"));
+                    
+                    id newSmartStyle = reinterpret_cast<id (*)(Class, SEL, id, float, float, float)>(objc_msgSend)(objc_lookUpClass("AVCaptureSmartStyle"), sel_registerName("styleWithCast:intensity:toneBias:colorBias:"), cast, intensity, value, colorBias);
+                    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), newSmartStyle);
+                    
+                    if (didChangeHandler) didChangeHandler();
+                });
+            }];
+            
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+            
+            return [slider autorelease];
+        });
+        
+        __kindof UIMenuElement *colorBiasSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                UISlider *slider = [UISlider new];
+                
+                slider.minimumValue = 0.f;
+                slider.maximumValue = 1.f;
+                slider.value = colorBias;
+                slider.continuous = YES;
+                
+                UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                    auto slider = reinterpret_cast<UISlider *>(action.sender);
+                    float value = slider.value;
+                    
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        id oldSmartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
+                        NSString *cast = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("cast"));
+                        float intensity = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("intensity"));
+                        float toneBias = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(oldSmartStyle, sel_registerName("toneBias"));
+                        
+                        id newSmartStyle = reinterpret_cast<id (*)(Class, SEL, id, float, float, float)>(objc_msgSend)(objc_lookUpClass("AVCaptureSmartStyle"), sel_registerName("styleWithCast:intensity:toneBias:colorBias:"), cast, intensity, toneBias, value);
+                        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), newSmartStyle);
+                        
+                        if (didChangeHandler) didChangeHandler();
+                    });
+                }];
+                
+                [slider addAction:action forControlEvents:UIControlEventValueChanged];
+                
+                return [slider autorelease];
+        });
+        
+        UIMenu *castMenu = [UIMenu menuWithTitle:castType children:@[
+            setSmartStyleAction,
+            intensitySliderElement,
+            toneBiasSliderElement,
+            colorBiasSliderElement
+        ]];
+        
+        [castTypesMenu addObject:castMenu];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Styles" children:castTypesMenu];
+    [castTypesMenu release];
+    menu.subtitle = currentCast;
+    
+    return menu;
+}
+#endif
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 

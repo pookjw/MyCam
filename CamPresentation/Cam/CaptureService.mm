@@ -40,6 +40,7 @@
 #warning isShutterSoundSuppressionEnabled
 
 #warning CIPortraitEffectContour
+#warning AVCaptureVideoThumbnailOutput
 
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
@@ -747,6 +748,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     PixelBufferLayer *customPreviewLayer = [PixelBufferLayer new];
     [self.queue_customPreviewLayersByCaptureDevice setObject:customPreviewLayer forKey:captureDevice];
+    customPreviewLayer.hidden = YES;
     [customPreviewLayer release];
     
     assert([self.queue_sampleBufferDisplayLayersByVideoDevice objectForKey:captureDevice] == nil);
@@ -758,8 +760,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([self.queue_nerualAnalyzerLayersByVideoDevice objectForKey:captureDevice] == nil);
     NerualAnalyzerLayer *nerualAnalyzerLayer = [NerualAnalyzerLayer new];
     [self.queue_nerualAnalyzerLayersByVideoDevice setObject:nerualAnalyzerLayer forKey:captureDevice];
-//    nerualAnalyzerLayer.hidden = YES;
-    nerualAnalyzerLayer.modelType = NerualAnalyzerModelTypeCatAndDogDetection;
+    nerualAnalyzerLayer.hidden = YES;
+    nerualAnalyzerLayer.modelType = std::nullopt;
     [nerualAnalyzerLayer release];
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
@@ -826,8 +828,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
     previewLayerConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-    previewLayer.hidden = YES;
-    previewLayerConnection.enabled = NO;
+    previewLayer.hidden = NO;
+    previewLayerConnection.enabled = YES;
     [previewLayer release];
     assert([captureSession canAddConnection:previewLayerConnection]);
     [captureSession addConnection:previewLayerConnection];
@@ -860,6 +862,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureConnection *videoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:previewVideoDataOutput];
     [previewVideoDataOutput release];
+    videoDataOutputConnection.enabled = NO;
     videoDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     assert([captureSession canAddConnection:videoDataOutputConnection]);
     [captureSession addConnection:videoDataOutputConnection];
@@ -2711,8 +2714,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
-//    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
-    
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = YES;
