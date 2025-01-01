@@ -109,17 +109,17 @@
 //    [self.navigationController pushViewController:viewController animated:NO];
 //    [viewController release];
     
-//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-//    [self.navigationController pushViewController:viewController animated:YES];
-//    [viewController release];
+    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
     
-#if TARGET_OS_VISION
-    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
-#else
-    CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
-#endif
-    [self.navigationController pushViewController:cameraRootViewController animated:YES];
-    [cameraRootViewController release];
+//#if TARGET_OS_VISION
+//    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
+//#else
+//    CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
+//#endif
+//    [self.navigationController pushViewController:cameraRootViewController animated:YES];
+//    [cameraRootViewController release];
 }
 
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
