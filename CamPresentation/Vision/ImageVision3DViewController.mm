@@ -90,7 +90,7 @@
         [bodyHeight release];
         [formatter release];
         
-        self.navigationItem.title = [NSString stringWithFormat:@"heightEstimation: %@ bodyHeight: %@", heightEstimationString, bodyHeightString];
+        self.navigationItem.title = [NSString stringWithFormat:@"heightEstimation: %@ | bodyHeight: %@", heightEstimationString, bodyHeightString];
     } else {
         self.navigationItem.title = nil;
     }

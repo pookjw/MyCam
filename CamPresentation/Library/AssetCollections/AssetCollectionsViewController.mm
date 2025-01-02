@@ -250,13 +250,13 @@
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
      iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"397AEF2A-B1BF-4D43-85A7-3BE936F52DD7/L0/001"] options:nil][0];
-    ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
-    [viewController release];
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentViewController:navigationController animated:YES completion:nil];
-    [navigationController release];
+//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"397AEF2A-B1BF-4D43-85A7-3BE936F52DD7/L0/001"] options:nil][0];
+//    ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
+//    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
+//    [viewController release];
+//    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+//    [self presentViewController:navigationController animated:YES completion:nil];
+//    [navigationController release];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {

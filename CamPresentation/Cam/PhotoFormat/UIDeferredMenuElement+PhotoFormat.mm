@@ -4208,6 +4208,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
     assert(captureSession != nil);
     
+    NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [captureService queue_outputClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
+    assert(videoThumbnailOutputs.count > 0);
+    
     id smartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
     NSString *currentCast = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("cast"));
     float intensity = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(smartStyle, sel_registerName("intensity"));
@@ -4220,7 +4223,12 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         UIAction *setSmartStyleAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"Use %@", castType] image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 id smartStyle = reinterpret_cast<id (*)(Class, SEL, id, float, float, float)>(objc_msgSend)(objc_lookUpClass("AVCaptureSmartStyle"), sel_registerName("styleWithCast:intensity:toneBias:colorBias:"), castType, 1.f, 1.f, 1.f);
+                
                 reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), smartStyle);
+                
+                for (__kindof AVCaptureOutput *videoThumbnailOutput in videoThumbnailOutputs) {
+                    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setSmartStyles:"), @[smartStyle]);
+                }
                 
                 if (didChangeHandler) didChangeHandler();
             });
