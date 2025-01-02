@@ -252,6 +252,7 @@
         
         UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:visionViewController];
         [visionViewController release];
+        navigationController.modalPresentationStyle = UIModalPresentationOverFullScreen;
         
         [viewController presentViewController:navigationController animated:YES completion:nil];
         [navigationController release];
