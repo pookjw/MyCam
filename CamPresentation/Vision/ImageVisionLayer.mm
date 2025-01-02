@@ -273,6 +273,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawHorizonObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNHumanBodyPoseObservation class]) {
             [self _drawHumanBodyPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNHumanBodyPose3DObservation class]) {
+            [self _drawHumanBodyPose3DObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -1802,6 +1804,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 
 - (void)_drawHumanBodyPoseObservation:(VNHumanBodyPoseObservation *)humanBodyPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     [self _drawRecognizedPointsObservation:humanBodyPoseObservation aspectBounds:aspectBounds inContext:ctx];
+}
+
+- (void)_drawHumanBodyPose3DObservation:(VNHumanBodyPose3DObservation *)humanBodyPose3DObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    
 }
 
 @end

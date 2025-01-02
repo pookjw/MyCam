@@ -17,15 +17,14 @@ CP_EXTERN NSNotificationName const ImageVisionViewModelDidChangeObservationsNoti
 @interface ImageVisionViewModel : NSObject
 @property (assign, atomic, readonly, getter=isLoading) BOOL loading;
 
-- (void)requestsWithHandler:(void (^)(NSArray<__kindof VNRequest *> *requests))completionHandler;
 - (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 - (void)removeRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(void))completionHandler;
 - (NSProgress *)updateRequest:(__kindof VNRequest *)request completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 
-- (void)observationsWithHandler:(void (^)(NSArray<__kindof VNObservation *> *observations))handler;
-
 - (NSProgress *)updateImage:(UIImage *)image completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 - (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^ _Nullable)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler;
+
+- (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> *requests, NSArray<__kindof VNObservation *> *observations, UIImage * _Nullable image))completionHandler;
 @end
 
 NS_ASSUME_NONNULL_END

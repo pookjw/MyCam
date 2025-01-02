@@ -53,23 +53,6 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     [super dealloc];
 }
 
-- (void)requestsWithHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull))handler {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    if (dispatch_get_current_queue() == self._queue) {
-#pragma clang diagnostic pop
-        NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
-        handler(requests);
-        [requests release];
-    } else {
-        dispatch_async(self._queue, ^{
-            NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
-            handler(requests);
-            [requests release];
-        });
-    }
-}
-
 - (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^)(NSError * _Nullable))completionHandler {
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     
@@ -135,25 +118,6 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     });
     
     return progress;
-}
-
-- (void)observationsWithHandler:(void (^)(NSArray<__kindof VNObservation *> * _Nonnull))handler {
-    dispatch_async(self._queue, ^{
-        NSArray<__kindof VNRequest *> *requests = self._queue_requests;
-        if (requests.count == 0) {
-            handler(@[]);
-            return;
-        }
-        
-        NSMutableArray<__kindof VNObservation *> *observations = [NSMutableArray new];
-        
-        for (__kindof VNRequest *request in requests) {
-            [observations addObjectsFromArray:request.results];
-        }
-        
-        handler(observations);
-        [observations release];
-    });
 }
 
 - (NSProgress *)updateImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable))completionHandler {
@@ -257,6 +221,32 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     });
     
     return progress;
+}
+
+- (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull, NSArray<__kindof VNObservation *> * _Nonnull, UIImage * _Nullable))completionHandler {
+    dispatch_block_t block = ^{
+        NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
+        
+        NSMutableArray<__kindof VNObservation *> *observations = [NSMutableArray new];
+        for (__kindof VNRequest *request in requests) {
+            [observations addObjectsFromArray:request.results];
+        }
+        
+        UIImage *image = self._queue_image;
+        
+        completionHandler(requests, observations, image);
+        [requests release];
+        [observations release];
+    };
+    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if (dispatch_get_current_queue() == self._queue) {
+#pragma clang diagnostic pop
+        block();
+    } else {
+        dispatch_async(self._queue, block);
+    }
 }
 
 - (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {

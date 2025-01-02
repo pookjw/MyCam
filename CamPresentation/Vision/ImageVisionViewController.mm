@@ -204,7 +204,7 @@
 }
 
 - (void)_didChangeObservationsNotification:(NSNotification *)notification {
-    [self._viewModel observationsWithHandler:^(NSArray<__kindof VNObservation *> * _Nonnull observations) {
+    [self._viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
         dispatch_async(dispatch_get_main_queue(), ^{
             self._imageVisionView.imageVisionLayer.observations = observations;
         });

@@ -247,8 +247,9 @@
      iPad Body Poses 395C32E2-2809-4C65-AC36-7FE45A09DFF6/L0/001
      iPad Horizontal 8436B727-67CC-4AB6-B4D4-5CAD627AA545/L0/001
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
+     iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"395C32E2-2809-4C65-AC36-7FE45A09DFF6/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"67DB175B-5446-434F-A273-619A39BA9AEA/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];

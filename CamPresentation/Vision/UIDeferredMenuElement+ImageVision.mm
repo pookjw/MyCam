@@ -15,6 +15,7 @@
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #import <CoreML/CoreML.h>
 #import <CamPresentation/MLModelAsset+Category.h>
+#import <CamPresentation/ImageVision3DViewController.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -112,72 +113,74 @@
 
 + (instancetype)cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     assert(viewModel != nil);
-    
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        UIDeferredMenuElement *viewModelElement = [UIDeferredMenuElement _cp_imageVisionElementWithViewModel:viewModel];
-        UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer];
-        
-        completion(@[viewModelElement, imageVisionLayerMenu]);
-    }];
-}
-
-+ (UIDeferredMenuElement *)_cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel {
-    assert(viewModel != nil);
-    
-    return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        [viewModel requestsWithHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests) {
-            UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:@[
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateAnimalprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCoreMLRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyCityNatureImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyJunkImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyMemeImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyPotentialLandmarkRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageAestheticsRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceCaptureQualityRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceExpressionsRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceGazeRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFacePoseRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHorizonRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests]
-            ]];
-            
-            UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
-                [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyFaceAttributesRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNVYvzEtX1JlUdu8xx5qhDIWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVN5kJNH3eYuyaLxNpZr5Z7ziWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVN6Mb1ME89lyW3HpahkEygIGWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateDetectionprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceRegionMapRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVN6kBnCOr2mZlSV6yV1dLwBWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageFingerprintsRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSceneprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateNeuralHashprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:viewModel addedRequests:requests],
-                [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-            ]];
+        [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
+            UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer];
+            UIAction *humanBodyPose3DObservationSceneAction = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
+            UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[usefulRequestsMenu, uselessRequestsMenu]);
+                completion(@[requestsMenu, humanBodyPose3DObservationSceneAction, imageVisionLayerMenu]);
             });
         }];
     }];
+}
+
++ (UIMenu *)_cp_imageVisionRequestsMenuWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:@[
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateAnimalprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCoreMLRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyCityNatureImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyJunkImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyMemeImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyPotentialLandmarkRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCalculateImageAestheticsScoresRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageAestheticsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectAnimalBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateForegroundInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectBarcodesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectContoursRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectDocumentSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceCaptureQualityRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFace3DLandmarksRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceExpressionsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceGazeRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFacePoseRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHorizonRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
+    ]];
+    
+    UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
+        [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNClassifyFaceAttributesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNVYvzEtX1JlUdu8xx5qhDIWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVN5kJNH3eYuyaLxNpZr5Z7ziWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVN6Mb1ME89lyW3HpahkEygIGWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateDetectionprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceRegionMapRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateFaceprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVN6kBnCOr2mZlSV6yV1dLwBWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageFingerprintsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateImageprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSceneprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceRectanglesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateNeuralHashprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+    ]];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
+        usefulRequestsMenu, uselessRequestsMenu
+    ]];
+    
+    return menu;
 }
 
 + (UIMenu *)_cp_imageVisionMenuWithImageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
@@ -219,6 +222,43 @@
     ]];
     
     return menu;
+}
+
++ (UIAction *)_cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:(ImageVisionViewModel *)viewModel observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageLayer:(ImageVisionLayer *)imageLayer {
+    NSMutableArray<VNHumanBodyPose3DObservation *> *humanBodyPose3DObservations = [NSMutableArray array];
+    for (__kindof VNObservation *observation in observations) {
+        if ([observation isKindOfClass:[VNHumanBodyPose3DObservation class]]) {
+            [humanBodyPose3DObservations addObject:static_cast<VNHumanBodyPose3DObservation *>(observation)];
+        }
+    }
+    
+    if (humanBodyPose3DObservations.count == 0) {
+        UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.cp_overrideNumberOfTitleLines = 0;
+        action.attributes = UIMenuElementAttributesDisabled;
+        return action;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        auto layerView = static_cast<UIView *>(imageLayer.delegate);
+        assert([layerView isKindOfClass:[UIView class]]);
+        UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+        assert(viewController != nil);
+        
+        ImageVision3DDescriptor *descriptor = [[ImageVision3DDescriptor alloc] initWithHumanBodyPose3DObservations:humanBodyPose3DObservations image:image];
+        ImageVision3DViewController *visionViewController = [ImageVision3DViewController new];
+        visionViewController.descriptor = descriptor;
+        [descriptor release];
+        
+        UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:visionViewController];
+        [visionViewController release];
+        
+        [viewController presentViewController:navigationController animated:YES completion:nil];
+        [navigationController release];
+    }];
+    
+    action.cp_overrideNumberOfTitleLines = 0;
+    return action;
 }
 
 + (__kindof UIMenuElement *)_cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
@@ -1888,14 +1928,24 @@
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     VNDetectHumanBodyPose3DRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanBodyPose3DRequest class] addedRequests:requests];
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectHumanBodyPose3DRequest *request = [[VNDetectHumanBodyPose3DRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+                
+                [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
+                    UIAction *action = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
+                    
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+                    });
+                }];
+            }];
             
             [request release];
         }];
