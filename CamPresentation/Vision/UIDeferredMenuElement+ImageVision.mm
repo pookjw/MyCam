@@ -57,7 +57,7 @@
  VNDetectFaceRectanglesRequest,✅
  VNDetectHorizonRequest,✅
  VNDetectHumanBodyPoseRequest,✅
- VNDetectHumanBodyPose3DRequest,
+ VNDetectHumanBodyPose3DRequest,✅
  VNDetectHumanHandPoseRequest,
  VNDetectHumanHeadRectanglesRequest,
  VNDetectHumanRectanglesRequest,
@@ -1956,9 +1956,45 @@
         return action;
     }
     
+    NSError * _Nullable error = nil;
+    
+    //
+    
+    NSArray<NSString *> *supportedJointNames = [request supportedJointNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointNames.count];
+    for (NSString *jointName in supportedJointNames) {
+        UIAction *action = [UIAction actionWithTitle:jointName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointNameActions addObject:action];
+    }
+    UIMenu *supportedJointNamesMenu = [UIMenu menuWithTitle:@"supportedJointNames" children:supportedJointNameActions];
+    supportedJointNamesMenu.subtitle = @(supportedJointNameActions.count).stringValue;
+    [supportedJointNameActions release];
+    
+    //
+    
+    NSArray<NSString *> *supportedJointsGroupNames = [request supportedJointsGroupNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointsGroupNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointsGroupNames.count];
+    for (NSString *jointsGroupName in supportedJointsGroupNames) {
+        UIAction *action = [UIAction actionWithTitle:jointsGroupName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointsGroupNameActions addObject:action];
+    }
+    UIMenu *supportedJointsGroupNamesMenu = [UIMenu menuWithTitle:@"supportedJointsGroupNames" children:supportedJointsGroupNameActions];
+    supportedJointsGroupNamesMenu.subtitle = @(supportedJointsGroupNameActions.count).stringValue;
+    [supportedJointsGroupNameActions release];
+    
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        supportedJointNamesMenu,
+        supportedJointsGroupNamesMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

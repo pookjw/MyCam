@@ -22,6 +22,7 @@
 #import <os/lock.h>
 #include <iostream>
 #include <random>
+#import <CamPresentation/NSStringFromVNHumanBodyPose3DObservationHeightEstimation.h>
 
 OBJC_EXPORT void objc_setProperty_atomic(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
@@ -1807,7 +1808,55 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawHumanBodyPose3DObservation:(VNHumanBodyPose3DObservation *)humanBodyPose3DObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
     
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    NSString *heightEstimationString = NSStringFromVNHumanBodyPose3DObservationHeightEstimation(humanBodyPose3DObservation.heightEstimation);
+    
+    NSMeasurement *bodyHeight = [[NSMeasurement alloc] initWithDoubleValue:humanBodyPose3DObservation.bodyHeight unit:[NSUnitLength meters]];
+    NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
+    formatter.unitOptions = NSMeasurementFormatterUnitOptionsProvidedUnit;
+    formatter.unitStyle = NSFormattingUnitStyleLong;
+    NSString *bodyHeightString = [formatter stringFromMeasurement:bodyHeight];
+    [bodyHeight release];
+    [formatter release];
+    
+    textLayer.string = [NSString stringWithFormat:@"heightEstimation: %@\nbodyHeight: %@", heightEstimationString, bodyHeightString];
+    textLayer.wrapped = YES;
+    textLayer.font = [UIFont systemFontOfSize:20.];
+    textLayer.fontSize = 20.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+    CGSize size = attributedString.size;
+    [attributedString release];
+    textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+    
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - size.width * 0.5,
+                                                                     CGRectGetMidY(aspectBounds) - size.height * 0.5);
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
 }
 
 @end

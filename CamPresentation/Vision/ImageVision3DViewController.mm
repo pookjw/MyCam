@@ -10,6 +10,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <numbers>
+#import <CamPresentation/NSStringFromVNHumanBodyPose3DObservationHeightEstimation.h>
 
 @interface ImageVision3DViewController ()
 @property (retain, nonatomic, readonly) SCNView *_scnView;
@@ -76,6 +77,22 @@
         } else {
             scnView.scene = [self _sceneFromDescriptor:descriptor showCamera:self._showCamera];
         }
+    }
+    
+    if (VNHumanBodyPose3DObservation *observation = descriptor.humanBodyPose3DObservations.firstObject) {
+        NSString *heightEstimationString = NSStringFromVNHumanBodyPose3DObservationHeightEstimation(observation.heightEstimation);
+        
+        NSMeasurement *bodyHeight = [[NSMeasurement alloc] initWithDoubleValue:observation.bodyHeight unit:[NSUnitLength meters]];
+        NSMeasurementFormatter *formatter = [NSMeasurementFormatter new];
+        formatter.unitOptions = NSMeasurementFormatterUnitOptionsProvidedUnit;
+        formatter.unitStyle = NSFormattingUnitStyleLong;
+        NSString *bodyHeightString = [formatter stringFromMeasurement:bodyHeight];
+        [bodyHeight release];
+        [formatter release];
+        
+        self.navigationItem.title = [NSString stringWithFormat:@"heightEstimation: %@ bodyHeight: %@", heightEstimationString, bodyHeightString];
+    } else {
+        self.navigationItem.title = nil;
     }
 }
 
@@ -305,7 +322,7 @@
                                                     length:0.2
                                              chamferRadius:0.4];
             
-            centerHeadNode.geometry.firstMaterial.diffuse.contents = UIColor.redColor;
+            centerHeadNode.geometry.firstMaterial.diffuse.contents = UIColor.greenColor;
             topHeadNode.hidden = YES;
         }
     }
@@ -346,7 +363,7 @@
                                          chamferRadius:0.05];
             
             jointNode.geometry = boxGeometry;
-            jointNode.geometry.firstMaterial.diffuse.contents = UIColor.redColor;
+            jointNode.geometry.firstMaterial.diffuse.contents = UIColor.greenColor;
             jointNode.simdPosition = (parentJointNode.simdPosition + jointNode.simdPosition) * 0.5f;
             
             //
