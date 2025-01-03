@@ -279,6 +279,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawHumanHandPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNDetectedObjectObservation class]) {
             [self _drawDetectedObjectObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+        } else if ([observation class] == [VNTextObservation class]) {
+            [self _drawTextObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -1942,6 +1944,54 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     [textLayer renderInContext:ctx];
     [textLayer release];
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawTextObservation:(VNTextObservation *)textObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    for (VNRectangleObservation *box in textObservation.characterBoxes) {
+        [self _drawRectangleObservation:box aspectBounds:aspectBounds inContext:ctx];
+    }
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    NSString * _Nullable text = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(textObservation, sel_registerName("text"));
+    
+    if (text != nil) {
+        CATextLayer *textLayer = [CATextLayer new];
+        
+        textLayer.string = text;
+        textLayer.wrapped = YES;
+        textLayer.font = [UIFont systemFontOfSize:20.];
+        textLayer.fontSize = 20.;
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+        CGSize size = attributedString.size;
+        [attributedString release];
+        textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+        
+        textLayer.contentsScale = self.contentsScale;
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - size.width * 0.5,
+                                                                         CGRectGetMidY(aspectBounds) - size.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+    }
     
     //
     

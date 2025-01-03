@@ -61,8 +61,8 @@
  VNDetectHumanHandPoseRequest,✅
  VNDetectHumanHeadRectanglesRequest,✅
  VNDetectHumanRectanglesRequest,✅
- VNDetectRectanglesRequest,
- VNDetectScreenGazeRequest,
+ VNDetectRectanglesRequest,✅
+ VNDetectScreenGazeRequest,✅
  VNDetectTextRectanglesRequest,
  VNDetectTrajectoriesRequest,
  VNGenerateAnimalSegmentationRequest,
@@ -108,6 +108,20 @@
  VNTranslationalImageRegistrationRequest
  )
  */
+
+VN_EXPORT NSString * const VNTextRecognitionOptionNone;
+VN_EXPORT NSString * const VNTextRecognitionOptionASCIICharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionEnglishCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionDanishCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionDutchCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionFrenchCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionGermanCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionIcelandicCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionItalianCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionNorwegianCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionPortugueseCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionSpanishCharacterSet;
+VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
 
 @implementation UIDeferredMenuElement (ImageVision)
 
@@ -155,7 +169,9 @@
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHandPoseRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHeadRectanglesRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanRectanglesRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectRectanglesRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectRectanglesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectScreenGazeRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTextRectanglesRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -909,6 +925,8 @@
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateTorsoprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
+    
+    menu.subtitle = @"Human Detections";
     
     return menu;
 }
@@ -2034,6 +2052,7 @@
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = maximumHandCount;
+        stepper.stepValue = 1.;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
@@ -2184,6 +2203,418 @@
             [request release];
         }];
         
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    __kindof UIMenuElement *minimumAspectRatioSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.minimumAspectRatio).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.minimumAspectRatio;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.minimumAspectRatio = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *minimumAspectRatioMenu = [UIMenu menuWithTitle:@"Minimum Aspect Ratio" children:@[minimumAspectRatioSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *maximumAspectRatioSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.maximumAspectRatio).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.maximumAspectRatio;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.maximumAspectRatio = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *maximumAspectRatioMenu = [UIMenu menuWithTitle:@"Maximum Aspect Ratio" children:@[maximumAspectRatioSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *quadratureToleranceSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.quadratureTolerance).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 45.f;
+        slider.value = request.quadratureTolerance;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.quadratureTolerance = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *quadratureToleranceMenu = [UIMenu menuWithTitle:@"Quadrature Tolerance" children:@[quadratureToleranceSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *minimumSizeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.minimumSize).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.minimumSize;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.minimumSize = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *minimumSizeMenu = [UIMenu menuWithTitle:@"Minimum Size" children:@[minimumSizeSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *minimumConfidenceSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.minimumConfidence).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.minimumConfidence;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.minimumConfidence = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *minimumConfidenceMenu = [UIMenu menuWithTitle:@"Minimum Confidence" children:@[minimumConfidenceSliderElement]];
+    
+    //
+    
+    __kindof UIMenuElement *maximumObservationsStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.maximumObservations).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = request.maximumObservations;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            double value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            request.maximumObservations = value;
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *maximumObservationsMenu = [UIMenu menuWithTitle:@"Maximum Observations" children:@[maximumObservationsStepperElement]];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        minimumAspectRatioMenu,
+        maximumAspectRatioMenu,
+        quadratureToleranceMenu,
+        minimumSizeMenu,
+        minimumConfidenceMenu,
+        maximumObservationsMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectScreenGazeRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectScreenGazeRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectScreenGazeRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectScreenGazeRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    __kindof UIMenuElement *screenSizeStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        NSUInteger screenSize = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("screenSize"));
+        
+        //
+        
+        UILabel *label = [UILabel new];
+        label.text = @(screenSize).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = screenSize;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            double value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setScreenSize:"), value);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *screenSizeMenu = [UIMenu menuWithTitle:@"Screen Size" children:@[screenSizeStepperElement]];
+    screenSizeMenu.subtitle = @"???";
+    
+    //
+    
+    __kindof UIMenuElement *temporalSmoothingFrameCountStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        NSInteger temporalSmoothingFrameCount = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("temporalSmoothingFrameCount"));
+        
+        //
+        
+        UILabel *label = [UILabel new];
+        label.text = @(temporalSmoothingFrameCount).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSIntegerMax;
+        stepper.value = temporalSmoothingFrameCount;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            double value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(request, sel_registerName("setTemporalSmoothingFrameCount:"), value);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *temporalSmoothingFrameCountMenu = [UIMenu menuWithTitle:@"Temporal Smoothing Frame Count" children:@[temporalSmoothingFrameCountStepperElement]];
+    temporalSmoothingFrameCountMenu.subtitle = @"???";
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectScreenGazeRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        screenSizeMenu,
+        temporalSmoothingFrameCountMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectTextRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectTextRectanglesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectTextRectanglesRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectTextRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectTextRectanglesRequest *request = [[VNDetectTextRectanglesRequest alloc] initWithCompletionHandler:nil];
+            request.reportCharacterBoxes = YES;
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
@@ -2191,7 +2622,58 @@
     
     //
     
-    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+    BOOL reportCharacterBoxes = request.reportCharacterBoxes;
+    UIAction *reportCharacterBoxesAction = [UIAction actionWithTitle:@"Report Character Boxes" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.reportCharacterBoxes = !reportCharacterBoxes;
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    reportCharacterBoxesAction.state = reportCharacterBoxes ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSString *selectedTextRecognition = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("textRecognition"));
+    
+    NSArray<NSString *> *allTextRecognitionOptions = @[
+        VNTextRecognitionOptionNone,
+        VNTextRecognitionOptionASCIICharacterSet,
+        VNTextRecognitionOptionEnglishCharacterSet,
+        VNTextRecognitionOptionDanishCharacterSet,
+        VNTextRecognitionOptionDutchCharacterSet,
+        VNTextRecognitionOptionFrenchCharacterSet,
+        VNTextRecognitionOptionGermanCharacterSet,
+        VNTextRecognitionOptionIcelandicCharacterSet,
+        VNTextRecognitionOptionItalianCharacterSet,
+        VNTextRecognitionOptionNorwegianCharacterSet,
+        VNTextRecognitionOptionPortugueseCharacterSet,
+        VNTextRecognitionOptionSpanishCharacterSet,
+        VNTextRecognitionOptionSwedishCharacterSet
+    ];
+    
+    NSMutableArray<UIAction *> *textRecognitionActions = [[NSMutableArray alloc] initWithCapacity:allTextRecognitionOptions.count];
+    
+    for (NSString *textRecognition in allTextRecognitionOptions) {
+        UIAction *action = [UIAction actionWithTitle:textRecognition image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setTextRecognition:"), textRecognition);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = ([textRecognition isEqualToString:selectedTextRecognition]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [textRecognitionActions addObject:action];
+    }
+    
+    UIMenu *textRecognitionsMenu = [UIMenu menuWithTitle:@"Text Recognition Options" children:textRecognitionActions];
+    [textRecognitionActions release];
+    
+#warning TODO - Private APIs
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectTextRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        reportCharacterBoxesAction,
+        textRecognitionsMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

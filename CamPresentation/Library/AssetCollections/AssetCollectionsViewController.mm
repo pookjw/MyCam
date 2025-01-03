@@ -250,7 +250,7 @@
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
      iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"8339F972-DD21-45C4-8194-E633EE673478/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"5243791C-9AE3-4C6A-B80E-2442AF86C853/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
