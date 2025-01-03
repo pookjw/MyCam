@@ -125,13 +125,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
 
 @implementation UIDeferredMenuElement (ImageVision)
 
-+ (instancetype)cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
++ (instancetype)cp_imageVisionElementWithViewModel:(ImageVisionViewModel *)viewModel imageVisionLayer:(ImageVisionLayer *)imageVisionLayer drawingRunLoop:(SVRunLoop *)drawingRunLoop {
     assert(viewModel != nil);
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
             UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer];
             UIAction *humanBodyPose3DObservationSceneAction = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
-            UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer];
+            UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer drawingRunLoop:drawingRunLoop];
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(@[requestsMenu, humanBodyPose3DObservationSceneAction, imageVisionLayerMenu]);
@@ -203,10 +203,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (UIMenu *)_cp_imageVisionMenuWithImageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
++ (UIMenu *)_cp_imageVisionMenuWithImageVisionLayer:(ImageVisionLayer *)imageVisionLayer drawingRunLoop:(SVRunLoop *)drawingRunLoop {
     BOOL shouldDrawImage = imageVisionLayer.shouldDrawImage;
     UIAction *shouldDrawImageAction = [UIAction actionWithTitle:@"shouldDrawImage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        imageVisionLayer.shouldDrawImage = !shouldDrawImage;
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.shouldDrawImage = !shouldDrawImage;
+        }];
     }];
     shouldDrawImageAction.state = shouldDrawImage ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -214,7 +216,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     BOOL shouldDrawDetails = imageVisionLayer.shouldDrawDetails;
     UIAction *shouldDrawDetailsAction = [UIAction actionWithTitle:@"shouldDrawDetails" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        imageVisionLayer.shouldDrawDetails = !shouldDrawDetails;
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.shouldDrawDetails = !shouldDrawDetails;
+        }];
     }];
     shouldDrawDetailsAction.state = shouldDrawDetails ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -222,13 +226,17 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     BOOL shouldDrawContoursSeparately = imageVisionLayer.shouldDrawContoursSeparately;
     UIAction *shouldDrawContoursSeparatelyAction = [UIAction actionWithTitle:@"shouldDrawContoursSeparately" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        imageVisionLayer.shouldDrawContoursSeparately = !shouldDrawContoursSeparately;
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.shouldDrawContoursSeparately = !shouldDrawContoursSeparately;
+        }];
     }];
     shouldDrawContoursSeparatelyAction.state = shouldDrawContoursSeparately ? UIMenuElementStateOn : UIMenuElementStateOff;
     
     BOOL shouldDrawOverlay = imageVisionLayer.shouldDrawOverlay;
     UIAction *shouldDrawOverlayAction = [UIAction actionWithTitle:@"shouldDrawOverlay" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        imageVisionLayer.shouldDrawOverlay = !shouldDrawOverlay;
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.shouldDrawOverlay = !shouldDrawOverlay;
+        }];
     }];
     shouldDrawOverlayAction.state = shouldDrawOverlay ? UIMenuElementStateOn : UIMenuElementStateOff;
     

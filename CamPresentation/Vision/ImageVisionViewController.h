@@ -7,16 +7,15 @@
 
 #import <UIKit/UIKit.h>
 #import <Photos/Photos.h>
+#import <CoreVideo/CoreVideo.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
+__attribute__((objc_direct_members))
 @interface ImageVisionViewController : UIViewController
-+ (instancetype)new NS_UNAVAILABLE;
-- (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithNibName:(nullable NSString *)nibNameOrNil bundle:(nullable NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
-- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
-- (instancetype)initWithImage:(UIImage *)image;
-- (instancetype)initWithAsset:(PHAsset *)asset;
+- (void)updateWithImage:(UIImage *)image; // can be called from any threads
+- (void)updateWithAsset:(PHAsset *)asset; // can be called from any threads
+- (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer; // can be called from any threads
 @end
 
 NS_ASSUME_NONNULL_END

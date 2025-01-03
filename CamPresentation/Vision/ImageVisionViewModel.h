@@ -9,11 +9,13 @@
 #import <Photos/Photos.h>
 #import <Vision/Vision.h>
 #import <CamPresentation/Extern.h>
+#import <CoreVideo/CoreVideo.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 CP_EXTERN NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationName;
 
+__attribute__((objc_direct_members))
 @interface ImageVisionViewModel : NSObject
 @property (assign, atomic, readonly, getter=isLoading) BOOL loading;
 
@@ -23,6 +25,7 @@ CP_EXTERN NSNotificationName const ImageVisionViewModelDidChangeObservationsNoti
 
 - (NSProgress *)updateImage:(UIImage *)image completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 - (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^ _Nullable)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler;
+- (NSProgress *)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 
 - (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> *requests, NSArray<__kindof VNObservation *> *observations, UIImage * _Nullable image))completionHandler;
 @end

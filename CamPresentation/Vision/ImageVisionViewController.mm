@@ -12,17 +12,17 @@
 #import <CamPresentation/ImageVisionViewModel.h>
 #import <CamPresentation/UIDeferredMenuElement+ImageVision.h>
 #import <CamPresentation/ImageVisionView.h>
+#import <CamPresentation/SVRunLoop.hpp>
 
 @interface ImageVisionViewController ()
-@property (retain, nonatomic, nullable, readonly) PHAsset *_asset;
-@property (retain, nonatomic, nullable) UIImage *_image;
-@property (retain, nonatomic, nullable) ImageVisionViewModel *_viewModel;
+@property (retain, nonatomic, readonly) ImageVisionViewModel *_viewModel;
 @property (retain, nonatomic, readonly) ImageVisionView *_imageVisionView;
+@property (retain, nonatomic, readonly) ImageVisionLayer *_imageVisionLayer;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_requestsMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *_activityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_activityIndicatorBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_doneBarButtonItem;
-@property (retain, nonatomic, nullable) NSProgress *_progress;
+@property (retain, nonatomic, readonly) SVRunLoop *_drawingRunLoop;
 @end
 
 @implementation ImageVisionViewController
@@ -32,17 +32,17 @@
 @synthesize _activityIndicatorView = __activityIndicatorView;
 @synthesize _activityIndicatorBarButtonItem = __activityIndicatorBarButtonItem;
 
-- (instancetype)initWithImage:(UIImage *)image {
-    if (self = [super initWithNibName:nil bundle:nil]) {
-        __image = [image retain];
+- (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
+        [self _commonInit];
     }
     
     return self;
 }
 
-- (instancetype)initWithAsset:(PHAsset *)asset {
-    if (self = [super initWithNibName:nil bundle:nil]) {
-        __asset = [asset retain];
+- (instancetype)initWithCoder:(NSCoder *)coder {
+    if (self = [super initWithCoder:coder]) {
+        [self _commonInit];
     }
     
     return self;
@@ -51,18 +51,15 @@
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
     
-    [__image release];
-    [__asset release];
+    [__viewModel removeObserver:self forKeyPath:@"loading"];
+    [__viewModel release];
     [__imageVisionView release];
+    [__imageVisionLayer release];
     [__requestsMenuBarButtonItem release];
     [__doneBarButtonItem release];
     [__activityIndicatorView release];
     [__activityIndicatorBarButtonItem release];
-    
-    if (NSProgress *progress = __progress) {
-        [progress cancel];
-        [progress release];
-    }
+    [__drawingRunLoop release];
     
     [super dealloc];
 }
@@ -87,33 +84,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    ImageVisionViewModel *viewModel = [ImageVisionViewModel new];
-    
-    if (UIImage *image = self._image) {
-        self._progress = [viewModel updateImage:image completionHandler:^(NSError * _Nullable error) {
-            assert(error == nil);
-        }];
-        
-        self._imageVisionView.imageVisionLayer.image = image;
-    } else if (PHAsset *asset = self._asset) {
-        ImageVisionView *imageVisionView = self._imageVisionView;
-        
-        self._progress = [viewModel updateImageWithPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
-            assert(error == nil);
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                imageVisionView.imageVisionLayer.image = image;
-            });
-        }];
-    }
-    
-    self._viewModel = viewModel;
-    [viewModel addObserver:self forKeyPath:@"loading" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didChangeObservationsNotification:) name:ImageVisionViewModelDidChangeObservationsNotificationName object:viewModel];
-    
-    [viewModel release];
-    
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.leftBarButtonItems = @[
         self._requestsMenuBarButtonItem,
@@ -136,21 +106,64 @@
     });
 }
 
-- (ImageVisionView *)_imageVisionView {
-    if (auto imageVisionView = __imageVisionView) return imageVisionView;
+- (void)updateWithImage:(UIImage *)image {
+    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
     
-    ImageVisionView *imageVisionView = [ImageVisionView new];
+    [self._drawingRunLoop runBlock:^{
+        imageVisionLayer.image = image;
+    }];
+    
+    [self._viewModel updateImage:image completionHandler:^(NSError * _Nullable error) {
+        assert(error == nil);
+    }];
+}
+
+- (void)updateWithAsset:(PHAsset *)asset {
+    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
+    SVRunLoop *drawingRunLoop = self._drawingRunLoop;
+    
+    [self._viewModel updateImageWithPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+        assert(error == nil);
+        
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.image = image;
+        }];
+    }];
+}
+
+- (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer {
+    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
+    SVRunLoop *drawingRunLoop = self._drawingRunLoop;
+    
+    [self._viewModel updateWithPixelBuffer:pixelBuffer completionHandler:^(NSError * _Nullable error) {
+        assert(error == nil);
+    }];
+}
+
+- (void)_commonInit {
+    ImageVisionViewModel *viewModel = [ImageVisionViewModel new];
+    [viewModel addObserver:self forKeyPath:@"loading" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:NULL];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didChangeObservationsNotification:) name:ImageVisionViewModelDidChangeObservationsNotificationName object:viewModel];
+    __viewModel = viewModel;
+    
+    //
+    
+    SVRunLoop *drawingRunLoop = [[SVRunLoop alloc] initWithThreadName:@"Image Vision Drawing Thread"];
+    __drawingRunLoop = drawingRunLoop;
+    
+    //
+    
+    ImageVisionView *imageVisionView = [[ImageVisionView alloc] initWithDrawingRunLoop:drawingRunLoop];
     imageVisionView.backgroundColor = UIColor.blackColor;
-    
-    __imageVisionView = [imageVisionView retain];
-    return [imageVisionView autorelease];
+    __imageVisionView = imageVisionView;
+    __imageVisionLayer = [imageVisionView.imageVisionLayer retain];
 }
 
 - (UIBarButtonItem *)_requestsMenuBarButtonItem {
     if (auto requestsMenuBarButtonItem = __requestsMenuBarButtonItem) return requestsMenuBarButtonItem;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_imageVisionElementWithViewModel:self._viewModel imageVisionLayer:self._imageVisionView.imageVisionLayer]
+        [UIDeferredMenuElement cp_imageVisionElementWithViewModel:self._viewModel imageVisionLayer:self._imageVisionView.imageVisionLayer drawingRunLoop:self._drawingRunLoop]
     ]];
     
     UIBarButtonItem *requestsMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"filemenu.and.selection"] menu:menu];
@@ -204,10 +217,13 @@
 }
 
 - (void)_didChangeObservationsNotification:(NSNotification *)notification {
+    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
+    SVRunLoop *drawingRunLoop = self._drawingRunLoop;
+    
     [self._viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self._imageVisionView.imageVisionLayer.observations = observations;
-        });
+        [drawingRunLoop runBlock:^{
+            imageVisionLayer.observations = observations;
+        }];
     }];
 }
 

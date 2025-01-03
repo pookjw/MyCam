@@ -251,7 +251,8 @@
      iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
      */
     PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"3338E340-F7B3-45C3-8775-ABEB741400DF/L0/001"] options:nil][0];
-    ImageVisionViewController *viewController = [[ImageVisionViewController alloc] initWithAsset:asset];
+    ImageVisionViewController *viewController = [ImageVisionViewController new];
+    [viewController updateWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
     navigationController.modalPresentationStyle = UIModalPresentationFullScreen;

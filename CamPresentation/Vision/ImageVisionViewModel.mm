@@ -223,6 +223,27 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     return progress;
 }
 
+- (NSProgress *)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    assert(pixelBuffer != NULL);
+    
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{
+        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+    }];
+    
+    dispatch_async(self._queue, ^{
+        self._queue_image = nil;
+        
+        NSProgress *subprogress = [self _queue_performRequests:self._queue_requests imageRequestHandler:imageRequestHandler completionHandler:completionHandler];
+        [progress addChild:subprogress withPendingUnitCount:1];
+    });
+    
+    [imageRequestHandler release];
+    
+    return progress;
+}
+
 - (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull, NSArray<__kindof VNObservation *> * _Nonnull, UIImage * _Nullable))completionHandler {
     dispatch_block_t block = ^{
         NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
@@ -250,6 +271,23 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
+    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+    CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCGImage:cgImage
+                                                                                    orientation:cgImagePropertyOrientation
+                                                                                        options:@{
+        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+    }];
+    
+    NSProgress *progress = [self _queue_performRequests:requests imageRequestHandler:imageRequestHandler completionHandler:completionHandler];
+    
+    [imageRequestHandler release];
+    
+    return progress;
+}
+
+- (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests imageRequestHandler:(VNImageRequestHandler *)imageRequestHandler completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
     dispatch_assert_queue(self._queue);
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
@@ -263,15 +301,6 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     assert(!self.isLoading);
     self.loading = YES;
     
-    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-    CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
-    
-    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCGImage:cgImage
-                                                                                    orientation:cgImagePropertyOrientation
-                                                                                        options:@{
-        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
-    }];
-    
     progress.cancellationHandler = ^{
         for (__kindof VNRequest *request in requests) {
             [request cancel];
@@ -282,7 +311,6 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     NSError * _Nullable error = nil;
     [imageRequestHandler performRequests:requests error:&error];
-    [imageRequestHandler release];
     
     [self _postDidChangeObservationsNotification];
     

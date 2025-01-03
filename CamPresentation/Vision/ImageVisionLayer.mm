@@ -281,6 +281,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawDetectedObjectObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
         } else if ([observation class] == [VNTextObservation class]) {
             [self _drawTextObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNTrajectoryObservation class]) {
+            [self _drawTrajectoryObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2014,6 +2016,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CGContextRestoreGState(ctx);
     [pool release];
+}
+
+- (void)_drawTrajectoryObservation:(VNTrajectoryObservation *)trajectoryObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    abort();
 }
 
 @end

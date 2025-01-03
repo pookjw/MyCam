@@ -7,20 +7,45 @@
 
 #import <CamPresentation/ImageVisionView.h>
 
+@interface ImageVisionView ()
+@property (retain, nonatomic, readonly) SVRunLoop *_drawingRunLoop;
+@end
+
 @implementation ImageVisionView
 
-+ (Class)layerClass {
-    return [ImageVisionLayer class];
+- (instancetype)initWithDrawingRunLoop:(SVRunLoop *)drawingRunLoop {
+    if (self = [super initWithFrame:CGRectNull]) {
+        __drawingRunLoop = [drawingRunLoop retain];
+        
+        ImageVisionLayer *imageVisionLayer = [ImageVisionLayer new];
+        _imageVisionLayer = imageVisionLayer;
+        
+        CALayer *layer = self.layer;
+        [layer addSublayer:imageVisionLayer];
+        imageVisionLayer.frame = layer.bounds;
+    }
+    
+    return self;
 }
 
-- (ImageVisionLayer *)imageVisionLayer {
-    return static_cast<ImageVisionLayer *>(self.layer);
+- (void)dealloc {
+    [__drawingRunLoop release];
+    [super dealloc];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    self.imageVisionLayer.contentsScale = self.traitCollection.displayScale;
-    [self.imageVisionLayer setNeedsDisplay];
+    
+    ImageVisionLayer *imageVisionLayer = self.imageVisionLayer;
+    CGFloat contentsScale = self.traitCollection.displayScale;
+    CGRect frame = self.layer.bounds;
+    
+    imageVisionLayer.contentsScale = contentsScale;
+    imageVisionLayer.frame = frame;
+    
+    [self._drawingRunLoop runBlock:^{
+        [imageVisionLayer setNeedsDisplay];
+    }];
 }
 
 @end
