@@ -6,7 +6,6 @@
 //
 
 #import <CamPresentation/ImageVisionLayer.h>
-#import <objc/runtime.h>
 #import <AVFoundation/AVFoundation.h>
 #include <ranges>
 #include <vector>
@@ -20,9 +19,9 @@
 #import <Metal/Metal.h>
 #import <CoreImage/CIFilterBuiltins.h>
 #import <os/lock.h>
-#include <iostream>
 #include <random>
 #import <CamPresentation/NSStringFromVNHumanBodyPose3DObservationHeightEstimation.h>
+#import <CamPresentation/NSStringFromVNChirality.h>
 
 OBJC_EXPORT void objc_setProperty_atomic(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
 OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _cmd, id _Nullable newValue, ptrdiff_t offset);
@@ -276,6 +275,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawHumanBodyPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNHumanBodyPose3DObservation class]) {
             [self _drawHumanBodyPose3DObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNHumanHandPoseObservation class]) {
+            [self _drawHumanHandPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNDetectedObjectObservation class]) {
+            [self _drawDetectedObjectObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -1357,14 +1360,18 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawAnimalBodyPoseObservation:(VNAnimalBodyPoseObservation *)animalBodyPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    [self _drawRecognizedPointsObservation:animalBodyPoseObservation aspectBounds:aspectBounds inContext:ctx];
+    [self _drawRecognizedPointsObservation:animalBodyPoseObservation aspectBounds:aspectBounds inContext:ctx entireFrame:NULL];
 }
 
-- (void)_drawRecognizedPointsObservation:(VNRecognizedPointsObservation *)recognizedPointsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+- (void)_drawRecognizedPointsObservation:(VNRecognizedPointsObservation *)recognizedPointsObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx entireFrame:(CGRect * _Nullable)entireFrameOut {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
     NSError * _Nullable error = nil;
+    std::optional<CGFloat> entireFrameMinX = std::nullopt;
+    std::optional<CGFloat> entireFrameMinY = std::nullopt;
+    std::optional<CGFloat> entireFrameMaxX = std::nullopt;
+    std::optional<CGFloat> entireFrameMaxY = std::nullopt;
     
     for (NSString *groupKey in recognizedPointsObservation.availableGroupKeys) {
         NSDictionary<VNRecognizedPointKey, VNRecognizedPoint *> * _Nullable recognizedPointsForGroupKey = [recognizedPointsObservation recognizedPointsForGroupKey:groupKey error:&error];
@@ -1407,6 +1414,31 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
                                       (maxX.value() - minX.value()) * CGRectGetWidth(aspectBounds),
                                       (maxY.value() - minY.value()) * CGRectGetHeight(aspectBounds));
         
+        if (entireFrameMinX.has_value()) {
+            entireFrameMinX = std::min(entireFrameMinX.value(), CGRectGetMinX(rectangle));
+        } else {
+            entireFrameMinX = CGRectGetMinX(rectangle);
+        }
+        
+        if (entireFrameMinY.has_value()) {
+            entireFrameMinY = std::min(entireFrameMinY.value(), CGRectGetMinY(rectangle));
+        } else {
+            entireFrameMinY = CGRectGetMinY(rectangle);
+        }
+        
+        if (entireFrameMaxX.has_value()) {
+            entireFrameMaxX = std::max(entireFrameMaxX.value(), CGRectGetMaxX(rectangle));
+        } else {
+            entireFrameMaxX = CGRectGetMaxX(rectangle);
+        }
+        
+        if (entireFrameMaxY.has_value()) {
+            entireFrameMaxY = std::max(entireFrameMaxY.value(), CGRectGetMaxY(rectangle));
+        } else {
+            entireFrameMaxY = CGRectGetMaxY(rectangle);
+        }
+        
+        
         CGContextSetRGBStrokeColor(ctx, 0., 0.5, 0.5, 1.);
         
         CGContextStrokeRectWithWidth(ctx,
@@ -1446,6 +1478,19 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [textLayer release];
             
             CGContextRestoreGState(ctx);
+        }
+    }
+    
+    //
+    
+    if (entireFrameOut != NULL) {
+        if (entireFrameMinX.has_value()) {
+            *entireFrameOut = CGRectMake(entireFrameMinX.value(),
+                                         entireFrameMinY.value(),
+                                         entireFrameMaxX.value() - entireFrameMinX.value(),
+                                         entireFrameMaxY.value() - entireFrameMinY.value());
+        } else {
+            *entireFrameOut = CGRectNull;
         }
     }
     
@@ -1804,7 +1849,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawHumanBodyPoseObservation:(VNHumanBodyPoseObservation *)humanBodyPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    [self _drawRecognizedPointsObservation:humanBodyPoseObservation aspectBounds:aspectBounds inContext:ctx];
+    [self _drawRecognizedPointsObservation:humanBodyPoseObservation aspectBounds:aspectBounds inContext:ctx entireFrame:NULL];
 }
 
 - (void)_drawHumanBodyPose3DObservation:(VNHumanBodyPose3DObservation *)humanBodyPose3DObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
@@ -1847,6 +1892,51 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - size.width * 0.5,
                                                                      CGRectGetMidY(aspectBounds) - size.height * 0.5);
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawHumanHandPoseObservation:(VNHumanHandPoseObservation *)humanHandPoseObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    CGRect entireFrame;
+    [self _drawRecognizedPointsObservation:humanHandPoseObservation aspectBounds:aspectBounds inContext:ctx entireFrame:&entireFrame];
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = NSStringFromVNChirality(humanHandPoseObservation.chirality);
+    textLayer.wrapped = YES;
+    textLayer.font = [UIFont systemFontOfSize:20.];
+    textLayer.fontSize = 20.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{NSFontAttributeName: (id)textLayer.font}];
+    CGSize size = attributedString.size;
+    [attributedString release];
+    textLayer.frame = CGRectMake(0., 0., size.width, size.height);
+    
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(entireFrame) - size.width * 0.5,
+                                                                     CGRectGetMidY(entireFrame) - size.height * 0.5);
     
     CGContextConcatCTM(ctx, translation);
     

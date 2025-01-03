@@ -58,9 +58,9 @@
  VNDetectHorizonRequest,✅
  VNDetectHumanBodyPoseRequest,✅
  VNDetectHumanBodyPose3DRequest,✅
- VNDetectHumanHandPoseRequest,
- VNDetectHumanHeadRectanglesRequest,
- VNDetectHumanRectanglesRequest,
+ VNDetectHumanHandPoseRequest,✅
+ VNDetectHumanHeadRectanglesRequest,✅
+ VNDetectHumanRectanglesRequest,✅
  VNDetectRectanglesRequest,
  VNDetectScreenGazeRequest,
  VNDetectTextRectanglesRequest,
@@ -151,7 +151,11 @@
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFacePoseRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHorizonRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHandPoseRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHeadRectanglesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanRectanglesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectRectanglesRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -1860,7 +1864,7 @@
     VNDetectHumanBodyPoseRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanBodyPoseRequest class] addedRequests:requests];
     
     if (request == nil) {
-        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHorizonRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanBodyPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectHumanBodyPoseRequest *request = [[VNDetectHumanBodyPoseRequest alloc] initWithCompletionHandler:nil];
             
             [viewModel addRequest:request completionHandler:nil];
@@ -1939,19 +1943,19 @@
             [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
                 assert(error == nil);
                 
-                [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
-                    UIAction *action = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
-                    
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
-                    });
-                }];
+//                [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
+//                    UIAction *action = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
+//                    
+//                    dispatch_async(dispatch_get_main_queue(), ^{
+//                        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//                    });
+//                }];
             }];
             
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -1995,6 +1999,199 @@
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanHandPoseRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectHumanHandPoseRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanHandPoseRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanHandPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectHumanHandPoseRequest *request = [[VNDetectHumanHandPoseRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    __kindof UIMenuElement *maximumHandCountStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        NSUInteger maximumHandCount = request.maximumHandCount;
+        
+        UILabel *label = [UILabel new];
+        label.text = @(maximumHandCount).stringValue;
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = maximumHandCount;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            NSUInteger value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            request.maximumHandCount = value;
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
+        [label release];
+        [stepper release];
+        stackView.axis = UILayoutConstraintAxisHorizontal;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *maximumHandCountMenu = [UIMenu menuWithTitle:@"Maximum Hand Count" children:@[maximumHandCountStepperElement]];
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    
+    NSArray<NSString *> *supportedJointNames = [request supportedJointNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointNames.count];
+    for (NSString *jointName in supportedJointNames) {
+        UIAction *action = [UIAction actionWithTitle:jointName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointNameActions addObject:action];
+    }
+    UIMenu *supportedJointNamesMenu = [UIMenu menuWithTitle:@"supportedJointNames" children:supportedJointNameActions];
+    supportedJointNamesMenu.subtitle = @(supportedJointNameActions.count).stringValue;
+    [supportedJointNameActions release];
+    
+    //
+    
+    NSArray<NSString *> *supportedJointsGroupNames = [request supportedJointsGroupNamesAndReturnError:&error];
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedJointsGroupNameActions = [[NSMutableArray alloc] initWithCapacity:supportedJointsGroupNames.count];
+    for (NSString *jointsGroupName in supportedJointsGroupNames) {
+        UIAction *action = [UIAction actionWithTitle:jointsGroupName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedJointsGroupNameActions addObject:action];
+    }
+    UIMenu *supportedJointsGroupNamesMenu = [UIMenu menuWithTitle:@"supportedJointsGroupNames" children:supportedJointsGroupNameActions];
+    supportedJointsGroupNamesMenu.subtitle = @(supportedJointsGroupNameActions.count).stringValue;
+    [supportedJointsGroupNameActions release];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanHandPoseRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        maximumHandCountMenu,
+        supportedJointNamesMenu,
+        supportedJointsGroupNamesMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanHeadRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectHumanHeadRectanglesRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectHumanHeadRectanglesRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectHumanHeadRectanglesRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectHumanHeadRectanglesRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectHumanRectanglesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanRectanglesRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[VNDetectHumanRectanglesRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    BOOL upperBodyOnly = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("upperBodyOnly"));
+    UIAction *upperBodyOnlyAction = [UIAction actionWithTitle:@"upperBodyOnly" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUpperBodyOnly:"), !upperBodyOnly);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    upperBodyOnlyAction.state = upperBodyOnly ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        upperBodyOnlyAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectRectanglesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNDetectRectanglesRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectRectanglesRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNDetectRectanglesRequest *request = [[VNDetectRectanglesRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

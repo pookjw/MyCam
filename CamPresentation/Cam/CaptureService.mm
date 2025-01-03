@@ -802,7 +802,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [self addObserversForVideoCaptureDevice:captureDevice];
     
     AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
-    previewLayer.hidden = YES;
+    previewLayer.hidden = NO;
     
     assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     PixelBufferLayer *customPreviewLayer = [PixelBufferLayer new];
@@ -826,7 +826,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice] == nil);
     CALayer *videoThumbnailLayer = [CALayer new];
     [self.queue_videoThumbnailLayersByVideoDevice setObject:videoThumbnailLayer forKey:captureDevice];
-    videoThumbnailLayer.hidden = NO;
+    videoThumbnailLayer.hidden = YES;
     [self addObservsersVideoThumbnailLayer:videoThumbnailLayer];
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
@@ -893,7 +893,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     AVCaptureConnection *previewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:videoInputPort videoPreviewLayer:previewLayer];
     previewLayerConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
     previewLayerConnection.videoRotationAngle = rotationCoodinator.videoRotationAngleForHorizonLevelPreview;
-    previewLayerConnection.enabled = NO;
+    previewLayerConnection.enabled = YES;
     [previewLayer release];
     assert([captureSession canAddConnection:previewLayerConnection]);
     [captureSession addConnection:previewLayerConnection];
@@ -1074,7 +1074,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession addOutputWithNoConnections:videoThumbnailOutput];
     
     AVCaptureConnection *videoThumbnailOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoThumbnailOutput];
-    videoThumbnailOutputConnection.enabled = YES;
+    videoThumbnailOutputConnection.enabled = NO;
     [videoThumbnailOutput release];
     reason = nil;
     assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), videoThumbnailOutputConnection, &reason));
@@ -3974,9 +3974,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         CALayer *videoThumbnailLayer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice];
         assert(videoThumbnailLayer != nil);
         
-//        dispatch_async(dispatch_get_main_queue(), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
             videoThumbnailLayer.contents = contents;
-//        });
+        });
     });
 }
 
