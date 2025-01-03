@@ -1,36 +1,40 @@
 //
-//  ImageVisionViewController.mm
+//  VideoPlayerVisionViewController.mm
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 12/21/24.
+//  Created by Jinwoo Kim on 1/4/25.
 //
 
-#import <CamPresentation/ImageVisionViewController.h>
-#import <objc/message.h>
-#import <objc/runtime.h>
-#import <objc/objc-sync.h>
+#import <CamPresentation/VideoPlayerVisionViewController.h>
 #import <CamPresentation/ImageVisionViewModel.h>
 #import <CamPresentation/UIDeferredMenuElement+ImageVision.h>
 #import <CamPresentation/ImageVisionView.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <CamPresentation/SampleBufferDisplayLayerView.h>
+#import <CamPresentation/PlayerControlViewController.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
-@interface ImageVisionViewController ()
+@interface VideoPlayerVisionViewController ()
 @property (retain, nonatomic, readonly) ImageVisionViewModel *_viewModel;
+@property (retain, nonatomic, readonly) SampleBufferDisplayLayerView *_sampleBufferDisplayLayerView;
+@property (retain, nonatomic, readonly) AVSampleBufferDisplayLayer *_sampleBufferDisplayLayer;
 @property (retain, nonatomic, readonly) ImageVisionView *_imageVisionView;
 @property (retain, nonatomic, readonly) ImageVisionLayer *_imageVisionLayer;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_requestsMenuBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *_activityIndicatorView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *_activityIndicatorBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *_doneBarButtonItem;
+@property (retain, nonatomic, readonly) PlayerControlViewController *_playerControlViewController;
 @property (retain, nonatomic, readonly) SVRunLoop *_drawingRunLoop;
-@property (retain, nonatomic, nullable) NSProgress *_progress;
+@property (retain, nonatomic, nullable) AVPlayerItemVideoOutput *_playerItemVideoOutput;
 @end
 
-@implementation ImageVisionViewController
+@implementation VideoPlayerVisionViewController
+@synthesize player = _player;
 @synthesize _requestsMenuBarButtonItem = __requestsMenuBarButtonItem;
-@synthesize _doneBarButtonItem = __doneBarButtonItem;
 @synthesize _activityIndicatorView = __activityIndicatorView;
 @synthesize _activityIndicatorBarButtonItem = __activityIndicatorBarButtonItem;
+@synthesize _playerControlViewController = __playerControlViewController;
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {
@@ -51,17 +55,18 @@
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
     
+    [_player release];
     [__viewModel removeObserver:self forKeyPath:@"loading"];
     [__viewModel release];
+    [__sampleBufferDisplayLayerView release];
+    [__sampleBufferDisplayLayer release];
     [__imageVisionView release];
     [__imageVisionLayer release];
     [__requestsMenuBarButtonItem release];
-    [__doneBarButtonItem release];
     [__activityIndicatorView release];
     [__activityIndicatorBarButtonItem release];
     [__drawingRunLoop release];
-    [__progress cancel];
-    [__progress release];
+    [__playerItemVideoOutput release];
     
     [super dealloc];
 }
@@ -74,25 +79,60 @@
             });
             return;
         }
+    } else if ([object isKindOfClass:[AVPlayer class]]) {
+        if ([keyPath isEqualToString:@"currentItem"]) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                abort();
+            });
+            return;
+        }
     }
     
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-- (void)loadView {
-    self.view = self._imageVisionView;
-}
-
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    UIView *view = self.view;
+    
+    SampleBufferDisplayLayerView *sampleBufferDisplayLayerView = self._sampleBufferDisplayLayerView;
+    sampleBufferDisplayLayerView.translatesAutoresizingMaskIntoConstraints = NO;
+    [view addSubview:sampleBufferDisplayLayerView];
+    
+    ImageVisionView *imageVisionView = self._imageVisionView;
+    imageVisionView.translatesAutoresizingMaskIntoConstraints = NO;
+    [view addSubview:imageVisionView];
+    
+    PlayerControlViewController *playerControlViewController = self._playerControlViewController;
+    [self addChildViewController:playerControlViewController];
+    playerControlViewController.view.translatesAutoresizingMaskIntoConstraints = NO;
+    [view addSubview:playerControlViewController.view];
+    
+    [NSLayoutConstraint activateConstraints:@[
+        [sampleBufferDisplayLayerView.topAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.topAnchor],
+        [sampleBufferDisplayLayerView.leadingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.leadingAnchor],
+        [sampleBufferDisplayLayerView.trailingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.trailingAnchor],
+        [sampleBufferDisplayLayerView.bottomAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.bottomAnchor],
+        
+        [imageVisionView.topAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.topAnchor],
+        [imageVisionView.leadingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.leadingAnchor],
+        [imageVisionView.trailingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.trailingAnchor],
+        [imageVisionView.bottomAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.bottomAnchor],
+        
+        [playerControlViewController.view.leadingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.leadingAnchor],
+        [playerControlViewController.view.trailingAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.trailingAnchor],
+        [playerControlViewController.view.bottomAnchor constraintEqualToAnchor:view.safeAreaLayoutGuide.bottomAnchor]
+    ]];
+    
+    [playerControlViewController didMoveToParentViewController:self];
+    
+    //
+    
     UINavigationItem *navigationItem = self.navigationItem;
-    navigationItem.leftBarButtonItems = @[
+    navigationItem.rightBarButtonItems = @[
         self._requestsMenuBarButtonItem,
         self._activityIndicatorBarButtonItem
-    ];
-    navigationItem.rightBarButtonItems = @[
-        self._doneBarButtonItem
     ];
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -108,35 +148,8 @@
     });
 }
 
-- (void)updateWithImage:(UIImage *)image {
-    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
-    
-    [self._drawingRunLoop runBlock:^{
-        imageVisionLayer.image = image;
-    }];
-    
-    assert(objc_sync_enter(self) == OBJC_SYNC_SUCCESS);
-    [self._progress cancel];
-    self._progress = [self._viewModel updateImage:image completionHandler:^(NSError * _Nullable error) {
-        assert(error == nil);
-    }];
-    assert(objc_sync_exit(self) == OBJC_SYNC_SUCCESS);
-}
-
-- (void)updateWithAsset:(PHAsset *)asset {
-    ImageVisionLayer *imageVisionLayer = self._imageVisionLayer;
-    SVRunLoop *drawingRunLoop = self._drawingRunLoop;
-    
-    assert(objc_sync_enter(self) == OBJC_SYNC_SUCCESS);
-    [self._progress cancel];
-    self._progress = [self._viewModel updateImageWithPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
-        assert(error == nil);
-        
-        [drawingRunLoop runBlock:^{
-            imageVisionLayer.image = image;
-        }];
-    }];
-    assert(objc_sync_exit(self) == OBJC_SYNC_SUCCESS);
+- (void)setPlayer:(AVPlayer *)player {
+    abort();
 }
 
 - (void)_commonInit {
@@ -153,9 +166,16 @@
     //
     
     ImageVisionView *imageVisionView = [[ImageVisionView alloc] initWithDrawingRunLoop:drawingRunLoop];
-    imageVisionView.backgroundColor = UIColor.blackColor;
+    imageVisionView.backgroundColor = UIColor.clearColor;
     __imageVisionView = imageVisionView;
     __imageVisionLayer = [imageVisionView.imageVisionLayer retain];
+    
+    //
+    
+    SampleBufferDisplayLayerView *sampleBufferDisplayLayerView = [SampleBufferDisplayLayerView new];
+    sampleBufferDisplayLayerView.backgroundColor = UIColor.blackColor;
+    __sampleBufferDisplayLayerView = sampleBufferDisplayLayerView;
+    __sampleBufferDisplayLayer = [sampleBufferDisplayLayerView.sampleBufferDisplayLayer retain];
 }
 
 - (UIBarButtonItem *)_requestsMenuBarButtonItem {
@@ -169,15 +189,6 @@
     
     __requestsMenuBarButtonItem = [requestsMenuBarButtonItem retain];
     return [requestsMenuBarButtonItem autorelease];
-}
-
-- (UIBarButtonItem *)_doneBarButtonItem {
-    if (auto doneBarButtonItem = __doneBarButtonItem) return doneBarButtonItem;
-    
-    UIBarButtonItem *doneBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(_didTriggerDoneBarButtonItem:)];
-    
-    __doneBarButtonItem = [doneBarButtonItem retain];
-    return [doneBarButtonItem autorelease];
 }
 
 - (UIActivityIndicatorView *)_activityIndicatorView {
@@ -197,10 +208,6 @@
     
     __activityIndicatorBarButtonItem = [activityIndicatorBarButtonItem retain];
     return [activityIndicatorBarButtonItem autorelease];
-}
-
-- (void)_didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {
-    [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (void)_didChangeObservationsNotification:(NSNotification *)notification {

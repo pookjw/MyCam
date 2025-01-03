@@ -135,6 +135,8 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable))completionHandler {
+    assert(asset.mediaType == PHAssetMediaTypeImage);
+    
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
     
     dispatch_async(self._queue, ^{

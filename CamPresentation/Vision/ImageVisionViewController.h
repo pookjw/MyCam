@@ -7,7 +7,6 @@
 
 #import <UIKit/UIKit.h>
 #import <Photos/Photos.h>
-#import <CoreVideo/CoreVideo.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -15,7 +14,6 @@ __attribute__((objc_direct_members))
 @interface ImageVisionViewController : UIViewController
 - (void)updateWithImage:(UIImage *)image; // can be called from any threads
 - (void)updateWithAsset:(PHAsset *)asset; // can be called from any threads
-- (void)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer; // can be called from any threads
 @end
 
 NS_ASSUME_NONNULL_END

@@ -10,6 +10,7 @@
 #import <CamPresentation/ARPlayerViewController.h>
 #import <CamPresentation/PlayerLayerViewController.h>
 #import <CamPresentation/PlayerOutputViewController.h>
+#import <CamPresentation/VideoPlayerVisionViewController.h>
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -34,6 +35,7 @@
 
 + (NSArray<Class> *)playerViewControllerClasses {
     return @[
+        VideoPlayerVisionViewController.class,
 #if !TARGET_OS_TV
         ARPlayerViewController.class,
 #endif
@@ -241,6 +243,11 @@
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
 #endif
+    } else if (viewControllerClass == VideoPlayerVisionViewController.class) {
+        VideoPlayerVisionViewController *viewController = [VideoPlayerVisionViewController new];
+        viewController.player = player;
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
     } else {
         abort();
     }
