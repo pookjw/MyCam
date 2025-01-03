@@ -63,7 +63,7 @@
  VNDetectHumanRectanglesRequest,✅
  VNDetectRectanglesRequest,✅
  VNDetectScreenGazeRequest,✅
- VNDetectTextRectanglesRequest,
+ VNDetectTextRectanglesRequest,✅
  VNDetectTrajectoriesRequest,
  VNGenerateAnimalSegmentationRequest,
  VNGenerateAttentionBasedSaliencyImageRequest,
@@ -2609,6 +2609,10 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectTextRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectTextRectanglesRequest *request = [[VNDetectTextRectanglesRequest alloc] initWithCompletionHandler:nil];
             request.reportCharacterBoxes = YES;
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setTextRecognition:"), VNTextRecognitionOptionEnglishCharacterSet);
+            
+            // ???
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setAdditionalCharacters:"), @"두부");
             
             [viewModel addRequest:request completionHandler:nil];
             
@@ -2667,13 +2671,127 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *textRecognitionsMenu = [UIMenu menuWithTitle:@"Text Recognition Options" children:textRecognitionActions];
     [textRecognitionActions release];
     
-#warning TODO - Private APIs
+    //
+    
+    BOOL detectDiacritics = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("detectDiacritics"));
+    UIAction *detectDiacriticsAction = [UIAction actionWithTitle:@"Detect Diacritics" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setDetectDiacritics:"), !detectDiacritics);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    detectDiacriticsAction.subtitle = @"é, á, ó, ä, ö, ü";
+    detectDiacriticsAction.state = detectDiacritics ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSUInteger minimumCharacterPixelHeight = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("minimumCharacterPixelHeight"));
+    
+    __kindof UIMenuElement *minimumCharacterPixelHeightStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(minimumCharacterPixelHeight).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = minimumCharacterPixelHeight;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            double value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setMinimumCharacterPixelHeight:"), value);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *minimumCharacterPixelHeightMenu = [UIMenu menuWithTitle:@"Minimum Character Pixel Height" children:@[minimumCharacterPixelHeightStepperElement]];
+    
+    //
+    
+    BOOL minimizeFalseDetections = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("minimizeFalseDetections"));
+    
+    UIAction *minimizeFalseDetectionsAction = [UIAction actionWithTitle:@"Minimize False Detections" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setMinimizeFalseDetections:"), !minimizeFalseDetections);
+        [viewModel updateRequest:request completionHandler:nil];
+    }];
+    
+    minimizeFalseDetectionsAction.state = minimizeFalseDetections ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSUInteger algorithm = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("algorithm"));
+    
+    __kindof UIMenuElement *algorithmStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(algorithm).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = algorithm;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            double value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setAlgorithm:"), value);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *algorithmMenu = [UIMenu menuWithTitle:@"Algorithm" children:@[algorithmStepperElement]];
+    algorithmMenu.subtitle = @"Confirmed: 0, 1, 2";
     
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectTextRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         reportCharacterBoxesAction,
         textRecognitionsMenu,
+        detectDiacriticsAction,
+        minimumCharacterPixelHeightMenu,
+        minimizeFalseDetectionsAction,
+        algorithmMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

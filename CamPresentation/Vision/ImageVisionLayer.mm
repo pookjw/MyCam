@@ -262,7 +262,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         } else if ([observation class] == [VNAnimalBodyPoseObservation class]) {
             [self _drawAnimalBodyPoseObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNRectangleObservation class]) {
-            [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx];
+            [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
         } else if ([observation class] == [VNInstanceMaskObservation class]) {
             [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:YES inContext:ctx];
         } else if ([observation class] == [VNBarcodeObservation class]) {
@@ -1553,8 +1553,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     [pool release];
 }
 
-- (void)_drawRectangleObservation:(VNRectangleObservation *)rectangleObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    [self _drawDetectedObjectObservation:rectangleObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+- (void)_drawRectangleObservation:(VNRectangleObservation *)rectangleObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx convertedBoundingBox:(CGRect * _Nullable)convertedBoundingBoxOut {
+    [self _drawDetectedObjectObservation:rectangleObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:convertedBoundingBoxOut];
     
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
@@ -1952,22 +1952,37 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawTextObservation:(VNTextObservation *)textObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    for (VNRectangleObservation *box in textObservation.characterBoxes) {
-        [self _drawRectangleObservation:box aspectBounds:aspectBounds inContext:ctx];
-    }
-    
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
+    
+    //
+    
+    CGRect unionedBoundingBox = CGRectNull;
+    
+    for (VNRectangleObservation *box in textObservation.characterBoxes) {
+        CGRect convertedBoundingBox;
+        [self _drawRectangleObservation:box aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+        
+        if (CGRectIsNull(unionedBoundingBox)) {
+            unionedBoundingBox = convertedBoundingBox;
+        } else {
+            unionedBoundingBox = CGRectUnion(unionedBoundingBox, convertedBoundingBox);
+        }
+    }
+    
+    //
     
     NSString * _Nullable text = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(textObservation, sel_registerName("text"));
     
     if (text != nil) {
+        CGContextSaveGState(ctx);
+        
         CATextLayer *textLayer = [CATextLayer new];
         
         textLayer.string = text;
         textLayer.wrapped = YES;
-        textLayer.font = [UIFont systemFontOfSize:20.];
-        textLayer.fontSize = 20.;
+        textLayer.font = [UIFont systemFontOfSize:CGRectGetHeight(unionedBoundingBox)];
+        textLayer.fontSize = CGRectGetHeight(unionedBoundingBox);
         
         CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
         textLayer.foregroundColor = foregroundColor;
@@ -1984,13 +1999,15 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         textLayer.contentsScale = self.contentsScale;
         
-        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - size.width * 0.5,
-                                                                         CGRectGetMidY(aspectBounds) - size.height * 0.5);
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(unionedBoundingBox) - size.width * 0.5,
+                                                                         CGRectGetMidY(unionedBoundingBox) - size.height * 0.5);
         
         CGContextConcatCTM(ctx, translation);
         
         [textLayer renderInContext:ctx];
         [textLayer release];
+        
+        CGContextRestoreGState(ctx);
     }
     
     //

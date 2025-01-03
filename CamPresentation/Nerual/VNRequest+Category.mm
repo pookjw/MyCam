@@ -234,9 +234,9 @@ void swizzle() {
 @implementation VNRequest (Category)
 
 + (void)load {
-    cp_VNCoreMLRequest::internalPerformRevision_inContext_error_::swizzle();
-    cp_VNRequest::performInContext_error_::swizzle();
-    cp_VNDetector::internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_::swizzle();
+//    cp_VNCoreMLRequest::internalPerformRevision_inContext_error_::swizzle();
+//    cp_VNRequest::performInContext_error_::swizzle();
+//    cp_VNDetector::internalProcessUsingQualityOfServiceClass_options_regionOfInterest_warningRecorder_error_progressHandler_::swizzle();
 }
 
 - (void)cp_setProcessAsynchronously:(BOOL)cp_processAsynchronously {
