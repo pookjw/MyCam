@@ -579,7 +579,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             dispatch_async(self.captureSessionQueue, ^{
                 BOOL found = NO;
                 
-                for (AVCaptureDevice *videoDevice in self.queue_videoThumbnailLayersByVideoDevice.objectEnumerator) {
+                for (AVCaptureDevice *videoDevice in self.queue_videoThumbnailLayersByVideoDevice.keyEnumerator) {
                     CALayer *layer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:videoDevice];
                     
                     if ([layer isEqual:object]) {
@@ -595,13 +595,18 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                                 CGSize thumbnailSize = bounds.size;
                                 thumbnailSize.width *= contentsScale;
                                 thumbnailSize.height *= contentsScale;
+                                
+                                [self.queue_captureSession beginConfiguration];
                                 reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(output, sel_registerName("setThumbnailSize:"), thumbnailSize);
+                                [self.queue_captureSession commitConfiguration];
                             }
                         }
                         
                         found = YES;
                     }
                 }
+                
+                assert(found);
             });
             return;
         }
@@ -821,7 +826,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice] == nil);
     CALayer *videoThumbnailLayer = [CALayer new];
     [self.queue_videoThumbnailLayersByVideoDevice setObject:videoThumbnailLayer forKey:captureDevice];
-    videoThumbnailLayer.hidden = YES;
+    videoThumbnailLayer.hidden = NO;
     [self addObservsersVideoThumbnailLayer:videoThumbnailLayer];
     
     AVCaptureDeviceRotationCoordinator *rotationCoodinator = [[AVCaptureDeviceRotationCoordinator alloc] initWithDevice:captureDevice previewLayer:previewLayer];
@@ -1062,7 +1067,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), thumbnailSize);
     } else {
         // 안하면 에러남
-        reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), CGSizeMake(600., 400.));
+        reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), CGSizeMake(1800., 1200.));
     }
     [videoThumbnailLayer release];
     
@@ -1858,13 +1863,28 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (BOOL)queue_isVideoThumbnailLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice {
-#warning TODO
-    abort();
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    CALayer *videoThumbnailLayer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:videoDevice];
+    assert(videoThumbnailLayer != nil);
+    
+    return !videoThumbnailLayer.isHidden;
 }
 
 - (void)queue_setVideoThumbnailLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice {
-#warning TODO
-    abort();
+    CALayer *videoThumbnailLayer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:videoDevice];
+    assert(videoThumbnailLayer != nil);
+    
+    for (__kindof AVCaptureOutput *videoThumbnailOutput in [self queue_outputClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice]) {
+        AVCaptureConnection *connection = videoThumbnailOutput.connections.firstObject;
+        assert(connection != nil);
+        
+        connection.enabled = enabled;
+    }
+    
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        videoThumbnailLayer.hidden = !enabled;
+    });
 }
 
 - (AVCaptureVideoPreviewLayer *)queue_previewLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2823,7 +2843,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
+    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), NO);
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = YES;
@@ -3954,10 +3974,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         CALayer *videoThumbnailLayer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice];
         assert(videoThumbnailLayer != nil);
         
-        dispatch_async(dispatch_get_main_queue(), ^{
+//        dispatch_async(dispatch_get_main_queue(), ^{
             videoThumbnailLayer.contents = contents;
-            [videoThumbnailLayer setNeedsDisplay];
-        });
+//        });
     });
 }
 

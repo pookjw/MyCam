@@ -3907,47 +3907,79 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     BOOL isNativeSelected = [captureService queue_isPreviewLayerEnabledForVideoDevice:videoDevice];
     BOOL isCustomSelected = [captureService queue_isCustomPreviewLayerEnabledForVideoDevice:videoDevice];
     BOOL isSampleBufferDisplayLayerEnabled = [captureService queue_isSampleBufferDisplayLayerEnabledForVideoDevice:videoDevice];
+    BOOL isVideoThumbnailLayerEnabled = [captureService queue_isVideoThumbnailLayerEnabledForVideoDevice:videoDevice];
+    
+    //
     
     UIAction *nativePreviewLayerAction = [UIAction actionWithTitle:NSStringFromClass(AVCaptureVideoPreviewLayer.class) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
             [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
             [captureService queue_setSampleBufferDisplayLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setVideoThumbnailLayerEnabled:NO forVideoDeivce:videoDevice];
             if (didChangeHandler) didChangeHandler();
         });
     }];
     nativePreviewLayerAction.state = isNativeSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
     
     UIAction *customPreviewLayerAction = [UIAction actionWithTitle:@"Custom" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
             [captureService queue_setCustomPreviewLayerEnabled:YES forVideoDeivce:videoDevice];
             [captureService queue_setSampleBufferDisplayLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setVideoThumbnailLayerEnabled:NO forVideoDeivce:videoDevice];
             if (didChangeHandler) didChangeHandler();
         });
     }];
     customPreviewLayerAction.state = isCustomSelected ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
     
     UIAction *sampleBufferDisplayLayerAction = [UIAction actionWithTitle:@"SampleBufferDisplayLayer" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
             [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
             [captureService queue_setSampleBufferDisplayLayerEnabled:YES forVideoDeivce:videoDevice];
+            [captureService queue_setVideoThumbnailLayerEnabled:NO forVideoDeivce:videoDevice];
             if (didChangeHandler) didChangeHandler();
         });
     }];
     sampleBufferDisplayLayerAction.state = isSampleBufferDisplayLayerEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     
+    //
+    
+    UIAction *videoThumbnailLayerAction = [UIAction actionWithTitle:@"VideoThumbnailLayer" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService queue_setPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setCustomPreviewLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setSampleBufferDisplayLayerEnabled:NO forVideoDeivce:videoDevice];
+            [captureService queue_setVideoThumbnailLayerEnabled:YES forVideoDeivce:videoDevice];
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    videoThumbnailLayerAction.state = isVideoThumbnailLayerEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:@"Preview Layer Type" children:@[
         nativePreviewLayerAction,
         customPreviewLayerAction,
-        sampleBufferDisplayLayerAction
+        sampleBufferDisplayLayerAction,
+        videoThumbnailLayerAction
     ]];
     
     if (isNativeSelected) {
         menu.subtitle = NSStringFromClass(AVCaptureVideoPreviewLayer.class);
     } else if (isCustomSelected) {
         menu.subtitle = @"Custom";
+    } else if (isSampleBufferDisplayLayerEnabled) {
+        menu.subtitle = @"SampleBufferDisplayLayer";
+    } else if (isVideoThumbnailLayerEnabled) {
+        menu.subtitle = @"VideoThumbnailLayer";
+    } else {
+        menu.subtitle = @"Unknown";
     }
     
     return menu;
@@ -4226,6 +4258,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                 
                 reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(captureSession, sel_registerName("setSmartStyle:"), smartStyle);
                 
+                // 안해도 되는듯?
                 for (__kindof AVCaptureOutput *videoThumbnailOutput in videoThumbnailOutputs) {
                     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setSmartStyles:"), @[smartStyle]);
                 }
