@@ -109,6 +109,9 @@
     }
                                      comletionHandler:^{
         [collectionView reloadData];
+        
+        // DEBUG
+        [self collectionView:self.collectionView didSelectItemAtIndexPath:[NSIndexPath indexPathForItem:0 inSection:0]];
     }];
     
     [self cellRegistration];
@@ -223,9 +226,9 @@
         [viewController release];
     } else if (viewControllerClass == PlayerOutputViewController.class) {
         PlayerOutputLayerType layerType;
-        if (indexPath.item == 2) {
+        if (indexPath.item == 3) {
             layerType = PlayerOutputLayerTypePixelBufferLayer;
-        } else if (indexPath.item == 3) {
+        } else if (indexPath.item == 4) {
             layerType = PlayerOutputLayerTypeSampleBufferDisplayLayer;
         } else {
             abort();

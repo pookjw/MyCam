@@ -15,10 +15,13 @@
 #import <Metal/Metal.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CamPresentation/AVPlayerItemVideoOutput+Category.h>
+#import <QuartzCore/QuartzCore.h>
 #include <algorithm>
 #include <vector>
 #include <ranges>
 #include <optional>
+#import <CamPresentation/cp_CMSampleBufferCreatePixelBuffer.h>
 
 #warning PixelBufferAttributes 해상도 조정, AVPlayerItem 및 Output쪽 더 보기, 첫 프레임 가져오기 (Slider 조정할 때마다 Frame 업데이트), AVAssetReader와 Audio Track 재생 직접 구현, Rate Speed 선택, AVPlayerLooper 확대시 흐릴려나? 화면만큼만 랜더링해서?
 
@@ -43,6 +46,7 @@ CA_EXTERN_C_END
 @synthesize _renderRunLoop = __renderRunLoop;
 @synthesize _userTransformView = __userTransformView;
 @synthesize _stackView = __stackView;
+@synthesize player = _player;
 
 - (instancetype)initWithFrame:(CGRect)frame layerType:(PlayerOutputLayerType)layerType {
     if (self = [super initWithFrame:frame]) {
@@ -54,23 +58,34 @@ CA_EXTERN_C_END
 }
 
 - (void)dealloc {
+    [__displayLink invalidate];
+    [__displayLink release];
+    
     if (AVPlayer *player = _player) {
         [self _removeObserversForPlayer:player];
-        player.videoOutput = nil;
         
-        if (AVPlayerItemVideoOutput *playerItemVideoOutput = __playerItemVideoOutput) {
-            [player.currentItem removeOutput:playerItemVideoOutput];
+        if (AVPlayerVideoOutput *playerVideoOutput = __playerVideoOutput) {
+            assert(player.videoOutput != nil);
+            assert([player.videoOutput isEqual:playerVideoOutput]);
+            player.videoOutput = nil;
         }
         
         [player release];
     }
+    
     [__playerVideoOutput release];
-    [__playerItemVideoOutput release];
+    
+    if (AVPlayerItemVideoOutput *playerItemVideoOutput = __playerItemVideoOutput) {
+        AVPlayerItem *playerItem = playerItemVideoOutput.cp_playerItem;
+        assert(playerItem != nil);
+        assert([playerItem.outputs containsObject:playerItemVideoOutput]);
+        [playerItem removeOutput:playerItemVideoOutput];
+        [playerItemVideoOutput release];
+    }
+    
     [__pixelBufferLayers release];
     [__sampleBufferDisplayLayers release];
     [__renderRunLoop release];
-    [__displayLink invalidate];
-    [__displayLink release];
     [__userTransformView release];
     [__stackView release];
     [__ciContext release];
@@ -147,16 +162,34 @@ CA_EXTERN_C_END
     __ciContext = [ciContext retain];
 }
 
+- (AVPlayer *)player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    return _player;
+}
+
 - (void)setPlayer:(AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
     
     if (AVPlayer *oldPlayer = _player) {
-        assert(oldPlayer.videoOutput != nil);
-        assert([oldPlayer.videoOutput isEqual:self._playerVideoOutput]);
-        oldPlayer.videoOutput = nil;
         [self _removeObserversForPlayer:oldPlayer];
+        
+        if (AVPlayerVideoOutput *playerVideoOutput = self._playerVideoOutput) {
+            assert(oldPlayer.videoOutput != nil);
+            assert([oldPlayer.videoOutput isEqual:playerVideoOutput]);
+            oldPlayer.videoOutput = nil;
+            self._playerVideoOutput = nil;
+        }
+       
         self._displayLink.paused = YES;
         [oldPlayer release];
+    }
+    
+    if (AVPlayerItemVideoOutput *playerItemVideoOutput = self._playerItemVideoOutput) {
+        AVPlayerItem *playerItem = playerItemVideoOutput.cp_playerItem;
+        assert(playerItem != nil);
+        assert([playerItem.outputs containsObject:playerItemVideoOutput]);
+        [playerItem removeOutput:playerItemVideoOutput];
+        self._playerItemVideoOutput = nil;
     }
     
     if (player == nil) {
@@ -304,6 +337,10 @@ CA_EXTERN_C_END
             return;
         }
         
+        if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
+            [delegate playerOutputView:self didUpdatePixelBufferVariant:taggedBufferGroup];
+        }
+        
         for (CFIndex index : std::views::iota(0, CMTaggedBufferGroupGetCount(taggedBufferGroup))) {
             CMTagCollectionRef tagCollection = CMTaggedBufferGroupGetTagCollectionAtIndex(taggedBufferGroup, index);
             
@@ -344,7 +381,7 @@ CA_EXTERN_C_END
                     }
                     case PlayerOutputLayerTypeSampleBufferDisplayLayer:
                     {
-                        CMSampleBufferRef sampleBuffer = [self _sampleBufferRefFromPixelBuffer:pixelBuffer];
+                        CMSampleBufferRef sampleBuffer = cp_CMSampleBufferCreatePixelBuffer(pixelBuffer);
                         
                         NSArray<AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayers = self._sampleBufferDisplayLayers;
                         if (viewIndex < sampleBufferDisplayLayers.count) {
@@ -367,11 +404,7 @@ CA_EXTERN_C_END
         
         CFRelease(taggedBufferGroup);
     } else if (AVPlayerItemVideoOutput *playerItemVideoOutput = self._playerItemVideoOutput) {
-        id _videoOutputInternal;
-        assert(object_getInstanceVariable(playerItemVideoOutput, "_videoOutputInternal", reinterpret_cast<void **>(&_videoOutputInternal)));
-        id playerItemWeakReference;
-        assert(object_getInstanceVariable(_videoOutputInternal, "playerItemWeakReference", reinterpret_cast<void **>(&playerItemWeakReference)));
-        AVPlayerItem *playerItem = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(playerItemWeakReference, sel_registerName("referencedObject"));
+        AVPlayerItem *playerItem = playerItemVideoOutput.cp_playerItem;
         if (playerItem == nil) return;
         
         CMTime currentTime = playerItem.currentTime;
@@ -382,6 +415,10 @@ CA_EXTERN_C_END
         
         CMTime displayItem;
         CVPixelBufferRef _Nullable pixelBuffer = [playerItemVideoOutput copyPixelBufferForItemTime:currentTime itemTimeForDisplay:&displayItem];
+        
+        if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
+            [delegate playerOutputView:self didUpdatePixelBufferVariant:pixelBuffer];
+        }
         
         if (pixelBuffer) {
             switch (self._layerType) {
@@ -399,7 +436,7 @@ CA_EXTERN_C_END
                     NSArray<AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayers = self._sampleBufferDisplayLayers;
                     AVSampleBufferDisplayLayer *sampleBufferDisplayLayer = sampleBufferDisplayLayers.firstObject;
                     if (sampleBufferDisplayLayer != nil) {
-                        CMSampleBufferRef sampleBuffer = [self _sampleBufferRefFromPixelBuffer:pixelBuffer];
+                        CMSampleBufferRef sampleBuffer = cp_CMSampleBufferCreatePixelBuffer(pixelBuffer);
                         
                         AVSampleBufferVideoRenderer *sampleBufferRenderer = sampleBufferDisplayLayer.sampleBufferRenderer;
                         [sampleBufferRenderer flush];
@@ -679,22 +716,6 @@ CA_EXTERN_C_END
 - (void)userTransformView:(UserTransformView *)userTransformView didChangeUserAffineTransform:(CGAffineTransform)userAffineTransform isUserInteracting:(BOOL)isUserInteracting {
 //    NSLog(@"%@", NSStringFromCGAffineTransform(userAffineTransform));
     self._stackView.transform = userAffineTransform;
-}
-
-- (CMSampleBufferRef)_sampleBufferRefFromPixelBuffer:(CVPixelBufferRef)pixelBufferRef CM_RETURNS_RETAINED {
-    CMVideoFormatDescriptionRef desc;
-    assert(CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, pixelBufferRef, &desc) == kCVReturnSuccess);
-    
-    CMSampleTimingInfo timing = {
-        .duration = kCMTimeZero,
-        .presentationTimeStamp = kCMTimeZero,
-        .decodeTimeStamp = kCMTimeInvalid
-    };
-    CMSampleBufferRef sampleBuffer;
-    assert(CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, pixelBufferRef, desc, &timing, &sampleBuffer) == kCVReturnSuccess);
-    CFRelease(desc);
-    
-    return sampleBuffer;
 }
 
 @end

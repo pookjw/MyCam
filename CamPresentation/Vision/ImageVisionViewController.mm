@@ -79,19 +79,23 @@
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 }
 
-- (void)loadView {
-    self.view = self._imageVisionView;
-}
-
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    ImageVisionView *imageVisionView = self._imageVisionView;
+    [self.view addSubview:imageVisionView];
+    imageVisionView.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [imageVisionView.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [imageVisionView.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor],
+        [imageVisionView.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor],
+        [imageVisionView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor]
+    ]];
+    
     UINavigationItem *navigationItem = self.navigationItem;
-    navigationItem.leftBarButtonItems = @[
-        self._requestsMenuBarButtonItem,
-        self._activityIndicatorBarButtonItem
-    ];
     navigationItem.rightBarButtonItems = @[
+        self._requestsMenuBarButtonItem,
+        self._activityIndicatorBarButtonItem,
         self._doneBarButtonItem
     ];
     

@@ -8,10 +8,19 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PlayerOutputLayerType.h>
+#import <CoreMedia/CoreMedia.h>
+#import <CoreVideo/CoreVideo.h>
+#include <variant>
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class PlayerOutputView;
+@protocol PlayerOutputViewDelegate <NSObject>
+- (void)playerOutputView:(PlayerOutputView *)playerOutputView didUpdatePixelBufferVariant:(std::variant<CVPixelBufferRef, CMTaggedBufferGroupRef>)pixelBufferVariant;
+@end
+
 @interface PlayerOutputView : UIView
+@property (assign, atomic, nullable) id<PlayerOutputViewDelegate> delegate;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;

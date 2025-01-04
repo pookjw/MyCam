@@ -198,18 +198,18 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     os_unfair_lock_lock(&_lock);
     
-    UIImage *image = self.image;
-    if (image == nil) {
-        os_unfair_lock_unlock(&_lock);
-        return;
-    }
+    CGRect aspectBounds;
     
-    CGRect aspectBounds = AVMakeRectWithAspectRatioInsideRect(image.size, self.bounds);
-    
-    if (self.shouldDrawImage) {
-        UIGraphicsPushContext(ctx);
-        [image drawInRect:AVMakeRectWithAspectRatioInsideRect(image.size, aspectBounds)];
-        UIGraphicsPopContext();
+    if (UIImage *image = self.image) {
+        aspectBounds = AVMakeRectWithAspectRatioInsideRect(image.size, self.bounds);
+        
+        if (self.shouldDrawImage) {
+            UIGraphicsPushContext(ctx);
+            [image drawInRect:AVMakeRectWithAspectRatioInsideRect(image.size, aspectBounds)];
+            UIGraphicsPopContext();
+        }
+    } else {
+        aspectBounds = self.bounds;
     }
     
     if (self.shouldDrawOverlay) {
@@ -264,7 +264,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         } else if ([observation class] == [VNRectangleObservation class]) {
             [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
         } else if ([observation class] == [VNInstanceMaskObservation class]) {
-            [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:YES inContext:ctx];
+            [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:NO inContext:ctx];
         } else if ([observation class] == [VNBarcodeObservation class]) {
             [self _drawBarcodeObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNContoursObservation class]) {
@@ -1605,24 +1605,25 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     NSIndexSet *allInstances = instanceMaskObservation.allInstances;
     if (allInstances.count == 0) return;
     
-    UIImage *image = self.image;
-    if (image == nil) return;
-    
-    NSAutoreleasePool *pool = [NSAutoreleasePool new];
-    CGContextSaveGState(ctx);
-    
-    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-    CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
-    
-    VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
-        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
-    }];
-    
-    NSError * _Nullable error = nil;
-    CVPixelBufferRef maskPixelBuffer = [instanceMaskObservation generateScaledMaskForImageForInstances:allInstances fromRequestHandler:requestHandler error:&error];
-    assert(error == nil);
-    
     if (maskImage) {
+        UIImage *image = self.image;
+        if (image == nil) return;
+        
+        NSAutoreleasePool *pool = [NSAutoreleasePool new];
+        CGContextSaveGState(ctx);
+        
+        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+        
+        VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+        }];
+        
+        NSError * _Nullable error = nil;
+        CVPixelBufferRef maskPixelBuffer = [instanceMaskObservation generateScaledMaskForImageForInstances:allInstances fromRequestHandler:requestHandler error:&error];
+        assert(error == nil);
+        [requestHandler release];
+        
         CIFilter<CIBlendWithMask> *blendWithMaskFilter = [CIFilter blendWithMaskFilter];
         
         CIImage *inputCIImage = image.CIImage;
@@ -1645,20 +1646,33 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         CGContextDrawImage(ctx, aspectBounds, outputCGImage);
         CGImageRelease(outputCGImage);
+        
+        CGContextRestoreGState(ctx);
+        [pool release];
     } else {
+        NSAutoreleasePool *pool = [NSAutoreleasePool new];
+        CGContextSaveGState(ctx);
+        
+        NSError * _Nullable error = nil;
+        CVPixelBufferRef maskPixelBuffer = [instanceMaskObservation generateMaskForInstances:instanceMaskObservation.allInstances error:&error];
+        assert(error == nil);
         CIImage *maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil];
         CVPixelBufferRelease(maskPixelBuffer);
-        CIImage *transformedMaskCIImage = [maskCIImage imageByApplyingTransform:CGAffineTransformMakeScale(1., -1.)];
+        
+        CGFloat scaleX = CGRectGetWidth(self.bounds) / CGRectGetWidth(maskCIImage.extent);
+        CGFloat sclaeY = CGRectGetHeight(self.bounds) / CGRectGetHeight(maskCIImage.extent);
+        CGAffineTransform transform = CGAffineTransformMakeScale(scaleX, -sclaeY);
+        CIImage *transformedMaskCIImage = [maskCIImage imageByApplyingTransform:transform];
         [maskCIImage release];
         
         CGImageRef maskCGImage = [self._ciContext createCGImage:transformedMaskCIImage fromRect:transformedMaskCIImage.extent];
         
         CGContextDrawImage(ctx, aspectBounds, maskCGImage);
         CGImageRelease(maskCGImage);
+        
+        CGContextRestoreGState(ctx);
+        [pool release];
     }
-    
-    CGContextRestoreGState(ctx);
-    [pool release];
 }
 
 - (void)_drawBarcodeObservation:(VNBarcodeObservation *)barcodeObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {

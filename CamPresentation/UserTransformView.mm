@@ -24,6 +24,12 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 @synthesize hostedView = _hostedView;
 
 + (CGRect)rectWithAspectFit:(BOOL)aspectFit rect:(CGRect)rect size:(CGSize)size {
+    if (CGRectIsNull(rect)) return CGRectNull;
+    if (CGRectGetHeight(rect) == 0.) return CGRectNull;
+    if (isnan(CGRectGetWidth(rect)) or isnan(CGRectGetHeight(rect))) return CGRectNull;
+    if (size.height == 0.) return CGRectNull;
+    if (isnan(size.width) or isnan(size.height)) return CGRectNull;
+    
     CGFloat ratio_1 = CGRectGetWidth(rect) / CGRectGetHeight(rect);
     CGFloat ratio_2 = size.width / size.height;
     

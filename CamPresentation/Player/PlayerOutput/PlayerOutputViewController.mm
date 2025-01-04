@@ -6,7 +6,6 @@
 //
 
 #import <CamPresentation/PlayerOutputViewController.h>
-#import <CamPresentation/PlayerOutputView.h>
 #import <CamPresentation/PlayerControlView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -20,12 +19,11 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 
 @interface PlayerOutputViewController ()
 @property (assign, nonatomic, readonly) PlayerOutputLayerType _layerType;
-@property (retain, nonatomic, nullable) PlayerOutputView *_outputView;
 @property (retain, nonatomic, readonly) PlayerControlView *_controlView;
 @end
 
 @implementation PlayerOutputViewController
-@synthesize _outputView = __outputView;
+@synthesize outputView = _outputView;
 @synthesize _controlView = __controlView;
 
 - (instancetype)initWithLayerType:(PlayerOutputLayerType)layerType {
@@ -37,7 +35,7 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 }
 
 - (void)dealloc {
-    [__outputView release];
+    [_outputView release];
     [__controlView release];
     [super dealloc];
 }
@@ -49,7 +47,7 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
     self.view.backgroundColor = UIColor.systemBackgroundColor;
 #endif
     
-    PlayerOutputView *outputView = self._outputView;
+    PlayerOutputView *outputView = self.outputView;
     PlayerControlView *controlView = self._controlView;
     
     outputView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -71,23 +69,23 @@ typedef NS_ENUM(NSUInteger, PlayerOutputViewType) {
 
 - (AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
-    assert([self._outputView.player isEqual:self._controlView.player]);
-    return self._outputView.player;
+    assert([self.outputView.player isEqual:self._controlView.player]);
+    return self.outputView.player;
 }
 
 - (void)setPlayer:(AVPlayer *)player {
     dispatch_assert_queue(dispatch_get_main_queue());
     
-    self._outputView.player = player;
+    self.outputView.player = player;
     self._controlView.player = player;
 }
 
-- (PlayerOutputView *)_outputView {
-    if (auto outputView = __outputView) return outputView;
+- (PlayerOutputView *)outputView {
+    if (auto outputView = _outputView) return outputView;
     
     PlayerOutputView *outputView = [[PlayerOutputView alloc] initWithFrame:CGRectNull layerType:self._layerType];
     
-    __outputView = [outputView retain];
+    _outputView = [outputView retain];
     return [outputView autorelease];
 }
 

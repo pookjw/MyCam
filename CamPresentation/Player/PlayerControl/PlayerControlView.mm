@@ -91,6 +91,8 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     if ([object isKindOfClass:AVPlayer.class]) {
+        auto player = static_cast<AVPlayer *>(object);
+        
         if ([keyPath isEqualToString:@"rate"] or [keyPath isEqualToString:@"status"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 assert([self.player isEqual:object]);
@@ -107,16 +109,28 @@
             os_unfair_lock_lock(&_currentItemLock);
             
             if (AVPlayerItem *oldPlayerItem = change[NSKeyValueChangeOldKey]) {
-                [self _removeObserversForPlayerItem:oldPlayerItem];
+                /*
+                 다를 수 있음. 예를 들어
+                 
+                 1. `-setPlayer:`에서 lock을 시도했고, lock 이후 작업 (`-_removeObserversForPlayerItem:` 등)이 아직 안 불린 상태
+                 2. 현재 currentItem이 A라고 가정
+                 3. 이 상태에서 currentItem이 B로 바뀌면서 KVO이 발동됐고, lock 대기
+                 4. `-setPlayer:` 작업 시작 : observingPlayerItem이 A이므로 A에 `-_removeObserversForPlayerItem:`
+                 5. 이제 아래 코드 작업 시작 : Old는 A일 것. 하지만 A는 이미 remove 되었는데 또 시도하는 문제가 발생할 수 있기에, 아래처럼 observingPlayerItem 검사를 한다.
+                 
+                 이는 observingPlayerItem의 존재 목적이기도 하다. 또한 observingPlayerItem은 `-[AVPlayer currentItem]`은 변동의 여지가 있기에 self가 정확히 어떤 Item을 옵저빙하고 있는지 명시하는 용도이기도 하다.
+                 */
+                if ([self._observingPlayerItem isEqual:oldPlayerItem]) {
+                    [self _removeObserversForPlayerItem:oldPlayerItem];
+                }
             }
             
-            if (AVPlayerItem *newPlayerItem = change[NSKeyValueChangeNewKey]) {
+            AVPlayerItem *newPlayerItem = change[NSKeyValueChangeNewKey];
+            if (newPlayerItem == nil) newPlayerItem = player.currentItem;
+            
+            if (newPlayerItem != nil){
                 [self _addObserversForPlayerItem:newPlayerItem];
                 self._observingPlayerItem = newPlayerItem;
-            } else if (AVPlayerItem *playerItem = self.player.currentItem) {
-                // Initial
-                [self _addObserversForPlayerItem:newPlayerItem];
-                self._observingPlayerItem = playerItem;
             }
             
             os_unfair_lock_unlock(&_currentItemLock);
@@ -163,6 +177,7 @@
         [self _removeObserversForPlayer:_player];
         if (AVPlayerItem *observingPlayerItem = self._observingPlayerItem) {
             [self _removeObserversForPlayerItem:observingPlayerItem];
+            self._observingPlayerItem = nil;
         }
         
         os_unfair_lock_unlock(&_currentItemLock);

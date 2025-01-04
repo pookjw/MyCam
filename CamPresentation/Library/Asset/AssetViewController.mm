@@ -183,7 +183,8 @@
     PHAsset *asset = [self currentAsset];
     assert(asset != nil);
     
-    ImageVisionViewController *rootViewController = [[ImageVisionViewController alloc] initWithAsset:asset];
+    ImageVisionViewController *rootViewController = [ImageVisionViewController new];
+    [rootViewController updateWithAsset:asset];
     
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:rootViewController];
     [rootViewController release];

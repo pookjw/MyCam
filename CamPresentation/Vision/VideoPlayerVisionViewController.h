@@ -2,15 +2,15 @@
 //  VideoPlayerVisionViewController.h
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 1/4/25.
+//  Created by Jinwoo Kim on 1/5/25.
 //
 
-#import <UIKit/UIKit.h>
+#import <CamPresentation/ImageVisionViewController.h>
 #import <AVFoundation/AVFoundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface VideoPlayerVisionViewController : UIViewController
+@interface VideoPlayerVisionViewController : ImageVisionViewController
 @property (retain, nonatomic, nullable) AVPlayer *player;
 @end
 

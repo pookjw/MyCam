@@ -8,11 +8,13 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PlayerOutputLayerType.h>
+#import <CamPresentation/PlayerOutputView.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface PlayerOutputViewController : UIViewController
 @property (retain, nonatomic, nullable) AVPlayer *player;
+@property (retain, nonatomic, nullable) PlayerOutputView *outputView;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithNibName:(nullable NSString *)nibNameOrNil bundle:(nullable NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
