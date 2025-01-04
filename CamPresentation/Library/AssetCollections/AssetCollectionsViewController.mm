@@ -251,19 +251,19 @@
      iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
      iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"D746E9F6-74DE-4035-8F0E-66F059C56501/L0/001"] options:nil][0];
-    ImageVisionViewController *viewController = [ImageVisionViewController new];
-    [viewController updateWithAsset:asset];
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
-    [viewController release];
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentViewController:navigationController animated:YES completion:nil];
-    [navigationController release];
-    
-//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"30766744-43EF-4D7A-885E-9155C1B73765/L0/001"] options:nil][0];
-//    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];
-//    [self.navigationController pushViewController:viewController animated:YES];
+//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"D746E9F6-74DE-4035-8F0E-66F059C56501/L0/001"] options:nil][0];
+//    ImageVisionViewController *viewController = [ImageVisionViewController new];
+//    [viewController updateWithAsset:asset];
+//    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
 //    [viewController release];
+//    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+//    [self presentViewController:navigationController animated:YES completion:nil];
+//    [navigationController release];
+    
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"30766744-43EF-4D7A-885E-9155C1B73765/L0/001"] options:nil][0];
+    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {

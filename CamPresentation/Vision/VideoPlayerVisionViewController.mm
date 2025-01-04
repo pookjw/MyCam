@@ -22,12 +22,19 @@
 
 - (void)dealloc {
     [__playerOutputViewController release];
-    // TODO: _playerOutputView
+    
+    if (PlayerOutputView *playerOutputView = __playerOutputView) {
+        playerOutputView.delegate = nil;
+        [playerOutputView release];
+    }
+    
     [super dealloc];
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    [self _playerOutputView];
     
     PlayerOutputViewController *playerOutputViewController = self._playerOutputViewController;
 //    playerOutputViewController.outputView.hidden = YES;
@@ -59,6 +66,8 @@
     PlayerOutputViewController *playerOutputViewController = [[PlayerOutputViewController alloc] initWithLayerType:PlayerOutputLayerTypeSampleBufferDisplayLayer];
     playerOutputViewController.outputView.delegate = self;
     
+    assert(__playerOutputView == nil);
+    __playerOutputView = [playerOutputViewController.outputView retain];
     __playerOutputViewController = [playerOutputViewController retain];
     return [playerOutputViewController autorelease];
 }

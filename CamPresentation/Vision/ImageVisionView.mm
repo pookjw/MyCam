@@ -30,6 +30,7 @@
 
 - (void)dealloc {
     [__drawingRunLoop release];
+    [_imageVisionLayer release];
     [super dealloc];
 }
 

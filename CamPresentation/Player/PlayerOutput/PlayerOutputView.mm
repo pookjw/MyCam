@@ -416,11 +416,11 @@ CA_EXTERN_C_END
         CMTime displayItem;
         CVPixelBufferRef _Nullable pixelBuffer = [playerItemVideoOutput copyPixelBufferForItemTime:currentTime itemTimeForDisplay:&displayItem];
         
-        if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
-            [delegate playerOutputView:self didUpdatePixelBufferVariant:pixelBuffer];
-        }
-        
         if (pixelBuffer) {
+            if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
+                [delegate playerOutputView:self didUpdatePixelBufferVariant:pixelBuffer];
+            }
+            
             switch (self._layerType) {
                 case PlayerOutputLayerTypePixelBufferLayer:
                 {
