@@ -283,6 +283,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawTextObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNTrajectoryObservation class]) {
             [self _drawTrajectoryObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNSaliencyImageObservation class]) {
+            [self _drawSaliencyImageObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2073,6 +2075,43 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGColorRelease(greenColor);
     
     //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawSaliencyImageObservation:(VNSaliencyImageObservation *)saliencyImageObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawPixelBufferObservation:saliencyImageObservation aspectBounds:aspectBounds maskImage:(self.image != nil) inContext:ctx];
+    
+    for (VNRectangleObservation *salientObject in saliencyImageObservation.salientObjects) {
+        [self _drawRectangleObservation:salientObject aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+    }
+    
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    auto drawBoundingBox = ^(CGRect boundingBox, CGColorRef strokeColor) {
+        CGContextSaveGState(ctx);
+        
+        CGContextSetStrokeColorWithColor(ctx, strokeColor);
+        CGRect convertedBoundingBox = CGRectMake(CGRectGetMinX(aspectBounds) + CGRectGetWidth(aspectBounds) * CGRectGetMinX(boundingBox),
+                                                 CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds) * (1. - CGRectGetMinY(boundingBox) - CGRectGetHeight(boundingBox)),
+                                                 CGRectGetWidth(aspectBounds) * CGRectGetWidth(boundingBox),
+                                                 CGRectGetHeight(aspectBounds) * CGRectGetHeight(boundingBox));
+        
+        CGContextStrokeRectWithWidth(ctx, convertedBoundingBox, 10.);
+        CGContextRestoreGState(ctx);
+    };
+    
+    CGColorRef redColor = CGColorCreateSRGB(1., 0., 0., 1.);
+    CGRect boundingBox = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(saliencyImageObservation, sel_registerName("boundingBox"));
+    drawBoundingBox(boundingBox, redColor);
+    CGColorRelease(redColor);
+    
+    CGColorRef yellowColor = CGColorCreateSRGB(1., 1., 0., 1.);
+    CGRect narrowedBoundingBox = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(saliencyImageObservation, sel_registerName("narrowedBoundingBox"));
+    drawBoundingBox(narrowedBoundingBox, yellowColor);
+    CGColorRelease(yellowColor);
     
     CGContextRestoreGState(ctx);
     [pool release];

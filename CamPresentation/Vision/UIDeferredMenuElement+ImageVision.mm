@@ -64,9 +64,9 @@
  VNDetectRectanglesRequest,✅
  VNDetectScreenGazeRequest,✅
  VNDetectTextRectanglesRequest,✅
- VNDetectTrajectoriesRequest,
- VNGenerateAnimalSegmentationRequest,
- VNGenerateAttentionBasedSaliencyImageRequest,
+ VNDetectTrajectoriesRequest,✅
+ VNGenerateAnimalSegmentationRequest,✅
+ VNGenerateAttentionBasedSaliencyImageRequest,✅
  VNGenerateFaceSegmentsRequest,
  VNGenerateGlassesSegmentationRequest,
  VNGenerateHumanAttributesSegmentationRequest,
@@ -172,7 +172,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectRectanglesRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectScreenGazeRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTextRectanglesRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTrajectoriesRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTrajectoriesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAttentionBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -1042,7 +1044,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -2819,7 +2821,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -2921,6 +2923,109 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectTrajectoriesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         objectMinimumNormalizedRadiusMenu,
         objectMaximumNormalizedRadiusMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateAttentionBasedSaliencyImageRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNGenerateAttentionBasedSaliencyImageRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateAttentionBasedSaliencyImageRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateAttentionBasedSaliencyImageRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[VNGenerateAttentionBasedSaliencyImageRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateAttentionBasedSaliencyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateFaceSegmentsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateFaceSegmentsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateFaceSegmentsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    float faceBoundingBoxExpansionRatio = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceBoundingBoxExpansionRatio"));
+    
+    __kindof UIMenuElement *faceBoundingBoxExpansionRatioSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(faceBoundingBoxExpansionRatio).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        
+        slider.maximumValue = 10.f;
+        slider.minimumValue = 0.1f;
+        slider.value = faceBoundingBoxExpansionRatio;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setFaceBoundingBoxExpansionRatio:"), faceBoundingBoxExpansionRatio);
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(faceBoundingBoxExpansionRatioSliderElement, sel_registerName("setPrimaryActionHandler:"), nil);
+    
+    UIMenu *faceBoundingBoxExpansionRatioMenu = [UIMenu menuWithTitle:@"Face Bounding Box Expansion Ratio" children:@[
+        faceBoundingBoxExpansionRatioSliderElement
+    ]];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateFaceSegmentsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        faceBoundingBoxExpansionRatioMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
