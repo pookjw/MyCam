@@ -2826,7 +2826,101 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    __kindof UIMenuElement *objectMinimumNormalizedRadiusSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.objectMinimumNormalizedRadius).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        
+        slider.maximumValue = 1.f;
+        slider.minimumValue = 0.f;
+        slider.value = request.objectMinimumNormalizedRadius;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.objectMinimumNormalizedRadius = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *objectMinimumNormalizedRadiusMenu = [UIMenu menuWithTitle:@"Object Minimum Normalized Radius" children:@[
+        objectMinimumNormalizedRadiusSliderElement
+    ]];
+    
+    //
+    
+    __kindof UIMenuElement *objectMaximumNormalizedRadiusSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(request.objectMaximumNormalizedRadius).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        
+        slider.maximumValue = 1.f;
+        slider.minimumValue = 0.f;
+        slider.value = request.objectMaximumNormalizedRadius;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                request.objectMaximumNormalizedRadius = value;
+                [viewModel updateRequest:request completionHandler:nil];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *objectMaximumNormalizedRadiusMenu = [UIMenu menuWithTitle:@"Object Maximum Normalized Radius" children:@[
+        objectMaximumNormalizedRadiusSliderElement
+    ]];
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectTrajectoriesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        objectMinimumNormalizedRadiusMenu,
+        objectMaximumNormalizedRadiusMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
