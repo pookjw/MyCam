@@ -260,7 +260,7 @@
 //    [self presentViewController:navigationController animated:YES completion:nil];
 //    [navigationController release];
     
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"30766744-43EF-4D7A-885E-9155C1B73765/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"A2D3293E-609A-4EA6-BA8B-8024140BB459/L0/001"] options:nil][0];
     VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];

@@ -338,7 +338,7 @@ CA_EXTERN_C_END
         }
         
         if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
-            [delegate playerOutputView:self didUpdatePixelBufferVariant:taggedBufferGroup];
+            [delegate playerOutputView:self didUpdateSampleBufferVariant:taggedBufferGroup];
         }
         
         for (CFIndex index : std::views::iota(0, CMTaggedBufferGroupGetCount(taggedBufferGroup))) {
@@ -418,7 +418,15 @@ CA_EXTERN_C_END
         
         if (pixelBuffer) {
             if (id<PlayerOutputViewDelegate> delegate = self.delegate) {
-                [delegate playerOutputView:self didUpdatePixelBufferVariant:pixelBuffer];
+                CMSampleTimingInfo sampleTiming = {
+                    .duration = playerItemVideoOutput.cp_playerItem.duration,
+                    .presentationTimeStamp = displayItem,
+                    .decodeTimeStamp = kCMTimeInvalid
+                };
+                
+                CMSampleBufferRef sampleBuffer = cp_CMSampleBufferCreatePixelBuffer(pixelBuffer, sampleTiming);
+                
+                [delegate playerOutputView:self didUpdateSampleBufferVariant:sampleBuffer];
             }
             
             switch (self._layerType) {

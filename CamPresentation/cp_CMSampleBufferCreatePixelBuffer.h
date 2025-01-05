@@ -11,5 +11,6 @@
 NS_ASSUME_NONNULL_BEGIN
 
 CMSampleBufferRef cp_CMSampleBufferCreatePixelBuffer(CVPixelBufferRef pixelBufferRef) CM_RETURNS_RETAINED;
+CMSampleBufferRef cp_CMSampleBufferCreatePixelBuffer(CVPixelBufferRef pixelBufferRef, CMSampleTimingInfo sampleTiming) CM_RETURNS_RETAINED;
 
 NS_ASSUME_NONNULL_END

@@ -225,12 +225,12 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     return progress;
 }
 
-- (NSProgress *)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer completionHandler:(void (^)(NSError * _Nullable))completionHandler {
-    assert(pixelBuffer != NULL);
+- (NSProgress *)updateWithSampleBuffer:(CMSampleBufferRef)sampleBuffer completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    assert(sampleBuffer != NULL);
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     
-    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCMSampleBuffer:sampleBuffer options:@{
         MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
     }];
     

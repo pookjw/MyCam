@@ -72,9 +72,9 @@
     return [playerOutputViewController autorelease];
 }
 
-- (void)playerOutputView:(PlayerOutputView *)playerOutputView didUpdatePixelBufferVariant:(std::variant<CVPixelBufferRef, CMTaggedBufferGroupRef>)pixelBufferVariant {
-    if (auto pixelBufferPtr = std::get_if<CVPixelBufferRef>(&pixelBufferVariant)) {
-        [self._viewModel updateWithPixelBuffer:*pixelBufferPtr completionHandler:^(NSError * _Nullable error) {
+- (void)playerOutputView:(PlayerOutputView *)playerOutputView didUpdateSampleBufferVariant:(std::variant<CMSampleBufferRef, CMTaggedBufferGroupRef>)sampleBufferVarient {
+    if (auto sampleBufferPtr = std::get_if<CMSampleBufferRef>(&sampleBufferVarient)) {
+        [self._viewModel updateWithSampleBuffer:*sampleBufferPtr completionHandler:^(NSError * _Nullable error) {
             assert(error == nil);
         }];
     } else {

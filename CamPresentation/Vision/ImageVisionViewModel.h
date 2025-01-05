@@ -9,7 +9,7 @@
 #import <Photos/Photos.h>
 #import <Vision/Vision.h>
 #import <CamPresentation/Extern.h>
-#import <CoreVideo/CoreVideo.h>
+#import <CoreMedia/CoreMedia.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,7 +25,7 @@ __attribute__((objc_direct_members))
 
 - (NSProgress *)updateImage:(UIImage *)image completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 - (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^ _Nullable)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler;
-- (NSProgress *)updateWithPixelBuffer:(CVPixelBufferRef)pixelBuffer completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
+- (NSProgress *)updateWithSampleBuffer:(CMSampleBufferRef)sampleBuffer completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 
 - (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> *requests, NSArray<__kindof VNObservation *> *observations, UIImage * _Nullable image))completionHandler;
 @end

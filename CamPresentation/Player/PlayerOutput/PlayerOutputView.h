@@ -9,14 +9,13 @@
 #import <AVFoundation/AVFoundation.h>
 #import <CamPresentation/PlayerOutputLayerType.h>
 #import <CoreMedia/CoreMedia.h>
-#import <CoreVideo/CoreVideo.h>
 #include <variant>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @class PlayerOutputView;
 @protocol PlayerOutputViewDelegate <NSObject>
-- (void)playerOutputView:(PlayerOutputView *)playerOutputView didUpdatePixelBufferVariant:(std::variant<CVPixelBufferRef, CMTaggedBufferGroupRef>)pixelBufferVariant;
+- (void)playerOutputView:(PlayerOutputView *)playerOutputView didUpdateSampleBufferVariant:(std::variant<CMSampleBufferRef, CMTaggedBufferGroupRef>)sampleBufferVarient;
 @end
 
 @interface PlayerOutputView : UIView

@@ -264,7 +264,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         } else if ([observation class] == [VNRectangleObservation class]) {
             [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
         } else if ([observation class] == [VNInstanceMaskObservation class]) {
-            [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:NO inContext:ctx];
+            [self _drawInstanceMaskObservation:observation aspectBounds:aspectBounds maskImage:(self.image != nil) inContext:ctx];
         } else if ([observation class] == [VNBarcodeObservation class]) {
             [self _drawBarcodeObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNContoursObservation class]) {
