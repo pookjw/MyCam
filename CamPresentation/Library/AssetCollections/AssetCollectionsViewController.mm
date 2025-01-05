@@ -238,20 +238,7 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    /*
-     iPad E1806DB7-DCBD-496C-B728-0EE66FE086DF/L0/001
-     iPad Cat and Dog BC83C85A-A243-4355-9476-BAB5F95F7089/L0/001
-     iPad Barcode 00D85CE7-8226-4B26-8FB9-3D10E3482FC3/L0/001
-     iPad Document 22CD02EC-B953-49EF-81AB-73AC38A33D8A/L0/001
-     iPad Expressions 3C6A7818-D74B-478F-B74D-C4D0AACCAFAA/L0/001
-     iPad Gaze E5053E2B-67D0-41C0-9AAC-B9A86AAC05B0/L0/001
-     iPad Body Poses 395C32E2-2809-4C65-AC36-7FE45A09DFF6/L0/001
-     iPad Horizontal 8436B727-67CC-4AB6-B4D4-5CAD627AA545/L0/001
-     iPad Human Pose 397AEF2A-B1BF-4D43-85A7-3BE936F52DD7/L0/001
-     iPhone 8F758748-AA27-4754-B150-BA6A49DD5DE2/L0/001
-     iPhone Human Pose 67DB175B-5446-434F-A273-619A39BA9AEA/L0/001
-     */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"D0B76540-F8A9-4C02-9F74-22FFB5178064/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"787ACFAB-9243-4523-9355-AAFED9D3C31F/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [ImageVisionViewController new];
     [viewController updateWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];

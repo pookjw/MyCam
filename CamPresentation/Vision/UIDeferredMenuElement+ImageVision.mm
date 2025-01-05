@@ -67,8 +67,8 @@
  VNDetectTrajectoriesRequest,✅
  VNGenerateAnimalSegmentationRequest,✅
  VNGenerateAttentionBasedSaliencyImageRequest,✅
- VNGenerateFaceSegmentsRequest,
- VNGenerateGlassesSegmentationRequest,
+ VNGenerateFaceSegmentsRequest,✅
+ VNGenerateGlassesSegmentationRequest,✅
  VNGenerateHumanAttributesSegmentationRequest,
  VNGenerateImageFeaturePrintRequest,
  VNGenerateInstanceMaskRequest,
@@ -174,7 +174,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTextRectanglesRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectTrajectoriesRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAttentionBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateGlassesSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateHumanAttributesSegmentationRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -2967,7 +2969,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -3016,8 +3018,6 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         return [stackView autorelease];
     });
     
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(faceBoundingBoxExpansionRatioSliderElement, sel_registerName("setPrimaryActionHandler:"), nil);
-    
     UIMenu *faceBoundingBoxExpansionRatioMenu = [UIMenu menuWithTitle:@"Face Bounding Box Expansion Ratio" children:@[
         faceBoundingBoxExpansionRatioSliderElement
     ]];
@@ -3026,6 +3026,137 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateFaceSegmentsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         faceBoundingBoxExpansionRatioMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateGlassesSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateGlassesSegmentationRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateGlassesSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateGlassesSegmentationRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    VNGeneratePersonSegmentationRequestQualityLevel currentQualityLevel = reinterpret_cast<VNGeneratePersonSegmentationRequestQualityLevel (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("qualityLevel"));
+    
+    auto qualityLevelActionsVec = std::vector<VNGeneratePersonSegmentationRequestQualityLevel> {
+        VNGeneratePersonSegmentationRequestQualityLevelAccurate,
+        VNGeneratePersonSegmentationRequestQualityLevelBalanced,
+        VNGeneratePersonSegmentationRequestQualityLevelFast
+    }
+    | std::views::transform([viewModel, request, currentQualityLevel](const VNGeneratePersonSegmentationRequestQualityLevel qualityLevel) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(qualityLevel)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *qualityLevelActions = [[NSArray alloc] initWithObjects:qualityLevelActionsVec.data() count:qualityLevelActionsVec.size()];
+    UIMenu *qualityLevelsMenu = [UIMenu menuWithTitle:@"Quality Levels" children:qualityLevelActions];
+    [qualityLevelActions release];
+    qualityLevelsMenu.subtitle = NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(currentQualityLevel);
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateGlassesSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        qualityLevelsMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateHumanAttributesSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    VNGeneratePersonSegmentationRequestQualityLevel currentQualityLevel = reinterpret_cast<VNGeneratePersonSegmentationRequestQualityLevel (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("qualityLevel"));
+    
+    auto qualityLevelActionsVec = std::vector<VNGeneratePersonSegmentationRequestQualityLevel> {
+        VNGeneratePersonSegmentationRequestQualityLevelAccurate,
+        VNGeneratePersonSegmentationRequestQualityLevelBalanced,
+        VNGeneratePersonSegmentationRequestQualityLevelFast
+    }
+    | std::views::transform([viewModel, request, currentQualityLevel](const VNGeneratePersonSegmentationRequestQualityLevel qualityLevel) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(qualityLevel)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *qualityLevelActions = [[NSArray alloc] initWithObjects:qualityLevelActionsVec.data() count:qualityLevelActionsVec.size()];
+    UIMenu *qualityLevelsMenu = [UIMenu menuWithTitle:@"Quality Levels" children:qualityLevelActions];
+    [qualityLevelActions release];
+    qualityLevelsMenu.subtitle = NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(currentQualityLevel);
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSArray<NSString *> *supportedHumanAttributesNames = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedHumanAttributesNamesAndReturnError:"), &error);
+    assert(error == nil);
+    
+    NSMutableArray<UIAction *> *supportedHumanAttributeActions = [[NSMutableArray alloc] initWithCapacity:supportedHumanAttributesNames.count];
+    for (NSString *name in supportedHumanAttributesNames) {
+        UIAction *action = [UIAction actionWithTitle:name image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedHumanAttributeActions addObject:action];
+    }
+    UIMenu *supportedHumanAttributesMenu = [UIMenu menuWithTitle:@"Supported Human Attributes" children:supportedHumanAttributeActions];
+    supportedHumanAttributesMenu.subtitle = [NSString stringWithFormat:@"%ld attributes", supportedHumanAttributeActions.count];
+    [supportedHumanAttributeActions release];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        qualityLevelsMenu,
+        supportedHumanAttributesMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

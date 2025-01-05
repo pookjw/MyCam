@@ -230,9 +230,26 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             id originatingRequestSpecifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(pixelBufferObservation, sel_registerName("originatingRequestSpecifier"));
             NSString *requestClassName = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(originatingRequestSpecifier, sel_registerName("requestClassName"));
             
-            if ([requestClassName isEqualToString:NSStringFromClass([VNGeneratePersonSegmentationRequest class])]) {
-                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:YES inContext:ctx];
+            if ([requestClassName isEqualToString:NSStringFromClass([VNGeneratePersonSegmentationRequest class])] or [requestClassName isEqualToString:@"VNGenerateGlassesSegmentationRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
+            } else if ([requestClassName isEqualToString:@"VNGenerateHumanAttributesSegmentationRequest"]) {
+                CGColorRef whitePointAdjustmentColor;
+                if ([pixelBufferObservation.featureName isEqualToString:@"human_attribute_skin"]) {
+                    whitePointAdjustmentColor = CGColorCreateSRGB(1., 0., 0., 1.);
+                } else if ([pixelBufferObservation.featureName isEqualToString:@"human_attribute_hair"]) {
+                    whitePointAdjustmentColor = CGColorCreateSRGB(0., 1., 0., 1.);
+                } else if ([pixelBufferObservation.featureName isEqualToString:@"human_attribute_facial_hair"]) {
+                    whitePointAdjustmentColor = CGColorCreateSRGB(0., 0., 1., 1.);
+                } else if ([pixelBufferObservation.featureName isEqualToString:@"human_attribute_teeth"]) {
+                    whitePointAdjustmentColor = CGColorCreateSRGB(1., 1., 1., 1.);
+                } else {
+                    abort();
+                }
+                
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:whitePointAdjustmentColor inContext:ctx];
+                CGColorRelease(whitePointAdjustmentColor);
             } else {
+                
                 abort();
             }
         } else if ([observation class] == [VNImageAestheticsScoresObservation class]) {
@@ -806,7 +823,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     [pool release];
 }
 
-- (void)_drawPixelBufferObservation:(VNPixelBufferObservation *)pixelBufferObservation aspectBounds:(CGRect)aspectBounds maskImage:(BOOL)maskImage inContext:(CGContextRef)ctx {
+- (void)_drawPixelBufferObservation:(VNPixelBufferObservation *)pixelBufferObservation aspectBounds:(CGRect)aspectBounds maskImage:(BOOL)maskImage whitePointAdjustmentColor:(CGColorRef _Nullable)whitePointAdjustmentColor inContext:(CGContextRef)ctx {
     if (maskImage) {
         NSAutoreleasePool *pool = [NSAutoreleasePool new];
         CGContextSaveGState(ctx);
@@ -844,18 +861,36 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         [pool release];
     } else {
         NSAutoreleasePool *pool = [NSAutoreleasePool new];
+        CGContextSaveGState(ctx);
         
         CVPixelBufferRef maskPixelBuffer = pixelBufferObservation.pixelBuffer;
-        CIImage *maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil];
+        
+        CIImage *maskCIImage;
+        if (whitePointAdjustmentColor) {
+            CIImage *_maskCIImage = [[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil];
+            
+            CIFilter<CIMaskToAlpha> *maskToAlphaFilter = [CIFilter maskToAlphaFilter];
+            maskToAlphaFilter.inputImage = _maskCIImage;
+            [_maskCIImage release];
+            
+            CIFilter<CIWhitePointAdjust> *whitePointAdjustFilter = [CIFilter whitePointAdjustFilter];
+            whitePointAdjustFilter.inputImage = maskToAlphaFilter.outputImage;
+            whitePointAdjustFilter.color = [CIColor colorWithCGColor:whitePointAdjustmentColor];
+            
+            maskCIImage = whitePointAdjustFilter.outputImage;
+        } else {
+            maskCIImage = [[[CIImage alloc] initWithCVPixelBuffer:maskPixelBuffer options:nil] autorelease];
+        }
+        
         CGFloat scaleX = CGRectGetWidth(aspectBounds) / CGRectGetWidth(maskCIImage.extent);
         CGFloat sclaeY = CGRectGetHeight(aspectBounds) / CGRectGetHeight(maskCIImage.extent);
         CGAffineTransform transform = CGAffineTransformMakeScale(scaleX, -sclaeY);
         CIImage *transformedCIImage = [maskCIImage imageByApplyingTransform:transform highQualityDownsample:YES];
-        [maskCIImage release];
         CGImageRef cgImage = [self._ciContext createCGImage:transformedCIImage fromRect:transformedCIImage.extent];
         CGContextDrawImage(ctx, aspectBounds, cgImage);
         CGImageRelease(cgImage);
         
+        CGContextRestoreGState(ctx);
         [pool release];
     }
 }
@@ -2081,7 +2116,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawSaliencyImageObservation:(VNSaliencyImageObservation *)saliencyImageObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    [self _drawPixelBufferObservation:saliencyImageObservation aspectBounds:aspectBounds maskImage:(self.image != nil) inContext:ctx];
+    [self _drawPixelBufferObservation:saliencyImageObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
     
     for (VNRectangleObservation *salientObject in saliencyImageObservation.salientObjects) {
         [self _drawRectangleObservation:salientObject aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];

@@ -99,17 +99,17 @@
         self._doneBarButtonItem
     ];
     
-//    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-//        __kindof UIControl *requestsMenuBarButton = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self._requestsMenuBarButtonItem, sel_registerName("view"));
-//        
-//        for (id<UIInteraction> interaction in requestsMenuBarButton.interactions) {
-//            if ([interaction isKindOfClass:objc_lookUpClass("_UIClickPresentationInteraction")]) {
-//                UIContextMenuInteraction *contextMenuInteraction = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("delegate"));
-//                reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(contextMenuInteraction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
-//                break;
-//            }
-//        }
-//    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        __kindof UIControl *requestsMenuBarButton = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self._requestsMenuBarButtonItem, sel_registerName("view"));
+        
+        for (id<UIInteraction> interaction in requestsMenuBarButton.interactions) {
+            if ([interaction isKindOfClass:objc_lookUpClass("_UIClickPresentationInteraction")]) {
+                UIContextMenuInteraction *contextMenuInteraction = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(interaction, sel_registerName("delegate"));
+                reinterpret_cast<void (*)(id, SEL, CGPoint)>(objc_msgSend)(contextMenuInteraction, sel_registerName("_presentMenuAtLocation:"), CGPointZero);
+                break;
+            }
+        }
+    });
 }
 
 - (void)updateWithImage:(UIImage *)image {
