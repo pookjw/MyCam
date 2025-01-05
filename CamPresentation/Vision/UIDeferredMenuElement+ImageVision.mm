@@ -69,8 +69,8 @@
  VNGenerateAttentionBasedSaliencyImageRequest,✅
  VNGenerateFaceSegmentsRequest,✅
  VNGenerateGlassesSegmentationRequest,✅
- VNGenerateHumanAttributesSegmentationRequest,
- VNGenerateImageFeaturePrintRequest,
+ VNGenerateHumanAttributesSegmentationRequest,✅
+ VNGenerateImageFeaturePrintRequest, // 별도의 View Controller를 만들어야 할 것 같음
  VNGenerateInstanceMaskRequest,
  VNGenerateForegroundInstanceMaskRequest,✅
  VNGenerateImageSegmentationRequest,
