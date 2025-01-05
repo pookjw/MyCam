@@ -2033,7 +2033,49 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawTrajectoryObservation:(VNTrajectoryObservation *)trajectoryObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    abort();
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    auto drawPoints = ^(NSArray<VNPoint *> *points, CGColorRef strokeColor) {
+        CGContextSaveGState(ctx);
+        
+        CGAffineTransform transform = CGAffineTransformScale(CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds) + CGRectGetHeight(aspectBounds)), CGRectGetWidth(aspectBounds), -CGRectGetHeight(aspectBounds));
+        
+        CGMutablePathRef path = CGPathCreateMutable();
+        
+        BOOL moved = NO;
+        for (VNPoint *point in points) {
+            if (!moved) {
+                CGPathMoveToPoint(path, &transform, point.x, point.y);
+                moved = YES;
+            } else {
+                CGPathAddLineToPoint(path, &transform, point.x, point.y);
+            }
+        }
+        
+        CGContextAddPath(ctx, path);
+        CGPathRelease(path);
+        CGContextSetStrokeColorWithColor(ctx, strokeColor);
+        CGContextSetLineWidth(ctx, 3.);
+        CGContextDrawPath(ctx, kCGPathStroke);
+        
+        CGContextRestoreGState(ctx);
+    };
+    
+    CGColorRef cyanColor = CGColorCreateSRGB(0., 0., 1., 1.);
+    drawPoints(trajectoryObservation.detectedPoints, cyanColor);
+    CGColorRelease(cyanColor);
+    
+    CGColorRef greenColor = CGColorCreateSRGB(0., 1., 0., 1.);
+    drawPoints(trajectoryObservation.projectedPoints, greenColor);
+    CGColorRelease(greenColor);
+    
+    //
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
 }
 
 @end

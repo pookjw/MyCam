@@ -2812,7 +2812,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectTrajectoriesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            VNDetectTrajectoriesRequest *request = [[VNDetectTrajectoriesRequest alloc] initWithFrameAnalysisSpacing:CMTimeMake(10, 600) trajectoryLength:3 completionHandler:nil];
+            VNDetectTrajectoriesRequest *request = [[VNDetectTrajectoriesRequest alloc] initWithFrameAnalysisSpacing:CMTimeMake(1, 60) trajectoryLength:6 completionHandler:nil];
             
             [viewModel addRequest:request completionHandler:nil];
             
