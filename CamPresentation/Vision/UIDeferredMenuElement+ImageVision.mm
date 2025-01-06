@@ -18,6 +18,7 @@
 #import <CamPresentation/ImageVision3DViewController.h>
 #import <CamPresentation/AssetCollectionsViewControllerDelegateResolver.h>
 #import <CamPresentation/CALayer+CP_UIKit.h>
+#import <CamPresentation/NSStringFromVNImageCropAndScaleOption.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -347,7 +348,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                         assert(error == nil);
                         
                         dispatch_async(dispatch_get_main_queue(), ^{
-                            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Done" message:[NSString stringWithFormat:@"distance: %lf", distance] preferredStyle:UIAlertControllerStyleAlert];
+                            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Distance" message:[NSString stringWithFormat:@"distance: %lf", distance] preferredStyle:UIAlertControllerStyleAlert];
                             
                             UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
                                 
@@ -3285,7 +3286,38 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    VNImageCropAndScaleOption selectedOption = request.imageCropAndScaleOption;
+    
+    auto optionsVec = std::vector<VNImageCropAndScaleOption> {
+        VNImageCropAndScaleOptionCenterCrop,
+        VNImageCropAndScaleOptionScaleFit,
+        VNImageCropAndScaleOptionScaleFill,
+        VNImageCropAndScaleOptionScaleFitRotate90CCW,
+        VNImageCropAndScaleOptionScaleFillRotate90CCW
+    }
+    | std::views::transform([viewModel, request, selectedOption](VNImageCropAndScaleOption option) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNImageCropAndScaleOption(option) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            request.imageCropAndScaleOption = option;
+            [viewModel updateRequest:request completionHandler:nil];
+        }];
+        
+        action.state = (selectedOption == option) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *optionActions = [[NSArray alloc] initWithObjects:optionsVec.data() count:optionsVec.size()];
+    UIMenu *optionsMenu = [UIMenu menuWithTitle:@"Image Crop And Scale Options" children:optionActions];
+    [optionActions release];
+    optionsMenu.subtitle = NSStringFromVNImageCropAndScaleOption(selectedOption);
+    
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        optionsMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
