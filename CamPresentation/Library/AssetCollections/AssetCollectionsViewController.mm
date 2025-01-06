@@ -240,7 +240,7 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"787ACFAB-9243-4523-9355-AAFED9D3C31F/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"A8E104C2-0373-4902-B6F7-B36758C674F6/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [ImageVisionViewController new];
     [viewController updateWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
@@ -249,7 +249,7 @@
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];
     
-//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"A2D3293E-609A-4EA6-BA8B-8024140BB459/L0/001"] options:nil][0];
+//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"921040DB-1932-4B9D-81A0-84DBED8169A5/L0/001"] options:nil][0];
 //    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];

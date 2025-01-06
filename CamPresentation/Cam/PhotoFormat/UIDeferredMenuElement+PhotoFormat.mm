@@ -354,6 +354,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     NSMutableArray<UIAction *> *photoPixelFormatTypeActions = [[NSMutableArray alloc] initWithCapacity:photoPixelFormatTypes.count];
     
     for (NSNumber *formatNumber in photoPixelFormatTypes) {
+        static_assert(sizeof(OSType) == sizeof(unsigned int));
+        
         CMVideoFormatDescriptionRef description;
         OSStatus status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault,
                                                          formatNumber.unsignedIntValue,
@@ -364,7 +366,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         assert(status == 0);
         CFRelease(description);
         
-        FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
+        OSType mediaSubType = CMFormatDescriptionGetMediaSubType(description);
         
         NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
         

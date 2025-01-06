@@ -14,7 +14,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 
 @interface ImageVisionViewModel ()
 @property (retain, nonatomic, readonly) dispatch_queue_t _queue;
-@property (assign, nonatomic) PHImageRequestID _queue_imageRequestID;
+//@property (assign, nonatomic) PHImageRequestID _queue_imageRequestID;
 @property (retain, nonatomic, readonly) NSMutableArray<__kindof VNRequest *> *_queue_requests;
 @property (retain, nonatomic, nullable) UIImage *_queue_image;
 @property (assign, atomic, getter=isLoading) BOOL loading;
@@ -32,7 +32,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         dispatch_queue_t queue = dispatch_queue_create("Image Vision Queue", attr);
         
         __queue = queue;
-        __queue_imageRequestID = PHInvalidImageRequestID;
+//        __queue_imageRequestID = PHInvalidImageRequestID;
         __queue_requests = [NSMutableArray new];
     }
     
@@ -44,9 +44,9 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         dispatch_release(queue);
     }
     
-    if (__queue_imageRequestID != PHInvalidImageRequestID) {
-        [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
-    }
+//    if (__queue_imageRequestID != PHInvalidImageRequestID) {
+//        [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
+//    }
     
     [__queue_requests release];
     
@@ -139,7 +139,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
     
-    NSProgress *imageProgress = [self _nonisolated_imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable) {
+    NSProgress *imageProgress = [self imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable) {
         self._queue_image = image;
         
         NSProgress *performProgress = [self _queue_performRequests:self._queue_requests forImage:image completionHandler:^(NSError * _Nullable error) {
@@ -210,7 +210,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 - (NSProgress *)computeDistanceWithPHAsset:(PHAsset *)asset toFeaturePrintObservation:(VNFeaturePrintObservation *)featurePrint withRequest:(__kindof VNRequest *)request completionHandler:(void (^)(float, VNFeaturePrintObservation * _Nullable, NSError * _Nullable))completionHandler {
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
     
-    NSProgress *imageProgress = [self _nonisolated_imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+    NSProgress *imageProgress = [self imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
         if (error != nil) {
             completionHandler(NAN, nil, error);
             return;
@@ -252,15 +252,15 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     return progress;
 }
 
-- (NSProgress *)_nonisolated_imageFromPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler {
+- (NSProgress *)imageFromPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler {
     assert(asset.mediaType == PHAssetMediaTypeImage);
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1000000UL];
     
     dispatch_async(self._queue, ^{
-        if (__queue_imageRequestID != PHInvalidImageRequestID) {
-            [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
-        }
+//        if (__queue_imageRequestID != PHInvalidImageRequestID) {
+//            [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
+//        }
         
         assert(asset != nil);
         
@@ -320,7 +320,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         
         [options release];
         
-        __queue_imageRequestID = requestID;
+//        __queue_imageRequestID = requestID;
         
         if (progress.cancellationHandler == nil) {
             // -_queue_updateImage:progress:completionHandler:가 먼저 불릴 수도 있기 때문

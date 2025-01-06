@@ -248,8 +248,12 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
                 
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:whitePointAdjustmentColor inContext:ctx];
                 CGColorRelease(whitePointAdjustmentColor);
+            } else if ([requestClassName isEqualToString:@"VNTrackOpticalFlowRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:NULL inContext:ctx];
+            } else if ([requestClassName isEqualToString:@"VNGenerateOpticalFlowRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:NULL inContext:ctx];
             } else {
-                
+                NSLog(@"%@", requestClassName);
                 abort();
             }
         } else if ([observation class] == [VNImageAestheticsScoresObservation class]) {
@@ -304,6 +308,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawTrajectoryObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNSaliencyImageObservation class]) {
             [self _drawSaliencyImageObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VN1vLyVSh30UQ26TGBoV8MHv")) {
+            [self _draw1vLyVSh30UQ26TGBoV8MHv:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2194,6 +2200,18 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGRect narrowedBoundingBox = reinterpret_cast<CGRect (*)(id, SEL)>(objc_msgSend)(saliencyImageObservation, sel_registerName("narrowedBoundingBox"));
     drawBoundingBox(narrowedBoundingBox, yellowColor);
     CGColorRelease(yellowColor);
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_draw1vLyVSh30UQ26TGBoV8MHv:(__kindof VNObservation *)observation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    NSArray<NSString *> *adjustmentKeys = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(observation, sel_registerName("adjustmentKeys"));
+    
+#warning TODO
     
     CGContextRestoreGState(ctx);
     [pool release];

@@ -19,6 +19,8 @@
 #import <CamPresentation/AssetCollectionsViewControllerDelegateResolver.h>
 #import <CamPresentation/CALayer+CP_UIKit.h>
 #import <CamPresentation/NSStringFromVNImageCropAndScaleOption.h>
+#import <CamPresentation/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.h>
+#import <CamPresentation/NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -73,13 +75,13 @@
  VNGenerateFaceSegmentsRequest,✅
  VNGenerateGlassesSegmentationRequest,✅
  VNGenerateHumanAttributesSegmentationRequest,✅
- VNGenerateImageFeaturePrintRequest,
- VNGenerateInstanceMaskRequest,
+ VNGenerateImageFeaturePrintRequest,✅
+ VNGenerateInstanceMaskRequest,✅
  VNGenerateForegroundInstanceMaskRequest,✅
- VNGenerateImageSegmentationRequest,
- VNGenerateInstanceMaskGatingRequest,
- VNGenerateObjectnessBasedSaliencyImageRequest,
- VNGenerateOpticalFlowRequest,
+ VNGenerateImageSegmentationRequest, (doing)
+ VNGenerateInstanceMaskGatingRequest,✅
+ VNGenerateObjectnessBasedSaliencyImageRequest,✅
+ VNGenerateOpticalFlowRequest,✅
  VN1JC7R3k4455fKQz0dY1VhQ,
  VNGeneratePersonInstanceMaskRequest,✅
  VNGeneratePersonSegmentationRequest,✅
@@ -105,7 +107,7 @@
  VNTrackLegacyFaceCoreObjectRequest,
  VNTrackMaskRequest,
  VNTrackObjectRequest,
- VNTrackOpticalFlowRequest,
+ VNTrackOpticalFlowRequest,✅
  VNTrackRectangleRequest,
  VNTrackTranslationalImageRegistrationRequest,
  VNTranslationalImageRegistrationRequest
@@ -132,19 +134,17 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     assert(viewModel != nil);
     return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
-            UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer];
-            UIAction *humanBodyPose3DObservationSceneAction = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
-            __kindof UIMenuElement *computeDistanceElement = [UIDeferredMenuElement _cp_imageVisionComputeDistanceElementWithViewModel:viewModel addedRequests:requests observations:observations image:image imageLayer:imageVisionLayer];
+            UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests observations:observations image:image imageVisionLayer:imageVisionLayer];
             UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer drawingRunLoop:drawingRunLoop];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[requestsMenu, humanBodyPose3DObservationSceneAction, computeDistanceElement, imageVisionLayerMenu]);
+                completion(@[requestsMenu, imageVisionLayerMenu]);
             });
         }];
     }];
 }
 
-+ (UIMenu *)_cp_imageVisionRequestsMenuWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
++ (UIMenu *)_cp_imageVisionRequestsMenuWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:@[
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
@@ -169,7 +169,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFacePoseRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHorizonRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPoseRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:viewModel addedRequests:requests observations:observations image:image imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHandPoseRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanHeadRectanglesRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectHumanRectanglesRequestWithViewModel:viewModel addedRequests:requests],
@@ -181,7 +181,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateGlassesSegmentationRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateHumanAttributesSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:viewModel addedRequests:requests observations:observations image:image imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateImageSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateInstanceMaskGatingRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateObjectnessBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateOpticalFlowRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackOpticalFlowRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -202,6 +208,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateInstanceMaskRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     //
@@ -262,7 +269,19 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (UIAction *)_cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:(ImageVisionViewModel *)viewModel observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageLayer:(ImageVisionLayer *)imageLayer {
++ (UIAction *)_cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:(ImageVisionViewModel *)viewModel observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    auto emptyAction = ^UIAction * (NSString *subtitle) {
+        UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.cp_overrideNumberOfTitleLines = 0;
+        action.attributes = UIMenuElementAttributesDisabled;
+        action.subtitle = subtitle;
+        return action;
+    };
+    
+    if (image == nil) {
+        return emptyAction(@"No Image on view Model.");
+    }
+    
     NSMutableArray<VNHumanBodyPose3DObservation *> *humanBodyPose3DObservations = [NSMutableArray array];
     for (__kindof VNObservation *observation in observations) {
         if ([observation isKindOfClass:[VNHumanBodyPose3DObservation class]]) {
@@ -271,14 +290,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     }
     
     if (humanBodyPose3DObservations.count == 0) {
-        UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
-        action.cp_overrideNumberOfTitleLines = 0;
-        action.attributes = UIMenuElementAttributesDisabled;
-        return action;
+        return emptyAction(@"No VNHumanBodyPose3DObservation.");
     }
     
+    //
+    
     UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        UIView *layerView = imageLayer.cp_associatedView;
+        UIView *layerView = imageVisionLayer.cp_associatedView;
         assert(layerView != nil);
         UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
         assert(viewController != nil);
@@ -300,7 +318,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return action;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionComputeDistanceElementWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageLayer:(ImageVisionLayer *)imageLayer {
++ (__kindof UIMenuElement *)_cp_imageVisionComputeDistanceElementWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     auto emptyAction = ^UIAction * {
         UIAction *action = [UIAction actionWithTitle:@"Compute Distance" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             
@@ -370,7 +388,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             //
             
-            UIView *layerView = imageLayer.cp_associatedView;
+            UIView *layerView = imageVisionLayer.cp_associatedView;
             assert(layerView != nil);
             UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
             assert(viewController != nil);
@@ -406,7 +424,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNAlignFaceRectangleRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNAlignFaceRectangleRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -436,7 +456,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNCalculateImageAestheticsScoresRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[VNCalculateImageAestheticsScoresRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -462,7 +484,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyCityNatureImageRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyCityNatureImageRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -488,7 +512,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyFaceAttributesRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyFaceAttributesRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -514,7 +540,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyImageAestheticsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyImageAestheticsRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -540,7 +568,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNClassifyImageRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[VNClassifyImageRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -566,7 +596,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyJunkImageRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyJunkImageRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -593,7 +625,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyMemeImageRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyMemeImageRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -621,7 +655,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -647,7 +683,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyPotentialLandmarkRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNClassifyPotentialLandmarkRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -674,7 +712,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -704,7 +744,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -754,7 +796,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 
             }];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -780,7 +824,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateAnimalprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateAnimalprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -806,7 +852,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateDetectionprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateDetectionprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -832,7 +880,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceRegionMapRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateFaceRegionMapRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -858,7 +908,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateFaceprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -873,7 +925,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL forceFaceprintCreation = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("forceFaceprintCreation"));
     UIAction *forceFaceprintCreationAction = [UIAction actionWithTitle:@"forceFaceprintCreation" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setForceFaceprintCreation:"), !forceFaceprintCreation);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     forceFaceprintCreationAction.state = forceFaceprintCreation ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -894,7 +948,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -923,7 +979,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageFingerprintsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateImageFingerprintsRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -949,7 +1007,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateImageprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -975,7 +1035,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateNeuralHashprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateNeuralHashprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1001,7 +1063,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSmartCamprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateSmartCamprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1027,7 +1091,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateTorsoprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateTorsoprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1055,7 +1121,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSceneprintRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNRequest *request = [[objc_lookUpClass("VNCreateSceneprintRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1081,7 +1149,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectAnimalBodyPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectAnimalBodyPoseRequest *request = [[VNDetectAnimalBodyPoseRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1145,7 +1215,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateAnimalSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateAnimalSegmentationRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1170,7 +1242,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1201,7 +1275,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateForegroundInstanceMaskRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNGenerateForegroundInstanceMaskRequest *request = [[VNGenerateForegroundInstanceMaskRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1227,7 +1303,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGeneratePersonSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNGeneratePersonSegmentationRequest *request = [[VNGeneratePersonSegmentationRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1250,7 +1328,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             request.qualityLevel = qualityLevel;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (request.qualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1269,7 +1349,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL useTiling = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useTiling"));
     UIAction *useTilingAction = [UIAction actionWithTitle:@"Use Tiling" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseTiling:"), !useTiling);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     useTilingAction.state = useTiling ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1310,7 +1392,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractBlink:"), YES);
             reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractSmile:"), YES);
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1326,7 +1410,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIAction *faceCoreEnhanceEyesAndMouthLocalizationAction = [UIAction actionWithTitle:@"faceCoreEnhanceEyesAndMouthLocalization" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreEnhanceEyesAndMouthLocalization:"), !faceCoreEnhanceEyesAndMouthLocalization);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     faceCoreEnhanceEyesAndMouthLocalizationAction.subtitle = @"???";
     faceCoreEnhanceEyesAndMouthLocalizationAction.state = faceCoreEnhanceEyesAndMouthLocalization ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1337,7 +1423,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIAction *faceCoreExtractBlinkAction = [UIAction actionWithTitle:@"faceCoreExtractBlink" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractBlink:"), !faceCoreExtractBlink);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     faceCoreExtractBlinkAction.subtitle = @"Not working";
     faceCoreExtractBlinkAction.state = faceCoreExtractBlink ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1348,7 +1436,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIAction *faceCoreExtractSmileAction = [UIAction actionWithTitle:@"faceCoreExtractSmile" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreExtractSmile:"), !faceCoreExtractSmile);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     faceCoreExtractSmileAction.subtitle = @"???";
     faceCoreExtractSmileAction.state = faceCoreExtractSmile ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1375,7 +1465,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             request.constellation = VNRequestFaceLandmarksConstellation76Points;
             reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setPerformBlinkDetection:"), YES);
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1398,7 +1490,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             request.constellation = constellation;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (request.constellation == constellation) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1419,7 +1513,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL refineMouthRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineMouthRegion"));
     UIAction *refineMouthRegionAction = [UIAction actionWithTitle:@"refineMouthRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineMouthRegion:"), !refineMouthRegion);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     refineMouthRegionAction.subtitle = @"???";
     refineMouthRegionAction.state = refineMouthRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1429,7 +1525,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL refineLeftEyeRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineLeftEyeRegion"));
     UIAction *refineLeftEyeRegionAction = [UIAction actionWithTitle:@"refineLeftEyeRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineLeftEyeRegion:"), !refineLeftEyeRegion);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     refineLeftEyeRegionAction.subtitle = @"???";
     refineLeftEyeRegionAction.state = refineLeftEyeRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1439,7 +1537,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL refineRightEyeRegion = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("refineRightEyeRegion"));
     UIAction *refineRightEyeRegionAction = [UIAction actionWithTitle:@"refineRightEyeRegion" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setRefineRightEyeRegion:"), !refineRightEyeRegion);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     refineRightEyeRegionAction.subtitle = @"???";
     refineRightEyeRegionAction.state = refineRightEyeRegion ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1449,7 +1549,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL performBlinkDetection = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("performBlinkDetection"));
     UIAction *performBlinkDetectionAction = [UIAction actionWithTitle:@"performBlinkDetection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setPerformBlinkDetection:"), !performBlinkDetection);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     performBlinkDetectionAction.state = performBlinkDetection ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1473,7 +1575,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectBarcodesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectBarcodesRequest *request = [[VNDetectBarcodesRequest alloc] initWithCompletionHandler:nil];
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             [request release];
         }];
         
@@ -1492,7 +1596,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     for (VNBarcodeSymbology symbology in supportedSymbologies) {
         UIAction *action = [UIAction actionWithTitle:symbology image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             request.symbologies = [request.symbologies arrayByAddingObject:symbology];
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = ([symbologies containsObject:symbology]) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1507,7 +1613,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL coalesceCompositeSymbologies = request.coalesceCompositeSymbologies;
     UIAction *coalesceCompositeSymbologiesAction = [UIAction actionWithTitle:@"coalesceCompositeSymbologies" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         request.coalesceCompositeSymbologies = !coalesceCompositeSymbologies;
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     coalesceCompositeSymbologiesAction.state = coalesceCompositeSymbologies ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1516,7 +1624,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL stopAtFirstPyramidWith2DCode = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("stopAtFirstPyramidWith2DCode"));
     UIAction *stopAtFirstPyramidWith2DCodeAction = [UIAction actionWithTitle:@"stopAtFirstPyramidWith2DCode" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setStopAtFirstPyramidWith2DCode:"), !stopAtFirstPyramidWith2DCode);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     stopAtFirstPyramidWith2DCodeAction.state = stopAtFirstPyramidWith2DCode ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1525,7 +1635,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL useSegmentationPregating = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useSegmentationPregating"));
     UIAction *useSegmentationPregatingAction = [UIAction actionWithTitle:@"useSegmentationPregating" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseSegmentationPregating:"), !useSegmentationPregating);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     useSegmentationPregatingAction.state = useSegmentationPregating ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1534,7 +1646,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     BOOL useMLDetector = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useMLDetector"));
     UIAction *useMLDetectorAction = [UIAction actionWithTitle:@"useMLDetector" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseMLDetector:"), !useMLDetector);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     useMLDetectorAction.state = useMLDetector ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1547,7 +1661,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     for (NSString *locateMode in availableLocateModes) {
         UIAction *action = [UIAction actionWithTitle:locateMode image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setLocateMode:"), locateMode);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = ([currentLocateMode isEqualToString:locateMode]) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1582,7 +1698,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectContoursRequest *request = [[VNDetectContoursRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1609,7 +1727,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             float value = slider.value;
             request.contrastAdjustment = value;
             
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
@@ -1635,7 +1755,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             float value = slider.value;
             request.contrastPivot = @(value);
             
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
@@ -1646,7 +1768,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *resetContrastPivotAction = [UIAction actionWithTitle:@"Reset" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         request.contrastPivot = nil;
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     
     UIMenu *contrastPivotMenu = [UIMenu menuWithTitle:@"contrastPivot" children:@[
@@ -1660,7 +1784,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIAction *detectsDarkOnLightAction = [UIAction actionWithTitle:@"detectsDarkOnLight" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         request.detectsDarkOnLight = !detectsDarkOnLight;
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     
     detectsDarkOnLightAction.state = detectsDarkOnLight ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1689,7 +1815,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.maximumImageDimension = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -1729,7 +1857,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.maximumImageDimension = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -1750,7 +1880,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *resetMaximumImageDimensionAction = [UIAction actionWithTitle:@"Reset" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         request.maximumImageDimension = 64;
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     
     UIMenu *maximumImageDimensionMenu = [UIMenu menuWithTitle:@"maximumImageDimension" children:@[
@@ -1766,7 +1898,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *forceUseInputCVPixelBufferDirectlyAction = [UIAction actionWithTitle:@"forceUseInputCVPixelBufferDirectly" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setForceUseInputCVPixelBufferDirectly:"), !forceUseInputCVPixelBufferDirectly);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     forceUseInputCVPixelBufferDirectlyAction.subtitle = @"???";
     forceUseInputCVPixelBufferDirectlyAction.state = forceUseInputCVPixelBufferDirectly ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1778,7 +1912,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *inHierarchyAction = [UIAction actionWithTitle:@"inHierarchy" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setInHierarchy:"), !inHierarchy);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     inHierarchyAction.subtitle = @"???";
     inHierarchyAction.state = inHierarchy ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -1809,7 +1945,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectDocumentSegmentationRequest *request = [[VNDetectDocumentSegmentationRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1835,7 +1973,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectFaceCaptureQualityRequest *request = [[VNDetectFaceCaptureQualityRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1861,7 +2001,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFace3DLandmarksRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1887,7 +2029,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceExpressionsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFaceExpressionsRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1913,7 +2057,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceGazeRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFaceGazeRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1929,7 +2075,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *resolveSomewhereElseDirectionAction = [UIAction actionWithTitle:@"resolveSomewhereElseDirection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setResolveSomewhereElseDirection:"), !resolveSomewhereElseDirection);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     resolveSomewhereElseDirectionAction.state = resolveSomewhereElseDirection ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -1950,7 +2098,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFacePoseRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectFacePoseRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -1976,7 +2126,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHorizonRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectHorizonRequest *request = [[VNDetectHorizonRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2002,7 +2154,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanBodyPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectHumanBodyPoseRequest *request = [[VNDetectHumanBodyPoseRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2018,7 +2172,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *detectsHandsAction = [UIAction actionWithTitle:@"detectsHands" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setDetectsHands:"), !detectsHands);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     detectsHandsAction.state = detectsHands ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -2068,7 +2224,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectHumanBodyPose3DRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage * _Nullable)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     VNDetectHumanBodyPose3DRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNDetectHumanBodyPose3DRequest class] addedRequests:requests];
     
     if (request == nil) {
@@ -2078,13 +2234,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
                 assert(error == nil);
                 
-//                [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
-//                    UIAction *action = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
-//                    
-//                    dispatch_async(dispatch_get_main_queue(), ^{
-//                        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
-//                    });
-//                }];
+//                UIAction *action = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageVisionLayer:imageVisionLayer];
+//                
+//                dispatch_async(dispatch_get_main_queue(), ^{
+//                    reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//                });
             }];
             
             [request release];
@@ -2131,9 +2285,14 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    UIAction *humanBodyPose3DObservationSceneAction = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageVisionLayer:imageVisionLayer];
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanBodyPose3DRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu,
+        humanBodyPose3DObservationSceneAction,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
@@ -2147,7 +2306,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanHandPoseRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectHumanHandPoseRequest *request = [[VNDetectHumanHandPoseRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2180,7 +2341,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             request.maximumHandCount = value;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2252,7 +2415,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectHumanHeadRectanglesRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectHumanHeadRectanglesRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2278,7 +2443,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectHumanRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[VNDetectHumanRectanglesRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2294,7 +2461,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *upperBodyOnlyAction = [UIAction actionWithTitle:@"upperBodyOnly" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUpperBodyOnly:"), !upperBodyOnly);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     upperBodyOnlyAction.state = upperBodyOnly ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -2315,7 +2484,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectRectanglesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectRectanglesRequest *request = [[VNDetectRectanglesRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2348,7 +2519,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.minimumAspectRatio = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -2391,7 +2564,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.maximumAspectRatio = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -2434,7 +2609,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.quadratureTolerance = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -2477,7 +2654,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.minimumSize = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -2520,7 +2699,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.minimumConfidence = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -2563,7 +2744,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             request.maximumObservations = value;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2604,7 +2787,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectScreenGazeRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectScreenGazeRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2641,7 +2826,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setScreenSize:"), value);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2688,7 +2875,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             reinterpret_cast<void (*)(id, SEL, NSInteger)>(objc_msgSend)(request, sel_registerName("setTemporalSmoothingFrameCount:"), value);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2731,7 +2920,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             // ???
             reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setAdditionalCharacters:"), @"두부");
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2747,7 +2938,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *reportCharacterBoxesAction = [UIAction actionWithTitle:@"Report Character Boxes" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         request.reportCharacterBoxes = !reportCharacterBoxes;
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     reportCharacterBoxesAction.state = reportCharacterBoxes ? UIMenuElementStateOn : UIMenuElementStateOff;
     
@@ -2777,7 +2970,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:textRecognition image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setTextRecognition:"), textRecognition);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = ([textRecognition isEqualToString:selectedTextRecognition]) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -2794,7 +2989,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *detectDiacriticsAction = [UIAction actionWithTitle:@"Detect Diacritics" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setDetectDiacritics:"), !detectDiacritics);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     detectDiacriticsAction.subtitle = @"é, á, ó, ä, ö, ü";
     detectDiacriticsAction.state = detectDiacritics ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -2824,7 +3021,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setMinimumCharacterPixelHeight:"), value);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2850,7 +3049,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIAction *minimizeFalseDetectionsAction = [UIAction actionWithTitle:@"Minimize False Detections" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         [request cancel];
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setMinimizeFalseDetections:"), !minimizeFalseDetections);
-        [viewModel updateRequest:request completionHandler:nil];
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
     }];
     
     minimizeFalseDetectionsAction.state = minimizeFalseDetections ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -2880,7 +3081,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             
             [request cancel];
             reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setAlgorithm:"), value);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
@@ -2922,7 +3125,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNDetectTrajectoriesRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             VNDetectTrajectoriesRequest *request = [[VNDetectTrajectoriesRequest alloc] initWithFrameAnalysisSpacing:CMTimeMake(1, 60) trajectoryLength:6 completionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -2956,7 +3161,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.objectMinimumNormalizedRadius = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -3002,7 +3209,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 request.objectMaximumNormalizedRadius = value;
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -3042,7 +3251,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateAttentionBasedSaliencyImageRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[VNGenerateAttentionBasedSaliencyImageRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -3068,7 +3279,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateFaceSegmentsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateFaceSegmentsRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -3104,7 +3317,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             if (!slider.isTracking) {
                 [request cancel];
                 reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setFaceBoundingBoxExpansionRatio:"), faceBoundingBoxExpansionRatio);
-                [viewModel updateRequest:request completionHandler:nil];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             }
         }];
         
@@ -3143,7 +3358,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateGlassesSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateGlassesSegmentationRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -3168,7 +3385,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -3199,7 +3418,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest") alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
@@ -3224,7 +3445,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -3267,19 +3490,21 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     VNGenerateImageFeaturePrintRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateImageFeaturePrintRequest class] addedRequests:requests];
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             __kindof VNImageBasedRequest *request = [[VNGenerateImageFeaturePrintRequest alloc] initWithCompletionHandler:nil];
             
-            [viewModel addRequest:request completionHandler:nil];
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
             
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -3299,7 +3524,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithTitle:NSStringFromVNImageCropAndScaleOption(option) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             request.imageCropAndScaleOption = option;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (selectedOption == option) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -3313,11 +3540,427 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     [optionActions release];
     optionsMenu.subtitle = NSStringFromVNImageCropAndScaleOption(selectedOption);
     
+    //
+    
+    __kindof UIMenuElement *computeDistanceElement = [UIDeferredMenuElement _cp_imageVisionComputeDistanceElementWithViewModel:viewModel addedRequests:requests observations:observations image:image imageVisionLayer:imageVisionLayer];
     
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         optionsMenu,
+        computeDistanceElement,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateInstanceMaskRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateInstanceMaskRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateInstanceMaskRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+        action.subtitle = @"Equivalent to VNGenerateForegroundInstanceMaskRequest";
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    menu.subtitle = @"Equivalent to VNGenerateForegroundInstanceMaskRequest";
+    
+    return menu;
+}
+
+// com.apple.mobileassetd.v2
+#warning TODO
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateImageSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateImageSegmentationRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateImageSegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateImageSegmentationRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateImageSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateInstanceMaskGatingRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateInstanceMaskGatingRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskGatingRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateInstanceMaskGatingRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+        action.subtitle = @"Detect that masking is capable";
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSString *applicableDetectorType = reinterpret_cast<id (*)(id, SEL, NSUInteger, id *)>(objc_msgSend)(request, sel_registerName("applicableDetectorTypeForRevision:error:"), request.revision, &error);
+    assert(error == nil);
+    
+    UIAction *applicableDetectorTypeAction = [UIAction actionWithTitle:applicableDetectorType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    applicableDetectorTypeAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskGatingRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        applicableDetectorTypeAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    menu.subtitle = @"Detect that masking is capable";
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateObjectnessBasedSaliencyImageRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNGenerateObjectnessBasedSaliencyImageRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateObjectnessBasedSaliencyImageRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateObjectnessBasedSaliencyImageRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNGenerateObjectnessBasedSaliencyImageRequest *request = [[VNGenerateObjectnessBasedSaliencyImageRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSString *applicableDetectorType = reinterpret_cast<id (*)(id, SEL, NSUInteger, id *)>(objc_msgSend)(request, sel_registerName("applicableDetectorTypeForRevision:error:"), request.revision, &error);
+    assert(error == nil);
+    
+    UIAction *applicableDetectorTypeAction = [UIAction actionWithTitle:applicableDetectorType image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    applicableDetectorTypeAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateObjectnessBasedSaliencyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        applicableDetectorTypeAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackOpticalFlowRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNTrackOpticalFlowRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNTrackOpticalFlowRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNTrackOpticalFlowRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNTrackOpticalFlowRequest *request = [[VNTrackOpticalFlowRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    VNTrackOpticalFlowRequestComputationAccuracy selectedComputationAccuracy = request.computationAccuracy;
+    
+    auto computationAccuracyActionsVec = std::vector<VNTrackOpticalFlowRequestComputationAccuracy> {
+        VNTrackOpticalFlowRequestComputationAccuracyLow,
+        VNTrackOpticalFlowRequestComputationAccuracyMedium,
+        VNTrackOpticalFlowRequestComputationAccuracyHigh,
+        VNTrackOpticalFlowRequestComputationAccuracyVeryHigh
+    }
+    | std::views::transform([viewModel, request, selectedComputationAccuracy](VNTrackOpticalFlowRequestComputationAccuracy computationAccuracy) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNTrackOpticalFlowRequestComputationAccuracy(computationAccuracy) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            request.computationAccuracy = computationAccuracy;
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (selectedComputationAccuracy == computationAccuracy) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *computationAccuracyActions = [[NSArray alloc] initWithObjects:computationAccuracyActionsVec.data() count:computationAccuracyActionsVec.size()];
+    UIMenu *computationAccuraciesMenu = [UIMenu menuWithTitle:@"Computation Accuracy" children:computationAccuracyActions];
+    [computationAccuracyActions release];
+    computationAccuraciesMenu.subtitle = NSStringFromVNTrackOpticalFlowRequestComputationAccuracy(selectedComputationAccuracy);
+    
+    //
+    
+    BOOL keepNetworkOutput = request.keepNetworkOutput;
+    UIAction *keepNetworkOutputAction = [UIAction actionWithTitle:@"Keep Network Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.keepNetworkOutput = !keepNetworkOutput;
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    keepNetworkOutputAction.cp_overrideNumberOfSubtitleLines = 0;
+    keepNetworkOutputAction.subtitle = @"Setting this to `YES` will keep the raw pixel buffer coming from the the ML network. When set to `YES`, the outputPixelFormat is ignored.";
+    keepNetworkOutputAction.state = keepNetworkOutput ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    OSType selectedOutputPixelFormat = request.outputPixelFormat;
+    
+    NSError * _Nullable error = nil;
+    NSArray<NSNumber *> *supportedOutputPixelFormats = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedOutputPixelFormatsAndReturnError:"), &error);
+    assert(error == nil);
+    NSMutableArray<UIAction *> *supportedOutputPixelFormatActions = [[NSMutableArray alloc] initWithCapacity:supportedOutputPixelFormats.count];
+    for (NSNumber *pixelFormatNumber in supportedOutputPixelFormats) {
+        static_assert(sizeof(OSType) == sizeof(unsigned int));
+        
+        OSType pixelFormat = pixelFormatNumber.unsignedIntValue;
+        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&pixelFormat) length:4 encoding:NSUTF8StringEncoding];
+        
+        UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            request.outputPixelFormat = pixelFormat;
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (selectedOutputPixelFormat == pixelFormat) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [supportedOutputPixelFormatActions addObject:action];
+    }
+    
+    UIMenu *supportedOutputPixelFormatsMenu = [UIMenu menuWithTitle:@"Output Pixel Format" children:supportedOutputPixelFormatActions];
+    [supportedOutputPixelFormatActions release];
+    NSString *selectedOutputPixelFormatString = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&selectedOutputPixelFormat) length:4 encoding:NSUTF8StringEncoding];
+    supportedOutputPixelFormatsMenu.subtitle = selectedOutputPixelFormatString;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackOpticalFlowRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        computationAccuraciesMenu,
+        keepNetworkOutputAction,
+        supportedOutputPixelFormatsMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateOpticalFlowRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    VNGenerateOpticalFlowRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateOpticalFlowRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateOpticalFlowRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+            
+            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.allObjects.firstObject;
+                assert(asset != nil);
+                
+                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
+                assert(presentingViewController != nil);
+                
+                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+                    [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+                        assert(error == nil);
+                        
+                        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+                        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+                        
+                        VNGenerateOpticalFlowRequest *request = [[VNGenerateOpticalFlowRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+                            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+                        }];
+                        
+                        [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                            assert(error == nil);
+                        }];
+                        
+                        [request release];
+                    }];
+                }];
+            };
+            
+            assetCollectionsViewController.delegate = resolver;
+            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [resolver release];
+            
+            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
+            [assetCollectionsViewController release];
+            
+            //
+            
+            UIView *layerView = imageVisionLayer.cp_associatedView;
+            assert(layerView != nil);
+            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+            assert(viewController != nil);
+            
+            //
+            
+            [viewController presentViewController:navigationController animated:YES completion:nil];
+            [navigationController release];
+        }];
+        
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        });
+        
+        return action;
+    }
+    
+    //
+    
+    VNGenerateOpticalFlowRequestComputationAccuracy selectedComputationAccuracy = request.computationAccuracy;
+    
+    auto computationAccuracyActionsVec = std::vector<VNGenerateOpticalFlowRequestComputationAccuracy> {
+        VNGenerateOpticalFlowRequestComputationAccuracyLow,
+        VNGenerateOpticalFlowRequestComputationAccuracyMedium,
+        VNGenerateOpticalFlowRequestComputationAccuracyHigh,
+        VNGenerateOpticalFlowRequestComputationAccuracyVeryHigh
+    }
+    | std::views::transform([viewModel, request, selectedComputationAccuracy](VNGenerateOpticalFlowRequestComputationAccuracy computationAccuracy) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy(computationAccuracy) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            request.computationAccuracy = computationAccuracy;
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (selectedComputationAccuracy == computationAccuracy) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *computationAccuracyActions = [[NSArray alloc] initWithObjects:computationAccuracyActionsVec.data() count:computationAccuracyActionsVec.size()];
+    UIMenu *computationAccuraciesMenu = [UIMenu menuWithTitle:@"Computation Accuracy" children:computationAccuracyActions];
+    [computationAccuracyActions release];
+    computationAccuraciesMenu.subtitle = NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy(selectedComputationAccuracy);
+    
+    //
+    
+    BOOL keepNetworkOutput = request.keepNetworkOutput;
+    UIAction *keepNetworkOutputAction = [UIAction actionWithTitle:@"Keep Network Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.keepNetworkOutput = !keepNetworkOutput;
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    keepNetworkOutputAction.cp_overrideNumberOfSubtitleLines = 0;
+    keepNetworkOutputAction.subtitle = @"Setting this to `YES` will keep the raw pixel buffer coming from the the ML network. When set to `YES`, the outputPixelFormat is ignored.";
+    keepNetworkOutputAction.state = keepNetworkOutput ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateOpticalFlowRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        computationAccuraciesMenu,
+        keepNetworkOutputAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSArray<NSString *> *supportedAdjustmentKeys = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedAdjustmentKeysAndReturnError:"), &error);
+    assert(error == nil);
+    
+    NSMutableArray<UIAction *> *supportedAdjustmentKeyActions = [[NSMutableArray alloc] initWithCapacity:supportedAdjustmentKeys.count];
+    for (NSString *adjustmentKey in supportedAdjustmentKeys) {
+        UIAction *action = [UIAction actionWithTitle:adjustmentKey image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [supportedAdjustmentKeyActions addObject:action];
+    }
+    UIMenu *suportedIdentifiersMenu = [UIMenu menuWithTitle:@"Supported Adjustment Keys" children:supportedAdjustmentKeyActions];
+    suportedIdentifiersMenu.subtitle = [NSString stringWithFormat:@"%ld keys", supportedAdjustmentKeyActions.count];
+    [supportedAdjustmentKeyActions release];
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        suportedIdentifiersMenu,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
@@ -3374,7 +4017,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             request.revision = idx;
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (request.revision == idx) ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -3405,7 +4050,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             NSError * _Nullable error = nil;
             reinterpret_cast<void (*)(id, SEL, NSUInteger, id *)>(objc_msgSend)(request, sel_registerName("setRevision:error:"), idx, &error);
             assert(error == nil);
-            [viewModel updateRequest:request completionHandler:nil];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
         }];
         
         action.state = (request.revision == idx) ? UIMenuElementStateOn : UIMenuElementStateOff;
