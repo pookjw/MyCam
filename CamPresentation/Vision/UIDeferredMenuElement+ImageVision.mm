@@ -16,6 +16,8 @@
 #import <CoreML/CoreML.h>
 #import <CamPresentation/MLModelAsset+Category.h>
 #import <CamPresentation/ImageVision3DViewController.h>
+#import <CamPresentation/AssetCollectionsViewControllerDelegateResolver.h>
+#import <CamPresentation/CALayer+CP_UIKit.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -70,7 +72,7 @@
  VNGenerateFaceSegmentsRequest,✅
  VNGenerateGlassesSegmentationRequest,✅
  VNGenerateHumanAttributesSegmentationRequest,✅
- VNGenerateImageFeaturePrintRequest, // 별도의 View Controller를 만들어야 할 것 같음
+ VNGenerateImageFeaturePrintRequest,
  VNGenerateInstanceMaskRequest,
  VNGenerateForegroundInstanceMaskRequest,✅
  VNGenerateImageSegmentationRequest,
@@ -131,10 +133,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
             UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer];
             UIAction *humanBodyPose3DObservationSceneAction = [UIDeferredMenuElement _cp_imageVisionPresentHumanBodyPose3DObservationSceneViewWithViewModel:viewModel observations:observations image:image imageLayer:imageVisionLayer];
+            __kindof UIMenuElement *computeDistanceElement = [UIDeferredMenuElement _cp_imageVisionComputeDistanceElementWithViewModel:viewModel addedRequests:requests observations:observations image:image imageLayer:imageVisionLayer];
             UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer drawingRunLoop:drawingRunLoop];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[requestsMenu, humanBodyPose3DObservationSceneAction, imageVisionLayerMenu]);
+                completion(@[requestsMenu, humanBodyPose3DObservationSceneAction, computeDistanceElement, imageVisionLayerMenu]);
             });
         }];
     }];
@@ -176,7 +179,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAttentionBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateFaceSegmentsRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateGlassesSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateHumanAttributesSegmentationRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateHumanAttributesSegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -273,8 +277,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     }
     
     UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        auto layerView = static_cast<UIView *>(imageLayer.delegate);
-        assert([layerView isKindOfClass:[UIView class]]);
+        UIView *layerView = imageLayer.cp_associatedView;
+        assert(layerView != nil);
         UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
         assert(viewController != nil);
         
@@ -293,6 +297,105 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     action.cp_overrideNumberOfTitleLines = 0;
     return action;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionComputeDistanceElementWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageLayer:(ImageVisionLayer *)imageLayer {
+    auto emptyAction = ^UIAction * {
+        UIAction *action = [UIAction actionWithTitle:@"Compute Distance" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        action.subtitle = @"VNFeaturePrintObservation is required.";
+        
+        return action;
+    };
+    
+    //
+    
+    VNGenerateImageFeaturePrintRequest * _Nullable request = nil;
+    for (__kindof VNRequest *_request in requests) {
+        if ([_request isKindOfClass:[VNGenerateImageFeaturePrintRequest class]]) {
+            request = _request;
+            break;
+        }
+    }
+    
+    if (request == nil) {
+        return emptyAction();
+    }
+    
+    //
+    
+    NSMutableArray<UIAction *> *actions = [NSMutableArray new];
+    
+    for (VNFeaturePrintObservation *featurePrintObservation in observations) {
+        if (![featurePrintObservation isKindOfClass:[VNFeaturePrintObservation class]]) continue;
+        
+        UIAction *action = [UIAction actionWithTitle:featurePrintObservation.uuid.UUIDString image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+            
+            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.allObjects.firstObject;
+                assert(asset != nil);
+                
+                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
+                assert(presentingViewController != nil);
+                
+                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+                    [viewModel computeDistanceWithPHAsset:asset toFeaturePrintObservation:featurePrintObservation withRequest:request completionHandler:^(float distance, VNFeaturePrintObservation * _Nullable observationFromAsset, NSError * _Nullable error) {
+                        assert(error == nil);
+                        
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Done" message:[NSString stringWithFormat:@"distance: %lf", distance] preferredStyle:UIAlertControllerStyleAlert];
+                            
+                            UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                                
+                            }];
+                            
+                            [alertController addAction:doneAction];
+                            
+                            [presentingViewController presentViewController:alertController animated:YES completion:nil];
+                        });
+                    }];
+                }];
+            };
+            assetCollectionsViewController.delegate = resolver;
+            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [resolver release];
+            
+            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
+            [assetCollectionsViewController release];
+            
+            //
+            
+            UIView *layerView = imageLayer.cp_associatedView;
+            assert(layerView != nil);
+            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+            assert(viewController != nil);
+            
+            //
+            
+            [viewController presentViewController:navigationController animated:YES completion:nil];
+            [navigationController release];
+        }];
+        
+        action.cp_overrideNumberOfSubtitleLines = 0;
+        
+        [actions addObject:action];
+    }
+    
+    if (actions.count == 0) {
+        [actions release];
+        return emptyAction();
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Compute Distance" children:actions];
+    [actions release];
+    
+    return menu;
 }
 
 + (__kindof UIMenuElement *)_cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
@@ -1046,7 +1149,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -3100,7 +3203,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
@@ -3157,6 +3260,32 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         qualityLevelsMenu,
         supportedHumanAttributesMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateImageFeaturePrintRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNGenerateImageFeaturePrintRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNGenerateImageFeaturePrintRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[VNGenerateImageFeaturePrintRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:nil];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     

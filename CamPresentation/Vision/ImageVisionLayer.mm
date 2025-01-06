@@ -272,6 +272,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawImageNeuralHashprintObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == objc_lookUpClass("VNSceneObservation")) {
             [self _drawSceneObservationObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNFeaturePrintObservation class]) {
+            [self _drawFeaturePrintObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == objc_lookUpClass("VNSmartCamObservation")) {
             [self _drawSceneSmartCamObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNHumanObservation class]) {
@@ -1234,6 +1236,51 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CATextLayer *textLayer = [CATextLayer new];
     
     textLayer.string = imageNeuralHashprint.description;
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 17.;
+    
+    CGColorRef foregroundColor = CGColorCreateGenericGray(1., 1.);
+    textLayer.foregroundColor = foregroundColor;
+    CGColorRelease(foregroundColor);
+    
+    CGColorRef backgroundColor = CGColorCreateGenericGray(0., 0.4);
+    textLayer.backgroundColor = backgroundColor;
+    CGColorRelease(backgroundColor);
+    
+    textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(aspectBounds), CGRectGetHeight(self.bounds) - CGRectGetMinY(aspectBounds));
+    textLayer.contentsScale = self.contentsScale;
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawFeaturePrintObservation:(VNFeaturePrintObservation *)featurePrintObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    //
+    
+    NSString *featureprintObservationString = [ImageVisionLayer _stringFromFeaturePrintObservation:featurePrintObservation];
+    BOOL trimmed = (1500 < featureprintObservationString.length);
+    // 글자수 제한
+    featureprintObservationString = [featureprintObservationString substringWithRange:NSMakeRange(0, MIN(1500, featureprintObservationString.length))];
+    if (trimmed) {
+        featureprintObservationString = [featureprintObservationString stringByAppendingString:@"... (Trimmed)"];
+    }
+    
+    //
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    
+    textLayer.string = featureprintObservationString;
     textLayer.wrapped = YES;
     textLayer.fontSize = 17.;
     

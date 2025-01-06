@@ -16,7 +16,7 @@
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
-@interface AssetsViewController () <UICollectionViewDelegate>
+@interface AssetsViewController () <UICollectionViewDelegate, AssetViewControllerDelegate>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
 @end
@@ -79,8 +79,15 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     assert(asset != nil);
     
     AssetViewController *assetViewController = [[AssetViewController alloc] initWithCollection:collection asset:asset];
+    assetViewController.delegate = self;
     [self.navigationController pushViewController:assetViewController animated:YES];
     [assetViewController release];
+}
+
+- (void)assetViewController:(AssetViewController *)assetViewController didSelectAsset:(PHAsset *)selectedAsset {
+    if (id<AssetsViewControllerDelegate> delegate = self.delegate) {
+        [delegate assetsViewController:self didSelectAssets:[NSSet setWithObject:selectedAsset]];
+    }
 }
 
 @end

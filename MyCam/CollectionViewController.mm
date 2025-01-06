@@ -11,7 +11,7 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CamPresentation/AuthorizationsService.h>
 
-@interface CollectionViewController ()
+@interface CollectionViewController () <AssetCollectionsViewControllerDelegate>
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @end
@@ -110,6 +110,7 @@
 //    [viewController release];
     
     AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+    viewController.delegate = self;
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
     
@@ -148,8 +149,18 @@
     }
     
     __kindof UIViewController *viewController = [CollectionViewController.viewControllerClasses[indexPath.item] new];
+    
+    if ([viewController isKindOfClass:[AssetCollectionsViewController class]]) {
+        auto casted = static_cast<AssetCollectionsViewController *>(viewController);
+        casted.delegate = self;
+    }
+    
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
+}
+
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+    [self.navigationController popToRootViewControllerAnimated:YES];
 }
 
 @end

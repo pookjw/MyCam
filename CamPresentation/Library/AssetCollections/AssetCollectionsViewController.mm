@@ -19,7 +19,7 @@
 #import <CamPresentation/VideoPlayerListViewController.h>
 #include <random>
 
-@interface AssetCollectionsViewController () <UICollectionViewDelegate>
+@interface AssetCollectionsViewController () <UICollectionViewDelegate, AssetsViewControllerDelegate>
 @property (retain, nonatomic, readonly) AssetCollectionsDataSource *dataSource;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *switchLayoutBarButtonItem;
@@ -57,7 +57,9 @@
     
     self.navigationItem.titleView = self.tmpButton;
     
-    [self didTriggerTmpButton:nil];
+    if (self.presentingViewController == nil) {
+        [self didTriggerTmpButton:nil];
+    }
 }
 
 - (AssetCollectionsDataSource *)dataSource {
@@ -256,6 +258,7 @@
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
     PHAssetCollection *collection = [self.dataSource collectionAtIndexPath:indexPath];
     AssetsViewController *assetsViewController = [AssetsViewController new];
+    assetsViewController.delegate = self;
     assetsViewController.collection = collection;
     [self.navigationController pushViewController:assetsViewController animated:YES];
     [assetsViewController release];
@@ -263,6 +266,12 @@
 
 - (UICollectionViewTransitionLayout *)collectionView:(UICollectionView *)collectionView transitionLayoutForOldLayout:(UICollectionViewLayout *)fromLayout newLayout:(UICollectionViewLayout *)toLayout {
     return [[[UICollectionViewTransitionLayout alloc] initWithCurrentLayout:fromLayout nextLayout:toLayout] autorelease];
+}
+
+- (void)assetsViewController:(AssetsViewController *)assetsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+    if (id<AssetCollectionsViewControllerDelegate> delegate = self.delegate) {
+        [delegate assetCollectionsViewController:self didSelectAssets:selectedAssets];
+    }
 }
 
 @end

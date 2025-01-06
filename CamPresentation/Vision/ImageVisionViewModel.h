@@ -28,6 +28,8 @@ __attribute__((objc_direct_members))
 - (NSProgress *)updateWithSampleBuffer:(CMSampleBufferRef)sampleBuffer completionHandler:(void (^ _Nullable)(NSError * _Nullable error))completionHandler;
 
 - (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> *requests, NSArray<__kindof VNObservation *> *observations, UIImage * _Nullable image))completionHandler;
+
+- (NSProgress *)computeDistanceWithPHAsset:(PHAsset *)asset toFeaturePrintObservation:(VNFeaturePrintObservation *) featurePrint withRequest:(__kindof VNRequest *)request completionHandler:(void (^)(float distance, VNFeaturePrintObservation * _Nullable observationFromAsset, NSError * _Nullable error))completionHandler;
 @end
 
 NS_ASSUME_NONNULL_END

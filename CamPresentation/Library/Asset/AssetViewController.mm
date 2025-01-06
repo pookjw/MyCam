@@ -27,6 +27,7 @@
 @property (retain, nonatomic, readonly) UIBarButtonItem *playerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *nerualAnalzyerBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *imageVisionBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *selectBarButtonItem;
 @property (assign, nonatomic) NerualAnalyzerModelType modelType;
 @end
 
@@ -36,6 +37,7 @@
 @synthesize playerBarButtonItem = _playerBarButtonItem;
 @synthesize nerualAnalzyerBarButtonItem = _nerualAnalzyerBarButtonItem;
 @synthesize imageVisionBarButtonItem = _imageVisionBarButtonItem;
+@synthesize selectBarButtonItem = _selectBarButtonItem;
 
 - (instancetype)initWithCollection:(PHAssetCollection *)collection asset:(PHAsset *)asset {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -55,6 +57,7 @@
     [_playerBarButtonItem release];
     [_nerualAnalzyerBarButtonItem release];
     [_imageVisionBarButtonItem release];
+    [_selectBarButtonItem release];
     [super dealloc];
 }
 
@@ -68,7 +71,8 @@
     self.navigationItem.rightBarButtonItems = @[
         self.nerualAnalzyerBarButtonItem,
         self.playerBarButtonItem,
-        self.imageVisionBarButtonItem
+        self.imageVisionBarButtonItem,
+        self.selectBarButtonItem
     ];
     
     [self.dataSource updateCollection:self.collection completionHandler:^{
@@ -171,6 +175,15 @@
     return [imageVisionBarButtonItem autorelease];
 }
 
+- (UIBarButtonItem *)selectBarButtonItem {
+    if (auto selectBarButtonItem = _selectBarButtonItem) return selectBarButtonItem;
+    
+    UIBarButtonItem *selectBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Select" style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerSelectBarButtonItem:)];
+    
+    _selectBarButtonItem = [selectBarButtonItem retain];
+    return [selectBarButtonItem autorelease];
+}
+
 - (void)didTriggerPlayerBarButtonItem:(UIBarButtonItem *)sender {
     PHAsset *asset = [self currentVideoAsset];
     assert(asset != nil);
@@ -192,6 +205,14 @@
     
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];
+}
+
+- (void)didTriggerSelectBarButtonItem:(UIBarButtonItem *)sender {
+    if (id<AssetViewControllerDelegate> delegate = self.delegate) {
+        if (PHAsset *currentAsset = self.currentAsset) {
+            [delegate assetViewController:self didSelectAsset:currentAsset];
+        }
+    }
 }
 
 - (PHAsset * _Nullable)currentAsset {

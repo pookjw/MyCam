@@ -139,6 +139,124 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
     
+    NSProgress *imageProgress = [self _nonisolated_imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable) {
+        self._queue_image = image;
+        
+        NSProgress *performProgress = [self _queue_performRequests:self._queue_requests forImage:image completionHandler:^(NSError * _Nullable error) {
+            if (completionHandler) {
+                if (error) {
+                    completionHandler(nil, error);
+                } else {
+                    completionHandler(image, nil);
+                }
+            }
+        }];
+        
+        [progress addChild:performProgress withPendingUnitCount:1000000UL];
+    }];
+    
+    [progress addChild:imageProgress withPendingUnitCount:1000000UL];
+    
+    return progress;
+}
+
+- (NSProgress *)updateWithSampleBuffer:(CMSampleBufferRef)sampleBuffer completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    assert(sampleBuffer != NULL);
+    
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCMSampleBuffer:sampleBuffer options:@{
+        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+    }];
+    
+    dispatch_async(self._queue, ^{
+        self._queue_image = nil;
+        
+        NSProgress *subprogress = [self _queue_performRequests:self._queue_requests imageRequestHandler:imageRequestHandler completionHandler:completionHandler];
+        [progress addChild:subprogress withPendingUnitCount:1];
+    });
+    
+    [imageRequestHandler release];
+    
+    return progress;
+}
+
+- (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull, NSArray<__kindof VNObservation *> * _Nonnull, UIImage * _Nullable))completionHandler {
+    dispatch_block_t block = ^{
+        NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
+        
+        NSMutableArray<__kindof VNObservation *> *observations = [NSMutableArray new];
+        for (__kindof VNRequest *request in requests) {
+            [observations addObjectsFromArray:request.results];
+        }
+        
+        UIImage *image = self._queue_image;
+        
+        completionHandler(requests, observations, image);
+        [requests release];
+        [observations release];
+    };
+    
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if (dispatch_get_current_queue() == self._queue) {
+#pragma clang diagnostic pop
+        block();
+    } else {
+        dispatch_async(self._queue, block);
+    }
+}
+
+- (NSProgress *)computeDistanceWithPHAsset:(PHAsset *)asset toFeaturePrintObservation:(VNFeaturePrintObservation *)featurePrint withRequest:(__kindof VNRequest *)request completionHandler:(void (^)(float, VNFeaturePrintObservation * _Nullable, NSError * _Nullable))completionHandler {
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
+    
+    NSProgress *imageProgress = [self _nonisolated_imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+        if (error != nil) {
+            completionHandler(NAN, nil, error);
+            return;
+        }
+        
+        __kindof VNRequest *copiedRequest = [request copy];
+        
+        NSProgress *performProgress = [self _queue_performRequests:@[copiedRequest] forImage:image completionHandler:^(NSError * _Nullable error) {
+            if (error != nil) {
+                completionHandler(NAN, nil, error);
+                return;
+            }
+            
+            VNFeaturePrintObservation * _Nullable outputObservation = nil;
+            for (__kindof VNObservation *observation in copiedRequest.results) {
+                if ([observation isKindOfClass:[VNFeaturePrintObservation class]]) {
+                    assert(outputObservation == nil);
+                    outputObservation = static_cast<VNFeaturePrintObservation *>(observation);
+//                    break;
+                }
+            }
+            
+            float distance;
+            [featurePrint computeDistance:&distance toFeaturePrintObservation:outputObservation error:&error];
+            
+            if (error != nil) {
+                completionHandler(NAN, nil, error);
+                return;
+            }
+            
+            completionHandler(distance, outputObservation, nil);
+        }];
+        
+        [copiedRequest release];
+        [progress addChild:performProgress withPendingUnitCount:1000000UL];
+    }];
+    
+    [progress addChild:imageProgress withPendingUnitCount:1000000UL];
+    return progress;
+}
+
+- (NSProgress *)_nonisolated_imageFromPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler {
+    assert(asset.mediaType == PHAssetMediaTypeImage);
+    
+    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1000000UL];
+    
     dispatch_async(self._queue, ^{
         if (__queue_imageRequestID != PHInvalidImageRequestID) {
             [PHImageManager.defaultManager cancelImageRequest:__queue_imageRequestID];
@@ -197,17 +315,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
             progress.completedUnitCount = 1000000UL;
             
             self._queue_image = result;
-            NSProgress *subprogress = [self _queue_performRequests:self._queue_requests forImage:result completionHandler:^(NSError * _Nullable error) {
-                if (completionHandler) {
-                    if (error) {
-                        completionHandler(nil, error);
-                    } else {
-                        completionHandler(result, nil);
-                    }
-                }
-            }];
-            
-            [progress addChild:subprogress withPendingUnitCount:1000000UL];
+            completionHandler(result, nil);
         }];
         
         [options release];
@@ -223,53 +331,6 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     });
     
     return progress;
-}
-
-- (NSProgress *)updateWithSampleBuffer:(CMSampleBufferRef)sampleBuffer completionHandler:(void (^)(NSError * _Nullable))completionHandler {
-    assert(sampleBuffer != NULL);
-    
-    NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
-    
-    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCMSampleBuffer:sampleBuffer options:@{
-        MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
-    }];
-    
-    dispatch_async(self._queue, ^{
-        self._queue_image = nil;
-        
-        NSProgress *subprogress = [self _queue_performRequests:self._queue_requests imageRequestHandler:imageRequestHandler completionHandler:completionHandler];
-        [progress addChild:subprogress withPendingUnitCount:1];
-    });
-    
-    [imageRequestHandler release];
-    
-    return progress;
-}
-
-- (void)getValuesWithCompletionHandler:(void (^)(NSArray<__kindof VNRequest *> * _Nonnull, NSArray<__kindof VNObservation *> * _Nonnull, UIImage * _Nullable))completionHandler {
-    dispatch_block_t block = ^{
-        NSArray<__kindof VNRequest *> *requests = [self._queue_requests copy];
-        
-        NSMutableArray<__kindof VNObservation *> *observations = [NSMutableArray new];
-        for (__kindof VNRequest *request in requests) {
-            [observations addObjectsFromArray:request.results];
-        }
-        
-        UIImage *image = self._queue_image;
-        
-        completionHandler(requests, observations, image);
-        [requests release];
-        [observations release];
-    };
-    
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    if (dispatch_get_current_queue() == self._queue) {
-#pragma clang diagnostic pop
-        block();
-    } else {
-        dispatch_async(self._queue, block);
-    }
 }
 
 - (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
@@ -316,8 +377,12 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
     
     [self _postDidChangeObservationsNotification];
     
-    progress.completedUnitCount += 1;
-    assert(progress.isFinished);
+    if (error != nil) {
+        [progress pause];
+    } else {
+        progress.completedUnitCount += 1;
+        assert(progress.isFinished);
+    }
     
     self.loading = NO;
     
