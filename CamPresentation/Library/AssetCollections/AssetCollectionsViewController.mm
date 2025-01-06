@@ -240,7 +240,7 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"A8E104C2-0373-4902-B6F7-B36758C674F6/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"FB667755-9F25-465E-90BF-5E2D735E9048/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [ImageVisionViewController new];
     [viewController updateWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];

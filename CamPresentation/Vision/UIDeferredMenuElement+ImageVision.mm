@@ -3587,8 +3587,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-// com.apple.mobileassetd.v2
-#warning TODO
+// TODO: https://x.com/_silgen_name/status/1876233639396295167
 + (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateImageSegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
     __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateImageSegmentationRequest") addedRequests:requests];
     
@@ -3597,6 +3596,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateImageSegmentationRequest") alloc] initWithCompletionHandler:nil];
             
             [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                NSLog(@"%@", error);
                 assert(error == nil);
             }];
             
@@ -3604,6 +3604,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         }];
         
 //        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        action.subtitle = @"Requires Private Entitlement";
         
         return action;
     }
@@ -3613,6 +3614,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateImageSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
+    menu.subtitle = @"Requires Private Entitlement";
     
     return menu;
 }
@@ -3934,7 +3936,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }

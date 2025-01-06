@@ -26,5 +26,9 @@
 	<true/>
 	<key>com.apple.security.personal-information.photos-library</key>
 	<true/>
+	<key>com.apple.private.assets.accessible-asset-types</key>
+	<array>
+		<string>com.apple.MobileAsset.UAF.Photos.MagicCleanup</string>
+	</array>
 </dict>
 </plist>
