@@ -2252,39 +2252,35 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawImageHomographicAlignmentObservation:(VNImageHomographicAlignmentObservation *)imageHomographicAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    // TODO
+    
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
     UIImage *image = self.image;
     assert(image != nil);
+    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+    CIImage *ciImage = [[CIImage alloc] initWithCGImage:cgImage];
     
     matrix_float3x3 warpTransform = imageHomographicAlignmentObservation.warpTransform;
-    NSLog(@"%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
-          warpTransform.columns[0][0], warpTransform.columns[1][0], warpTransform.columns[2][0],
-          warpTransform.columns[0][1], warpTransform.columns[1][1], warpTransform.columns[2][1],
-          warpTransform.columns[0][2], warpTransform.columns[1][2], warpTransform.columns[2][2]);
+//    NSLog(@"%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+//          warpTransform.columns[0][0], warpTransform.columns[1][0], warpTransform.columns[2][0],
+//          warpTransform.columns[0][1], warpTransform.columns[1][1], warpTransform.columns[2][1],
+//          warpTransform.columns[0][2], warpTransform.columns[1][2], warpTransform.columns[2][2]);
     
     CGAffineTransform warpAffineTransform = CGAffineTransformMake(warpTransform.columns[0][0], warpTransform.columns[0][1],
                                                                   warpTransform.columns[1][0], warpTransform.columns[1][1],
                                                                   warpTransform.columns[2][0], warpTransform.columns[2][1]);
     
-    warpAffineTransform.tx *= CGRectGetWidth(aspectBounds);
-    warpAffineTransform.ty *= CGRectGetHeight(aspectBounds);
+    warpAffineTransform.tx *= CGRectGetWidth(ciImage.extent);
+    warpAffineTransform.ty *= CGRectGetHeight(ciImage.extent);
     
-    NSLog(@"a: %lf, b: %lf, c: %lf, d: %lf, tx: %lf, ty: %lf", warpAffineTransform.a, warpAffineTransform.b, warpAffineTransform.c, warpAffineTransform.d, warpAffineTransform.tx, warpAffineTransform.ty);
-//    warpAffineTransform.tx = 0.;
-//    warpAffineTransform.ty = 0.;
+    CIImage *transformed = [ciImage imageByApplyingTransform:warpAffineTransform];
+    [ciImage release];
     
-//    CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds));
-//    
-//    CGAffineTransform finalTransform = CGAffineTransformConcat(transform, warpAffineTransform);
-    
-    CGContextConcatCTM(ctx, warpAffineTransform);
-    
-    UIGraphicsPushContext(ctx);
-//    [image drawInRect:aspectBounds];
-    [image drawAtPoint:CGPointZero];
-    UIGraphicsPopContext();
+    CGImageRef transformedCGImage = [self._ciContext createCGImage:transformed fromRect:transformed.extent];
+    CGContextDrawImage(ctx, aspectBounds, transformedCGImage);
+    CGImageRelease(transformedCGImage);
     
     CGContextRestoreGState(ctx);
     [pool release];

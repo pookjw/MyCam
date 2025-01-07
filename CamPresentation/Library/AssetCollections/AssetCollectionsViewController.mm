@@ -240,14 +240,18 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"034A45B6-89BC-4ECB-9A75-9A77D32509D7/L0/001"] options:nil][0];
-    ImageVisionViewController *viewController = [ImageVisionViewController new];
-    [viewController updateWithAsset:asset];
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
-    [viewController release];
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentViewController:navigationController animated:YES completion:nil];
-    [navigationController release];
+    /*
+     510BAACD-B885-4AF0-A635-627E5BE7E3E0/L0/001 Table
+     034A45B6-89BC-4ECB-9A75-9A77D32509D7/L0/001 Book
+     */
+//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"034A45B6-89BC-4ECB-9A75-9A77D32509D7/L0/001"] options:nil][0];
+//    ImageVisionViewController *viewController = [ImageVisionViewController new];
+//    [viewController updateWithAsset:asset];
+//    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
+//    [viewController release];
+//    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+//    [self presentViewController:navigationController animated:YES completion:nil];
+//    [navigationController release];
     
 //    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"921040DB-1932-4B9D-81A0-84DBED8169A5/L0/001"] options:nil][0];
 //    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];

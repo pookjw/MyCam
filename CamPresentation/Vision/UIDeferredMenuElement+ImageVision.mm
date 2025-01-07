@@ -86,7 +86,7 @@
  VNGeneratePersonInstanceMaskRequest,✅
  VNGeneratePersonSegmentationRequest,✅
  VNGenerateSkySegmentationRequest,✅
- VNHomographicImageRegistrationRequest,
+ VNHomographicImageRegistrationRequest,﹖
  VNIdentifyJunkRequest,
  VNImageBlurScoreRequest,
  VNImageExposureScoreRequest,
@@ -4046,81 +4046,61 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-//            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
-//            
-//            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-//            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-//                PHAsset *asset = selectedAssets.allObjects.firstObject;
-//                assert(asset != nil);
-//                
-//                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
-//                assert(presentingViewController != nil);
-//                
-//                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
-//                    [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
-//                        assert(error == nil);
-//                        
-//                        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-//                        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
-//                        
-//                        VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
-//                            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
-//                        }];
-//                        
-//                        [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
-//                            assert(error == nil);
-//                        }];
-//                        
-//                        [request release];
-//                    }];
-//                }];
-//            };
-//            
-//            assetCollectionsViewController.delegate = resolver;
-//            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-//            [resolver release];
-//            
-//            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
-//            [assetCollectionsViewController release];
-//            
-//            //
-//            
-//            UIView *layerView = imageVisionLayer.cp_associatedView;
-//            assert(layerView != nil);
-//            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
-//            assert(viewController != nil);
-//            
-//            //
-//            
-//            [viewController presentViewController:navigationController animated:YES completion:nil];
-//            [navigationController release];
+            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
             
-            PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"510BAACD-B885-4AF0-A635-627E5BE7E3E0/L0/001"] options:nil][0];
-            [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
-                assert(error == nil);
+            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.allObjects.firstObject;
+                assert(asset != nil);
                 
-                CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-                CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
+                assert(presentingViewController != nil);
                 
-                VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
-                    MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+                    [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+                        assert(error == nil);
+                        
+                        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+                        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+                        
+                        VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+                            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+                        }];
+                        
+                        [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                            assert(error == nil);
+                        }];
+                        
+                        [request release];
+                    }];
                 }];
-                
-                [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
-                    assert(error == nil);
-                }];
-                
-                [request release];
-            }];
+            };
             
-            // https://docs.opencv.org/3.0-beta/doc/tutorials/features2d/feature_homography/feature_homography.html
-            // https://docs.opencv.org/3.4/d9/dab/tutorial_homography.html
-            // https://developer.apple.com/documentation/corefoundation/cgaffinetransform?language=objc
+            assetCollectionsViewController.delegate = resolver;
+            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [resolver release];
+            
+            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
+            [assetCollectionsViewController release];
+            
+            //
+            
+            UIView *layerView = imageVisionLayer.cp_associatedView;
+            assert(layerView != nil);
+            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+            assert(viewController != nil);
+            
+            //
+            
+            [viewController presentViewController:navigationController animated:YES completion:nil];
+            [navigationController release];
         }];
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
-        });
+        action.subtitle = @"항등행렬이 나옴?";
+        
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        });
         
         return action;
     }
@@ -4130,6 +4110,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
+    menu.subtitle = @"항등행렬이 나옴?";
     
     return menu;
 }
