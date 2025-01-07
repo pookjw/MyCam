@@ -189,7 +189,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackOpticalFlowRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateSkySegmentationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -4041,25 +4041,86 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     VNHomographicImageRegistrationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNHomographicImageRegistrationRequest class] addedRequests:requests];
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+//            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+//            
+//            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
+//            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
+//                PHAsset *asset = selectedAssets.allObjects.firstObject;
+//                assert(asset != nil);
+//                
+//                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
+//                assert(presentingViewController != nil);
+//                
+//                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+//                    [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+//                        assert(error == nil);
+//                        
+//                        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+//                        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+//                        
+//                        VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+//                            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+//                        }];
+//                        
+//                        [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+//                            assert(error == nil);
+//                        }];
+//                        
+//                        [request release];
+//                    }];
+//                }];
+//            };
+//            
+//            assetCollectionsViewController.delegate = resolver;
+//            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+//            [resolver release];
+//            
+//            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
+//            [assetCollectionsViewController release];
+//            
+//            //
+//            
+//            UIView *layerView = imageVisionLayer.cp_associatedView;
+//            assert(layerView != nil);
+//            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+//            assert(viewController != nil);
+//            
+//            //
+//            
+//            [viewController presentViewController:navigationController animated:YES completion:nil];
+//            [navigationController release];
             
-            // TODO: VNGenerateOpticalFlowRequest 보고 따라하기
+            PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"510BAACD-B885-4AF0-A635-627E5BE7E3E0/L0/001"] options:nil][0];
+            [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+                assert(error == nil);
+                
+                CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+                CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+                
+                VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+                    MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+                }];
+                
+                [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+                
+                [request release];
+            }];
+            
             // https://docs.opencv.org/3.0-beta/doc/tutorials/features2d/feature_homography/feature_homography.html
+            // https://docs.opencv.org/3.4/d9/dab/tutorial_homography.html
             // https://developer.apple.com/documentation/corefoundation/cgaffinetransform?language=objc
-//            VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:<#(nonnull CGImageRef)#> orientation:<#(CGImagePropertyOrientation)#> options:<#(nonnull NSDictionary<VNImageOption,id> *)#> completionHandler:<#^(VNRequest * _Nonnull request, NSError * _Nullable error)completionHandler#>];
-//            
-//            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
-//                assert(error == nil);
-//            }];
-//            
-//            [request release];
         }];
         
-//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        });
         
         return action;
     }

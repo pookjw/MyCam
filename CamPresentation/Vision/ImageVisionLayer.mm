@@ -312,6 +312,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawSaliencyImageObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == objc_lookUpClass("VN1vLyVSh30UQ26TGBoV8MHv")) {
             [self _draw1vLyVSh30UQ26TGBoV8MHv:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNImageHomographicAlignmentObservation class]) {
+            [self _drawImageHomographicAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2244,6 +2246,45 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     [textLayer renderInContext:ctx];
     [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageHomographicAlignmentObservation:(VNImageHomographicAlignmentObservation *)imageHomographicAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    UIImage *image = self.image;
+    assert(image != nil);
+    
+    matrix_float3x3 warpTransform = imageHomographicAlignmentObservation.warpTransform;
+    NSLog(@"%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+          warpTransform.columns[0][0], warpTransform.columns[1][0], warpTransform.columns[2][0],
+          warpTransform.columns[0][1], warpTransform.columns[1][1], warpTransform.columns[2][1],
+          warpTransform.columns[0][2], warpTransform.columns[1][2], warpTransform.columns[2][2]);
+    
+    CGAffineTransform warpAffineTransform = CGAffineTransformMake(warpTransform.columns[0][0], warpTransform.columns[0][1],
+                                                                  warpTransform.columns[1][0], warpTransform.columns[1][1],
+                                                                  warpTransform.columns[2][0], warpTransform.columns[2][1]);
+    
+    warpAffineTransform.tx *= CGRectGetWidth(aspectBounds);
+    warpAffineTransform.ty *= CGRectGetHeight(aspectBounds);
+    
+    NSLog(@"a: %lf, b: %lf, c: %lf, d: %lf, tx: %lf, ty: %lf", warpAffineTransform.a, warpAffineTransform.b, warpAffineTransform.c, warpAffineTransform.d, warpAffineTransform.tx, warpAffineTransform.ty);
+//    warpAffineTransform.tx = 0.;
+//    warpAffineTransform.ty = 0.;
+    
+//    CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds), CGRectGetMinY(aspectBounds));
+//    
+//    CGAffineTransform finalTransform = CGAffineTransformConcat(transform, warpAffineTransform);
+    
+    CGContextConcatCTM(ctx, warpAffineTransform);
+    
+    UIGraphicsPushContext(ctx);
+//    [image drawInRect:aspectBounds];
+    [image drawAtPoint:CGPointZero];
+    UIGraphicsPopContext();
     
     CGContextRestoreGState(ctx);
     [pool release];
