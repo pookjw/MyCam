@@ -240,14 +240,14 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"FB667755-9F25-465E-90BF-5E2D735E9048/L0/001"] options:nil][0];
-    ImageVisionViewController *viewController = [ImageVisionViewController new];
-    [viewController updateWithAsset:asset];
-    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
-    [viewController release];
-    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
-    [self presentViewController:navigationController animated:YES completion:nil];
-    [navigationController release];
+//    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"0766CF78-FAC1-4431-BBA1-EA945D65AC69/L0/001"] options:nil][0];
+//    ImageVisionViewController *viewController = [ImageVisionViewController new];
+//    [viewController updateWithAsset:asset];
+//    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
+//    [viewController release];
+//    navigationController.modalPresentationStyle = UIModalPresentationFullScreen;
+//    [self presentViewController:navigationController animated:YES completion:nil];
+//    [navigationController release];
     
 //    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"921040DB-1932-4B9D-81A0-84DBED8169A5/L0/001"] options:nil][0];
 //    VideoPlayerListViewController *viewController = [[VideoPlayerListViewController alloc] initWithAsset:asset];

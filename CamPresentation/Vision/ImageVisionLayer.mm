@@ -252,6 +252,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:NULL inContext:ctx];
             } else if ([requestClassName isEqualToString:@"VNGenerateOpticalFlowRequest"]) {
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:NULL inContext:ctx];
+            } else if ([requestClassName isEqualToString:@"VNGenerateSkySegmentationRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
             } else {
                 NSLog(@"%@", requestClassName);
                 abort();
@@ -2210,8 +2212,38 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGContextSaveGState(ctx);
     
     NSArray<NSString *> *adjustmentKeys = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(observation, sel_registerName("adjustmentKeys"));
+    NSMutableArray<NSString *> *substrings = [[NSMutableArray alloc] initWithCapacity:adjustmentKeys.count];
     
-#warning TODO
+    for (NSString *adjustmentKey in adjustmentKeys) {
+        NSArray<NSNumber *> *values = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(observation, sel_registerName("adjustmentValuesForKey:"), adjustmentKey);
+        [substrings addObject:[NSString stringWithFormat:@"%@: %@", adjustmentKey, values]];
+    }
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    textLayer.string = [substrings componentsJoinedByString:@"\n"];
+    [substrings release];
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 14.;
+    textLayer.contentsScale = self.contentsScale;
+    
+    NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+        NSFontAttributeName: (id)textLayer.font
+    }];
+    CGSize textSize = attributeString.size;
+    [attributeString release];
+    
+    textLayer.frame = CGRectMake(0.,
+                                 0.,
+                                 textSize.width,
+                                 textSize.height);
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                     CGRectGetMinY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
     
     CGContextRestoreGState(ctx);
     [pool release];

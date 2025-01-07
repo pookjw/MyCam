@@ -78,14 +78,14 @@
  VNGenerateImageFeaturePrintRequest,✅
  VNGenerateInstanceMaskRequest,✅
  VNGenerateForegroundInstanceMaskRequest,✅
- VNGenerateImageSegmentationRequest, (doing)
+ VNGenerateImageSegmentationRequest, ✅
  VNGenerateInstanceMaskGatingRequest,✅
  VNGenerateObjectnessBasedSaliencyImageRequest,✅
  VNGenerateOpticalFlowRequest,✅
- VN1JC7R3k4455fKQz0dY1VhQ,
+ VN1JC7R3k4455fKQz0dY1VhQ,✅
  VNGeneratePersonInstanceMaskRequest,✅
  VNGeneratePersonSegmentationRequest,✅
- VNGenerateSkySegmentationRequest,
+ VNGenerateSkySegmentationRequest,✅
  VNHomographicImageRegistrationRequest,
  VNIdentifyJunkRequest,
  VNImageBlurScoreRequest,
@@ -187,7 +187,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateObjectnessBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateOpticalFlowRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackOpticalFlowRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateSkySegmentationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -3495,7 +3497,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            __kindof VNImageBasedRequest *request = [[VNGenerateImageFeaturePrintRequest alloc] initWithCompletionHandler:nil];
+            VNGenerateImageFeaturePrintRequest *request = [[VNGenerateImageFeaturePrintRequest alloc] initWithCompletionHandler:nil];
             
             [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
                 assert(error == nil);
@@ -3963,6 +3965,108 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         suportedIdentifiersMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNGenerateSkySegmentationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNGenerateSkySegmentationRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateSkySegmentationRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNGenerateSkySegmentationRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    VNGeneratePersonSegmentationRequestQualityLevel currentQualityLevel = reinterpret_cast<VNGeneratePersonSegmentationRequestQualityLevel (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("qualityLevel"));
+    
+    auto qualityLevelActionsVec = std::vector<VNGeneratePersonSegmentationRequestQualityLevel> {
+        VNGeneratePersonSegmentationRequestQualityLevelAccurate,
+        VNGeneratePersonSegmentationRequestQualityLevelBalanced,
+        VNGeneratePersonSegmentationRequestQualityLevelFast
+    }
+    | std::views::transform([viewModel, request, currentQualityLevel](const VNGeneratePersonSegmentationRequestQualityLevel qualityLevel) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(qualityLevel)
+                                               image:nil
+                                          identifier:nil
+                                             handler:^(__kindof UIAction * _Nonnull action) {
+            reinterpret_cast<void (*)(id, SEL, VNGeneratePersonSegmentationRequestQualityLevel)>(objc_msgSend)(request, sel_registerName("setQualityLevel:"), qualityLevel);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (currentQualityLevel == qualityLevel) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *qualityLevelActions = [[NSArray alloc] initWithObjects:qualityLevelActionsVec.data() count:qualityLevelActionsVec.size()];
+    UIMenu *qualityLevelsMenu = [UIMenu menuWithTitle:@"Quality Levels" children:qualityLevelActions];
+    [qualityLevelActions release];
+    qualityLevelsMenu.subtitle = NSStringFromVNGeneratePersonSegmentationRequestQualityLevel(currentQualityLevel);
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"dependencyProcessingOrdinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateSkySegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        qualityLevelsMenu,
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNHomographicImageRegistrationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNHomographicImageRegistrationRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+            // TODO: VNGenerateOpticalFlowRequest 보고 따라하기
+            // https://docs.opencv.org/3.0-beta/doc/tutorials/features2d/feature_homography/feature_homography.html
+            // https://developer.apple.com/documentation/corefoundation/cgaffinetransform?language=objc
+//            VNHomographicImageRegistrationRequest *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:<#(nonnull CGImageRef)#> orientation:<#(CGImagePropertyOrientation)#> options:<#(nonnull NSDictionary<VNImageOption,id> *)#> completionHandler:<#^(VNRequest * _Nonnull request, NSError * _Nullable error)completionHandler#>];
+//            
+//            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+//                assert(error == nil);
+//            }];
+//            
+//            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
