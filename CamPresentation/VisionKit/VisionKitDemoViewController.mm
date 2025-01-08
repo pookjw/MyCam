@@ -6,26 +6,35 @@
 //
 
 #import <CamPresentation/VisionKitDemoViewController.h>
+#import <VisionKit/VisionKit.h>
 
 @interface VisionKitDemoViewController ()
-
+@property (retain, nonatomic, readonly) UICollectionViewCellRegistration *_cellRegistration;
 @end
 
 @implementation VisionKitDemoViewController
 
+- (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceInsetGrouped];
+    
+    UICollectionViewCompositionalLayout *collectionViewLayout = [UICollectionViewCompositionalLayout layoutWithListConfiguration:listConfiguration];
+    [listConfiguration release];
+    
+    if (self = [super initWithCollectionViewLayout:collectionViewLayout]) {
+        
+    }
+    
+    return self;
+}
+
+- (void)dealloc {
+    [__cellRegistration release];
+    [super dealloc];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = UIColor.systemCyanColor;
+    [self _cellRegistration];
 }
-
-/*
-#pragma mark - Navigation
-
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
-}
-*/
 
 @end
