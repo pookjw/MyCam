@@ -42,6 +42,8 @@
     [super viewDidLoad];
     [self _cellRegistration];
     self.navigationItem.rightBarButtonItem = self._dcSettingsBarButtonItem;
+    
+//    reinterpret_cast<void (*)(id, SEL, id, BOOL, UICollectionViewScrollPosition, BOOL, BOOL, BOOL, BOOL)>(objc_msgSend)(self.collectionView, sel_registerName("_selectItemAtIndexPath:animated:scrollPosition:notifyDelegate:deselectPrevious:performPrimaryAction:performCustomSelectionAction:"), [NSIndexPath indexPathForItem:2 inSection:0], NO, 0, YES, YES, NO, NO);
 }
 
 - (UICollectionViewCellRegistration *)_cellRegistration {
@@ -218,8 +220,7 @@
 }
 
 - (void)documentCameraViewController:(VNDocumentCameraViewController *)controller didFinishWithScan:(VNDocumentCameraScan *)scan {
-#warning TODO
-    abort();
+    NSLog(@"%@", scan);
 }
 
 @end

@@ -2398,7 +2398,13 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGRect convertedBoundingBox;
     [self _drawDetectedObjectObservation:documentObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
     
-#warning TODO
+    
+    /*
+     VNRecognizedTextBlockObservation
+     */
+    NSArray *blocks = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("blocks"));
+    id title = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("title"));
+    NSString *transcript = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("transcript"));
     
     CGContextRestoreGState(ctx);
     [pool release];

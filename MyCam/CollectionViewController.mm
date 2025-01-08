@@ -10,6 +10,8 @@
 #import <TargetConditionals.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <CamPresentation/AuthorizationsService.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface CollectionViewController () <AssetCollectionsViewControllerDelegate>
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
@@ -110,10 +112,10 @@
 //    [self.navigationController pushViewController:viewController animated:NO];
 //    [viewController release];
     
-//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-//    viewController.delegate = self;
-//    [self.navigationController pushViewController:viewController animated:YES];
-//    [viewController release];
+    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+    viewController.delegate = self;
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
@@ -122,6 +124,10 @@
 //#endif
 //    [self.navigationController pushViewController:cameraRootViewController animated:YES];
 //    [cameraRootViewController release];
+    
+//    VisionKitDemoViewController *viewController = [VisionKitDemoViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
 }
 
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
