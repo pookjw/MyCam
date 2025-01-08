@@ -21,6 +21,7 @@
 #import <CamPresentation/NSStringFromVNImageCropAndScaleOption.h>
 #import <CamPresentation/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.h>
 #import <CamPresentation/NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy.h>
+#import <CamPresentation/NSStringFromVNRequestTextRecognitionLevel.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -87,18 +88,18 @@
  VNGeneratePersonSegmentationRequest,✅
  VNGenerateSkySegmentationRequest,✅
  VNHomographicImageRegistrationRequest,﹖
- VNIdentifyJunkRequest,
- VNImageBlurScoreRequest,
- VNImageExposureScoreRequest,
- VNNOPRequest,
- VNRecognizeAnimalsRequest,
- VNRecognizeAnimalHeadsRequest,
- VNRecognizeAnimalFacesRequest,
- VNRecognizeFoodAndDrinkRequest,
- VNRecognizeObjectsRequest,
- VNRecognizeSportBallsRequest,
- VNRecognizeTextRequest,
- VNRecognizeDocumentElementsRequest,
+ VNIdentifyJunkRequest,✅
+ VNImageBlurScoreRequest,✅
+ VNImageExposureScoreRequest,✅
+ VNNOPRequest,✅
+ VNRecognizeAnimalsRequest,✅
+ VNRecognizeAnimalHeadsRequest,✅
+ VNRecognizeAnimalFacesRequest,✅
+ VNRecognizeFoodAndDrinkRequest,✅
+ VNRecognizeObjectsRequest,✅
+ VNRecognizeSportBallsRequest,✅
+ VNRecognizeTextRequest,✅
+ VNRecognizeDocumentElementsRequest,﹖
  VNRecognizeDocumentsRequest,
  VNRemoveBackgroundRequest,
  VNSceneClassificationRequest,
@@ -187,9 +188,18 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateObjectnessBasedSaliencyImageRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateOpticalFlowRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackOpticalFlowRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateSkySegmentationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNIdentifyJunkRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNImageBlurScoreRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNImageExposureScoreRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeAnimalsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeAnimalHeadsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeAnimalFacesRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeFoodAndDrinkRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeObjectsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeSportBallsRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeTextRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -210,7 +220,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNCreateSmartCamprintRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNCreateTorsoprintRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateAnimalSegmentationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateInstanceMaskRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNGenerateInstanceMaskRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVN1JC7R3k4455fKQz0dY1VhQWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNNOPRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentElementsRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     //
@@ -1818,8 +1832,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.maximumImageDimension = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -1860,8 +1874,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.maximumImageDimension = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -1920,10 +1934,6 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     }];
     inHierarchyAction.subtitle = @"???";
     inHierarchyAction.state = inHierarchy ? UIMenuElementStateOn : UIMenuElementStateOff;
-    
-    //
-    
-    // TOOD
     
     //
     
@@ -2522,8 +2532,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.minimumAspectRatio = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -2567,8 +2577,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.maximumAspectRatio = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -2612,8 +2622,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.quadratureTolerance = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -2657,8 +2667,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.minimumSize = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -2702,8 +2712,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.minimumConfidence = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -3164,8 +3174,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.objectMinimumNormalizedRadius = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -3212,8 +3222,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 [request cancel];
                 request.objectMaximumNormalizedRadius = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+                    assert(error == nil);
+                }];
             }
         }];
         
@@ -3506,41 +3516,10 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [request release];
         }];
         
-//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        //        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
         
         return action;
     }
-    
-    //
-    
-    VNImageCropAndScaleOption selectedOption = request.imageCropAndScaleOption;
-    
-    auto optionsVec = std::vector<VNImageCropAndScaleOption> {
-        VNImageCropAndScaleOptionCenterCrop,
-        VNImageCropAndScaleOptionScaleFit,
-        VNImageCropAndScaleOptionScaleFill,
-        VNImageCropAndScaleOptionScaleFitRotate90CCW,
-        VNImageCropAndScaleOptionScaleFillRotate90CCW
-    }
-    | std::views::transform([viewModel, request, selectedOption](VNImageCropAndScaleOption option) {
-        UIAction *action = [UIAction actionWithTitle:NSStringFromVNImageCropAndScaleOption(option) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            [request cancel];
-            request.imageCropAndScaleOption = option;
-            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
-        }];
-        
-        action.state = (selectedOption == option) ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        return action;
-    })
-    | std::ranges::to<std::vector<UIAction *>>();
-    
-    NSArray<UIAction *> *optionActions = [[NSArray alloc] initWithObjects:optionsVec.data() count:optionsVec.size()];
-    UIMenu *optionsMenu = [UIMenu menuWithTitle:@"Image Crop And Scale Options" children:optionActions];
-    [optionActions release];
-    optionsMenu.subtitle = NSStringFromVNImageCropAndScaleOption(selectedOption);
     
     //
     
@@ -3549,7 +3528,6 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        optionsMenu,
         computeDistanceElement,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
@@ -4115,7 +4093,884 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNIdentifyJunkRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNIdentifyJunkRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNIdentifyJunkRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNIdentifyJunkRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNIdentifyJunkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
 
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNImageBlurScoreRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNImageBlurScoreRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNImageBlurScoreRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNImageBlurScoreRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSUInteger maximumIntermediateSideLength = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("maximumIntermediateSideLength"));
+    
+    __kindof UIMenuElement *maximumIntermediateSideLengthStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(maximumIntermediateSideLength).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.minimumValue = 1;
+        stepper.value = maximumIntermediateSideLength;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UIStepper *>(action.sender);
+            double value = slider.value;
+            
+            label.text = @(static_cast<NSUInteger>(value)).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setMaximumIntermediateSideLength:"), value);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *maximumIntermediateSideLengthMenu = [UIMenu menuWithTitle:@"Maximum Intermediate Side Length" children:@[maximumIntermediateSideLengthStepperElement]];
+    
+    //
+    
+    NSUInteger blurDeterminationMethod = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("blurDeterminationMethod"));
+    
+    __kindof UIMenuElement *blurDeterminationMethodStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(blurDeterminationMethod).stringValue;
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.minimumValue = 0;
+        stepper.value = blurDeterminationMethod;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UIStepper *>(action.sender);
+            double value = slider.value;
+            
+            label.text = @(static_cast<NSUInteger>(value)).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setBlurDeterminationMethod:"), value);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *blurDeterminationMethodMenu = [UIMenu menuWithTitle:@"Blur Determination Method" children:@[blurDeterminationMethodStepperElement]];
+    blurDeterminationMethodMenu.subtitle = @"Supports: <= 0x1";
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNImageBlurScoreRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        blurDeterminationMethodMenu,
+        maximumIntermediateSideLengthMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNImageExposureScoreRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNImageExposureScoreRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNImageExposureScoreRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNImageExposureScoreRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNImageExposureScoreRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNNOPRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNNOPRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNNOPRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNNOPRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNNOPRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeAnimalsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeAnimalsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeAnimalsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"Dependency Processing Ordinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeAnimalHeadsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeAnimalHeadsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalHeadsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeAnimalHeadsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"Dependency Processing Ordinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalHeadsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeAnimalFacesRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeAnimalFacesRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalFacesRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeAnimalFacesRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"Dependency Processing Ordinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalFacesRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeFoodAndDrinkRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeFoodAndDrinkRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeFoodAndDrinkRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeFoodAndDrinkRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"dependencyProcessingOrdinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeFoodAndDrinkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeObjectsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeObjectsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeObjectsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeObjectsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    BOOL useImageAnalyzerScaling = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("useImageAnalyzerScaling"));
+    UIAction *useImageAnalyzerScalingAction = [UIAction actionWithTitle:@"Use Image Analyzer Scaling" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUseImageAnalyzerScaling:"), !useImageAnalyzerScaling);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    useImageAnalyzerScalingAction.state = useImageAnalyzerScaling ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    float modelMinimumDetectionConfidence = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("modelMinimumDetectionConfidence"));
+    
+    __kindof UIMenuElement *modelMinimumDetectionConfidenceSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(modelMinimumDetectionConfidence).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = modelMinimumDetectionConfidence;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setModelMinimumDetectionConfidence:"), value);
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *modelMinimumDetectionConfidenceMenu = [UIMenu menuWithTitle:@"Model Minimum Detection Confidence" children:@[modelMinimumDetectionConfidenceSliderElement]];
+    
+    //
+    
+    float modelNonMaximumSuppressionThreshold = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("modelNonMaximumSuppressionThreshold"));
+    
+    __kindof UIMenuElement *modelNonMaximumSuppressionThresholdSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        label.text = @(modelNonMaximumSuppressionThreshold).stringValue;
+        
+        //
+        
+        UISlider *slider = [UISlider new];
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = modelNonMaximumSuppressionThreshold;
+        slider.continuous = YES;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            if (!slider.isTracking) {
+                [request cancel];
+                reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setModelNonMaximumSuppressionThreshold:"), value);
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[slider, label]];
+        [slider release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *modelNonMaximumSuppressionThresholdMenu = [UIMenu menuWithTitle:@"Model Non Maximum Suppression Threshold" children:@[modelNonMaximumSuppressionThresholdSliderElement]];
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSArray<NSString *> * _Nullable supportedIdentifiers = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedIdentifiersAndReturnError:"), &error);
+    assert(error == nil);
+    NSArray<NSString *> *targetedIdentifiers = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("targetedIdentifiers"));
+    
+    NSMutableArray<UIAction *> *targetedIdentifierActions = [[NSMutableArray alloc] initWithCapacity:supportedIdentifiers.count];
+    for (NSString *identifier in supportedIdentifiers) {
+        UIAction *action = [UIAction actionWithTitle:identifier image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [targetedIdentifiers mutableCopy];
+            if (copy == nil) {
+                copy = [NSMutableArray new];
+            }
+            
+            NSInteger idx = [copy indexOfObject:identifier];
+            if (idx == NSNotFound) {
+                [copy addObject:identifier];
+            } else {
+                [copy removeObjectAtIndex:idx];
+            }
+            
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setTargetedIdentifiers:"), copy);
+            [copy release];
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        action.state = ([targetedIdentifiers containsObject:identifier]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        
+        [targetedIdentifierActions addObject:action];
+    }
+    
+    UIMenu *targetedIdentifierActionsMenu = [UIMenu menuWithTitle:@"Targeted Identifier Action" children:targetedIdentifierActions];
+    [targetedIdentifierActions release];
+    targetedIdentifierActionsMenu.subtitle = @"setter는 안 쓰는 기능인듯?";
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeObjectsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        useImageAnalyzerScalingAction,
+        modelMinimumDetectionConfidenceMenu,
+        modelNonMaximumSuppressionThresholdMenu,
+        targetedIdentifierActionsMenu,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeSportBallsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeSportBallsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeSportBallsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeSportBallsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    NSInteger dependencyProcessingOrdinality = reinterpret_cast<NSInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("dependencyProcessingOrdinality"));
+    UIAction *dependencyProcessingOrdinalityAction = [UIAction actionWithTitle:@"dependencyProcessingOrdinality" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    dependencyProcessingOrdinalityAction.attributes = UIMenuElementAttributesDisabled;
+    dependencyProcessingOrdinalityAction.subtitle = @(dependencyProcessingOrdinality).stringValue;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeSportBallsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        dependencyProcessingOrdinalityAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeTextRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    VNRecognizeTextRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNRecognizeTextRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNRecognizeTextRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNRecognizeTextRequest *request = [[VNRecognizeTextRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    __kindof UIMenuElement *minimumTextHeightSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = request.minimumTextHeight;
+        slider.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            request.minimumTextHeight = value;
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        return [slider autorelease];
+    });
+    
+    UIMenu *minimumTextHeightSliderMenu = [UIMenu menuWithTitle:@"Minimum Text Height" children:@[minimumTextHeightSliderElement]];
+    
+    //
+    
+    VNRequestTextRecognitionLevel selectedRecognitionLevel = request.recognitionLevel;
+    
+    auto recognitionLevelActionsVec = std::vector<VNRequestTextRecognitionLevel> {
+        VNRequestTextRecognitionLevelFast,
+        VNRequestTextRecognitionLevelAccurate
+    }
+    | std::views::transform([viewModel, request, selectedRecognitionLevel](VNRequestTextRecognitionLevel level) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNRequestTextRecognitionLevel(level) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            request.recognitionLevel = level;
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (selectedRecognitionLevel == level) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *recognitionLevelActions = [[NSArray alloc] initWithObjects:recognitionLevelActionsVec.data() count:recognitionLevelActionsVec.size()];
+    UIMenu *recognitionLevelsMenu = [UIMenu menuWithTitle:@"Recognition Level" children:recognitionLevelActions];
+    [recognitionLevelActions release];
+    recognitionLevelsMenu.subtitle = NSStringFromVNRequestTextRecognitionLevel(selectedRecognitionLevel);
+    
+    //
+    
+    BOOL automaticallyDetectsLanguage = request.automaticallyDetectsLanguage;
+    UIAction *automaticallyDetectsLanguageAction = [UIAction actionWithTitle:@"Automatically Detects Language" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.automaticallyDetectsLanguage = !automaticallyDetectsLanguage;
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    automaticallyDetectsLanguageAction.state = automaticallyDetectsLanguage ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSError * _Nullable error = nil;
+    NSArray<NSString *> *supportedRecognitionLanguages = [request supportedRecognitionLanguagesAndReturnError:&error];
+    assert(error == nil);
+    NSArray<NSString *> *recognitionLanguages = request.recognitionLanguages;
+    
+    NSMutableArray<UIAction *> *recognitionLanguageActions = [[NSMutableArray alloc] initWithCapacity:supportedRecognitionLanguages.count];
+    for (NSString *language in supportedRecognitionLanguages) {
+        UIAction *action = [UIAction actionWithTitle:language image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [recognitionLanguages mutableCopy];
+            NSInteger idx = [copy indexOfObject:language];
+            
+            if (idx == NSNotFound) {
+                [copy addObject:language];
+            } else {
+                [copy removeObjectAtIndex:idx];
+            }
+            request.recognitionLanguages = copy;
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        // recognitionLanguages에는 en_US인데 supportedRecognitionLanguages에는 en-US로 적혀 있는 문제가 있음
+        BOOL containsObject = [recognitionLanguages containsObject:language];
+        if (!containsObject) {
+            containsObject = [recognitionLanguages containsObject:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]];
+        }
+        
+        action.state = containsObject ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [recognitionLanguageActions addObject:action];
+    }
+    
+    UIMenu *recognitionLanguagesMenu = [UIMenu menuWithTitle:@"Recognition Languages" children:recognitionLanguageActions];
+    [recognitionLanguageActions release];
+    recognitionLanguagesMenu.subtitle = [NSString stringWithFormat:@"%ld languages selected", recognitionLanguages.count];
+    
+    //
+    
+    BOOL usesLanguageCorrection = request.usesLanguageCorrection;
+    UIAction *usesLanguageCorrectionAction = [UIAction actionWithTitle:@"Uses Language Correction" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.usesLanguageCorrection = !usesLanguageCorrection;
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    usesLanguageCorrectionAction.state = usesLanguageCorrection ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    NSArray<NSString *> * _Nullable customWords = request.customWords;
+    NSMutableArray<UIAction *> *customWordActions = [[NSMutableArray alloc] initWithCapacity:customWords.count + 1];
+    for (NSString *customWord in customWords) {
+        UIAction *action = [UIAction actionWithTitle:customWord image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [customWords mutableCopy];
+            if (copy == nil) copy = [NSMutableArray new];
+            
+            [copy removeObject:customWord];
+            request.customWords = copy;
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.attributes = UIMenuOptionsDestructive;
+        [customWordActions addObject:action];
+    }
+    
+    UIAction *addCustomWordAction = [UIAction actionWithTitle:@"Add Custom Word" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIView *layerView = imageVisionLayer.cp_associatedView;
+        assert(layerView != nil);
+        UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+        assert(viewController != nil);
+        
+        //
+        
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Custom Word" message:nil preferredStyle:UIAlertControllerStyleAlert];
+        
+        [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            
+        }];
+        
+        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            
+        }];
+        [alertController addAction:cancelAction];
+        
+        UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            UIAlertController *_alertController = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_alertController"));
+            UITextField *textField = _alertController.textFields.firstObject;
+            assert(textField != nil);
+            NSString *text = textField.text;
+            
+            if (text == nil or text.length == 0) return;
+            if ([customWords containsObject:text]) return;
+            
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [customWords mutableCopy];
+            if (copy == nil) copy = [NSMutableArray new];
+            
+            [copy addObject:text];
+            request.customWords = copy;
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        [alertController addAction:doneAction];
+        
+        [viewController presentViewController:alertController animated:YES completion:nil];
+    }];
+    [customWordActions addObject:addCustomWordAction];
+    
+    UIMenu *customWordsMenu = [UIMenu menuWithTitle:@"Custom Words" children:customWordActions];
+    customWordsMenu.subtitle = [NSString stringWithFormat:@"%ld words", customWords.count];
+    [customWordActions release];
+    
+    //
+    
+    BOOL keepResourcesLoaded = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("keepResourcesLoaded"));
+    UIAction *keepResourcesLoadedAction = [UIAction actionWithTitle:@"Keep Resources Loaded" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setKeepResourcesLoaded:"), !keepResourcesLoaded);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    keepResourcesLoadedAction.state = keepResourcesLoaded ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNRecognizeTextRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        minimumTextHeightSliderMenu,
+        recognitionLevelsMenu,
+        automaticallyDetectsLanguageAction,
+        recognitionLanguagesMenu,
+        usesLanguageCorrectionAction,
+        customWordsMenu,
+        keepResourcesLoadedAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeDocumentElementsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeDocumentElementsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentElementsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeDocumentElementsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                NSLog(@"%@", error);
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentElementsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeDocumentsRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentsRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNRecognizeDocumentsRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                NSLog(@"%@", error);
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
+
+#warning TODO: VNRequest 내부도 보기
 #pragma mark - Common
 
 + (__kindof VNRequest * _Nullable)_cp_imageVisionRequestForClass:(Class)requestClass addedRequests:(NSArray<__kindof VNRequest *> *)requests {
@@ -4227,6 +5082,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
                 
             }];
             action.attributes = UIMenuElementAttributesDisabled;
+            action.cp_overrideNumberOfTitleLines = 0;
             [supportedIdentifierActions addObject:action];
         }
         UIMenu *suportedIdentifiersMenu = [UIMenu menuWithTitle:@"Supported Identifiers" children:supportedIdentifierActions];
@@ -4234,6 +5090,39 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [supportedIdentifierActions release];
         
         [children addObject:suportedIdentifiersMenu];
+    }
+    
+    if ([request respondsToSelector:@selector(imageCropAndScaleOption)]) {
+        VNImageCropAndScaleOption selectedImageCropAndScaleOption = reinterpret_cast<VNImageCropAndScaleOption (*)(id, SEL)>(objc_msgSend)(request, @selector(imageCropAndScaleOption));
+        
+        auto imageCropAndScaleOptionActionsVec = std::vector<VNImageCropAndScaleOption> {
+            VNImageCropAndScaleOptionCenterCrop,
+            VNImageCropAndScaleOptionScaleFit,
+            VNImageCropAndScaleOptionScaleFill,
+            VNImageCropAndScaleOptionScaleFitRotate90CCW,
+            VNImageCropAndScaleOptionScaleFillRotate90CCW
+        }
+        | std::views::transform([viewModel, request, selectedImageCropAndScaleOption](VNImageCropAndScaleOption option) {
+            UIAction *action = [UIAction actionWithTitle:NSStringFromVNImageCropAndScaleOption(option) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                [request cancel];
+                reinterpret_cast<void (*)(id, SEL, VNImageCropAndScaleOption)>(objc_msgSend)(request, sel_registerName("setImageCropAndScaleOption:"), option);
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }];
+            
+            action.state = (selectedImageCropAndScaleOption == option) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            
+            return action;
+        })
+        | std::ranges::to<std::vector<UIAction *>>();
+        
+        NSArray<UIAction *> *imageCropAndScaleOptionActions = [[NSArray alloc] initWithObjects:imageCropAndScaleOptionActionsVec.data() count:imageCropAndScaleOptionActionsVec.size()];
+        UIMenu *imageCropAndScaleOptionActionsMenu = [UIMenu menuWithTitle:@"Image Crop And Scale Options" children:imageCropAndScaleOptionActions];
+        [imageCropAndScaleOptionActions release];
+        imageCropAndScaleOptionActionsMenu.subtitle = NSStringFromVNImageCropAndScaleOption(selectedImageCropAndScaleOption);
+        
+        [children addObject:imageCropAndScaleOptionActionsMenu];
     }
     
     //

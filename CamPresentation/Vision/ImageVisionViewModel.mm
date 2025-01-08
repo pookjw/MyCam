@@ -54,6 +54,8 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)addRequest:(__kindof VNRequest *)request completionHandler:(void (^)(NSError * _Nullable))completionHandler {
+    assert(request != nil);
+    
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1];
     
     dispatch_async(self._queue, ^{

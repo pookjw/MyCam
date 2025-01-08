@@ -27,7 +27,8 @@
         CameraRootViewController.class,
 #endif
         AssetCollectionsViewController.class,
-        VideoPlayerListViewController.class
+        VideoPlayerListViewController.class,
+        VisionKitDemoViewController.class
     ];
 }
 
@@ -109,10 +110,10 @@
 //    [self.navigationController pushViewController:viewController animated:NO];
 //    [viewController release];
     
-    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-    viewController.delegate = self;
-    [self.navigationController pushViewController:viewController animated:YES];
-    [viewController release];
+//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+//    viewController.delegate = self;
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];

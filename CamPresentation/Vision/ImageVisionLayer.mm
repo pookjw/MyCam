@@ -314,6 +314,14 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _draw1vLyVSh30UQ26TGBoV8MHv:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNImageHomographicAlignmentObservation class]) {
             [self _drawImageHomographicAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNImageScoreObservation")) {
+            [self _drawImageScoreObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNRecognizedObjectObservation class]) {
+            [self _drawRecognizedObjectObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:NULL];
+        } else if ([observation class] == [VNRecognizedTextObservation class]) {
+            [self _drawRecognizedTextObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNDocumentObservation")) {
+            [self _drawDocumentObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2281,6 +2289,116 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGImageRef transformedCGImage = [self._ciContext createCGImage:transformed fromRect:transformed.extent];
     CGContextDrawImage(ctx, aspectBounds, transformedCGImage);
     CGImageRelease(transformedCGImage);
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageScoreObservation:(__kindof VNObservation *)imageScoreObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    NSNumber * _Nullable blurScore = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageScoreObservation, sel_registerName("blurScore"));
+    NSNumber * _Nullable exposureScore = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(imageScoreObservation, sel_registerName("exposureScore"));
+    
+    if (blurScore != nil or exposureScore != nil) {
+        NSMutableArray<NSString *> *strings = [NSMutableArray new];
+        
+        if (blurScore != nil) {
+            [strings addObject:[NSString stringWithFormat:@"blurScore: %@", blurScore]];
+        }
+        
+        if (exposureScore != nil) {
+            [strings addObject:[NSString stringWithFormat:@"exposureScore: %@", exposureScore]];
+        }
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = [strings componentsJoinedByString:@"\n"];
+        [strings release];
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 14.;
+        textLayer.contentsScale = self.contentsScale;
+        
+        NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+            NSFontAttributeName: (id)textLayer.font
+        }];
+        CGSize textSize = attributeString.size;
+        [attributeString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                         CGRectGetMinY(aspectBounds));
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+    }
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawRecognizedTextObservation:(VNRecognizedTextObservation *)recognizedTextObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CGRect convertedBoundingBox;
+    [self _drawRectangleObservation:recognizedTextObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+    NSArray<VNRecognizedText *> *textObjects = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(recognizedTextObservation, sel_registerName("textObjects"));
+    BOOL isTitle = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(recognizedTextObservation, sel_registerName("isTitle"));
+    NSString* text = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(recognizedTextObservation, sel_registerName("text"));
+    
+    NSMutableArray<NSString *> *topCandidates = [[NSMutableArray alloc] initWithCapacity:textObjects.count];
+    for (VNRecognizedText *text in textObjects) {
+        [topCandidates addObject:[NSString stringWithFormat:@"%@ (%lf)", text.string, text.confidence]];
+    }
+    
+    NSString *string = [NSString stringWithFormat:@"isTitle: %d\ntext: %@\ntopCandidates: %@", isTitle, text, topCandidates];
+    [topCandidates release];
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    textLayer.string = string;
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 8.;
+    textLayer.contentsScale = self.contentsScale;
+    
+    NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+        NSFontAttributeName: (id)textLayer.font
+    }];
+    CGSize textSize = attributeString.size;
+    [attributeString release];
+    
+    textLayer.frame = CGRectMake(0.,
+                                 0.,
+                                 textSize.width,
+                                 textSize.height);
+    
+    CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(convertedBoundingBox),
+                                                                     CGRectGetMaxY(convertedBoundingBox));
+    
+    CGContextConcatCTM(ctx, translation);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawDocumentObservation:(__kindof VNDetectedObjectObservation *)documentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CGRect convertedBoundingBox;
+    [self _drawDetectedObjectObservation:documentObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+    
+#warning TODO
     
     CGContextRestoreGState(ctx);
     [pool release];

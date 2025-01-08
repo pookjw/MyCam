@@ -25,6 +25,7 @@
 		4F3B94432D12AC36001235FC /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F3B94422D12AC36001235FC /* Vision.framework */; };
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
+		4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4BFE742D2E6F20002AB203 /* VisionKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F951D492D265C340081887B /* SceneKit.framework */; };
 		4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9AA48F2CED6B1100CCABDB /* ARKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -208,6 +209,7 @@
 		4F3B94422D12AC36001235FC /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/Vision.framework; sourceTree = DEVELOPER_DIR; };
 		4F47801A2C98388800813671 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreMedia.framework; sourceTree = DEVELOPER_DIR; };
 		4F4780332C984BE500813671 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		4F4BFE742D2E6F20002AB203 /* VisionKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VisionKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/VisionKit.framework; sourceTree = DEVELOPER_DIR; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
 		4F951D492D265C340081887B /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/SceneKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -534,12 +536,16 @@
 				"Vision/NSStringFrom+/NSStringFromVNImageCropAndScaleOption.mm",
 				"Vision/NSStringFrom+/NSStringFromVNRequestFaceLandmarksConstellation.h",
 				"Vision/NSStringFrom+/NSStringFromVNRequestFaceLandmarksConstellation.mm",
+				"Vision/NSStringFrom+/NSStringFromVNRequestTextRecognitionLevel.h",
+				"Vision/NSStringFrom+/NSStringFromVNRequestTextRecognitionLevel.mm",
 				"Vision/NSStringFrom+/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.h",
 				"Vision/NSStringFrom+/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.mm",
 				"Vision/UIDeferredMenuElement+ImageVision.h",
 				"Vision/UIDeferredMenuElement+ImageVision.mm",
 				Vision/VideoPlayerVisionViewController.h,
 				Vision/VideoPlayerVisionViewController.mm,
+				VisionKit/VisionKitDemoViewController.h,
+				VisionKit/VisionKitDemoViewController.mm,
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.mm",
 				"XRCam/UIDeferredMenuElement+XRVideoDeviceConfiguration.h",
@@ -683,6 +689,7 @@
 				"Vision/NSStringFrom+/NSStringFromVNGeneratePersonSegmentationRequestQualityLevel.h",
 				"Vision/NSStringFrom+/NSStringFromVNHumanBodyPose3DObservationHeightEstimation.h",
 				"Vision/NSStringFrom+/NSStringFromVNImageCropAndScaleOption.h",
+				"Vision/NSStringFrom+/NSStringFromVNRequestTextRecognitionLevel.h",
 				"Vision/NSStringFrom+/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.h",
 				"Vision/UIDeferredMenuElement+ImageVision.h",
 				Vision/VideoPlayerVisionViewController.h,
@@ -699,6 +706,7 @@
 				Library/AssetCollections/AssetCollectionsViewController.h,
 				Player/VideoPlayerListViewController.h,
 				"UISceneConfiguration+CamPresentation.h",
+				VisionKit/VisionKitDemoViewController.h,
 				XRCam/XRCamRootViewController.h,
 			);
 			target = 4F2A41912C98148000726F2F /* CamPresentation */;
@@ -825,6 +833,7 @@
 				4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */,
 				4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */,
 				4FA73EB72C9975E300F17348 /* Photos.framework in Frameworks */,
+				4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -882,6 +891,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F4BFE742D2E6F20002AB203 /* VisionKit.framework */,
 				4F951D492D265C340081887B /* SceneKit.framework */,
 				4F3B94422D12AC36001235FC /* Vision.framework */,
 				4F3B94402D12AC32001235FC /* CoreML.framework */,
