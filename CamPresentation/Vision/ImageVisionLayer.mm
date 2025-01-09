@@ -254,6 +254,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:NO whitePointAdjustmentColor:NULL inContext:ctx];
             } else if ([requestClassName isEqualToString:@"VNGenerateSkySegmentationRequest"]) {
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
+            } else if ([requestClassName isEqualToString:@"VNRemoveBackgroundRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
             } else {
                 NSLog(@"%@", requestClassName);
                 abort();
@@ -852,9 +854,13 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         //
         
-        CIImage *inputCIImage = self.image.CIImage;
+        CIImage * __autoreleasing inputCIImage = self.image.CIImage;
         if (inputCIImage == nil) {
-            inputCIImage = [[[CIImage alloc] initWithCGImage:self.image.CGImage options:nil] autorelease];
+            CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(self.image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+            CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(self.image, sel_registerName("vk_cgImagePropertyOrientation"));
+            
+            inputCIImage = [[[CIImage alloc] initWithCGImage:cgImage options:nil] autorelease];
+            inputCIImage = [inputCIImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
         }
         blendWithMaskFilter.inputImage = inputCIImage;
         
@@ -1730,7 +1736,11 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
         
         CIImage *inputCIImage = image.CIImage;
         if (inputCIImage == nil) {
+            CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+            CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+            
             inputCIImage = [[[CIImage alloc] initWithCGImage:image.CGImage options:nil] autorelease];
+            inputCIImage = [inputCIImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
         }
         blendWithMaskFilter.inputImage = inputCIImage;
         
@@ -2260,35 +2270,69 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 }
 
 - (void)_drawImageHomographicAlignmentObservation:(VNImageHomographicAlignmentObservation *)imageHomographicAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
-    // TODO
-    
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGContextSaveGState(ctx);
     
-    UIImage *image = self.image;
-    assert(image != nil);
-    CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-    CIImage *ciImage = [[CIImage alloc] initWithCGImage:cgImage];
-    
     matrix_float3x3 warpTransform = imageHomographicAlignmentObservation.warpTransform;
-//    NSLog(@"%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
-//          warpTransform.columns[0][0], warpTransform.columns[1][0], warpTransform.columns[2][0],
-//          warpTransform.columns[0][1], warpTransform.columns[1][1], warpTransform.columns[2][1],
-//          warpTransform.columns[0][2], warpTransform.columns[1][2], warpTransform.columns[2][2]);
     
-    CGAffineTransform warpAffineTransform = CGAffineTransformMake(warpTransform.columns[0][0], warpTransform.columns[0][1],
-                                                                  warpTransform.columns[1][0], warpTransform.columns[1][1],
-                                                                  warpTransform.columns[2][0], warpTransform.columns[2][1]);
+    if (self.shouldDrawDetails) {
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = [NSString stringWithFormat:@"%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n",
+                            warpTransform.columns[0][0], warpTransform.columns[1][0], warpTransform.columns[2][0],
+                            warpTransform.columns[0][1], warpTransform.columns[1][1], warpTransform.columns[2][1],
+                            warpTransform.columns[0][2], warpTransform.columns[1][2], warpTransform.columns[2][2]];
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 14.;
+        textLayer.contentsScale = self.contentsScale;
+        
+        NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+            NSFontAttributeName: (id)textLayer.font
+        }];
+        CGSize textSize = attributeString.size;
+        [attributeString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform translation = CGAffineTransformMakeTranslation(CGRectGetMidX(aspectBounds) - textSize.width * 0.5,
+                                                                         CGRectGetMidY(aspectBounds) - textSize.height * 0.5);
+        
+        CGContextConcatCTM(ctx, translation);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
     
-    warpAffineTransform.tx *= CGRectGetWidth(ciImage.extent);
-    warpAffineTransform.ty *= CGRectGetHeight(ciImage.extent);
-    
-    CIImage *transformed = [ciImage imageByApplyingTransform:warpAffineTransform];
-    [ciImage release];
-    
-    CGImageRef transformedCGImage = [self._ciContext createCGImage:transformed fromRect:transformed.extent];
-    CGContextDrawImage(ctx, aspectBounds, transformedCGImage);
-    CGImageRelease(transformedCGImage);
+    // TODO
+    if (UIImage *image = self.image) {
+        CGContextSaveGState(ctx);
+        
+        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+        CIImage *ciImage = [[CIImage alloc] initWithCGImage:cgImage];
+        
+        
+        CGAffineTransform warpAffineTransform = CGAffineTransformMake(warpTransform.columns[0][0], warpTransform.columns[0][1],
+                                                                      warpTransform.columns[1][0], warpTransform.columns[1][1],
+                                                                      warpTransform.columns[2][0], warpTransform.columns[2][1]);
+        
+        warpAffineTransform.tx *= CGRectGetWidth(ciImage.extent);
+        warpAffineTransform.ty *= CGRectGetHeight(ciImage.extent);
+        
+        CIImage *transformed = [ciImage imageByApplyingTransform:warpAffineTransform];
+        [ciImage release];
+        
+        CGImageRef transformedCGImage = [self._ciContext createCGImage:transformed fromRect:transformed.extent];
+        CGContextDrawImage(ctx, aspectBounds, transformedCGImage);
+        CGImageRelease(transformedCGImage);
+        
+        CGContextRestoreGState(ctx);
+    }
     
     CGContextRestoreGState(ctx);
     [pool release];

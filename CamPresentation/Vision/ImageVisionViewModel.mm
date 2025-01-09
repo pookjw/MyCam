@@ -9,10 +9,14 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CamPresentation/Constants.h>
+#import <CoreImage/CoreImage.h>
+#import <Metal/Metal.h>
+#import <CoreVideo/CoreVideo.h>
 
 NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationName = @"ImageVisionViewModelDidChangeObservationsNotificationName";
 
 @interface ImageVisionViewModel ()
+@property (retain, nonatomic, readonly) CIContext *_ciContext;
 @property (retain, nonatomic, readonly) dispatch_queue_t _queue;
 //@property (assign, nonatomic) PHImageRequestID _queue_imageRequestID;
 @property (retain, nonatomic, readonly) NSMutableArray<__kindof VNRequest *> *_queue_requests;
@@ -31,6 +35,11 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         dispatch_queue_attr_t attr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, QOS_MIN_RELATIVE_PRIORITY);
         dispatch_queue_t queue = dispatch_queue_create("Image Vision Queue", attr);
         
+        id<MTLDevice> mtlDevice = MTLCreateSystemDefaultDevice();
+        
+        __ciContext = [[CIContext contextWithMTLDevice:mtlDevice] retain];
+        [mtlDevice release];
+        
         __queue = queue;
 //        __queue_imageRequestID = PHInvalidImageRequestID;
         __queue_requests = [NSMutableArray new];
@@ -40,6 +49,8 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (void)dealloc {
+    [__ciContext release];
+    
     if (dispatch_queue_t queue = __queue) {
         dispatch_release(queue);
     }
@@ -316,7 +327,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
             assert(result != nil);
             progress.completedUnitCount = 1000000UL;
             
-            self._queue_image = result;
+//            self._queue_image = result;
             completionHandler(result, nil);
         }];
         
@@ -336,6 +347,35 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
+    /*
+     CIImage * __autoreleasing ciImage = image.CIImage;
+     
+     if (ciImage == nil) {
+         CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+         CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+         
+         ciImage = [[[CIImage alloc] initWithCGImage:cgImage] autorelease];
+         ciImage = [ciImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
+     }
+     
+     NSDictionary *pixelBufferAttributes = @{
+            (id)kCVPixelBufferCGImageCompatibilityKey: @YES,
+            (id)kCVPixelBufferCGBitmapContextCompatibilityKey: @YES,
+            (id)kCVPixelBufferIOSurfacePropertiesKey: @{}
+        };
+     CVPixelBufferRef pixelBuffer;
+     assert(CVPixelBufferCreate(kCFAllocatorDefault, CGRectGetWidth(ciImage.extent), CGRectGetHeight(ciImage.extent), kCVPixelFormatType_32BGRA, (__bridge CFDictionaryRef)pixelBufferAttributes, &pixelBuffer) == kCVReturnSuccess);
+     
+     CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+     [self._ciContext render:ciImage toCVPixelBuffer:pixelBuffer bounds:ciImage.extent colorSpace:ciImage.colorSpace];
+     CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+     
+     VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{
+         MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+     }];
+     CVPixelBufferRelease(pixelBuffer);
+     */
+    
     CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
     CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
     
