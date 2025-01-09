@@ -2398,13 +2398,104 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     CGRect convertedBoundingBox;
     [self _drawDetectedObjectObservation:documentObservation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
     
-    
     /*
      VNRecognizedTextBlockObservation
      */
-    NSArray *blocks = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("blocks"));
-    id title = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("title"));
-    NSString *transcript = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("transcript"));
+    NSArray<__kindof VNRecognizedTextObservation *> *blocks = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("getBlocks"));
+    __kindof VNRecognizedTextObservation * _Nullable title = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("getTitle"));
+    NSString *transcript = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(documentObservation, sel_registerName("getTranscript"));
+    
+    //
+    
+    auto drawText = ^(__kindof VNRecognizedTextObservation *observation) {
+        if (observation == nil) return;
+        NSString *transcript = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(observation, sel_registerName("getTranscript"));
+        if (transcript == nil) return;
+        
+        CGRect convertedBoundingBox;
+        [self _drawRectangleObservation:observation aspectBounds:aspectBounds inContext:ctx convertedBoundingBox:&convertedBoundingBox];
+        
+        //
+        
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(observation, sel_registerName("getTranscript"));
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 14.0;
+        textLayer.contentsScale = self.contentsScale;
+        
+        NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+            NSFontAttributeName: (id)textLayer.font
+        }];
+        CGSize textSize = attributeString.size;
+        [attributeString release];
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     textSize.width,
+                                     textSize.height);
+        
+        CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(convertedBoundingBox),
+                                                                       CGRectGetMaxY(convertedBoundingBox));
+        
+        CGContextConcatCTM(ctx, transform);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    };
+    
+    //
+    
+    for (__kindof VNRecognizedTextObservation *observation in blocks) {
+        drawText(observation);
+    }
+    
+    //
+    
+    if (self.shouldDrawDetails) {
+        NSString *titleString = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(title, sel_registerName("getTranscript"));
+        NSString *string = [NSString stringWithFormat:@"Title: %@\nTranscript: %@", titleString, transcript];
+        
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = string;
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 14.0;
+        textLayer.contentsScale = self.contentsScale;
+        
+        //
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1.0, 1.0);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0.0, 0.5);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        //
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     CGRectGetWidth(aspectBounds),
+                                     CGRectGetHeight(aspectBounds));
+        
+        CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                       CGRectGetMinY(aspectBounds));
+        
+        CGContextConcatCTM(ctx, transform);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
+    
+    //
     
     CGContextRestoreGState(ctx);
     [pool release];

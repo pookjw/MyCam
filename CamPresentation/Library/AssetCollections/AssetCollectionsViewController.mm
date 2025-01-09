@@ -244,7 +244,7 @@
      510BAACD-B885-4AF0-A635-627E5BE7E3E0/L0/001 Table
      034A45B6-89BC-4ECB-9A75-9A77D32509D7/L0/001 Book
      */
-    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"50AE0C89-0432-4F02-9887-7502F6A37659/L0/001"] options:nil][0];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"AE7E62B1-C228-4E52-A49E-ADCBFC305CCC/L0/001"] options:nil][0];
     ImageVisionViewController *viewController = [ImageVisionViewController new];
     [viewController updateWithAsset:asset];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];

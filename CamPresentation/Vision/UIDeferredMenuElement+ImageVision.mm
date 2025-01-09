@@ -199,7 +199,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeObjectsRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeSportBallsRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeTextRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -4770,7 +4770,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             NSInteger idx = [copy indexOfObject:language];
             
             if (idx == NSNotFound) {
-                [copy addObject:language];
+                [copy addObject:[language stringByReplacingOccurrencesOfString:@"_" withString:@"-"]];
             } else {
                 [copy removeObjectAtIndex:idx];
             }
@@ -4940,7 +4940,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
     __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNRecognizeDocumentsRequest") addedRequests:requests];
     
     if (request == nil) {
@@ -4962,7 +4962,320 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    NSError * _Nullable error = nil;
+    NSArray<NSString *> *supportedRecognitionLanguages = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedRecognitionLanguagesAndReturnError:"), &error);
+    assert(error == nil);
+    NSArray<NSString *> *recognitionLanguages = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("recognitionLanguages"));
+    NSMutableArray<UIAction *> *recognitionLanguageActions = [[NSMutableArray alloc] initWithCapacity:supportedRecognitionLanguages.count];
+    for (NSString *language in supportedRecognitionLanguages) {
+        UIAction *action = [UIAction actionWithTitle:language image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [recognitionLanguages mutableCopy];
+            NSInteger idx = [copy indexOfObject:language];
+            
+            if (idx == NSNotFound) {
+                [copy addObject:[language stringByReplacingOccurrencesOfString:@"_" withString:@"-"]];
+            } else {
+                [copy removeObjectAtIndex:idx];
+            }
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setRecognitionLanguages:"), copy);
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        BOOL containsObject = [recognitionLanguages containsObject:language];
+        if (!containsObject) {
+            containsObject = [recognitionLanguages containsObject:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]];
+        }
+        
+        action.state = containsObject ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [recognitionLanguageActions addObject:action];
+    }
+    
+    UIMenu *recognitionLanguagesMenu = [UIMenu menuWithTitle:@"Recognition Languages" children:recognitionLanguageActions];
+    [recognitionLanguageActions release];
+    recognitionLanguagesMenu.subtitle = [NSString stringWithFormat:@"%ld selected", recognitionLanguages.count];
+    
+    //
+    
+    NSArray<NSString *> * _Nullable customWords = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("customWords"));
+    NSMutableArray<UIAction *> *customWordActions = [[NSMutableArray alloc] initWithCapacity:customWords.count + 1];
+    for (NSString *customWord in customWords) {
+        UIAction *action = [UIAction actionWithTitle:customWord image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [customWords mutableCopy];
+            if (copy == nil) copy = [NSMutableArray new];
+            
+            [copy removeObject:customWord];
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setCustomWords:"), copy);
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.attributes = UIMenuOptionsDestructive;
+        [customWordActions addObject:action];
+    }
+    
+    UIAction *addCustomWordAction = [UIAction actionWithTitle:@"Add Custom Word" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIView *layerView = imageVisionLayer.cp_associatedView;
+        assert(layerView != nil);
+        UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+        assert(viewController != nil);
+        
+        //
+        
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Custom Word" message:nil preferredStyle:UIAlertControllerStyleAlert];
+        
+        [alertController addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            
+        }];
+        
+        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            
+        }];
+        [alertController addAction:cancelAction];
+        
+        UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            UIAlertController *_alertController = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_alertController"));
+            UITextField *textField = _alertController.textFields.firstObject;
+            assert(textField != nil);
+            NSString *text = textField.text;
+            
+            if (text == nil or text.length == 0) return;
+            if ([customWords containsObject:text]) return;
+            
+            [request cancel];
+            
+            NSMutableArray<NSString *> *copy = [customWords mutableCopy];
+            if (copy == nil) copy = [NSMutableArray new];
+            
+            [copy addObject:text];
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setCustomWords:"), copy);
+            [copy release];
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        [alertController addAction:doneAction];
+        
+        [viewController presentViewController:alertController animated:YES completion:nil];
+    }];
+    [customWordActions addObject:addCustomWordAction];
+    
+    UIMenu *customWordsMenu = [UIMenu menuWithTitle:@"Custom Words" children:customWordActions];
+    customWordsMenu.subtitle = [NSString stringWithFormat:@"%ld words", customWords.count];
+    [customWordActions release];
+    
+    //
+    
+    VNRequestTextRecognitionLevel selectedRecognitionLevel = reinterpret_cast<VNRequestTextRecognitionLevel (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("recognitionLevel"));
+    
+    auto recognitionLevelActionsVec = std::vector<VNRequestTextRecognitionLevel> {
+        VNRequestTextRecognitionLevelFast,
+        VNRequestTextRecognitionLevelAccurate
+    }
+    | std::views::transform([viewModel, request, selectedRecognitionLevel](VNRequestTextRecognitionLevel level) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromVNRequestTextRecognitionLevel(level) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, VNRequestTextRecognitionLevel)>(objc_msgSend)(request, sel_registerName("setRecognitionLevel:"), level);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        action.state = (selectedRecognitionLevel == level) ? UIMenuElementStateOn : UIMenuElementStateOff;
+        return action;
+    })
+    | std::ranges::to<std::vector<UIAction *>>();
+    
+    NSArray<UIAction *> *recognitionLevelActions = [[NSArray alloc] initWithObjects:recognitionLevelActionsVec.data() count:recognitionLevelActionsVec.size()];
+    UIMenu *recognitionLevelsMenu = [UIMenu menuWithTitle:@"Recognition Level" children:recognitionLevelActions];
+    [recognitionLevelActions release];
+    recognitionLevelsMenu.subtitle = NSStringFromVNRequestTextRecognitionLevel(selectedRecognitionLevel);
+    
+    //
+    
+    BOOL usesLanguageCorrection = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("usesLanguageCorrection"));
+    UIAction *usesLanguageCorrectionAction = [UIAction actionWithTitle:@"Uses Language Correction" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUsesLanguageCorrection:"), !usesLanguageCorrection);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    usesLanguageCorrectionAction.state = usesLanguageCorrection ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL usesAlternateLineGrouping = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("usesAlternateLineGrouping"));
+    UIAction *usesAlternateLineGroupingAction = [UIAction actionWithTitle:@"Uses Alternate Line Grouping" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setUsesAlternateLineGrouping:"), !usesAlternateLineGrouping);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    usesAlternateLineGroupingAction.state = usesAlternateLineGrouping ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    __kindof UIMenuElement *minimumTextHeightSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("minimumTextHeight"));
+        slider.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setMinimumTextHeight:"), value);
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        return [slider autorelease];
+    });
+    
+    UIMenu *minimumTextHeightSliderMenu = [UIMenu menuWithTitle:@"Minimum Text Height" children:@[minimumTextHeightSliderElement]];
+    
+    //
+    
+    BOOL keepResourcesLoaded = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("keepResourcesLoaded"));
+    UIAction *keepResourcesLoadedAction = [UIAction actionWithTitle:@"Keep Resources Loaded" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setKeepResourcesLoaded:"), !keepResourcesLoaded);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    keepResourcesLoadedAction.state = keepResourcesLoaded ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    BOOL detectionOnly = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("detectionOnly"));
+    UIAction *detectionOnlyAction = [UIAction actionWithTitle:@"Detection Only" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setDetectionOnly:"), !detectionOnly);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    detectionOnlyAction.state = detectionOnly ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
+    __kindof UIMenuElement *maximumCandidateCountStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        NSUInteger maximumCandidateCount = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("maximumCandidateCount"));
+        
+        UILabel *label = [UILabel new];
+        label.text = @(maximumCandidateCount).stringValue;
+        
+        UIStepper *stepper = [UIStepper new];
+        stepper.minimumValue = 0.;
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.value = maximumCandidateCount;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto stepper = static_cast<UIStepper *>(action.sender);
+            NSUInteger value = stepper.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, NSUInteger)>(objc_msgSend)(request, sel_registerName("setMaximumCandidateCount:"), value);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[label, stepper]];
+        [label release];
+        [stepper release];
+        stackView.axis = UILayoutConstraintAxisHorizontal;
+        stackView.distribution = UIStackViewDistributionFillEqually;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIMenu *maximumCandidateCountMenu = [UIMenu menuWithTitle:@"Maximum Candidate Count" children:@[maximumCandidateCountStepperElement]];
+    
+    //
+    
+    VNDetectBarcodesRequest *barcodeRequest = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("barcodeRequest"));
+    UIAction *barcodeRequestAction;
+    if (barcodeRequest != nil) {
+        barcodeRequestAction = [UIAction actionWithTitle:@"Remove VNDetectBarcodesRequest" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setBarcodeRequest:"), nil);
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        barcodeRequestAction.state = UIMenuElementStateOn;
+    } else {
+        VNDetectBarcodesRequest *addedBarcodeRequest = nil;
+        for (VNDetectBarcodesRequest *addedRequest in requests) {
+            if ([addedRequest class] == [VNDetectBarcodesRequest class]) {
+                addedBarcodeRequest = addedRequest;
+                break;
+            }
+        }
+        
+        if (addedBarcodeRequest != nil) {
+            barcodeRequestAction = [UIAction actionWithTitle:@"Add VNDetectBarcodesRequest" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                [request cancel];
+                reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setBarcodeRequest:"), addedBarcodeRequest);
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }];
+        } else {
+            barcodeRequestAction = [UIAction actionWithTitle:@"Add VNDetectBarcodesRequest" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
+            }];
+            barcodeRequestAction.attributes = UIMenuElementAttributesDisabled;
+            barcodeRequestAction.subtitle = @"No VNDetectBarcodesRequest found";
+        }
+    }
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        recognitionLanguagesMenu,
+        customWordsMenu,
+        recognitionLevelsMenu,
+        usesLanguageCorrectionAction,
+        usesAlternateLineGroupingAction,
+        minimumTextHeightSliderMenu,
+        keepResourcesLoadedAction,
+        detectionOnlyAction,
+        maximumCandidateCountMenu,
+        barcodeRequestAction,
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
