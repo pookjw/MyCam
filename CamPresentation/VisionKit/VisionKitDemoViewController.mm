@@ -6,9 +6,7 @@
 //
 
 #import <CamPresentation/VisionKitDemoViewController.h>
-#import <AVFoundation/AVFoundation.h>
-#import <Vision/Vision.h>
-#import <CamPresentation/CamPresentation-Swift.h>
+#import <CamPresentation/DataScannerDemoViewController.h>
 #import <VisionKit/VisionKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -205,11 +203,7 @@
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else if (indexPath.item == 4) {
-        CPDataScannerRecognizedDataType *textDataType = [CPDataScannerRecognizedDataType textDataTypeWithLanguages:@[@"en-US"] textContentType:CPDataScannerTextContentTypeURL];
-        
-        CPDataScannerViewController *viewController = [[CPDataScannerViewController alloc] initWithRecognizedDataTypes:[NSSet setWithObjects:textDataType, nil] qualityLevel:CPDataScannerQualityLevelAccurate];
-        
-        
+        DataScannerDemoViewController *viewController = [DataScannerDemoViewController new];
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
     } else {
