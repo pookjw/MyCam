@@ -11,6 +11,7 @@
 
 #import <CamPresentation/ARPlayerSceneDelegate_Vision.h>
 #import <CamPresentation/ARPlayerWindowScene_Vision.h>
+#import <Vision/Vision.h>
 #import <CamPresentation/CamPresentation-Swift.h>
 
 @implementation ARPlayerSceneDelegate_Vision

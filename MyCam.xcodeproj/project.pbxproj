@@ -546,6 +546,7 @@
 				"Vision/UIDeferredMenuElement+ImageVision.mm",
 				Vision/VideoPlayerVisionViewController.h,
 				Vision/VideoPlayerVisionViewController.mm,
+				VisionKit/ObjCDataScannerViewController.swift,
 				VisionKit/VisionKitDemoViewController.h,
 				VisionKit/VisionKitDemoViewController.mm,
 				"XRCam/UIDeferredMenuElement+XRCaptureDevices.h",

@@ -11,6 +11,7 @@
 
 #import <CamPresentation/ARPlayerViewControllerVisualProvider_IOS.h>
 #import <CamPresentation/PlayerControlViewController.h>
+#import <Vision/Vision.h>
 #import <CamPresentation/CamPresentation-Swift.h>
 #import <objc/message.h>
 #import <objc/runtime.h>

@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/VisionKitDemoViewController.h>
+#import <AVFoundation/AVFoundation.h>
+#import <Vision/Vision.h>
+#import <CamPresentation/CamPresentation-Swift.h>
 #import <VisionKit/VisionKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -60,6 +63,8 @@
             contentConfiguration.text = @"VNDocumentCameraViewController (In Process)";
         } else if (indexPath.item == 3) {
             contentConfiguration.text = @"VNDocumentCameraViewController (Remote)";
+        } else if (indexPath.item == 4) {
+            contentConfiguration.text = @"DataScannerViewController";
         } else {
             abort();
         }
@@ -165,7 +170,7 @@
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    return 4;
+    return 5;
 }
 
 - (__kindof UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
@@ -199,6 +204,14 @@
         
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
+    } else if (indexPath.item == 4) {
+        CPDataScannerRecognizedDataType *textDataType = [CPDataScannerRecognizedDataType textDataTypeWithLanguages:@[@"en-US"] textContentType:CPDataScannerTextContentTypeURL];
+        
+        CPDataScannerViewController *viewController = [[CPDataScannerViewController alloc] initWithRecognizedDataTypes:[NSSet setWithObjects:textDataType, nil] qualityLevel:CPDataScannerQualityLevelAccurate];
+        
+        
+        [self.navigationController pushViewController:viewController animated:YES];
+        [viewController release];
     } else {
         abort();
     }
@@ -220,7 +233,39 @@
 }
 
 - (void)documentCameraViewController:(VNDocumentCameraViewController *)controller didFinishWithScan:(VNDocumentCameraScan *)scan {
-    NSLog(@"%@", scan);
+    if (scan.pageCount == 0) return;
+    [self _presentAlertControllerWithScan:scan page:0];
+}
+
+- (void)_presentAlertControllerWithScan:(VNDocumentCameraScan *)scan page:(NSUInteger)page {
+    UIImage *image = [scan imageOfPageAtIndex:page];
+    NSArray *docInfos = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(scan, sel_registerName("docInfos"));
+    
+    UIImageView *imageView = [[UIImageView alloc] initWithImage:image];
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+    [imageView.heightAnchor constraintEqualToAnchor:imageView.widthAnchor].active = YES;
+    UIViewController *contentViewController = [UIViewController new];
+    contentViewController.view = imageView;
+    [imageView release];
+    
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:scan.title message:docInfos.description preferredStyle:UIAlertControllerStyleAlert];
+    
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(alertController, sel_registerName("setContentViewController:"), contentViewController);
+    [contentViewController release];
+    
+    UIAlertAction *doneAction = [UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        
+    }];
+    [alertController addAction:doneAction];
+    
+    if ((page + 1) < scan.pageCount) {
+        UIAlertAction *nextAction = [UIAlertAction actionWithTitle:@"Next" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            [self _presentAlertControllerWithScan:scan page:page + 1];
+        }];
+        [alertController addAction:nextAction];
+    }
+    
+    [self presentViewController:alertController animated:YES completion:nil];
 }
 
 @end

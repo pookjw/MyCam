@@ -12,6 +12,7 @@
 #import <CamPresentation/ARPlayerViewControllerVisualProvider_Vision.h>
 #import <CamPresentation/UIApplication+mrui_requestSceneWrapper.hpp>
 #import <CamPresentation/ARPlayerWindowScene_Vision.h>
+#import <Vision/Vision.h>
 #import <CamPresentation/CamPresentation-Swift.h>
 #import <CamPresentation/Constants.h>
 #import <CamPresentation/PlayerControlViewController.h>
