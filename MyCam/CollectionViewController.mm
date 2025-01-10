@@ -30,7 +30,8 @@
 #endif
         AssetCollectionsViewController.class,
         VideoPlayerListViewController.class,
-        VisionKitDemoViewController.class
+        VisionKitDemoViewController.class,
+        ImageFiltersViewController.class
     ];
 }
 
@@ -125,7 +126,11 @@
 //    [self.navigationController pushViewController:cameraRootViewController animated:YES];
 //    [cameraRootViewController release];
     
-    VisionKitDemoViewController *viewController = [VisionKitDemoViewController new];
+//    VisionKitDemoViewController *viewController = [VisionKitDemoViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
+    
+    ImageFiltersViewController *viewController = [ImageFiltersViewController new];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
 }
