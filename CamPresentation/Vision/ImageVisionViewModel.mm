@@ -60,6 +60,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 //    }
     
     [__queue_requests release];
+    [__queue_image release];
     
     [super dealloc];
 }
@@ -74,7 +75,12 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
         assert(![requests containsObject:request]);
         [requests addObject:request];
         
-        if (UIImage *image = self._queue_image) {
+        if ([request class] == [VNDetectTrajectoriesRequest class]) {
+            progress.completedUnitCount = 1;
+            if (completionHandler) {
+                completionHandler(nil);
+            }
+        } else if (UIImage *image = self._queue_image) {
             NSProgress *subprogress = [self _queue_performRequests:@[request] forImage:image completionHandler:completionHandler];
             [progress addChild:subprogress withPendingUnitCount:1];
             
@@ -148,7 +154,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)updateImageWithPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable))completionHandler {
-    assert(asset.mediaType == PHAssetMediaTypeImage);
+//    assert(asset.mediaType == PHAssetMediaTypeImage);
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:2 * 1000000UL];
     
@@ -266,7 +272,7 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)imageFromPHAsset:(PHAsset *)asset completionHandler:(void (^)(UIImage * _Nullable image, NSError * _Nullable error))completionHandler {
-    assert(asset.mediaType == PHAssetMediaTypeImage);
+//    assert(asset.mediaType == PHAssetMediaTypeImage);
     
     NSProgress *progress = [NSProgress progressWithTotalUnitCount:1000000UL];
     
@@ -347,34 +353,32 @@ NSNotificationName const ImageVisionViewModelDidChangeObservationsNotificationNa
 }
 
 - (NSProgress *)_queue_performRequests:(NSArray<__kindof VNRequest *> *)requests forImage:(UIImage *)image completionHandler:(void (^)(NSError * _Nullable error))completionHandler {
-    /*
-     CIImage * __autoreleasing ciImage = image.CIImage;
-     
-     if (ciImage == nil) {
-         CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
-         CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
-         
-         ciImage = [[[CIImage alloc] initWithCGImage:cgImage] autorelease];
-         ciImage = [ciImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
-     }
-     
-     NSDictionary *pixelBufferAttributes = @{
-            (id)kCVPixelBufferCGImageCompatibilityKey: @YES,
-            (id)kCVPixelBufferCGBitmapContextCompatibilityKey: @YES,
-            (id)kCVPixelBufferIOSurfacePropertiesKey: @{}
-        };
-     CVPixelBufferRef pixelBuffer;
-     assert(CVPixelBufferCreate(kCFAllocatorDefault, CGRectGetWidth(ciImage.extent), CGRectGetHeight(ciImage.extent), kCVPixelFormatType_32BGRA, (__bridge CFDictionaryRef)pixelBufferAttributes, &pixelBuffer) == kCVReturnSuccess);
-     
-     CVPixelBufferLockBaseAddress(pixelBuffer, 0);
-     [self._ciContext render:ciImage toCVPixelBuffer:pixelBuffer bounds:ciImage.extent colorSpace:ciImage.colorSpace];
-     CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
-     
-     VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{
-         MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
-     }];
-     CVPixelBufferRelease(pixelBuffer);
-     */
+//     CIImage * __autoreleasing ciImage = image.CIImage;
+//     
+//     if (ciImage == nil) {
+//         CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+//         CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+//         
+//         ciImage = [[[CIImage alloc] initWithCGImage:cgImage] autorelease];
+//         ciImage = [ciImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
+//     }
+//     
+//     NSDictionary *pixelBufferAttributes = @{
+//            (id)kCVPixelBufferCGImageCompatibilityKey: @YES,
+//            (id)kCVPixelBufferCGBitmapContextCompatibilityKey: @YES,
+//            (id)kCVPixelBufferIOSurfacePropertiesKey: @{}
+//        };
+//     CVPixelBufferRef pixelBuffer;
+//     assert(CVPixelBufferCreate(kCFAllocatorDefault, CGRectGetWidth(ciImage.extent), CGRectGetHeight(ciImage.extent), kCVPixelFormatType_32BGRA, (__bridge CFDictionaryRef)pixelBufferAttributes, &pixelBuffer) == kCVReturnSuccess);
+//     
+//     CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+//     [self._ciContext render:ciImage toCVPixelBuffer:pixelBuffer bounds:ciImage.extent colorSpace:ciImage.colorSpace];
+//     CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+//     
+//     VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithCVPixelBuffer:pixelBuffer options:@{
+//         MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+//     }];
+//     CVPixelBufferRelease(pixelBuffer);
     
     CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
     CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));

@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface VideoPlayerListViewModel : NSObject
 @property (retain, nonatomic, readonly, nullable) AVPlayer *player;
+@property (retain, nonatomic, readonly) PHAsset *asset;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem;

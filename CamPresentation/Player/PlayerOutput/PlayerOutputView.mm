@@ -425,8 +425,8 @@ CA_EXTERN_C_END
                 };
                 
                 CMSampleBufferRef sampleBuffer = cp_CMSampleBufferCreatePixelBuffer(pixelBuffer, sampleTiming);
-                
                 [delegate playerOutputView:self didUpdateSampleBufferVariant:sampleBuffer];
+                CFRelease(sampleBuffer);
             }
             
             switch (self._layerType) {
@@ -659,15 +659,18 @@ CA_EXTERN_C_END
     AVAsset *asset = currentItem.asset;
     
     [asset loadTracksWithMediaCharacteristic:AVMediaCharacteristicContainsStereoMultiviewVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
-        assert(error == nil);
+//        assert(error == nil);
+        if (error != nil) return;
         AVAssetTrack *track = tracks.firstObject;
         
         if (track == nil) {
             [asset loadTracksWithMediaType:AVMediaTypeVideo completionHandler:^(NSArray<AVAssetTrack *> * _Nullable tracks, NSError * _Nullable error) {
-                assert(error == nil);
-                assert(tracks != nil);
+                if (error != nil) return;
+//                assert(error == nil);
+//                assert(tracks != nil);
                 AVAssetTrack *track = tracks.firstObject;
-                assert(track != nil);
+//                assert(track != nil);
+                if (track == nil) return;
                 
                 [track loadValuesAsynchronouslyForKeys:@[@"nominalFrameRate"] completionHandler:^{
                     dispatch_async(dispatch_get_main_queue(), ^{

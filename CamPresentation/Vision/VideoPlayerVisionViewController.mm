@@ -34,6 +34,8 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    self._imageVisionLayer.shouldDrawImage = NO;
+    
     [self _playerOutputView];
     
     PlayerOutputViewController *playerOutputViewController = self._playerOutputViewController;

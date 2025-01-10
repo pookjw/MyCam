@@ -12,7 +12,6 @@
 
 @interface VideoPlayerListViewModel ()
 @property (retain, nonatomic, nullable) AVPlayer *player;
-@property (retain, nonatomic, readonly) PHAsset *asset;
 @property (assign, nonatomic) PHImageRequestID requestID;
 @end
 

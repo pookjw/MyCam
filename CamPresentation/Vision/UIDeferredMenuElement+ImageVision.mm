@@ -22,6 +22,7 @@
 #import <CamPresentation/NSStringFromVNTrackOpticalFlowRequestComputationAccuracy.h>
 #import <CamPresentation/NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy.h>
 #import <CamPresentation/NSStringFromVNRequestTextRecognitionLevel.h>
+#import <CamPresentation/NSStringFromVNRequestTrackingLevel.h>
 
 /*
  (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
@@ -105,13 +106,13 @@
  VNSceneClassificationRequest,✅
  VNTrackHomographyRequest,✅
  VNTrackHomographicImageRegistrationRequest,✅
- VNTrackLegacyFaceCoreObjectRequest,﹖
- VNTrackMaskRequest,
- VNTrackObjectRequest,
+ VNTrackLegacyFaceCoreObjectRequest,✅
+ VNTrackMaskRequest,✅
+ VNTrackObjectRequest,✅
  VNTrackOpticalFlowRequest,✅
- VNTrackRectangleRequest,
- VNTrackTranslationalImageRegistrationRequest,
- VNTranslationalImageRegistrationRequest
+ VNTrackRectangleRequest,✅
+ VNTrackTranslationalImageRegistrationRequest,✅
+ VNTranslationalImageRegistrationRequest✅
  )
  */
 
@@ -202,7 +203,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentsRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNRemoveBackgroundRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNSceneClassificationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackMaskRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackObjectRequestWithViewModel:viewModel addedRequests:requests observations:observations],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackLegacyFaceCoreObjectRequestWithViewModel:viewModel addedRequests:requests observations:observations],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackMaskRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackRectangleRequestWithViewModel:viewModel addedRequests:requests observations:observations],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -229,8 +235,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNRecognizeDocumentElementsRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackHomographyRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackLegacyFaceCoreObjectRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackHomographicImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     //
@@ -5533,32 +5538,153 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackLegacyFaceCoreObjectRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackLegacyFaceCoreObjectRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations {
     __kindof VNTrackObjectRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest") class] addedRequests:requests];
-    NSString *subtitle = @"-[VNSession trackerWithOptions:error:]에서 VNTrackingOption_TrackerKey이 누락되어 있어 작동하지 않음";
     
     if (request == nil) {
-        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            __kindof VNTrackObjectRequest *request = [[objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest") alloc] initWithCompletionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
-                assert(error == nil);
+        NSMutableArray<UIAction *> *detectedObjectObservationActions = [NSMutableArray new];
+        for (__kindof VNObservation *observation in observations) {
+            if ([observation isKindOfClass:[VNDetectedObjectObservation class]]) {
+                UIAction *action = [UIAction actionWithTitle:observation.uuid.UUIDString image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    __kindof VNTrackingRequest *request = [[objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest") alloc] initWithDetectedObjectObservation:observation completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    [request release];
+                }];
+                
+                [detectedObjectObservationActions addObject:action];
+            }
+        }
+        
+        if (detectedObjectObservationActions.count == 0) {
+            [detectedObjectObservationActions release];
+            
+            UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
             }];
             
-            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
-                assert(error == nil);
-            }];
+            action.attributes = UIMenuElementAttributesDisabled;
+            action.subtitle = @"No VNDetectedObjectObservation";
             
-            [request release];
-        }];
+            return action;
+        }
         
-        action.subtitle = subtitle;
-        action.cp_overrideNumberOfSubtitleLines = 0;
+        UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackLegacyFaceCoreObjectRequest")) children:detectedObjectObservationActions];
+        [detectedObjectObservationActions release];
         
-//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
-        
-        return action;
+        return menu;
     }
     
-    // TODO: 누락된 Action들 있음
+    //
+    
+    NSNumber * _Nullable faceCoreMinFaceSize = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreMinFaceSize"));
+    
+    __kindof UIMenuElement *faceCoreMinFaceSizeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UISlider *slider = [UISlider new];
+        
+        slider.minimumValue = 0.f;
+        slider.maximumValue = 1.f;
+        slider.value = faceCoreMinFaceSize.floatValue;
+        slider.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            [request cancel];
+            
+            auto slider = static_cast<UISlider *>(action.sender);
+            float value = slider.value;
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setFaceCoreMinFaceSize:"), @(value));
+            
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [slider addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        return [slider autorelease];
+    });
+    
+    UIAction *nullifyFaceCoreMinFaceSizeAction = [UIAction actionWithTitle:@"Set nil" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setFaceCoreMinFaceSize:"), nil);
+        
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    
+    UIMenu *faceCoreMinFaceSizeMenu = [UIMenu menuWithTitle:@"faceCoreMinFaceSize (???)" children:@[faceCoreMinFaceSizeSliderElement, nullifyFaceCoreMinFaceSizeAction]];
+    if (faceCoreMinFaceSize == nil) {
+        faceCoreMinFaceSizeMenu.subtitle = @"nil";
+    }
+    
+    //
+    
+    NSNumber * _Nullable faceCoreNumberOfDetectionAngles = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreNumberOfDetectionAngles"));
+    
+    __kindof UIMenuElement *faceCoreNumberOfDetectionAnglesStepperElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        UILabel *label = [UILabel new];
+        if (faceCoreNumberOfDetectionAngles == nil) {
+            label.text = @"nil";
+        } else {
+            label.text = faceCoreNumberOfDetectionAngles.stringValue;
+        }
+        
+        //
+        
+        UIStepper *stepper = [UIStepper new];
+        
+        stepper.maximumValue = NSUIntegerMax;
+        stepper.minimumValue = 0.;
+        stepper.value = faceCoreNumberOfDetectionAngles.unsignedIntegerValue;
+        stepper.stepValue = 1.;
+        stepper.continuous = NO;
+        
+        UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+            auto slider = static_cast<UIStepper *>(action.sender);
+            NSUInteger value = slider.value;
+            
+            label.text = @(value).stringValue;
+            
+            [request cancel];
+            reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setFaceCoreNumberOfDetectionAngles:"), @(value));
+            [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        
+        [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+        
+        //
+        
+        UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[stepper, label]];
+        [stepper release];
+        [label release];
+        stackView.axis = UILayoutConstraintAxisVertical;
+        stackView.distribution = UIStackViewDistributionFill;
+        stackView.alignment = UIStackViewAlignmentFill;
+        
+        return [stackView autorelease];
+    });
+    
+    UIAction *nullifyFaceCoreNumberOfDetectionAnglesAction = [UIAction actionWithTitle:@"Set nil" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setFaceCoreNumberOfDetectionAngles:"), nil);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    
+    UIMenu *faceCoreNumberOfDetectionAnglesMenu = [UIMenu menuWithTitle:@"faceCoreNumberOfDetectionAngles (???)" children:@[faceCoreNumberOfDetectionAnglesStepperElement, nullifyFaceCoreNumberOfDetectionAnglesAction]];
+    if (faceCoreNumberOfDetectionAngles == nil) {
+        faceCoreNumberOfDetectionAnglesMenu.subtitle = @"nil";
+    }
     
     //
     
@@ -5601,14 +5727,29 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    BOOL faceCoreKalmanFilter = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreKalmanFilter"));
+    
+    UIAction *faceCoreKalmanFilterAction = [UIAction actionWithTitle:@"faceCoreKalmanFilter" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setFaceCoreKalmanFilter:"), !faceCoreKalmanFilter);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+    }];
+    faceCoreKalmanFilterAction.subtitle = @"???";
+    faceCoreKalmanFilterAction.state = faceCoreKalmanFilter ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
         faceCoreEnhanceEyesAndMouthLocalizationAction,
         faceCoreExtractBlinkAction,
-        faceCoreExtractSmileAction
+        faceCoreExtractSmileAction,
+        faceCoreKalmanFilterAction,
+        faceCoreMinFaceSizeMenu,
+        faceCoreNumberOfDetectionAnglesMenu
     ]];
     
-    menu.subtitle = subtitle;
     menu.cp_overrideNumberOfSubtitleLines = 0;
     
     return menu;
@@ -5620,6 +5761,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackMaskRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+            assetCollectionsViewController.navigationItem.prompt = @"Select Initial Mask Image";
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
             resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
@@ -5690,16 +5832,231 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             [navigationController release];
         }];
         
-        dispatch_async(dispatch_get_main_queue(), ^{
-            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
-        });
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        });
         
         return action;
     }
     
     //
     
+    BOOL generateCropRect = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("generateCropRect"));
+    UIAction *generateCropRectAction = [UIAction actionWithTitle:@"Generate Crop Rect" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(request, sel_registerName("setGenerateCropRect:"), !generateCropRect);
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    generateCropRectAction.state = generateCropRect ? UIMenuElementStateOn : UIMenuElementStateOff;
+    
+    //
+    
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackMaskRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        generateCropRectAction,
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackObjectRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations {
+    VNTrackObjectRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNTrackObjectRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        NSMutableArray<UIAction *> *detectedObjectObservationActions = [NSMutableArray new];
+        for (__kindof VNObservation *observation in observations) {
+            if ([observation isKindOfClass:[VNDetectedObjectObservation class]]) {
+                UIAction *action = [UIAction actionWithTitle:observation.uuid.UUIDString image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    __kindof VNTrackingRequest *request = [[VNTrackObjectRequest alloc] initWithDetectedObjectObservation:observation completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    [request release];
+                }];
+                
+                [detectedObjectObservationActions addObject:action];
+            }
+        }
+        
+        if (detectedObjectObservationActions.count == 0) {
+            [detectedObjectObservationActions release];
+            
+            UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNTrackObjectRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
+            }];
+            
+            action.attributes = UIMenuElementAttributesDisabled;
+            action.subtitle = @"No VNDetectedObjectObservation";
+            
+            return action;
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackObjectRequest class]) children:detectedObjectObservationActions];
+        [detectedObjectObservationActions release];
+        
+        return menu;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackObjectRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackRectangleRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations {
+    VNTrackRectangleRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNTrackRectangleRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        NSMutableArray<UIAction *> *rectangleObservationActions = [NSMutableArray new];
+        for (__kindof VNObservation *observation in observations) {
+            if ([observation isKindOfClass:[VNRectangleObservation class]]) {
+                UIAction *action = [UIAction actionWithTitle:observation.uuid.UUIDString image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    VNTrackRectangleRequest *request = [[VNTrackRectangleRequest alloc] initWithRectangleObservation:observation completionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    request.lastFrame = YES;
+                    
+                    [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                        assert(error == nil);
+                    }];
+                    
+                    [request release];
+                }];
+                
+                [rectangleObservationActions addObject:action];
+            }
+        }
+        
+        if (rectangleObservationActions.count == 0) {
+            [rectangleObservationActions release];
+            
+            UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNRectangleObservation class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                
+            }];
+            action.attributes = UIMenuElementAttributesDisabled;
+            action.subtitle = @"No VNTrackRectangleRequest";
+            
+            return action;
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNRectangleObservation class]) children:rectangleObservationActions];
+        [rectangleObservationActions release];
+        
+        return menu;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackRectangleRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTranslationalImageRegistrationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
+    VNTranslationalImageRegistrationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNTranslationalImageRegistrationRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNTranslationalImageRegistrationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+            
+            AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.allObjects.firstObject;
+                assert(asset != nil);
+                
+                UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
+                assert(presentingViewController != nil);
+                
+                [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+                    [viewModel imageFromPHAsset:asset completionHandler:^(UIImage * _Nullable image, NSError * _Nullable error) {
+                        assert(error == nil);
+                        
+                        CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+                        CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
+                        
+                        VNTranslationalImageRegistrationRequest *request = [[VNTranslationalImageRegistrationRequest alloc] initWithTargetedCGImage:cgImage orientation:cgImagePropertyOrientation options:@{
+                            MLFeatureValueImageOptionCropAndScale: @(VNImageCropAndScaleOptionScaleFill)
+                        }];
+                        
+                        [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                            assert(error == nil);
+                        }];
+                        
+                        [request release];
+                    }];
+                }];
+            };
+            
+            assetCollectionsViewController.delegate = resolver;
+            objc_setAssociatedObject(assetCollectionsViewController, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [resolver release];
+            
+            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetCollectionsViewController];
+            [assetCollectionsViewController release];
+            
+            //
+            
+            UIView *layerView = imageVisionLayer.cp_associatedView;
+            assert(layerView != nil);
+            UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
+            assert(viewController != nil);
+            
+            //
+            
+            [viewController presentViewController:navigationController animated:YES completion:nil];
+            [navigationController release];
+        }];
+        
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+//        });
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTranslationalImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    VNTrackTranslationalImageRegistrationRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:[VNTrackTranslationalImageRegistrationRequest class] addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass([VNTrackTranslationalImageRegistrationRequest class]) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            VNTrackTranslationalImageRegistrationRequest *request = [[VNTrackTranslationalImageRegistrationRequest alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackTranslationalImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
@@ -5808,6 +6165,88 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     //
     
+    NSError * _Nullable error = nil;
+    NSDictionary<VNComputeStage, NSArray<id<MLComputeDeviceProtocol>> *> *supportedComputeStageDevices = [request supportedComputeStageDevicesAndReturnError:&error];
+    assert(error == nil);
+    
+    NSArray<VNComputeStage> *sortedComputeStages = [supportedComputeStageDevices.allKeys sortedArrayUsingComparator:^NSComparisonResult(VNComputeStage _Nonnull obj1, VNComputeStage _Nonnull obj2) {
+        return [obj1 compare:obj2];
+    }];
+    NSMutableArray<UIMenu *> *computeStageMenus = [[NSMutableArray alloc] initWithCapacity:supportedComputeStageDevices.count];
+    for (VNComputeStage computeState in sortedComputeStages) {
+        NSArray<id<MLComputeDeviceProtocol>> *devices = supportedComputeStageDevices[computeState];
+        NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:devices.count];
+        
+        for (id<MLComputeDeviceProtocol> device in devices) {
+            NSString *title;
+            if ([device isKindOfClass:objc_lookUpClass("MLGPUComputeDevice")]) {
+                id<MTLDevice> metalDevice = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(device, sel_registerName("metalDevice"));
+                title = metalDevice.name;
+            } else {
+                title = NSStringFromClass([device class]);
+            }
+            
+            UIAction *action = [UIAction actionWithTitle:title image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                [request cancel];
+                [request setComputeDevice:device forComputeStage:computeState];
+                [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }];
+            
+            action.state = ([[request computeDeviceForComputeStage:computeState] isEqual:device]) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            action.cp_overrideNumberOfSubtitleLines = 0;
+            [actions addObject:action];
+        }
+        
+        //
+        
+        UIMenu *menu = [UIMenu menuWithTitle:computeState children:actions];
+        [actions release];
+        
+        [computeStageMenus addObject:menu];
+    }
+    
+    UIMenu *computeDevicesMenu = [UIMenu menuWithTitle:@"Compute Devices" children:computeStageMenus];
+    [computeStageMenus release];
+    
+    [children addObject:computeDevicesMenu];
+    
+    //
+    
+    BOOL preferBackgroundProcessing = request.preferBackgroundProcessing;
+    UIAction *preferBackgroundProcessingAction = [UIAction actionWithTitle:@"preferBackgroundProcessing" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        [request cancel];
+        request.preferBackgroundProcessing = !preferBackgroundProcessing;
+        [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
+            assert(error == nil);
+        }];
+    }];
+    preferBackgroundProcessingAction.state = preferBackgroundProcessing ? UIMenuElementStateOn : UIMenuElementStateOff;
+    [children addObject:preferBackgroundProcessingAction];
+    
+    //
+    
+    BOOL cancellationTriggered = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("cancellationTriggered"));
+    UIAction *cancellationTriggeredAction = [UIAction actionWithTitle:@"cancellationTriggered" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    cancellationTriggeredAction.attributes = UIMenuElementAttributesDisabled;
+    cancellationTriggeredAction.state = cancellationTriggered ? UIMenuElementStateOn : UIMenuElementStateOff;
+    [children addObject:cancellationTriggeredAction];
+    
+    //
+    
+    NSTimeInterval executionTimeInternal = reinterpret_cast<NSTimeInterval (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("executionTimeInternal"));
+    UIAction *executionTimeInternalAction = [UIAction actionWithTitle:@"executionTimeInternal" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        
+    }];
+    executionTimeInternalAction.subtitle = @(executionTimeInternal).stringValue;
+    executionTimeInternalAction.attributes = UIMenuElementAttributesDisabled;
+    [children addObject:executionTimeInternalAction];
+    
+    //
+    
     if ([request respondsToSelector:@selector(supportedIdentifiersAndReturnError:)]) {
         NSError * _Nullable error = nil;
         NSArray<NSString *> *supportedIdentifiers = reinterpret_cast<id (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("supportedIdentifiersAndReturnError:"), &error);
@@ -5862,6 +6301,177 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         imageCropAndScaleOptionActionsMenu.subtitle = NSStringFromVNImageCropAndScaleOption(selectedImageCropAndScaleOption);
         
         [children addObject:imageCropAndScaleOptionActionsMenu];
+    }
+    
+    //
+    
+    if ([request isKindOfClass:[VNTrackingRequest class]]) {
+        auto trackingRequest = static_cast<VNTrackingRequest *>(request);
+        
+        //
+        
+        BOOL isLastFrame = trackingRequest.isLastFrame;
+        UIAction *isLastFrameAction = [UIAction actionWithTitle:@"isLastFrame" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [trackingRequest cancel];
+            trackingRequest.lastFrame = !isLastFrame;
+            [viewModel updateRequest:trackingRequest completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+        }];
+        isLastFrameAction.state = isLastFrame ? UIMenuElementStateOn : UIMenuElementStateOff;
+        [children addObject:isLastFrameAction];
+        
+        //
+        
+        VNRequestTrackingLevel selectedTrackingLevel = trackingRequest.trackingLevel;
+        
+        auto trackingLevelActionsVec = std::vector<VNRequestTrackingLevel> {
+            VNRequestTrackingLevelAccurate,
+            VNRequestTrackingLevelFast
+        }
+        | std::views::transform([viewModel, trackingRequest, selectedTrackingLevel](VNRequestTrackingLevel level) {
+            UIAction *action = [UIAction actionWithTitle:NSStringFromVNRequestTrackingLevel(level) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                [trackingRequest cancel];
+                trackingRequest.trackingLevel = level;
+                [viewModel updateRequest:trackingRequest completionHandler:^(NSError * _Nullable error) {
+                    assert(error == nil);
+                }];
+            }];
+            
+            action.state = (selectedTrackingLevel == level) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            return action;
+        })
+        | std::ranges::to<std::vector<UIAction *>>();
+        
+        NSArray<UIAction *> *trackingLevelActions = [[NSArray alloc] initWithObjects:trackingLevelActionsVec.data() count:trackingLevelActionsVec.size()];
+        
+        UIMenu *trackingLevelsMenu = [UIMenu menuWithTitle:@"Tracking Levels" children:trackingLevelActions];
+        [trackingLevelActions release];
+        trackingLevelsMenu.subtitle = NSStringFromVNRequestTrackingLevel(selectedTrackingLevel);
+        
+        [children addObject:trackingLevelsMenu];
+        
+        //
+        
+        NSError * _Nullable error = nil;
+        NSUInteger supportedNumberOfTrackers = reinterpret_cast<NSUInteger (*)(id, SEL, id *)>(objc_msgSend)(trackingRequest, sel_registerName("supportedNumberOfTrackersAndReturnError:"), &error);
+        assert(error == nil);
+        UIAction *supportedNumberOfTrackersAction = [UIAction actionWithTitle:@"Supported Number Of Trackers" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        supportedNumberOfTrackersAction.subtitle = @(supportedNumberOfTrackers).stringValue;
+        supportedNumberOfTrackersAction.attributes = UIMenuElementAttributesDisabled;
+        [children addObject:supportedNumberOfTrackersAction];
+    }
+    
+    //
+    
+    if ([request isKindOfClass:[VNImageBasedRequest class]]) {
+        auto imageBasedRequest = static_cast<VNImageBasedRequest *>(request);
+        
+        NSArray *supportedImageSizeSet = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("supportedImageSizeSet"));
+        if (supportedImageSizeSet.count > 0) {
+            NSMutableArray<UIMenu *> *supportedImageSizeMenus = [[NSMutableArray alloc] initWithCapacity:supportedImageSizeSet.count];
+            
+            // VNSupportedImageSize
+            for (id supportedImageSize in supportedImageSizeSet) {
+                auto sizeRangeMenu = ^UIMenu * (NSString *title, id sizeRange) {
+                    NSUInteger minimumDimension = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(sizeRange, sel_registerName("minimumDimension"));
+                    UIAction *minimumDimensionAction = [UIAction actionWithTitle:@"Minimum Dimension" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                        
+                    }];
+                    minimumDimensionAction.subtitle = @(minimumDimension).stringValue;
+                    minimumDimensionAction.attributes = UIMenuElementAttributesDisabled;
+                    
+                    //
+                    
+                    NSUInteger maximumDimension = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(sizeRange, sel_registerName("maximumDimension"));
+                    UIAction *maximumDimensionAction = [UIAction actionWithTitle:@"Maximum Dimension" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                        
+                    }];
+                    maximumDimensionAction.subtitle = @(maximumDimension).stringValue;
+                    maximumDimensionAction.attributes = UIMenuElementAttributesDisabled;
+                    
+                    //
+                    
+                    NSUInteger idealDimension = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(sizeRange, sel_registerName("idealDimension"));
+                    UIAction *idealDimensionAction = [UIAction actionWithTitle:@"Ideal Dimension" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                        
+                    }];
+                    idealDimensionAction.subtitle = @(idealDimension).stringValue;
+                    idealDimensionAction.attributes = UIMenuElementAttributesDisabled;
+                    
+                    //
+                    
+                    UIMenu *menu = [UIMenu menuWithTitle:title children:@[minimumDimensionAction, maximumDimensionAction, idealDimensionAction]];
+                    return menu;
+                };
+                
+                //
+                
+                id pixelsWideRange = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(supportedImageSize, sel_registerName("pixelsWideRange"));
+                UIMenu *pixelsWideRangeMenu = sizeRangeMenu(@"Pixels Wide Range", pixelsWideRange);
+                
+                //
+                
+                id pixelsHighRange = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(supportedImageSize, sel_registerName("pixelsHighRange"));
+                UIMenu *pixelsHighRangeMenu = sizeRangeMenu(@"Pixels High Range", pixelsHighRange);
+                
+                //
+                
+                NSUInteger aspectRatioHandling = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(supportedImageSize, sel_registerName("aspectRatioHandling"));
+                UIAction *aspectRatioHandlingAction = [UIAction actionWithTitle:@"Aspect Ratio Handling" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    
+                }];
+                aspectRatioHandlingAction.subtitle = @(aspectRatioHandling).stringValue;
+                aspectRatioHandlingAction.attributes = UIMenuElementAttributesDisabled;
+                
+                //
+                
+                NSUInteger idealImageFormat = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(supportedImageSize, sel_registerName("idealImageFormat"));
+                UIAction *idealImageFormatAction = [UIAction actionWithTitle:@"Ideal Image Format" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    
+                }];
+                idealImageFormatAction.subtitle = @(idealImageFormat).stringValue;
+                idealImageFormatAction.attributes = UIMenuElementAttributesDisabled;
+                
+                //
+                
+                NSUInteger idealOrientation = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(supportedImageSize, sel_registerName("idealOrientation"));
+                UIAction *idealOrientationAction = [UIAction actionWithTitle:@"Ideal Orientation" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    
+                }];
+                idealOrientationAction.subtitle = @(idealOrientation).stringValue;
+                idealOrientationAction.attributes = UIMenuElementAttributesDisabled;
+                
+                //
+                
+                UIMenu *menu = [UIMenu menuWithTitle:[supportedImageSize description] children:@[
+                    pixelsWideRangeMenu,
+                    pixelsHighRangeMenu,
+                    aspectRatioHandlingAction,
+                    idealImageFormatAction,
+                    idealOrientationAction
+                ]];
+                
+                [supportedImageSizeMenus addObject:menu];
+            }
+            
+            UIMenu *supportedImageSizesMenu = [UIMenu menuWithTitle:@"Supported Image Sizes" children:supportedImageSizeMenus];
+            [supportedImageSizeMenus release];
+            
+            [children addObject:supportedImageSizesMenu];
+        }
+        
+        //
+        
+        CGRect regionOfInterest = imageBasedRequest.regionOfInterest;
+        UIAction *regionOfInterestAction = [UIAction actionWithTitle:@"Region Of Interest (TODO: setter)" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        regionOfInterestAction.attributes = UIMenuElementAttributesDisabled;
+        regionOfInterestAction.subtitle = NSStringFromCGRect(regionOfInterest);
+        [children addObject:regionOfInterestAction];
     }
     
     //

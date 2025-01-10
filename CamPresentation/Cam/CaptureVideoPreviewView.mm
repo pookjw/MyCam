@@ -242,6 +242,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_previewLayer release];
     [_customPreviewLayer release];
     [_sampleBufferDisplayLayer release];
+    [_videoThumbnailLayer release];
     [_depthMapLayer release];
     [_visionLayer release];
     [_metadataObjectsLayer release];

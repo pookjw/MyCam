@@ -256,6 +256,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
             } else if ([requestClassName isEqualToString:@"VNRemoveBackgroundRequest"]) {
                 [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
+            } else if ([requestClassName isEqualToString:@"VNTrackMaskRequest"]) {
+                [self _drawPixelBufferObservation:pixelBufferObservation aspectBounds:aspectBounds maskImage:(self.image != nil) whitePointAdjustmentColor:NULL inContext:ctx];
             } else {
                 NSLog(@"%@", requestClassName);
                 abort();
@@ -324,6 +326,10 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawRecognizedTextObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == objc_lookUpClass("VNDocumentObservation")) {
             [self _drawDocumentObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNImageAlignmentObservation class]) {
+            [self _drawImageAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == [VNImageTranslationAlignmentObservation class]) {
+            [self _drawImageTranslationAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -1739,7 +1745,7 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
             CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(image, sel_registerName("vk_cgImagePropertyOrientation"));
             
-            inputCIImage = [[[CIImage alloc] initWithCGImage:image.CGImage options:nil] autorelease];
+            inputCIImage = [[[CIImage alloc] initWithCGImage:cgImage options:nil] autorelease];
             inputCIImage = [inputCIImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
         }
         blendWithMaskFilter.inputImage = inputCIImage;
@@ -2543,6 +2549,83 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
     
     CGContextRestoreGState(ctx);
     [pool release];
+}
+
+- (void)_drawImageAlignmentObservation:(VNImageAlignmentObservation *)imageAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    CGContextSaveGState(ctx);
+    
+    CGAffineTransform alignmentTransform = reinterpret_cast<CGAffineTransform (*)(id, SEL)>(objc_msgSend)(imageAlignmentObservation, sel_registerName("alignmentTransform"));
+    
+    if (UIImage *image = self.image) {
+        CGContextSaveGState(ctx);
+        
+        CIImage * __autoreleasing originalCIImage = image.CIImage;
+        if (originalCIImage == nil) {
+            CGImageRef cgImage = reinterpret_cast<CGImageRef (*)(id, SEL)>(objc_msgSend)(self.image, sel_registerName("vk_cgImageGeneratingIfNecessary"));
+            CGImagePropertyOrientation cgImagePropertyOrientation = reinterpret_cast<CGImagePropertyOrientation (*)(id, SEL)>(objc_msgSend)(self.image, sel_registerName("vk_cgImagePropertyOrientation"));
+            
+            originalCIImage = [[[CIImage alloc] initWithCGImage:cgImage options:nil] autorelease];
+            originalCIImage = [originalCIImage imageByApplyingCGOrientation:cgImagePropertyOrientation];
+        }
+        
+        originalCIImage = [originalCIImage imageByApplyingTransform:alignmentTransform highQualityDownsample:YES];
+        CGImageRef cgImage = [self._ciContext createCGImage:originalCIImage fromRect:originalCIImage.extent];
+        
+        CGAffineTransform transform_1 = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                         CGRectGetMinY(aspectBounds));
+        CGAffineTransform transform_2 = CGAffineTransformMakeScale(CGRectGetWidth(aspectBounds) / CGRectGetWidth(originalCIImage.extent),
+                                                                   -CGRectGetHeight(aspectBounds) / CGRectGetHeight(originalCIImage.extent));
+        CGAffineTransform transform_3 = CGAffineTransformMakeTranslation(0., CGRectGetHeight(aspectBounds));
+        
+        CGContextConcatCTM(ctx, CGAffineTransformConcat(CGAffineTransformConcat(transform_2, transform_3), transform_1));
+        CGContextDrawImage(ctx, originalCIImage.extent, cgImage);
+        CGImageRelease(cgImage);
+        
+        CGContextRestoreGState(ctx);
+    } else {
+        CGContextSaveGState(ctx);
+        
+        CATextLayer *textLayer = [CATextLayer new];
+        textLayer.string = NSStringFromCGAffineTransform(alignmentTransform);
+        textLayer.wrapped = YES;
+        textLayer.fontSize = 14.0;
+        textLayer.contentsScale = self.contentsScale;
+        
+        //
+        
+        CGColorRef foregroundColor = CGColorCreateGenericGray(1.0, 1.0);
+        textLayer.foregroundColor = foregroundColor;
+        CGColorRelease(foregroundColor);
+        
+        CGColorRef backgroundColor = CGColorCreateGenericGray(0.0, 0.5);
+        textLayer.backgroundColor = backgroundColor;
+        CGColorRelease(backgroundColor);
+        
+        //
+        
+        textLayer.frame = CGRectMake(0.,
+                                     0.,
+                                     CGRectGetWidth(aspectBounds),
+                                     CGRectGetHeight(aspectBounds));
+        
+        CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                       CGRectGetMinY(aspectBounds));
+        
+        CGContextConcatCTM(ctx, transform);
+        
+        [textLayer renderInContext:ctx];
+        [textLayer release];
+        
+        CGContextRestoreGState(ctx);
+    }
+    
+    CGContextRestoreGState(ctx);
+    [pool release];
+}
+
+- (void)_drawImageTranslationAlignmentObservation:(VNImageTranslationAlignmentObservation *)imageTranslationAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    [self _drawImageAlignmentObservation:imageTranslationAlignmentObservation aspectBounds:aspectBounds inContext:ctx];
 }
 
 @end

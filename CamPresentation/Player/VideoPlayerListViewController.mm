@@ -248,6 +248,7 @@
 #endif
     } else if (viewControllerClass == VideoPlayerVisionViewController.class) {
         VideoPlayerVisionViewController *viewController = [VideoPlayerVisionViewController new];
+        [viewController updateWithAsset:self.viewModel.asset];
         viewController.player = player;
         [self.navigationController pushViewController:viewController animated:YES];
         [viewController release];
