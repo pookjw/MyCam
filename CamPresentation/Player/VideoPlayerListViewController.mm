@@ -111,7 +111,7 @@
         [collectionView reloadData];
         
         // DEBUG
-        [self collectionView:self.collectionView didSelectItemAtIndexPath:[NSIndexPath indexPathForItem:0 inSection:0]];
+//        [self collectionView:self.collectionView didSelectItemAtIndexPath:[NSIndexPath indexPathForItem:0 inSection:0]];
     }];
     
     [self cellRegistration];
