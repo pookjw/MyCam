@@ -27,6 +27,7 @@
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4BFE742D2E6F20002AB203 /* VisionKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F951D492D265C340081887B /* SceneKit.framework */; };
+		4F96C7722D3274C600E1A4EC /* SafariServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F96C7712D3274C600E1A4EC /* SafariServices.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9AA48F2CED6B1100CCABDB /* ARKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4FA73E522C97132400F17348 /* MyCaptureExtension-Swift.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FA73E5E2C97152500F17348 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FA73E5D2C97152500F17348 /* WidgetKit.framework */; };
@@ -213,6 +214,7 @@
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
 		4F951D492D265C340081887B /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/SceneKit.framework; sourceTree = DEVELOPER_DIR; };
+		4F96C7712D3274C600E1A4EC /* SafariServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SafariServices.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/SafariServices.framework; sourceTree = DEVELOPER_DIR; };
 		4F9AA48F2CED6B1100CCABDB /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/ARKit.framework; sourceTree = DEVELOPER_DIR; };
 		4FA73E492C97132400F17348 /* MyCaptureExtension-Swift.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = "MyCaptureExtension-Swift.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -388,10 +390,10 @@
 				cp_CMSampleBufferCreatePixelBuffer.h,
 				cp_CMSampleBufferCreatePixelBuffer.mm,
 				Extern.h,
-				ImageFilter/ImageFilterDescriptor.h,
-				ImageFilter/ImageFilterDescriptor.mm,
 				ImageFilter/ImageFiltersViewController.h,
 				ImageFilter/ImageFiltersViewController.mm,
+				ImageFilter/ImageFilterViewController.h,
+				ImageFilter/ImageFilterViewController.mm,
 				Library/Asset/AssetCollectionViewCell.h,
 				Library/Asset/AssetCollectionViewCell.mm,
 				Library/Asset/AssetCollectionViewLayout.h,
@@ -503,6 +505,8 @@
 				TVSwitch.mm,
 				"UIApplication+mrui_requestSceneWrapper.hpp",
 				"UIApplication+mrui_requestSceneWrapper.mm",
+				"UIImage+CP_Category.h",
+				"UIImage+CP_Category.mm",
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIMenuElement+CP_NumberOfLines.mm",
 				"UISceneConfiguration+CamPresentation.h",
@@ -631,7 +635,7 @@
 				Constants.h,
 				cp_CMSampleBufferCreatePixelBuffer.h,
 				Extern.h,
-				ImageFilter/ImageFilterDescriptor.h,
+				ImageFilter/ImageFilterViewController.h,
 				Library/Asset/AssetCollectionViewCell.h,
 				Library/Asset/AssetCollectionViewLayout.h,
 				Library/Asset/AssetContentView.h,
@@ -682,6 +686,7 @@
 				TVStepper.h,
 				TVSwitch.h,
 				"UIApplication+mrui_requestSceneWrapper.hpp",
+				"UIImage+CP_Category.h",
 				"UIMenuElement+CP_NumberOfLines.h",
 				"UIScreenEdgePanGestureRecognizer+CP_Category.h",
 				"UIToolbar+CP_UIToolbarTVPatch.h",
@@ -827,6 +832,7 @@
 				4FF536532CE87EE2000FA763 /* VideoToolbox.framework in Frameworks */,
 				4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
+				4F96C7722D3274C600E1A4EC /* SafariServices.framework in Frameworks */,
 				4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */,
 				4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */,
 				4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */,
@@ -904,6 +910,7 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F96C7712D3274C600E1A4EC /* SafariServices.framework */,
 				4F4BFE742D2E6F20002AB203 /* VisionKit.framework */,
 				4F951D492D265C340081887B /* SceneKit.framework */,
 				4F3B94422D12AC36001235FC /* Vision.framework */,

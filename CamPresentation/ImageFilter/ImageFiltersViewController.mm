@@ -9,9 +9,9 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreImage/CoreImage.h>
-#import <CamPresentation/ImageFilterDescriptor.h>
+#import <CamPresentation/ImageFilterViewController.h>
 
-@interface ImageFiltersViewController ()
+@interface ImageFiltersViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly, getter=_collectionView) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly, getter=_dataSource) UICollectionViewDiffableDataSource<NSNull *, NSString *> *dataSource;
 @property (retain, nonatomic, readonly, getter=_cellRegistration) UICollectionViewCellRegistration *cellRegistration;
@@ -53,6 +53,49 @@
     [snapshot release];
     
     self.navigationItem.rightBarButtonItem = self.tmpBarButtonItem;
+    
+    ImageFilterViewController *viewController = [[ImageFilterViewController alloc] initWithFilterName:@"CIStraightenFilter"];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
+    
+    //
+    
+//    NSMutableDictionary<NSString *, NSArray<NSString *> *> *customAttributeKeys = [NSMutableDictionary new];
+//    
+//    for (NSString *category in allCategories) {
+//        NSArray<NSString *> *filterNames = [CIFilter filterNamesInCategory:category];
+//        
+//        for (NSString *filterName in filterNames) @autoreleasepool {
+//            CIFilter *filter = [CIFilter filterWithName:filterName];
+//            NSDictionary<NSString *, id> *customAttributes = [[filter class] customAttributes];
+//            NSLog(@"%@ - %@", filterName, customAttributes);
+//            
+//            NSArray<NSString *> *inputKeys = filter.inputKeys;
+//            
+//            for (NSString *inputKey in inputKeys) {
+//                if (customAttributes[inputKey] == nil and ![inputKey isEqualToString:@"inputImage"]) {
+//                    if (NSArray<NSString *> *array = customAttributeKeys[inputKey]) {
+//                        customAttributeKeys[inputKey] = [array arrayByAddingObject:filterName];
+//                    } else {
+//                        customAttributeKeys[inputKey] = @[filterName];
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    
+//    NSLog(@"%@", customAttributeKeys);
+//    [customAttributeKeys release];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    
+    UICollectionView *collectionView = self.collectionView;
+    
+    if ((collectionView.numberOfSections > 0) and !collectionView.allowsMultipleSelection) {
+        reinterpret_cast<void (*)(id, SEL, id, BOOL, id)>(objc_msgSend)(collectionView, sel_registerName("_deselectItemsAtIndexPaths:animated:transitionCoordinator:"), collectionView.indexPathsForSelectedItems, YES, self.transitionCoordinator);
+    }
 }
 
 - (UICollectionView *)_collectionView {
@@ -64,6 +107,8 @@
     [listConfiguration release];
     
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
+    
+    collectionView.delegate = self;
     
     _collectionView = collectionView;
     return collectionView;
@@ -91,39 +136,27 @@
         UIListContentConfiguration *contentConfiguration = [cell defaultContentConfiguration];
         
         NSString *text;
-        UIColor * _Nullable textColor;
+        NSString * _Nullable secondaryText;
         NSArray<UICellAccessory *> *accessories;
         
         if ([allCategories containsObject:item]) {
-            text = item;
-            textColor = nil;
+            text = [NSString stringWithFormat:@"%@ (%@)", [CIFilter localizedNameForCategory:item], item];
+            secondaryText = nil;
             
             UICellAccessoryOutlineDisclosure *outlineDisclosure = [UICellAccessoryOutlineDisclosure new];
             outlineDisclosure.style = UICellAccessoryOutlineDisclosureStyleHeader;
             accessories = @[outlineDisclosure];
             [outlineDisclosure release];
         } else {
-            ImageFilterDescriptor * _Nullable descriptor = [[ImageFilterDescriptor alloc] initWithFilterName:item];
-            if (descriptor == nil) {
-                text = [NSString stringWithFormat:@"%@ (Unimplemented)", item];
-                textColor = UIColor.systemRedColor;
-            } else {
-                text = item;
-                textColor = nil;
-                [descriptor release];
-            }
-            
+            text = [NSString stringWithFormat:@"%@ (%@)", [CIFilter localizedNameForFilterName:item], item];
+            secondaryText = [CIFilter localizedDescriptionForFilterName:item];
             accessories = @[];
         }
         
         contentConfiguration.text = text;
-        
-        if (textColor) {
-            contentConfiguration.textProperties.color = textColor;
-        }
+        contentConfiguration.secondaryText = secondaryText;
         
         cell.contentConfiguration = contentConfiguration;
-        
         cell.accessories = accessories;
     }];
     
@@ -145,6 +178,20 @@
     NSArray *sectionControllers = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(_diffableDataSourceImpl, sel_registerName("sectionControllers"));
     
     reinterpret_cast<void (*)(id, SEL, NSUInteger, id)>(objc_msgSend)(sectionControllers[0], sel_registerName("_performDisclosureAction:forItem:"), 1, @"CICategoryBlur");
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    NSString *filterName = [self.dataSource itemIdentifierForIndexPath:indexPath];
+    assert(filterName != nil);
+    
+    ImageFilterViewController * _Nullable viewController = [[ImageFilterViewController alloc] initWithFilterName:filterName];
+    
+    if (viewController == nil) {
+        abort();
+    }
+    
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
 }
 
 @end

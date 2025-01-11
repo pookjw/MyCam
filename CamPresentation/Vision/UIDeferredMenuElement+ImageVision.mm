@@ -24,98 +24,6 @@
 #import <CamPresentation/NSStringFromVNRequestTextRecognitionLevel.h>
 #import <CamPresentation/NSStringFromVNRequestTrackingLevel.h>
 
-/*
- (lldb) po [VNRequestSpecifier allAvailableRequestClassNames]
- <__NSFrozenArrayM 0x3038c3840>(
- VNAlignFaceRectangleRequest,✅
- VNCalculateImageAestheticsScoresRequest,✅
- VNClassifyCityNatureImageRequest,✅
- VNClassifyFaceAttributesRequest,✅
- VNClassifyImageAestheticsRequest,✅
- VNClassifyImageRequest,✅
- VNClassifyJunkImageRequest,✅
- VNClassifyMemeImageRequest,✅
- VNVYvzEtX1JlUdu8xx5qhDI,✅
- VNClassifyPotentialLandmarkRequest,✅
- VN5kJNH3eYuyaLxNpZr5Z7zi,✅
- VN6Mb1ME89lyW3HpahkEygIG,✅
- VNCoreMLRequest,✅
- VNCreateAnimalprintRequest,✅
- VNCreateDetectionprintRequest,✅
- VNCreateFaceRegionMapRequest,✅
- VNCreateFaceprintRequest,✅
- VN6kBnCOr2mZlSV6yV1dLwB,✅
- VNCreateImageFingerprintsRequest,✅
- VNCreateImageprintRequest,✅
- VNCreateNeuralHashprintRequest,✅
- VNCreateSceneprintRequest,✅
- VNCreateSmartCamprintRequest,✅
- VNCreateTorsoprintRequest,✅
- VNDetectAnimalBodyPoseRequest,✅
- VNDetectBarcodesRequest,✅
- VNDetectContoursRequest,✅
- VNDetectDocumentSegmentationRequest,✅
- VNDetectFaceCaptureQualityRequest,✅
- VNDetectFaceLandmarksRequest,✅
- VNDetectFace3DLandmarksRequest,✅
- VNDetectFaceExpressionsRequest,✅
- VNDetectFaceGazeRequest,✅
- VNDetectFacePoseRequest,✅
- VNDetectFaceRectanglesRequest,✅
- VNDetectHorizonRequest,✅
- VNDetectHumanBodyPoseRequest,✅
- VNDetectHumanBodyPose3DRequest,✅
- VNDetectHumanHandPoseRequest,✅
- VNDetectHumanHeadRectanglesRequest,✅
- VNDetectHumanRectanglesRequest,✅
- VNDetectRectanglesRequest,✅
- VNDetectScreenGazeRequest,✅
- VNDetectTextRectanglesRequest,✅
- VNDetectTrajectoriesRequest,✅
- VNGenerateAnimalSegmentationRequest,✅
- VNGenerateAttentionBasedSaliencyImageRequest,✅
- VNGenerateFaceSegmentsRequest,✅
- VNGenerateGlassesSegmentationRequest,✅
- VNGenerateHumanAttributesSegmentationRequest,✅
- VNGenerateImageFeaturePrintRequest,✅
- VNGenerateInstanceMaskRequest,✅
- VNGenerateForegroundInstanceMaskRequest,✅
- VNGenerateImageSegmentationRequest, ✅
- VNGenerateInstanceMaskGatingRequest,✅
- VNGenerateObjectnessBasedSaliencyImageRequest,✅
- VNGenerateOpticalFlowRequest,✅
- VN1JC7R3k4455fKQz0dY1VhQ,✅
- VNGeneratePersonInstanceMaskRequest,✅
- VNGeneratePersonSegmentationRequest,✅
- VNGenerateSkySegmentationRequest,✅
- VNHomographicImageRegistrationRequest,﹖
- VNIdentifyJunkRequest,✅
- VNImageBlurScoreRequest,✅
- VNImageExposureScoreRequest,✅
- VNNOPRequest,✅
- VNRecognizeAnimalsRequest,✅
- VNRecognizeAnimalHeadsRequest,✅
- VNRecognizeAnimalFacesRequest,✅
- VNRecognizeFoodAndDrinkRequest,✅
- VNRecognizeObjectsRequest,✅
- VNRecognizeSportBallsRequest,✅
- VNRecognizeTextRequest,✅
- VNRecognizeDocumentElementsRequest,﹖
- VNRecognizeDocumentsRequest,✅
- VNRemoveBackgroundRequest,✅
- VNSceneClassificationRequest,✅
- VNTrackHomographyRequest,✅
- VNTrackHomographicImageRegistrationRequest,✅
- VNTrackLegacyFaceCoreObjectRequest,✅
- VNTrackMaskRequest,✅
- VNTrackObjectRequest,✅
- VNTrackOpticalFlowRequest,✅
- VNTrackRectangleRequest,✅
- VNTrackTranslationalImageRegistrationRequest,✅
- VNTranslationalImageRegistrationRequest✅
- )
- */
-
 VN_EXPORT NSString * const VNTextRecognitionOptionNone;
 VN_EXPORT NSString * const VNTextRecognitionOptionASCIICharacterSet;
 VN_EXPORT NSString * const VNTextRecognitionOptionEnglishCharacterSet;
@@ -138,9 +46,10 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [viewModel getValuesWithCompletionHandler:^(NSArray<__kindof VNRequest *> * _Nonnull requests, NSArray<__kindof VNObservation *> * _Nonnull observations, UIImage * _Nullable image) {
             UIMenu *requestsMenu = [UIDeferredMenuElement _cp_imageVisionRequestsMenuWithViewModel:viewModel addedRequests:requests observations:observations image:image imageVisionLayer:imageVisionLayer];
             UIMenu *imageVisionLayerMenu = [UIDeferredMenuElement _cp_imageVisionMenuWithImageVisionLayer:imageVisionLayer drawingRunLoop:drawingRunLoop];
+            UIMenu *unimplementedRequestsMenu = [UIDeferredMenuElement _cp_imageVisionUnimplementedRequestsMenu];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                completion(@[requestsMenu, imageVisionLayerMenu]);
+                completion(@[requestsMenu, imageVisionLayerMenu, unimplementedRequestsMenu]);
             });
         }];
     }];
@@ -343,6 +252,118 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     action.cp_overrideNumberOfTitleLines = 0;
     return action;
+}
+
++ (UIMenu *)_cp_imageVisionUnimplementedRequestsMenu {
+    NSMutableArray<NSString *> *unimplementedClassNames = [reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_lookUpClass("VNRequestSpecifier"), sel_registerName("allAvailableRequestClassNames")) mutableCopy];
+    
+    NSArray<NSString *> *implementedClassNames = @[
+        @"VNAlignFaceRectangleRequest", // ✅
+        @"VNCalculateImageAestheticsScoresRequest", // ✅
+        @"VNClassifyCityNatureImageRequest", // ✅
+        @"VNClassifyFaceAttributesRequest", // ✅
+        @"VNClassifyImageAestheticsRequest", // ✅
+        @"VNClassifyImageRequest", // ✅
+        @"VNClassifyJunkImageRequest", // ✅
+        @"VNClassifyMemeImageRequest", // ✅
+        @"VNVYvzEtX1JlUdu8xx5qhDI", // ✅
+        @"VNClassifyPotentialLandmarkRequest", // ✅
+        @"VN5kJNH3eYuyaLxNpZr5Z7zi", // ✅
+        @"VN6Mb1ME89lyW3HpahkEygIG", // ✅
+        @"VNCoreMLRequest", // ✅
+        @"VNCreateAnimalprintRequest", // ✅
+        @"VNCreateDetectionprintRequest", // ✅
+        @"VNCreateFaceRegionMapRequest", // ✅
+        @"VNCreateFaceprintRequest", // ✅
+        @"VN6kBnCOr2mZlSV6yV1dLwB", // ✅
+        @"VNCreateImageFingerprintsRequest", // ✅
+        @"VNCreateImageprintRequest", // ✅
+        @"VNCreateNeuralHashprintRequest", // ✅
+        @"VNCreateSceneprintRequest", // ✅
+        @"VNCreateSmartCamprintRequest", // ✅
+        @"VNCreateTorsoprintRequest", // ✅
+        @"VNDetectAnimalBodyPoseRequest", // ✅
+        @"VNDetectBarcodesRequest", // ✅
+        @"VNDetectContoursRequest", // ✅
+        @"VNDetectDocumentSegmentationRequest", // ✅
+        @"VNDetectFaceCaptureQualityRequest", // ✅
+        @"VNDetectFaceLandmarksRequest", // ✅
+        @"VNDetectFace3DLandmarksRequest", // ✅
+        @"VNDetectFaceExpressionsRequest", // ✅
+        @"VNDetectFaceGazeRequest", // ✅
+        @"VNDetectFacePoseRequest", // ✅
+        @"VNDetectFaceRectanglesRequest", // ✅
+        @"VNDetectHorizonRequest", // ✅
+        @"VNDetectHumanBodyPoseRequest", // ✅
+        @"VNDetectHumanBodyPose3DRequest", // ✅
+        @"VNDetectHumanHandPoseRequest", // ✅
+        @"VNDetectHumanHeadRectanglesRequest", // ✅
+        @"VNDetectHumanRectanglesRequest", // ✅
+        @"VNDetectRectanglesRequest", // ✅
+        @"VNDetectScreenGazeRequest", // ✅
+        @"VNDetectTextRectanglesRequest", // ✅
+        @"VNDetectTrajectoriesRequest", // ✅
+        @"VNGenerateAnimalSegmentationRequest", // ✅
+        @"VNGenerateAttentionBasedSaliencyImageRequest", // ✅
+        @"VNGenerateFaceSegmentsRequest", // ✅
+        @"VNGenerateGlassesSegmentationRequest", // ✅
+        @"VNGenerateHumanAttributesSegmentationRequest", // ✅
+        @"VNGenerateImageFeaturePrintRequest", // ✅
+        @"VNGenerateInstanceMaskRequest", // ✅
+        @"VNGenerateForegroundInstanceMaskRequest", // ✅
+        @"VNGenerateImageSegmentationRequest", // ✅
+        @"VNGenerateInstanceMaskGatingRequest", // ✅
+        @"VNGenerateObjectnessBasedSaliencyImageRequest", // ✅
+        @"VNGenerateOpticalFlowRequest", // ✅
+        @"VN1JC7R3k4455fKQz0dY1VhQ", // ✅
+        @"VNGeneratePersonInstanceMaskRequest", // ✅
+        @"VNGeneratePersonSegmentationRequest", // ✅
+        @"VNGenerateSkySegmentationRequest", // ✅
+        @"VNHomographicImageRegistrationRequest", // ﹖
+        @"VNIdentifyJunkRequest", // ✅
+        @"VNImageBlurScoreRequest", // ✅
+        @"VNImageExposureScoreRequest", // ✅
+        @"VNNOPRequest", // ✅
+        @"VNRecognizeAnimalsRequest", // ✅
+        @"VNRecognizeAnimalHeadsRequest", // ✅
+        @"VNRecognizeAnimalFacesRequest", // ✅
+        @"VNRecognizeFoodAndDrinkRequest", // ✅
+        @"VNRecognizeObjectsRequest", // ✅
+        @"VNRecognizeSportBallsRequest", // ✅
+        @"VNRecognizeTextRequest", // ✅
+        @"VNRecognizeDocumentElementsRequest", // ﹖
+        @"VNRecognizeDocumentsRequest", // ✅
+        @"VNRemoveBackgroundRequest", // ✅
+        @"VNSceneClassificationRequest", // ✅
+        @"VNTrackHomographyRequest", // ✅
+        @"VNTrackHomographicImageRegistrationRequest", // ✅
+        @"VNTrackLegacyFaceCoreObjectRequest", // ✅
+        @"VNTrackMaskRequest", // ✅
+        @"VNTrackObjectRequest", // ✅
+        @"VNTrackOpticalFlowRequest", // ✅
+        @"VNTrackRectangleRequest", // ✅
+        @"VNTrackTranslationalImageRegistrationRequest", // ✅
+        @"VNTranslationalImageRegistrationRequest" // ✅
+    ];
+    
+    for (NSString *name in implementedClassNames) {
+        [unimplementedClassNames removeObject:name];
+    }
+    
+    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:unimplementedClassNames.count];
+    for (NSString *name in unimplementedClassNames) {
+        UIAction *action = [UIAction actionWithTitle:name image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            
+        }];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [actions addObject:action];
+    }
+    [unimplementedClassNames release];
+    
+    UIMenu *unimplementedRequestsMenu = [UIMenu menuWithTitle:@"Unimplemented Requests" children:actions];
+    [actions release];
+    
+    return unimplementedRequestsMenu;
 }
 
 + (__kindof UIMenuElement *)_cp_imageVisionComputeDistanceElementWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
