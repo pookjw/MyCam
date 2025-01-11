@@ -1,5 +1,5 @@
 //
-//  BaseImageFilter.h
+//  ImageFilterDescriptor.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 1/10/25.
@@ -18,10 +18,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithKey:(NSString *)key minimumValue:(float)minimumValue maximumValue:(float)maximumValue;
 @end
 
-@interface BaseImageFilter : NSObject
+@interface ImageFilterDescriptor : NSObject
 @property (copy, nonatomic, readonly) NSString *filterName;
 @property (copy, nonatomic, readonly) NSArray<NSString *> *inputImageKeys;
 @property (copy, nonatomic, readonly) NSArray<ImageFilterFloatValueDescriptor *> *inputFloatValueKeys;
++ (instancetype)new NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
+- (nullable instancetype)initWithFilterName:(NSString *)filterName;
 @end
 
 NS_ASSUME_NONNULL_END

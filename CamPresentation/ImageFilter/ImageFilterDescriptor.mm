@@ -1,11 +1,11 @@
 //
-//  BaseImageFilter.m
+//  ImageFilterDescriptor.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 1/10/25.
 //
 
-#import <CamPresentation/BaseImageFilter.h>
+#import <CamPresentation/ImageFilterDescriptor.h>
 
 @implementation ImageFilterFloatValueDescriptor
 
@@ -26,8 +26,22 @@
 
 @end
 
-@implementation BaseImageFilter
-@dynamic filterName;
-@dynamic inputImageKeys;
-@dynamic inputFloatValueKeys;
+@implementation ImageFilterDescriptor
+
+- (instancetype)initWithFilterName:(NSString *)filterName {
+    self = [super init];
+    if (self == nil) {
+        [self release];
+        return nil;
+    }
+    
+    //
+    
+    
+    
+    //
+    
+    return nil;
+}
+
 @end
