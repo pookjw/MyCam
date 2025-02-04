@@ -63,9 +63,12 @@ __attribute__((objc_direct_members))
         self.modelType = casted.modelType;
         _lock = casted->_lock;
         __runLoop = [casted->__runLoop retain];
-        __textLayer = [[CATextLayer alloc] initWithLayer:casted->__textLayer];
         
-        [self addSublayer:__textLayer];
+        for (CATextLayer *textLayer in self.sublayers) {
+            if (![textLayer isKindOfClass:CATextLayer.class]) continue;
+            __textLayer = [textLayer retain];
+            break;
+        }
     }
     
     return self;

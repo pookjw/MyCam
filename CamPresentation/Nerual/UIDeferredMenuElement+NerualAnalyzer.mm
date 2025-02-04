@@ -122,6 +122,7 @@
     
     MLModelAsset *modelAsset = [MLModelAsset cp_modelAssetWithModelType:modelType error:errorOut];
     if (modelAsset == nil) {
+        [configuration release];
         return nil;
     }
     MLModel *model = reinterpret_cast<id (*)(id, SEL, id, id *)>(objc_msgSend)(modelAsset, sel_registerName("modelWithConfiguration:error:"), configuration, errorOut);

@@ -658,6 +658,8 @@
             assert(ciImage != nil);
             
             [self.filter setValue:ciImage forKey:@"inputImage"];
+            [ciImage release];
+            
             UIImage *outputImage = [UIImage imageWithCIImage:self.filter.outputImage].cp_imageByPreparingForDisplay;
             
             dispatch_async(dispatch_get_main_queue(), ^{

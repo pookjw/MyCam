@@ -1055,31 +1055,34 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     //
     
-    __kindof AVCaptureOutput *videoThumbnailOutput = [objc_lookUpClass("AVCaptureVideoThumbnailOutput") new];
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailContentsDelegate:"), self);
-    
-    CGRect bounds = videoThumbnailLayer.bounds;
-    if (!CGRectIsNull(bounds) and !CGRectIsEmpty(bounds)) {
-        CGFloat contentsScale = videoThumbnailLayer.contentsScale;
-        CGSize thumbnailSize = bounds.size;
-        thumbnailSize.width *= contentsScale;
-        thumbnailSize.height *= contentsScale;
-        reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), thumbnailSize);
-    } else {
-        // 안하면 에러남
-        reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), CGSizeMake(1800., 1200.));
+    if (![captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+        __kindof AVCaptureOutput *videoThumbnailOutput = [objc_lookUpClass("AVCaptureVideoThumbnailOutput") new];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailContentsDelegate:"), self);
+        
+        CGRect bounds = videoThumbnailLayer.bounds;
+        if (!CGRectIsNull(bounds) and !CGRectIsEmpty(bounds)) {
+            CGFloat contentsScale = videoThumbnailLayer.contentsScale;
+            CGSize thumbnailSize = bounds.size;
+            thumbnailSize.width *= contentsScale;
+            thumbnailSize.height *= contentsScale;
+            reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), thumbnailSize);
+        } else {
+            // 안하면 에러남
+            reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(videoThumbnailOutput, sel_registerName("setThumbnailSize:"), CGSizeMake(1800., 1200.));
+        }
+        
+        [captureSession addOutputWithNoConnections:videoThumbnailOutput];
+        
+        AVCaptureConnection *videoThumbnailOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoThumbnailOutput];
+        videoThumbnailOutputConnection.enabled = NO;
+        [videoThumbnailOutput release];
+        reason = nil;
+        assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), videoThumbnailOutputConnection, &reason));
+        [captureSession addConnection:videoThumbnailOutputConnection];
+        [videoThumbnailOutputConnection release];
     }
+    
     [videoThumbnailLayer release];
-    
-    [captureSession addOutputWithNoConnections:videoThumbnailOutput];
-    
-    AVCaptureConnection *videoThumbnailOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:videoThumbnailOutput];
-    videoThumbnailOutputConnection.enabled = NO;
-    [videoThumbnailOutput release];
-    reason = nil;
-    assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddConnection:failureReason:"), videoThumbnailOutputConnection, &reason));
-    [captureSession addConnection:videoThumbnailOutputConnection];
-    [videoThumbnailOutputConnection release];
     
     //
     
@@ -1454,6 +1457,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             
             assert([self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice] != nil);
             [self.queue_metadataObjectsLayersByCaptureDevice removeObjectForKey:captureDevice];
+        } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
+            assert([self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice] != nil);
+            [self.queue_videoThumbnailLayersByVideoDevice removeObjectForKey:captureDevice];
+            [captureSession removeOutput:output];
         } else {
             abort();
         }
@@ -2915,6 +2922,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
                     [metadataOutput setMetadataObjectsDelegate:nil queue:nil];
                     [self removeObserversForMetadataOutput:metadataOutput];
+                } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
+                    
                 } else {
                     abort();
                 }
@@ -3103,11 +3112,31 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 
                 [addedOutputsByOutputs setObject:newMetadataOutput forKey:output];
                 [newMetadataOutput release];
+            } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
+                if ([captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+                    assert(![oldCaptureSession isKindOfClass:AVCaptureMultiCamSession.class]);
+                    NSLog(@"AVCaptureVideoThumbnailOutput does not support AVCaptureMultiCamSession.");
+                } else {
+                    __kindof AVCaptureOutput *newThumbnailOutput = [objc_lookUpClass("AVCaptureVideoThumbnailOutput") new];
+                    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(newThumbnailOutput, sel_registerName("setThumbnailContentsDelegate:"), self);
+                    
+                    CGSize thumbnailSize = reinterpret_cast<CGSize (*)(id, SEL)>(objc_msgSend)(output, sel_registerName("thumbnailSize"));
+                    reinterpret_cast<void (*)(id, SEL, CGSize)>(objc_msgSend)(newThumbnailOutput, sel_registerName("setThumbnailSize:"), thumbnailSize);
+                    
+                    [addedOutputsByOutputs setObject:newThumbnailOutput forKey:output];
+                    [newThumbnailOutput release];
+                }
             } else {
                 abort();
             }
         }
-        assert(oldOutputs.count == addedOutputsByOutputs.count);
+        
+        if (!([oldCaptureSession isKindOfClass:AVCaptureMultiCamSession.class]) and ([captureSession isKindOfClass:AVCaptureMultiCamSession.class])) {
+            // AVCaptureVideoThumbnailOutput은 제외
+            assert((oldOutputs.count - 1) == addedOutputsByOutputs.count);
+        } else {
+            assert(oldOutputs.count == addedOutputsByOutputs.count);
+        }
         [oldOutputs release];
         
         // AVCaptureDeviceInput과 연결된 AVCaptureConnection들 처리
@@ -3147,7 +3176,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [rotationCoodinator release];
             } else {
                 __kindof AVCaptureOutput *addedOutput = [addedOutputsByOutputs objectForKey:connection.output];
-                assert(addedOutput != nil);
+                if (addedOutput == nil) {
+                    if (([connection.output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) and (![oldCaptureSession isKindOfClass:AVCaptureMultiCamSession.class]) and ([captureSession isKindOfClass:AVCaptureMultiCamSession.class])) {
+                        continue;
+                    } else {
+                        abort();
+                    }
+                }
                 
                 if ([addedOutput isKindOfClass:AVCapturePhotoOutput.class]) {
                     assert(videoInputPort != nil);
@@ -3205,6 +3240,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 } else if ([addedOutput isKindOfClass:AVCaptureMetadataOutput.class]) {
                     assert(metadataDataInputPort != nil);
                     newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[metadataDataInputPort] output:addedOutput];
+                } else if ([addedOutput isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
+                    assert(![captureSession isKindOfClass:AVCaptureMultiCamSession.class]);
+                    assert(videoInputPort != nil);
+                    newConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[videoInputPort] output:addedOutput];
                 } else {
                     abort();
                 }

@@ -307,6 +307,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     [self updateContentsScale];
     
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
     CGRect bounds = self.layer.bounds;
     self.previewLayer.frame = bounds;
     self.customPreviewLayer.frame = bounds;
@@ -318,6 +319,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.focusRectLayer.frame = bounds;
     self.exposureRectLayer.frame = bounds;
     self.nerualAnalyzerLayer.frame = bounds;
+    [pool release];
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {

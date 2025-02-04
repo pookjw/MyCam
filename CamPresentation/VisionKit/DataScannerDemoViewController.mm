@@ -128,6 +128,7 @@
     SVRunLoop *runLoop = [[SVRunLoop alloc] initWithThreadName:NSStringFromClass([self class])];
     
     ImageVisionView *imageVisionView = [[ImageVisionView alloc] initWithDrawingRunLoop:runLoop];
+    [runLoop release];
     
     imageVisionView.imageVisionLayer.shouldDrawOverlay = NO;
     

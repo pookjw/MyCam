@@ -3805,6 +3805,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     [supportedOutputPixelFormatActions release];
     NSString *selectedOutputPixelFormatString = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&selectedOutputPixelFormat) length:4 encoding:NSUTF8StringEncoding];
     supportedOutputPixelFormatsMenu.subtitle = selectedOutputPixelFormatString;
+    [selectedOutputPixelFormatString release];
     
     //
     
