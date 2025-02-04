@@ -2845,7 +2845,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
-    reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), NO);
+    if ([captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), NO);
+    } else {
+        reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
+    }
+    
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = YES;

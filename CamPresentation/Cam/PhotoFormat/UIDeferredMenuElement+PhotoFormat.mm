@@ -4180,7 +4180,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     UIMenu *menu = [UIMenu menuWithTitle:@"Smart Style" children:@[
         [UIDeferredMenuElement _cp_queue_toggleSystemStyleEnabledActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setSmartStyleMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_smartStyleRenderingSupportedFormatsWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_smartStyleRenderingUnsupportedFormatsWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
     ]];
     
     return menu;
@@ -4208,6 +4209,19 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
         return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
+    }
+                                                         didChangeHandler:didChangeHandler];
+    
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_smartStyleRenderingUnsupportedFormatsWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
+    UIMenu *menu = [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:videoDevice
+                                                                    title:@"Unsupported Formats"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return !reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
     }
                                                          didChangeHandler:didChangeHandler];
     

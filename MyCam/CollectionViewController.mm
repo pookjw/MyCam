@@ -31,8 +31,15 @@
         AssetCollectionsViewController.class,
         VideoPlayerListViewController.class,
         VisionKitDemoViewController.class,
-        ImageFiltersViewController.class
+        ImageFiltersViewController.class,
+        objc_lookUpClass("VKKeyboardCameraViewController")
     ];
+}
+
++ (void)load {
+    if (Protocol *VKKeyboardCameraViewControllerDelegate = NSProtocolFromString(@"VKKeyboardCameraViewControllerDelegate")) {
+        assert(class_addProtocol(self, VKKeyboardCameraViewControllerDelegate));
+    }
 }
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
@@ -165,6 +172,8 @@
     if ([viewController isKindOfClass:[AssetCollectionsViewController class]]) {
         auto casted = static_cast<AssetCollectionsViewController *>(viewController);
         casted.delegate = self;
+    } else if ([viewController isKindOfClass:objc_lookUpClass("VKKeyboardCameraViewController")]) {
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(viewController, sel_registerName("setDelegate:"), self);
     }
     
     [self.navigationController pushViewController:viewController animated:YES];
@@ -173,6 +182,18 @@
 
 - (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
     [self.navigationController popToRootViewControllerAnimated:YES];
+}
+
+- (void)keyboardCamera:(__kindof UIViewController *)arg0 didUpdateString:(NSString *)string {
+    NSLog(@"%@", string);
+}
+
+- (void)userDidAcceptWithKeyboardCamera:(__kindof UIViewController *)arg0 {
+    NSLog(@"%@", reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(arg0, sel_registerName("previousString")));
+}
+
+- (void)userDidCancelWithKeyboardCamera:(__kindof UIViewController *)arg0 {
+    
 }
 
 @end
