@@ -4208,7 +4208,13 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                                                                     title:@"Supported Formats"
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
-        return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
+        BOOL isSmartStyleRenderingSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isSmartStyleRenderingSupported"));
+        
+        if ([captureService.queue_captureSession isKindOfClass:AVCaptureMultiCamSession.class]) {
+            return isSmartStyleRenderingSupported && format.multiCamSupported;
+        } else {
+            return isSmartStyleRenderingSupported;
+        }
     }
                                                          didChangeHandler:didChangeHandler];
     
