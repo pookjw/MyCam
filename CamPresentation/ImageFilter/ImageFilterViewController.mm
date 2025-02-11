@@ -15,6 +15,7 @@
 #import <Photos/Photos.h>
 #import <CamPresentation/UIImage+CP_Category.h>
 #include <numbers>
+#import <TargetConditionals.h>
 
 /*
  {
@@ -1154,7 +1155,9 @@
     options.networkAccessAllowed = YES;
     options.allowSecondaryDegradedImage = NO;
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setCannotReturnSmallerImage:"), YES);
+#if !TARGET_OS_SIMULATOR
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setPreferHDR:"), YES);
+#endif
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), NO);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), dispatch_get_main_queue());
     

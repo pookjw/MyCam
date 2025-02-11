@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 #include <atomic>
+#import <TargetConditionals.h>
 
 @interface _AssetCollectionsItemModelRequest : NSObject {
 @public std::atomic<PHImageRequestID> _requestID;
@@ -205,7 +206,9 @@
     
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setCannotReturnSmallerImage:"), YES);
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setAllowPlaceholder:"), YES);
+#if !TARGET_OS_SIMULATOR
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setPreferHDR:"), YES);
+#endif
     reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(options, sel_registerName("setUseLowMemoryMode:"), YES);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(options, sel_registerName("setResultHandlerQueue:"), self.queue);
     
