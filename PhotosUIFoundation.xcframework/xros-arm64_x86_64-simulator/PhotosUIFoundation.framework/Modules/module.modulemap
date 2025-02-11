@@ -1,0 +1,5 @@
+framework module PhotosUIFoundation {
+    umbrella header "PhotosUIFoundation.h"
+    export *
+    module * { export * }
+}

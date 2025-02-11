@@ -26,6 +26,8 @@
 		4F47801B2C98388800813671 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F47801A2C98388800813671 /* CoreMedia.framework */; };
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4BFE742D2E6F20002AB203 /* VisionKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
+		4F8842732D5BA40100B79E1A /* PhotosUIFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F8842722D5BA40100B79E1A /* PhotosUIFoundation.xcframework */; platformFilters = (xros, ); };
+		4F8842772D5BA8F400B79E1A /* PhotosUICore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F8842762D5BA8F400B79E1A /* PhotosUICore.xcframework */; platformFilters = (xros, ); };
 		4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F951D492D265C340081887B /* SceneKit.framework */; };
 		4F96C7722D3274C600E1A4EC /* SafariServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F96C7712D3274C600E1A4EC /* SafariServices.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9AA48F2CED6B1100CCABDB /* ARKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
@@ -59,6 +61,7 @@
 		4FED1AD52C99999800174044 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD42C99999800174044 /* CoreLocation.framework */; };
 		4FED1AD72C99999D00174044 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD62C99999D00174044 /* CoreLocation.framework */; };
 		4FF536532CE87EE2000FA763 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FF536522CE87EE2000FA763 /* VideoToolbox.framework */; };
+		4FF9D1A62D5B6DB900113F7D /* PhotosXRUI.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FF9D1A22D5B6D6400113F7D /* PhotosXRUI.xcframework */; platformFilters = (xros, ); };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -212,6 +215,8 @@
 		4F4780332C984BE500813671 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
 		4F4BFE742D2E6F20002AB203 /* VisionKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VisionKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/VisionKit.framework; sourceTree = DEVELOPER_DIR; };
 		4F6905442C949D4D00CD2C22 /* MyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F8842722D5BA40100B79E1A /* PhotosUIFoundation.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = PhotosUIFoundation.xcframework; sourceTree = "<group>"; };
+		4F8842762D5BA8F400B79E1A /* PhotosUICore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = PhotosUICore.xcframework; sourceTree = "<group>"; };
 		4F8CC70E2CB8263D00CA3138 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
 		4F951D492D265C340081887B /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/SceneKit.framework; sourceTree = DEVELOPER_DIR; };
 		4F96C7712D3274C600E1A4EC /* SafariServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SafariServices.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/SafariServices.framework; sourceTree = DEVELOPER_DIR; };
@@ -236,6 +241,7 @@
 		4FED1AD42C99999800174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		4FED1AD62C99999D00174044 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/CoreLocation.framework; sourceTree = DEVELOPER_DIR; };
 		4FF536522CE87EE2000FA763 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/VideoToolbox.framework; sourceTree = DEVELOPER_DIR; };
+		4FF9D1A22D5B6D6400113F7D /* PhotosXRUI.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = PhotosXRUI.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -436,6 +442,7 @@
 				Library/Assets/AssetsViewController.mm,
 				lock_private.h,
 				MobileNetV2.mlmodel,
+				MyOneUpViewController.swift,
 				Nerual/BoundingBoxLayer.h,
 				Nerual/BoundingBoxLayer.mm,
 				"Nerual/MLModelAsset+Category.h",
@@ -828,6 +835,7 @@
 				4FED1AD32C9995DE00174044 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FF536532CE87EE2000FA763 /* VideoToolbox.framework in Frameworks */,
 				4FB4747B2CC0BDD1003E8507 /* MediaPlayer.framework in Frameworks */,
+				4F8842772D5BA8F400B79E1A /* PhotosUICore.xcframework in Frameworks */,
 				4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */,
 				4F96C7722D3274C600E1A4EC /* SafariServices.framework in Frameworks */,
 				4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */,
@@ -839,6 +847,7 @@
 				4F2A41D22C981A6000726F2F /* UIKit.framework in Frameworks */,
 				4FD57C3F2C9AC4A50016FBF0 /* Symbols.framework in Frameworks */,
 				4FED1ACD2C997BC000174044 /* CoreGraphics.framework in Frameworks */,
+				4FF9D1A62D5B6DB900113F7D /* PhotosXRUI.xcframework in Frameworks */,
 				4F3806E72CE0FDC8002E96DF /* MetalKit.framework in Frameworks */,
 				4FA73EBA2C99764100F17348 /* CoreImage.framework in Frameworks */,
 				4F3806E82CE0FDC8002E96DF /* Metal.framework in Frameworks */,
@@ -846,6 +855,7 @@
 				4F3B94432D12AC36001235FC /* Vision.framework in Frameworks */,
 				4FED1AD12C997E2C00174044 /* ImageIO.framework in Frameworks */,
 				4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */,
+				4F8842732D5BA40100B79E1A /* PhotosUIFoundation.xcframework in Frameworks */,
 				4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */,
 				4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */,
 				4FA73EB72C9975E300F17348 /* Photos.framework in Frameworks */,
@@ -907,6 +917,9 @@
 		4F32A2D52C95ABC20010F295 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F8842762D5BA8F400B79E1A /* PhotosUICore.xcframework */,
+				4F8842722D5BA40100B79E1A /* PhotosUIFoundation.xcframework */,
+				4FF9D1A22D5B6D6400113F7D /* PhotosXRUI.xcframework */,
 				4F96C7712D3274C600E1A4EC /* SafariServices.framework */,
 				4F4BFE742D2E6F20002AB203 /* VisionKit.framework */,
 				4F951D492D265C340081887B /* SceneKit.framework */,

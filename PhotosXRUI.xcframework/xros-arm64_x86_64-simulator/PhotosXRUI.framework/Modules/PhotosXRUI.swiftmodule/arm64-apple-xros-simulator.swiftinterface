@@ -1,0 +1,71 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.5 clang-1600.0.30.1)
+// swift-module-flags: -target arm64-apple-xros2.2-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -library-level api -module-name PhotosXRUI
+import Photos
+import SwiftUI
+import Foundation
+import _Concurrency
+import PhotosUIFoundation
+@_exported import PhotosXRUI
+
+@available(visionOS 1.0, *)
+public struct OneUpView : SwiftUI.View {
+    public init(oneUpManager: PhotosXRUI.OneUpManager)
+    @_Concurrency.MainActor @preconcurrency public var body: some SwiftUI.View {
+        get
+    }
+    @available(visionOS 1.0, *)
+    public typealias Body = @_opaqueReturnTypeOf("$s10PhotosXRUI9OneUpViewV4bodyQrvp", 0) __
+}
+
+@available(visionOS 1.0, *)
+final public class OneUpManager {
+    public var oneUpContext: PhotosXRUI.OneUpContext { get }
+    public var error: Swift.Error? { get set }
+    public var delegate: PhotosXRUI.OneUpManagerDelegate? { get set }
+    public init()
+    public func showOneUp(for: PhotosUIFoundation.PXAssetsDataSourceManager, atIndexPath: PhotosUIFoundation.PXSimpleIndexPath, showHeaderBadges: Swift.Bool, immersionState: PhotosXRUI.ImmersiveState, alwaysPromptSharePlayPermissions: Swift.Bool, isInvokedViaSharePlayIntent: Swift.Bool)
+}
+
+@available(visionOS 1.0, *)
+public enum OneUpContext: Swift.Hashable {
+    case none
+    case asset
+    case memory
+
+    public var hashValue: Swift.Int { get }
+    public func hash(into: inout Swift.Hasher)
+    public static func == (lhs: PhotosXRUI.OneUpContext, rhs: PhotosXRUI.OneUpContext) -> Swift.Bool
+}
+
+@available(visionOS 1.0, *)
+extension OneUpManager {
+    public enum Error: Foundation.LocalizedError, Swift.Hashable {
+        case unableToStartSharePlay
+        case unknownError
+
+        public static func == (lhs: PhotosXRUI.OneUpManager.Error, rhs: PhotosXRUI.OneUpManager.Error) -> Swift.Bool
+        public func hash(into: inout Swift.Hasher)
+        public var hashValue: Swift.Int { get }
+    }
+}
+
+@available(visionOS 1.0, *)
+public enum ImmersiveState: Swift.Hashable, Swift.CustomStringConvertible {
+    case none
+    case notImmersive
+    case animatingToNotImmersive
+    case animatingToImmersive
+    case preparingToAnimateToImmersive
+
+    public var hashValue: Swift.Int { get }
+    public func hash(into: inout Swift.Hasher)
+    public var description: Swift.String { get }
+    public static func == (lhs: PhotosXRUI.ImmersiveState, rhs: PhotosXRUI.ImmersiveState) -> Swift.Bool
+}
+
+@available(visionOS 1.0, *)
+@_Concurrency.MainActor
+public protocol OneUpManagerDelegate {
+    var windowScene: UIKit.UIWindowScene? { get }
+}

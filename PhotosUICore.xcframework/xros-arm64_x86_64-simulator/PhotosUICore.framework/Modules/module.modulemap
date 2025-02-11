@@ -1,0 +1,5 @@
+framework module PhotosUICore {
+    umbrella header "PhotosUICore.h"
+    export *
+    module * { export * }
+}
