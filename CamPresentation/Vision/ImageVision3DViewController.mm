@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/ImageVision3DViewController.h>
+
+#if !TARGET_OS_VISION
+
 #import <SceneKit/SceneKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -387,3 +390,5 @@
 }
 
 @end
+
+#endif

@@ -23,6 +23,7 @@
 #import <CamPresentation/NSStringFromVNGenerateOpticalFlowRequestComputationAccuracy.h>
 #import <CamPresentation/NSStringFromVNRequestTextRecognitionLevel.h>
 #import <CamPresentation/NSStringFromVNRequestTrackingLevel.h>
+#import <TargetConditionals.h>
 
 VN_EXPORT NSString * const VNTextRecognitionOptionNone;
 VN_EXPORT NSString * const VNTextRecognitionOptionASCIICharacterSet;
@@ -232,6 +233,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIAction *action = [UIAction actionWithTitle:@"Present VNHumanBodyPose3DObservation Scene View" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_VISION
+        abort();
+#else
         UIView *layerView = imageVisionLayer.cp_associatedView;
         assert(layerView != nil);
         UIViewController *viewController = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)([UIViewController class], sel_registerName("_viewControllerForFullScreenPresentationFromView:"), layerView);
@@ -248,6 +252,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         [viewController presentViewController:navigationController animated:YES completion:nil];
         [navigationController release];
+#endif
     }];
     
     action.cp_overrideNumberOfTitleLines = 0;
