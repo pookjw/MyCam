@@ -26,10 +26,10 @@ final class MyOneUpViewController: UIViewController {
         
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         
-        manager.delegate = self
-        
         let collections = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumSpatial, options: nil)
         let _manager = PXPhotoKitAssetsDataSourceManager.init(for: collections.firstObject!)
+        print(_manager)
+        print(_manager.dataSource)
         manager.showOneUp(for: _manager, atIndexPath: PXSimpleIndexPathNull, showHeaderBadges: true, immersionState: .none, alwaysPromptSharePlayPermissions: true, isInvokedViaSharePlayIntent: true)
     }
     
@@ -52,6 +52,9 @@ final class MyOneUpViewController: UIViewController {
 //        hostingController.view.frame = view.bounds
 //        hostingController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         hostingController.didMove(toParent: self)
+        
+        print(manager.oneUpContext)
+        manager.delegate = self
     }
 }
 
