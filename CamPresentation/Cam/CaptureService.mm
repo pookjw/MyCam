@@ -2845,9 +2845,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
+#if !TARGET_OS_TV
     if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("isSystemStyleEnabled"))) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
     }
+#endif
     
     captureSession.automaticallyConfiguresCaptureDeviceForWideColor = NO;
     captureSession.usesApplicationAudioSession = YES;

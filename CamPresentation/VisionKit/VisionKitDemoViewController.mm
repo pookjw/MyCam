@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/VisionKitDemoViewController.h>
+
+#if !TARGET_OS_TV
+
 #import <CamPresentation/DataScannerDemoViewController.h>
 #import <VisionKit/VisionKit.h>
 #import <objc/message.h>
@@ -263,3 +266,5 @@
 }
 
 @end
+
+#endif

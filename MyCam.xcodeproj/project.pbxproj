@@ -753,6 +753,9 @@
 			membershipExceptions = (
 				Info.plist,
 			);
+			platformFiltersByRelativePath = {
+				"/Localized: LaunchScreen.storyboard" = (ios, );
+			};
 			target = 4FC6612E2D24FCDC00AC8728 /* MyCam Private */;
 		};
 		4FC661532D24FF4500AC8728 /* Exceptions for "MyWidget" folder in "MyCam Private" target */ = {
@@ -1435,11 +1438,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = (
-					"$(ARCHS_STANDARD)",
-					arm64,
-					arm64e,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1502,11 +1501,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = (
-					"$(ARCHS_STANDARD)",
-					arm64,
-					arm64e,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;

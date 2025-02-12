@@ -5,6 +5,8 @@
 //  Created by Jinwoo Kim on 1/10/25.
 //
 
+#if canImport(VisionKit)
+
 import UIKit
 import VisionKit
 import Vision
@@ -555,3 +557,5 @@ extension ObjCDataScannerViewController {
         }
     }
 }
+
+#endif

@@ -24,6 +24,8 @@
 #import <CamPresentation/NSStringFromVNRequestTextRecognitionLevel.h>
 #import <CamPresentation/NSStringFromVNRequestTrackingLevel.h>
 #import <TargetConditionals.h>
+#import <CamPresentation/TVSlider.h>
+#import <CamPresentation/TVStepper.h>
 
 VN_EXPORT NSString * const VNTextRecognitionOptionNone;
 VN_EXPORT NSString * const VNTextRecognitionOptionASCIICharacterSet;
@@ -1766,7 +1768,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     __kindof UIMenuElement *contrastAdjustmentSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 3.f;
@@ -1776,7 +1782,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
             request.contrastAdjustment = value;
             
@@ -1785,7 +1795,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -1795,7 +1809,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     __kindof UIMenuElement *contrastPivotSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
@@ -1804,7 +1822,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             request.contrastPivot = @(value);
             
@@ -1813,7 +1836,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -1852,7 +1879,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.maximumValue = NSUIntegerMax;
         slider.minimumValue = 64.f;
@@ -1860,12 +1891,24 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             
             label.text = @(static_cast<NSUInteger>(value)).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.maximumImageDimension = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -1874,7 +1917,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -1894,7 +1941,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.maximumValue = 2048.f;
         slider.minimumValue = 64.f;
@@ -1902,12 +1953,23 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(static_cast<NSUInteger>(value)).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.maximumImageDimension = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -1916,7 +1978,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2375,7 +2441,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UILabel *label = [UILabel new];
         label.text = @(maximumHandCount).stringValue;
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
+        
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = maximumHandCount;
@@ -2383,7 +2454,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
+            
             NSUInteger value = stepper.value;
             
             label.text = @(value).stringValue;
@@ -2395,7 +2471,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2553,19 +2633,35 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = request.minimumAspectRatio;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.minimumAspectRatio = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -2574,7 +2670,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2598,19 +2698,33 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = request.maximumAspectRatio;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
             float value = slider.value;
-            
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.maximumAspectRatio = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -2619,7 +2733,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2643,19 +2761,34 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 45.f;
         slider.value = request.quadratureTolerance;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.quadratureTolerance = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -2664,7 +2797,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2688,19 +2825,34 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = request.minimumSize;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.minimumSize = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -2709,7 +2861,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2733,19 +2889,34 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = request.minimumConfidence;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.minimumConfidence = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -2754,7 +2925,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2778,7 +2953,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = request.maximumObservations;
@@ -2786,7 +2965,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             double value = stepper.value;
             
             label.text = @(value).stringValue;
@@ -2798,7 +2981,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2860,7 +3047,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = screenSize;
@@ -2868,7 +3059,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             double value = stepper.value;
             
             label.text = @(value).stringValue;
@@ -2880,7 +3075,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -2909,7 +3108,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSIntegerMax;
         stepper.value = temporalSmoothingFrameCount;
@@ -2917,9 +3120,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
-            double value = stepper.value;
+#endif
             
+            double value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -2929,7 +3136,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -3055,7 +3266,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = minimumCharacterPixelHeight;
@@ -3063,9 +3278,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
-            double value = stepper.value;
+#endif
             
+            double value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -3075,7 +3294,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -3115,7 +3338,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = algorithm;
@@ -3123,9 +3350,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
-            double value = stepper.value;
+#endif
             
+            double value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -3135,7 +3366,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -3194,7 +3429,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.maximumValue = 1.f;
         slider.minimumValue = 0.f;
@@ -3202,12 +3441,23 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.objectMinimumNormalizedRadius = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -3216,7 +3466,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -3242,7 +3496,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.maximumValue = 1.f;
         slider.minimumValue = 0.f;
@@ -3250,12 +3508,23 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 request.objectMaximumNormalizedRadius = value;
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -3264,7 +3533,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -3350,7 +3623,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.maximumValue = 10.f;
         slider.minimumValue = 0.1f;
@@ -3358,12 +3635,23 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setFaceBoundingBoxExpansionRatio:"), faceBoundingBoxExpansionRatio);
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -3372,7 +3660,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -4188,7 +4480,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         
         stepper.maximumValue = NSUIntegerMax;
         stepper.minimumValue = 1;
@@ -4196,9 +4492,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-            auto slider = static_cast<UIStepper *>(action.sender);
-            double value = slider.value;
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
+            auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             
+            double value = stepper.value;
             label.text = @(static_cast<NSUInteger>(value)).stringValue;
             
             [request cancel];
@@ -4208,7 +4508,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -4234,7 +4538,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         
         stepper.maximumValue = NSUIntegerMax;
         stepper.minimumValue = 0;
@@ -4242,9 +4550,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-            auto slider = static_cast<UIStepper *>(action.sender);
-            double value = slider.value;
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
+            auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             
+            double value = stepper.value;
             label.text = @(static_cast<NSUInteger>(value)).stringValue;
             
             [request cancel];
@@ -4254,7 +4566,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -4531,19 +4847,34 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = modelMinimumDetectionConfidence;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setModelMinimumDetectionConfidence:"), value);
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -4552,7 +4883,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -4578,19 +4913,35 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
+        
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
         slider.value = modelNonMaximumSuppressionThreshold;
         slider.continuous = YES;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
-            float value = slider.value;
+#endif
             
+            float value = slider.value;
             label.text = @(value).stringValue;
             
-            if (!slider.isTracking) {
+            BOOL isTracking;
+#if TARGET_OS_TV
+            isTracking = NO;
+#else
+            isTracking = slider.isTracking;
+#endif
+            
+            if (!isTracking) {
                 [request cancel];
                 reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setModelNonMaximumSuppressionThreshold:"), value);
                 [viewModel updateRequest:request completionHandler:^(NSError * _Nullable error) {
@@ -4599,7 +4950,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -4727,7 +5082,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     __kindof UIMenuElement *minimumTextHeightSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
@@ -4737,7 +5096,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             request.minimumTextHeight = value;
             
@@ -4746,7 +5110,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -5167,7 +5535,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     __kindof UIMenuElement *minimumTextHeightSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
@@ -5177,7 +5549,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             reinterpret_cast<void (*)(id, SEL, float)>(objc_msgSend)(request, sel_registerName("setMinimumTextHeight:"), value);
             
@@ -5186,7 +5563,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -5225,7 +5606,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UILabel *label = [UILabel new];
         label.text = @(maximumCandidateCount).stringValue;
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
+        
         stepper.minimumValue = 0.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = maximumCandidateCount;
@@ -5233,7 +5619,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             NSUInteger value = stepper.value;
             
             label.text = @(value).stringValue;
@@ -5245,7 +5635,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -5414,7 +5808,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UILabel *label = [UILabel new];
         label.text = @(maximumLeafObservations).stringValue;
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
+        
         stepper.minimumValue = 1.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = maximumLeafObservations;
@@ -5422,9 +5821,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
-            NSUInteger value = stepper.value;
+#endif
             
+            NSUInteger value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -5434,7 +5837,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -5458,7 +5865,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UILabel *label = [UILabel new];
         label.text = @(maximumHierarchicalObservations).stringValue;
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
+        
         stepper.minimumValue = 1.;
         stepper.maximumValue = NSUIntegerMax;
         stepper.value = maximumHierarchicalObservations;
@@ -5466,9 +5878,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
             auto stepper = static_cast<UIStepper *>(action.sender);
-            NSUInteger value = stepper.value;
+#endif
             
+            NSUInteger value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -5478,7 +5894,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -5612,7 +6032,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     NSNumber * _Nullable faceCoreMinFaceSize = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(request, sel_registerName("faceCoreMinFaceSize"));
     
     __kindof UIMenuElement *faceCoreMinFaceSizeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+        TVSlider *slider = [TVSlider new];
+#else
         UISlider *slider = [UISlider new];
+#endif
         
         slider.minimumValue = 0.f;
         slider.maximumValue = 1.f;
@@ -5622,7 +6046,12 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
             [request cancel];
             
+#if TARGET_OS_TV
+            auto slider = static_cast<TVSlider *>(action.sender);
+#else
             auto slider = static_cast<UISlider *>(action.sender);
+#endif
+            
             float value = slider.value;
             reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(request, sel_registerName("setFaceCoreMinFaceSize:"), @(value));
             
@@ -5631,7 +6060,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [slider addAction:action];
+#else
         [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         return [slider autorelease];
     });
@@ -5665,7 +6098,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         
         //
         
+#if TARGET_OS_TV
+        TVStepper *stepper = [TVStepper new];
+#else
         UIStepper *stepper = [UIStepper new];
+#endif
         
         stepper.maximumValue = NSUIntegerMax;
         stepper.minimumValue = 0.;
@@ -5674,9 +6111,13 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         stepper.continuous = NO;
         
         UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-            auto slider = static_cast<UIStepper *>(action.sender);
-            NSUInteger value = slider.value;
+#if TARGET_OS_TV
+            auto stepper = static_cast<TVStepper *>(action.sender);
+#else
+            auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
             
+            NSUInteger value = stepper.value;
             label.text = @(value).stringValue;
             
             [request cancel];
@@ -5686,7 +6127,11 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             }];
         }];
         
+#if TARGET_OS_TV
+        [stepper addAction:action];
+#else
         [stepper addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
         
         //
         
@@ -5788,7 +6233,10 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     if (request == nil) {
         UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackMaskRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
+            
+#if !TARGET_OS_TV
             assetCollectionsViewController.navigationItem.prompt = @"Select Initial Mask Image";
+#endif
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
             resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {

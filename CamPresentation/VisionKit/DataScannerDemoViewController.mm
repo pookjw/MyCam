@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 1/10/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_TV
+
 #import <CamPresentation/DataScannerDemoViewController.h>
 #import <AVFoundation/AVFoundation.h>
 #import <Vision/Vision.h>
@@ -186,3 +190,5 @@
 }
 
 @end
+
+#endif

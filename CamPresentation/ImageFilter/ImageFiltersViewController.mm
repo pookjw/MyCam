@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #import <CoreImage/CoreImage.h>
 #import <CamPresentation/ImageFilterViewController.h>
+#import <TargetConditionals.h>
 
 @interface ImageFiltersViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly, getter=_collectionView) UICollectionView *collectionView;
@@ -101,7 +102,11 @@
 - (UICollectionView *)_collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
+#if TARGET_OS_TV
+    UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceGrouped];
+#else
     UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceInsetGrouped];
+#endif
     
     UICollectionViewCompositionalLayout *collectionViewLayout = [UICollectionViewCompositionalLayout layoutWithListConfiguration:listConfiguration];
     [listConfiguration release];
@@ -143,10 +148,12 @@
             text = [NSString stringWithFormat:@"%@ (%@)", [CIFilter localizedNameForCategory:item], item];
             secondaryText = nil;
             
+#if !TARGET_OS_TV
             UICellAccessoryOutlineDisclosure *outlineDisclosure = [UICellAccessoryOutlineDisclosure new];
             outlineDisclosure.style = UICellAccessoryOutlineDisclosureStyleHeader;
             accessories = @[outlineDisclosure];
             [outlineDisclosure release];
+#endif
         } else {
             text = [NSString stringWithFormat:@"%@ (%@)", [CIFilter localizedNameForFilterName:item], item];
             secondaryText = [CIFilter localizedDescriptionForFilterName:item];

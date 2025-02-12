@@ -16,6 +16,8 @@
 #import <CamPresentation/UIImage+CP_Category.h>
 #include <numbers>
 #import <TargetConditionals.h>
+#import <CamPresentation/TVSlider.h>
+#import <CamPresentation/TVStepper.h>
 
 /*
  {
@@ -701,7 +703,9 @@
     
     UIImageView *imageView = [UIImageView new];
     imageView.contentMode = UIViewContentModeScaleAspectFit;
+#if !TARGET_OS_TV
     imageView.backgroundColor = UIColor.systemBackgroundColor;
+#endif
     
     _imageView = imageView;
     return imageView;
@@ -944,7 +948,11 @@
     
     //
     
+#if TARGET_OS_TV
+    TVSlider *slider_1 = [TVSlider new];
+#else
     UISlider *slider_1 = [UISlider new];
+#endif
     
     if (maximumNumber != nil and minimumNumber != nil) {
         slider_1.maximumValue = maximumNumber.floatValue;
@@ -954,8 +962,11 @@
     } else {
         slider_1.enabled = NO;
     }
-    
+#if TARGET_OS_TV
+    TVSlider *slider_2 = [TVSlider new];
+#else
     UISlider *slider_2 = [UISlider new];
+#endif
     
     if (sliderMaximumNumber != nil and sliderMinimumNumber != nil) {
         slider_2.maximumValue = sliderMaximumNumber.floatValue;
@@ -970,7 +981,11 @@
     __block auto unretainedSlider_2 = slider_2;
     
     UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+        auto slider = static_cast<TVSlider *>(action.sender);
+#else
         auto slider = static_cast<UISlider *>(action.sender);
+#endif
         float value = slider.value;
         
         label_1.text = @(value).stringValue;
@@ -1000,8 +1015,13 @@
 //        }
     }];
     
+#if TARGET_OS_TV
+    [slider_1 addAction:action];
+    [slider_2 addAction:action];
+#else
     [slider_1 addAction:action forControlEvents:UIControlEventValueChanged];
     [slider_2 addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
     
     //
     
@@ -1053,7 +1073,11 @@
     
     //
     
+#if TARGET_OS_TV
+    TVStepper *stepper_1 = [TVStepper new];
+#else
     UIStepper *stepper_1 = [UIStepper new];
+#endif
     
     if (maximumNumber != nil and minimumNumber != nil) {
         stepper_1.maximumValue = maximumNumber.floatValue;
@@ -1065,7 +1089,11 @@
         stepper_1.enabled = NO;
     }
     
+#if TARGET_OS_TV
+    TVStepper *stepper_2 = [TVStepper new];
+#else
     UIStepper *stepper_2 = [UIStepper new];
+#endif
     
     if (sliderMaximumNumber != nil and sliderMinimumNumber != nil) {
         stepper_2.maximumValue = sliderMaximumNumber.floatValue;
@@ -1081,7 +1109,11 @@
     __block auto unretainedStepper_2 = stepper_2;
     
     UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+#if TARGET_OS_TV
+        auto stepper = static_cast<TVStepper *>(action.sender);
+#else
         auto stepper = static_cast<UIStepper *>(action.sender);
+#endif
         float value = stepper.value;
         
         label_1.text = @(value).stringValue;
@@ -1109,8 +1141,13 @@
         });
     }];
     
+#if TARGET_OS_TV
+    [stepper_1 addAction:action];
+    [stepper_2 addAction:action];
+#else
     [stepper_1 addAction:action forControlEvents:UIControlEventValueChanged];
     [stepper_2 addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
     
     //
     

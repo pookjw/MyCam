@@ -13,6 +13,7 @@
 #import <CamPresentation/UIDeferredMenuElement+ImageVision.h>
 #import <CamPresentation/ImageVisionView.h>
 #import <CamPresentation/SVRunLoop.hpp>
+#import <TargetConditionals.h>
 
 @interface ImageVisionViewController ()
 @property (retain, nonatomic, readonly) ImageVisionViewModel *_viewModel;
@@ -188,7 +189,9 @@
     if (auto activityIndicatorView = __activityIndicatorView) return activityIndicatorView;
     
     UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+#if !TARGET_OS_TV
     activityIndicatorView.backgroundColor = UIColor.systemBackgroundColor;
+#endif
     
     __activityIndicatorView = [activityIndicatorView retain];
     return [activityIndicatorView autorelease];
@@ -222,7 +225,9 @@
     UIBarButtonItem *activityIndicatorBarButtonItem = self._activityIndicatorBarButtonItem;
     BOOL isLoading = self._viewModel.isLoading;
     
+#if !TARGET_OS_TV
     activityIndicatorBarButtonItem.hidden = !isLoading;
+#endif
     
     UIActivityIndicatorView *activityIndicatorView = self._activityIndicatorView;
     

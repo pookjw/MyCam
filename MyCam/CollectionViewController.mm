@@ -30,9 +30,13 @@
 #endif
         AssetCollectionsViewController.class,
         VideoPlayerListViewController.class,
+#if !TARGET_OS_TV
         VisionKitDemoViewController.class,
+#endif
         ImageFiltersViewController.class,
+#if !TARGET_OS_TV
         objc_lookUpClass("VKKeyboardCameraViewController")
+#endif
     ];
 }
 
