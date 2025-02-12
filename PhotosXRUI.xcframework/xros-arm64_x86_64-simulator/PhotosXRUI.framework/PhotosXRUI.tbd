@@ -25,6 +25,16 @@ exports:
     '_$s10PhotosXRUI12OneUpManagerCACycfC',
     '_$s10PhotosXRUI12OneUpManagerC03oneD7ContextAA0cdG0Ovg',
     '_$s10PhotosXRUI12OneUpManagerCMn',
+    '_$s10PhotosXRUI12OneUpManagerC03oneD7SessionAA0cdG0CSgvs',
+    '_$s10PhotosXRUI12OneUpManagerC03oneD7SessionAA0cdG0CSgvg',
+    '_$s10PhotosXRUI12OneUpManagerC03oneD7SessionAA0cdG0CSgvM',
+    '_$s10PhotosXRUI12OneUpManagerC03oneD5StateAA0cdG0Cvg',
+    '_$s10PhotosXRUI12OneUpManagerC8gridSizeSo6CGSizeVvs',
+    '_$s10PhotosXRUI12OneUpManagerC8gridSizeSo6CGSizeVvg',
+    '_$s10PhotosXRUI12OneUpManagerC8gridSizeSo6CGSizeVvM',
+    '_$s10PhotosXRUI12OneUpManagerC17initiateAlchemist3forySo7PHAssetCSg_tF',
+    '_$s10PhotosXRUI12OneUpManagerC17supportsAlchemist3forSbSo7PHAssetC_tF',
+    '_$s10PhotosXRUI12OneUpManagerC9isShowingSbvg',
 
     '_$s10PhotosXRUI12OneUpContextO2eeoiySbAC_ACtFZ',
     '_$s10PhotosXRUI12OneUpContextO4hash4intoys6HasherVz_tF',
@@ -85,7 +95,21 @@ exports:
 
     '_$s10PhotosXRUI20OneUpManagerDelegateP11windowSceneSo08UIWindowH0CSgvgTj',
     '_$s10PhotosXRUI20OneUpManagerDelegateMp',
-    '_$s10PhotosXRUI20OneUpManagerDelegateP11windowSceneSo08UIWindowH0CSgvgTq'
+    '_$s10PhotosXRUI20OneUpManagerDelegateP11windowSceneSo08UIWindowH0CSgvgTq',
+
+    '_$s10PhotosXRUI12OneUpSessionCMa',
+    '_$s10PhotosXRUI12OneUpSessionCMu',
+    '_$s10PhotosXRUI12OneUpSessionCMn',
+
+    '_$s10PhotosXRUI2eeoiySbAA10OneUpStateC_ADtF',
+    '_$s10PhotosXRUI10OneUpStateCMa',
+    '_$s10PhotosXRUI10OneUpStateC11descriptionSSvg',
+    '_$s10PhotosXRUI10OneUpStateCMu',
+    '_$s10PhotosXRUI12OneUpManagerC03oneD5StateAA0cdG0Cvg',
+    '_$s10PhotosXRUI10OneUpStateCSQAAMc',
+    '_$s10PhotosXRUI10OneUpStateCs23CustomStringConvertibleAAMc',
+    '_$s10PhotosXRUI10OneUpStateCMo',
+    '_$s10PhotosXRUI10OneUpStateCMn'
     ]
     objc-classes:         [ OneUpScrubberHelper, _TtC10PhotosXRUI10TTRManager,
                             _TtC10PhotosXRUI11GIFRootView,

@@ -6,6 +6,7 @@ import SwiftUI
 import Foundation
 import _Concurrency
 import PhotosUIFoundation
+import CoreGraphics
 @_exported import PhotosXRUI
 
 @available(visionOS 1.0, *)
@@ -23,8 +24,14 @@ final public class OneUpManager {
     public var oneUpContext: PhotosXRUI.OneUpContext { get }
     public var error: Swift.Error? { get set }
     public var delegate: PhotosXRUI.OneUpManagerDelegate? { get set }
+    public var oneUpSession: PhotosXRUI.OneUpSession? { get set }
+    public var oneUpState: PhotosXRUI.OneUpState { get }
+    public var gridSize: CoreGraphics.CGSize { get set }
+    public var isShowing: Swift.Bool { get }
     public init()
     public func showOneUp(for: PhotosUIFoundation.PXAssetsDataSourceManager, atIndexPath: PhotosUIFoundation.PXSimpleIndexPath, showHeaderBadges: Swift.Bool, immersionState: PhotosXRUI.ImmersiveState, alwaysPromptSharePlayPermissions: Swift.Bool, isInvokedViaSharePlayIntent: Swift.Bool)
+    public func initiateAlchemist(for: Photos.PHAsset?)
+    public func supportsAlchemist(for: Photos.PHAsset) -> Swift.Bool
 }
 
 @available(visionOS 1.0, *)
@@ -68,4 +75,15 @@ public enum ImmersiveState: Swift.Hashable, Swift.CustomStringConvertible {
 @_Concurrency.MainActor
 public protocol OneUpManagerDelegate {
     var windowScene: UIKit.UIWindowScene? { get }
+}
+
+@available(visionOS 1.0, *)
+final public class OneUpSession {
+}
+
+@available(visionOS 1.0, *)
+final public class OneUpState: Swift.Equatable, Swift.CustomStringConvertible {
+    public static func == (lhs: PhotosXRUI.OneUpState, rhs: PhotosXRUI.OneUpState) -> Swift.Bool
+    public var description: Swift.String { get }
+
 }

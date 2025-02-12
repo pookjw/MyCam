@@ -15,7 +15,9 @@ import Photos
 @objc(MyOneUpViewController)
 final class MyOneUpViewController: UIViewController {
     private let manager: OneUpManager
+    private var pxgView: PXGView!
     private let hostingController: UIHostingController<OneUpView>
+    private var viewModel: PXCuratedLibraryViewModel!
     
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         let manager = OneUpManager()
@@ -25,12 +27,6 @@ final class MyOneUpViewController: UIViewController {
         self.hostingController = hostingController
         
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-        
-        let collections = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumSpatial, options: nil)
-        let _manager = PXPhotoKitAssetsDataSourceManager.init(for: collections.firstObject!)
-        print(_manager)
-        print(_manager.dataSource)
-        manager.showOneUp(for: _manager, atIndexPath: PXSimpleIndexPathNull, showHeaderBadges: true, immersionState: .none, alwaysPromptSharePlayPermissions: true, isInvokedViaSharePlayIntent: true)
     }
     
     required init?(coder: NSCoder) {
@@ -52,14 +48,50 @@ final class MyOneUpViewController: UIViewController {
 //        hostingController.view.frame = view.bounds
 //        hostingController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         hostingController.didMove(toParent: self)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         
-        print(manager.oneUpContext)
+        manager.gridSize = CGSize(width: 300, height: 300)
         manager.delegate = self
+        
+        let configuration = PXCuratedLibraryAssetsDataSourceManagerConfiguration(photoLibrary: .shared(), enableDays: true)
+        let _manager = PXCuratedLibraryAssetsDataSourceManager(configuration: configuration)
+        
+        let viewModel = PXCuratedLibraryViewModel(
+            configuration: PXCuratedLibraryViewConfiguration(photoLibrary: .shared()),
+            assetsDataSourceManagerConfiguration: _PXPhotoLibraryCuratedLibraryAssetsDataSourceManagerConfiguration(photoLibrary: .shared()),
+            zoomLevel: 4,
+            mediaProvider: PXPhotoKitUIMediaProvider(),
+            specManager: PXCuratedLibraryLayoutSpecManager(),
+            styleGuide: PXCuratedLibraryStyleGuide(extendedTraitCollection: PXExtendedTraitCollection(viewController: self))
+        )
+        
+        let presenter = PXCuratedLibraryLayout(viewModel: viewModel)
+        viewModel.addPresenter(presenter)
+        
+        let pxgView = PXGView(frame: view.bounds)
+        pxgView.rootLayout = presenter
+        view.addSubview(pxgView)
+        pxgView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        self.pxgView = pxgView
+        
+        viewModel.addView(pxgView)
+        
+        _manager.delegate = viewModel
+        self.viewModel = viewModel
+        
+        manager.showOneUp(for: _manager, atIndexPath: PXSimpleIndexPathNull, showHeaderBadges: true, immersionState: .none, alwaysPromptSharePlayPermissions: true, isInvokedViaSharePlayIntent: true)
     }
 }
 
 extension MyOneUpViewController: OneUpManagerDelegate {
     var windowScene: UIWindowScene? {
-        view.window?.windowScene
+        guard let windowScene = view.window?.windowScene else {
+            fatalError()
+        }
+        
+        return windowScene
     }
 }
