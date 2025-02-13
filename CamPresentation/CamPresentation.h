@@ -24,3 +24,4 @@ FOUNDATION_EXPORT const unsigned char CamPresentationVersionString[];
 #import <CamPresentation/VisionKitDemoViewController.h>
 #import <CamPresentation/ImageFiltersViewController.h>
 #import <CamPresentation/AuthorizationsService.h>
+#import <CamPresentation/PickerManagedViewController.h>

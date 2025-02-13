@@ -35,8 +35,9 @@
 #endif
         ImageFiltersViewController.class,
 #if !TARGET_OS_TV
-        objc_lookUpClass("VKKeyboardCameraViewController")
+        objc_lookUpClass("VKKeyboardCameraViewController"),
 #endif
+        PickerManagedViewController.class
     ];
 }
 
@@ -124,8 +125,12 @@
 //    [self.navigationController pushViewController:viewController animated:NO];
 //    [viewController release];
     
-    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-    viewController.delegate = self;
+//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+//    viewController.delegate = self;
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
+    
+    PickerManagedViewController *viewController = [PickerManagedViewController new];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
     
