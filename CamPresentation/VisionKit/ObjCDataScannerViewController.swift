@@ -343,8 +343,8 @@ extension ObjCDataScannerViewController {
     }
 }
 
-@_cdecl("localizedDescriptionFromDataScannerUnavailableReason") public func localizedDescriptionFromDataScannerUnavailableReason(reason: ObjCDataScannerViewController.ScanningUnavailable) -> String {
-    reason.frameworkValue.localizedDescription
+@_cdecl("localizedDescriptionFromDataScannerUnavailableReason") public func localizedDescriptionFromDataScannerUnavailableReason(reason: Int) -> NSString {
+    ObjCDataScannerViewController.ScanningUnavailable(rawValue: reason)!.frameworkValue.localizedDescription as NSString
 }
 
 extension ObjCDataScannerViewController: DataScannerViewControllerDelegate {

@@ -1035,7 +1035,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         UISlider *slider = [UISlider new];
 #endif
         slider.minimumValue = 0.f;
-        slider.maximumValue = std::fminf(1.f, AVCaptureMaxAvailableTorchLevel);
+        slider.maximumValue = fminf(1.f, AVCaptureMaxAvailableTorchLevel);
         slider.value = captureDevice.torchLevel;
         slider.enabled = captureDevice.torchAvailable;
         

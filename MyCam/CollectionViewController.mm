@@ -37,7 +37,8 @@
 #if !TARGET_OS_TV
         objc_lookUpClass("VKKeyboardCameraViewController"),
 #endif
-        PickerManagedViewController.class
+        PickerManagedViewController.class,
+        CinematicViewController.class
     ];
 }
 
@@ -130,7 +131,7 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    PickerManagedViewController *viewController = [PickerManagedViewController new];
+    CinematicViewController *viewController = [CinematicViewController new];
     [self.navigationController pushViewController:viewController animated:YES];
     [viewController release];
     
