@@ -403,6 +403,7 @@
 				Cinematic/CinematicViewController.mm,
 				Cinematic/CinematicViewModel.h,
 				Cinematic/CinematicViewModel.mm,
+				Cinematic/SampleShaders.metal,
 				Constants.h,
 				Constants.mm,
 				cp_CMSampleBufferCreatePixelBuffer.h,

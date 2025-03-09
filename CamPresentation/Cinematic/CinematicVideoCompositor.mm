@@ -10,6 +10,7 @@
 #import <CoreVideo/CoreVideo.h>
 #import <CamPresentation/CinematicEditHelper.h>
 
+__attribute__((objc_direct_members))
 @interface CinematicVideoCompositor ()
 @property (retain, nonatomic, readonly, getter=_helper) CinematicEditHelper *helper;
 @end
@@ -89,14 +90,12 @@
     assert(frameAttributes != nil);
     frameAttributes.fNumber = instruction.fNumber;
     
-    {
-        // Find the nearest frame for focus disparity
-        CMTime frameTime = asyncVideoCompositionRequest.compositionTime;
-        CMTime tolerance = asyncVideoCompositionRequest.renderContext.videoComposition.frameDuration;
-        
-        if (CNScriptFrame *frame = [cinematicScript frameAtTime:frameTime tolerance:tolerance]) {
-            frameAttributes.focusDisparity = frame.focusDisparity;
-        }
+    // Find the nearest frame for focus disparity
+    CMTime frameTime = asyncVideoCompositionRequest.compositionTime;
+    CMTime tolerance = asyncVideoCompositionRequest.renderContext.videoComposition.frameDuration;
+    
+    if (CNScriptFrame *frame = [cinematicScript frameAtTime:frameTime tolerance:tolerance]) {
+        frameAttributes.focusDisparity = frame.focusDisparity;
     }
     
     id<MTLCommandBuffer> commandBuffer = [renderingSession.commandQueue commandBuffer];
@@ -110,7 +109,7 @@
     [frameAttributes release];
     
     if (instruction.editMode) {
-        
+        [self _drawFocusDetectionsAtFrameTime:frameTime tolerance:tolerance outputBuffer:outputBuffer commandBuffer:commandBuffer instruction:instruction];
     }
     
     id outputBufferObject = (id)outputBuffer;
@@ -129,6 +128,26 @@
 
 - (BOOL)supportsHDRSourceFrames {
     return YES;
+}
+
+- (void)_drawFocusDetectionsAtFrameTime:(CMTime)frameTime tolerance:(CMTime)tolerance outputBuffer:(CVPixelBufferRef)outputBuffer commandBuffer:(id<MTLCommandBuffer>)commandBuffer instruction:(CinematicVideoCompositionInstruction *)instruction __attribute__((objc_direct)) {
+    CNScript *cinematicScript = instruction.script;
+    CNScriptFrame *cinematicScriptFrame = [cinematicScript frameAtTime:frameTime tolerance:tolerance];
+    if (cinematicScriptFrame == nil) return;
+    
+    // Find out if the decision is strong or weak.
+    BOOL strongDecision;
+    if (CNDecision *decision = [cinematicScript decisionAtTime:frameTime tolerance:kCMTimeZero]) {
+        strongDecision = decision.strongDecision;
+    } else {
+        if (CNDecision *beforeDecision = [cinematicScript decisionBeforeTime:frameTime]) {
+            strongDecision = beforeDecision.strongDecision;
+        } else {
+            strongDecision = NO;
+        }
+    }
+    
+    [_helper drawRectsForCNScriptFrame:cinematicScriptFrame outputBuffer:outputBuffer stringDecision:strongDecision rectDrawCommandBuffer:commandBuffer preferredTransform:instruction.renderingSession.preferredTransform];
 }
 
 @end

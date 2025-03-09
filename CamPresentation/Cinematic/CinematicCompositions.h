@@ -9,6 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+__attribute__((objc_direct_members))
 @interface CinematicCompositions : NSObject
 @property (copy, nonatomic, readonly) AVComposition *composition;
 @property (copy, nonatomic, readonly) AVVideoComposition *videoComposition;

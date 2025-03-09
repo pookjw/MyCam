@@ -73,7 +73,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [compositionInfo insertTimeRange:data.cnAssetInfo.timeRange ofCinematicAssetInfo:data.cnAssetInfo atTime:kCMTimeZero error:&error];
     assert(error == nil);
     
-    CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript fNumber:data.cnScript.fNumber editMode:NO];
+    CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript fNumber:data.cnScript.fNumber editMode:YES];
     [renderingSession release];
     
     AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition new];

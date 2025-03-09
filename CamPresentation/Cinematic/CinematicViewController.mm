@@ -16,7 +16,6 @@
 @interface CinematicViewController () <AssetCollectionsViewControllerDelegate>
 @property (retain, nonatomic, readonly, getter=_editViewController) CinematicEditViewController *editViewController;
 @property (retain, nonatomic, readonly, getter=_assetPickerBarButtonItem) UIBarButtonItem *assetPickerBarButtonItem;
-@property (retain, nonatomic, readonly, getter=_assetPickerViewController) AssetCollectionsViewController *assetPickerViewController;
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
 @property (retain, nonatomic, getter=_progress, setter=_setProgress:) NSProgress *progress;
 @end
@@ -24,17 +23,15 @@
 @implementation CinematicViewController
 @synthesize editViewController = _editViewController;
 @synthesize assetPickerBarButtonItem = _assetPickerBarButtonItem;
-@synthesize assetPickerViewController = _assetPickerViewController;
 @synthesize viewModel = _viewModel;
 @synthesize progress = _progress;
 
 - (void)dealloc {
     [_editViewController release];
     [_assetPickerBarButtonItem release];
-    [_assetPickerViewController release];
     [_viewModel release];
     
-    if (NSProgress *progress = self.progress) {
+    if (NSProgress *progress = _progress) {
         [self _removeObserverForProgress:progress];
         [progress cancel];
         [progress release];
@@ -97,16 +94,6 @@
     return assetPickerBarButtonItem;
 }
 
-- (AssetCollectionsViewController *)_assetPickerViewController {
-    if (auto assetPickerViewController = _assetPickerViewController) return assetPickerViewController;
-    
-    AssetCollectionsViewController *assetPickerViewController = [AssetCollectionsViewController new];
-    assetPickerViewController.delegate = self;
-    
-    _assetPickerViewController = assetPickerViewController;
-    return assetPickerViewController;
-}
-
 - (CinematicViewModel *)_viewModel {
     dispatch_assert_queue(dispatch_get_main_queue());
     if (auto viewModel = _viewModel) return viewModel;
@@ -128,10 +115,11 @@
 }
 
 - (void)_didTriggerAssetPickerBarButtonItem:(UIBarButtonItem *)sender {
-    AssetCollectionsViewController *assetPickerViewController = self.assetPickerViewController;
+    AssetCollectionsViewController *assetPickerViewController = [AssetCollectionsViewController new];
+    assetPickerViewController.delegate = self;
+    
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetPickerViewController];
     [assetPickerViewController release];
-    
     navigationController.modalPresentationStyle = UIModalPresentationPopover;
     navigationController.popoverPresentationController.sourceItem = sender;
     
@@ -140,9 +128,11 @@
 }
 
 - (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
-    if (PHAsset *asset = selectedAssets.allObjects.firstObject) {
-        [self _loadWithPHAsset:asset];
-    }
+    [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
+        if (PHAsset *asset = selectedAssets.allObjects.firstObject) {
+            [self _loadWithPHAsset:asset];
+        }
+    }];
 }
 
 - (void)_loadWithPHAsset:(PHAsset *)asset {

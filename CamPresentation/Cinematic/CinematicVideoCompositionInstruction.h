@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+__attribute__((objc_direct_members))
 @interface CinematicVideoCompositionInstruction : NSObject <AVVideoCompositionInstruction>
 @property (retain, nonatomic, readonly) CNRenderingSession *renderingSession;
 @property (retain, nonatomic, readonly) CNCompositionInfo *compositionInfo;
