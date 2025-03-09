@@ -10,8 +10,11 @@
 #import <CamPresentation/CinematicViewModel.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CamPresentation/CinematicAssetData.h>
+#import <CamPresentation/CinematicEditViewController.h>
 
 @interface CinematicViewController () <AssetCollectionsViewControllerDelegate>
+@property (retain, nonatomic, readonly, getter=_editViewController) CinematicEditViewController *editViewController;
 @property (retain, nonatomic, readonly, getter=_assetPickerBarButtonItem) UIBarButtonItem *assetPickerBarButtonItem;
 @property (retain, nonatomic, readonly, getter=_assetPickerViewController) AssetCollectionsViewController *assetPickerViewController;
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
@@ -19,12 +22,14 @@
 @end
 
 @implementation CinematicViewController
+@synthesize editViewController = _editViewController;
 @synthesize assetPickerBarButtonItem = _assetPickerBarButtonItem;
 @synthesize assetPickerViewController = _assetPickerViewController;
 @synthesize viewModel = _viewModel;
 @synthesize progress = _progress;
 
 - (void)dealloc {
+    [_editViewController release];
     [_assetPickerBarButtonItem release];
     [_assetPickerViewController release];
     [_viewModel release];
@@ -53,7 +58,12 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view.backgroundColor = UIColor.systemBackgroundColor;
+    
+    CinematicEditViewController *editViewController = self.editViewController;
+    [self addChildViewController:editViewController];
+    [self.view addSubview:editViewController.view];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self.view, sel_registerName("_addBoundsMatchingConstraintsForView:"), editViewController.view);
+    [editViewController didMoveToParentViewController:self];
     
     UINavigationItem *navigationItem = self.navigationItem;
     navigationItem.style = UINavigationItemStyleEditor;
@@ -64,9 +74,18 @@
     ];
     
     {
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"80BF37FF-7827-4B49-B6DF-3A0CC9C5D5ED/L0/001"] options:nil];
+        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"3C146A2B-21CD-4739-A975-0AC6A2CA1777/L0/001"] options:nil];
         [self _loadWithPHAsset:assets[0]];
     }
+}
+
+- (CinematicEditViewController *)_editViewController {
+    if (auto editViewController = _editViewController) return editViewController;
+    
+    CinematicEditViewController *editViewController = [[CinematicEditViewController alloc] initWithViewModel:self.viewModel];
+    
+    _editViewController = editViewController;
+    return editViewController;
 }
 
 - (UIBarButtonItem *)_assetPickerBarButtonItem {
@@ -89,6 +108,7 @@
 }
 
 - (CinematicViewModel *)_viewModel {
+    dispatch_assert_queue(dispatch_get_main_queue());
     if (auto viewModel = _viewModel) return viewModel;
     
     CinematicViewModel *viewModel = [CinematicViewModel new];
@@ -132,10 +152,15 @@
         [oldProgress cancel];
     }
     
-    NSProgress *progress = [CinematicViewModel loadCNAssetInfoFromPHAsset:asset completionHandler:^(CNAssetInfo * _Nullable cinematicAssetInfo, NSError * _Nullable error) {
+    CinematicViewModel *viewModel = self.viewModel;
+    
+    NSProgress *progress = [CinematicAssetData loadDataFromPHAsset:asset completionHandler:^(CinematicAssetData * _Nullable data, NSError * _Nullable error) {
         assert(error == nil);
-        NSLog(@"%@", cinematicAssetInfo);
-        NSLog(@"%@", cinematicAssetInfo.allCinematicTracks);
+        assert(data != nil);
+        
+        dispatch_async(viewModel.queue, ^{
+            [viewModel isolated_loadWithData:data];
+        });
     }];
     
     self.progress = progress;
