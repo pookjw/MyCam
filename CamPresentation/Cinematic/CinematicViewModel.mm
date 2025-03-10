@@ -20,16 +20,16 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 
 @interface CinematicViewModel ()
 @property (retain, nonatomic, readonly, getter=_isolated_commandQueue) id<MTLCommandQueue> isolated_commandQueue;
-@property (retain, nonatomic, setter=_isolated_setCompositions:) CinematicCompositions *isolated_compositions;
+@property (retain, nonatomic, setter=_isolated_setSnapshot:) CinematicSnapshot *isolated_snapshot;
 @end
 
 @implementation CinematicViewModel
 @synthesize isolated_commandQueue = _isolated_commandQueue;
-@synthesize isolated_compositions = _isolated_compositions;
+@synthesize isolated_snapshot = _isolated_snapshot;
 
 + (id)_createValueSetterWithContainerClassID:(id)classID key:(NSString *)key {
-    if ([key isEqualToString:@"isolated_compositions"]) {
-        Method method = class_getInstanceMethod(self, @selector(_isolated_setCompositions:));
+    if ([key isEqualToString:@"isolated_snapshot"]) {
+        Method method = class_getInstanceMethod(self, @selector(_isolated_setSnapshot:));
         id setter = reinterpret_cast<id (*)(id, SEL, id, id, Method)>(objc_msgSend)([objc_lookUpClass("NSKeyValueMethodSetter") alloc], sel_registerName("initWithContainerClassID:key:method:"), classID, key, method);
         return [setter autorelease];;
     }
@@ -50,7 +50,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 - (void)dealloc {
     dispatch_release(_queue);
     [_isolated_commandQueue release];
-    [_isolated_compositions release];
+    [_isolated_snapshot release];
     [super dealloc];
 }
 
@@ -90,11 +90,15 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         videoComposition.frameDuration = CMTimeMakeWithSeconds(1.f / data.nominalFrameRate, data.naturalTimeScale);
     }
     
-    CinematicCompositions *compositions = [[CinematicCompositions alloc] initWithComposition:composition videoComposition:videoComposition];
+    CinematicSnapshot *snapshot = [[CinematicSnapshot alloc] initWithComposition:composition videoComposition:videoComposition assetData:data];
     [composition release];
     [videoComposition release];
-    self.isolated_compositions = compositions;
-    [compositions release];
+    self.isolated_snapshot = snapshot;
+    [snapshot release];
+}
+
+- (void)isolated_changeFocusAtNormalizedPoint:(CGPoint)normalizedPoint atTime:(CMTime)time strongDecision:(BOOL)strongDecision {
+    abort();
 }
 
 - (id<MTLCommandQueue>)_isolated_commandQueue {
@@ -110,15 +114,15 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     return isolated_commandQueue;
 }
 
-- (CinematicCompositions *)isolated_compositions {
+- (CinematicSnapshot *)isolated_snapshot {
     dispatch_assert_queue(self.queue);
-    return _isolated_compositions;
+    return _isolated_snapshot;
 }
 
-- (void)_isolated_setCompositions:(CinematicCompositions *)isolated_compositions {
+- (void)_isolated_setSnapshot:(CinematicSnapshot *)isolated_snapshot {
     dispatch_assert_queue(self.queue);
-    [_isolated_compositions release];
-    _isolated_compositions = [isolated_compositions retain];
+    [_isolated_snapshot release];
+    _isolated_snapshot = [isolated_snapshot retain];
 }
 
 @end

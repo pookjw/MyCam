@@ -114,7 +114,6 @@ __attribute__((objc_direct_members))
     
     id outputBufferObject = (id)outputBuffer;
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
-        NSLog(@"%ld", commandBuffer.status);
         if (NSError *error = commandBuffer.error) {
             NSLog(@"%@", error);
             abort();
