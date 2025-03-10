@@ -98,6 +98,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 - (void)isolated_changeFocusAtNormalizedPoint:(CGPoint)normalizedPoint atTime:(CMTime)time strongDecision:(BOOL)strongDecision {
+    
+    
     abort();
 }
 
@@ -123,6 +125,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     dispatch_assert_queue(self.queue);
     [_isolated_snapshot release];
     _isolated_snapshot = [isolated_snapshot retain];
+}
+
+- (CGPoint)_invertedPointWithPoint:(CGPoint)point {
+    CGAffineTransform preferredTransform = self.isolated_snapshot.assetData.cnAssetInfo.preferredTransform;
+    CGAffineTransform inverseTransform = CGAffineTransformInvert(preferredTransform);
+    CGSize naturalSize = self.isolated_snapshot.assetData.cnAssetInfo.naturalSize;
+    CGSize preferredSize = self.isolated_snapshot.assetData.as
 }
 
 @end
