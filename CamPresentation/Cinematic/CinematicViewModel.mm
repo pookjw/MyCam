@@ -98,9 +98,49 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 - (void)isolated_changeFocusAtNormalizedPoint:(CGPoint)normalizedPoint atTime:(CMTime)time strongDecision:(BOOL)strongDecision {
+    dispatch_assert_queue(self.queue);
+    
+    CGPoint finalPoint = [self _invertedNormalizedPointWithNormalizedPoint:normalizedPoint];
+    CinematicSnapshot *snapshot = self.isolated_snapshot;
+    
+    CNScript *cinematicScript = snapshot.assetData.cnScript;
+    float nominalFrameRate = snapshot.assetData.nominalFrameRate;
+    CMTimeScale naturalTimeScale = snapshot.assetData.naturalTimeScale;
+    
+    CMTime tolerance = CMTimeMakeWithSeconds(1.0 / nominalFrameRate, naturalTimeScale);
+    
+    CNScriptFrame *cinematicScriptFrame = [cinematicScript frameAtTime:time tolerance:tolerance];
+    if (cinematicScriptFrame == nil) return;
     
     
-    abort();
+    NSArray<CNDetection *> *allDetections = cinematicScriptFrame.allDetections;
+    NSMutableArray<CNDetection *> *detections = [[NSMutableArray alloc] initWithCapacity:allDetections.count];
+    for (CNDetection *detection in allDetections) {
+        CGRect rect = detection.normalizedRect;
+        if (CGRectContainsPoint(rect, finalPoint)) {
+//            if (detection.detectionType == CNDetectionTypeHumanFace) {
+//                [detections insertObject:detection atIndex:0];
+//                break;
+//            } else {
+//                [detections addObject:detection];
+//            }
+            [detections addObject:detection];
+        }
+    }
+    
+    if (CNDetection *firstDetection = detections.firstObject) {
+        CNDetectionID detectionID = firstDetection.detectionID;
+        
+        CNDecision *decision = [[CNDecision alloc] initWithTime:cinematicScriptFrame.time detectionID:detectionID strong:strongDecision];
+        [cinematicScript addUserDecision:decision];
+        [decision release];
+    }
+    
+    [detections release];
+    
+    CMTimeRange timeRange = CMTimeRangeMake(cinematicScriptFrame.time, CMTimeAdd(cinematicScript.timeRange.start, cinematicScript.timeRange.duration));
+    
+    
 }
 
 - (id<MTLCommandQueue>)_isolated_commandQueue {
@@ -127,11 +167,18 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     _isolated_snapshot = [isolated_snapshot retain];
 }
 
-- (CGPoint)_invertedPointWithPoint:(CGPoint)point {
+- (CGPoint)_invertedNormalizedPointWithNormalizedPoint:(CGPoint)point {
     CGAffineTransform preferredTransform = self.isolated_snapshot.assetData.cnAssetInfo.preferredTransform;
     CGAffineTransform inverseTransform = CGAffineTransformInvert(preferredTransform);
     CGSize naturalSize = self.isolated_snapshot.assetData.cnAssetInfo.naturalSize;
-    CGSize preferredSize = self.isolated_snapshot.assetData.as
+    CGSize preferredSize = self.isolated_snapshot.assetData.cnAssetInfo.preferredSize;
+    CGPoint texturePoint = CGPointMake(point.x * preferredSize.width,
+                                       point.y * preferredSize.height);
+    CGRect textureRect = CGRectMake(texturePoint.x, texturePoint.y, 1., 1.);
+    CGRect transformedRect = CGRectApplyAffineTransform(textureRect, inverseTransform);
+    CGPoint finalPoint = CGPointMake(transformedRect.origin.x / naturalSize.width,
+                                     transformedRect.origin.y / naturalSize.height);
+    return finalPoint;
 }
 
 @end
