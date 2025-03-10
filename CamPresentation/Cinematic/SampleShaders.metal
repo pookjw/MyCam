@@ -24,10 +24,6 @@ vertex RasterizerData vertexShader(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment float4 fragmentShader_YFormat(RasterizerData in [[stage_in]]) {
-    return in.color;
-}
-
-fragment float4 fragmentShader_CbCrFormat(RasterizerData in [[stage_in]]) {
+fragment float4 fragmentShader(RasterizerData in [[stage_in]]) {
     return in.color;
 }

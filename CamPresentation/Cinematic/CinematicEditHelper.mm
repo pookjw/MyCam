@@ -16,8 +16,7 @@
 @interface CinematicEditHelper ()
 @property (retain, nonatomic, readonly, getter=_device) id<MTLDevice> device;
 @property (assign, nonatomic, readonly, getter=_textureCache) CVMetalTextureCacheRef textureCache;
-@property (retain, nonatomic, readonly, getter=_renderPipelineState) id<MTLRenderPipelineState> renderPipelineState_YFormat;
-@property (retain, nonatomic, readonly, getter=_renderPipelineState) id<MTLRenderPipelineState> renderPipelineState_CbCrFormat;
+@property (retain, nonatomic, readonly, getter=_renderPipelineState) id<MTLRenderPipelineState> renderPipelineState;
 @end
 
 @implementation CinematicEditHelper
@@ -32,35 +31,20 @@
         assert(error == nil);
         
         id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertexShader"];
-        id<MTLFunction> fragmentFunction_YFormat = [library newFunctionWithName:@"fragmentShader_YFormat"];
-        id<MTLFunction> fragmentFunction_CbCrFormat = [library newFunctionWithName:@"fragmentShader_CbCrFormat"];
+        id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragmentShader"];
         [library release];
         
-        {
-            MTLRenderPipelineDescriptor *pipelineStateDescriptor_YFormat = [MTLRenderPipelineDescriptor new];
-            pipelineStateDescriptor_YFormat.label = @"Render Pipeline (Y Format)";
-            pipelineStateDescriptor_YFormat.vertexFunction = vertexFunction;
-            pipelineStateDescriptor_YFormat.fragmentFunction = fragmentFunction_YFormat;
-            [fragmentFunction_YFormat release];
-            pipelineStateDescriptor_YFormat.vertexBuffers[0].mutability = MTLMutabilityImmutable;
-            pipelineStateDescriptor_YFormat.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
-            _renderPipelineState_YFormat = [device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor_YFormat error:&error];
-            [pipelineStateDescriptor_YFormat release];
-            assert(error == nil);
-        }
-        
-        {
-            MTLRenderPipelineDescriptor *pipelineStateDescriptor_CbCrFormat = [MTLRenderPipelineDescriptor new];
-            pipelineStateDescriptor_CbCrFormat.label = @"Render Pipeline (CbCr Format)";
-            pipelineStateDescriptor_CbCrFormat.vertexFunction = vertexFunction;
-            pipelineStateDescriptor_CbCrFormat.fragmentFunction = fragmentFunction_CbCrFormat;
-            [fragmentFunction_CbCrFormat release];
-            pipelineStateDescriptor_CbCrFormat.vertexBuffers[0].mutability = MTLMutabilityImmutable;
-            pipelineStateDescriptor_CbCrFormat.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA10_XR;
-            _renderPipelineState_CbCrFormat = [device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor_CbCrFormat error:&error];
-            [pipelineStateDescriptor_CbCrFormat release];
-            assert(error == nil);
-        }
+        MTLRenderPipelineDescriptor *pipelineStateDescriptor = [MTLRenderPipelineDescriptor new];
+        pipelineStateDescriptor.label = @"Render Pipeline";
+        pipelineStateDescriptor.vertexFunction = vertexFunction;
+        [vertexFunction release];
+        pipelineStateDescriptor.fragmentFunction = fragmentFunction;
+        [fragmentFunction release];
+        pipelineStateDescriptor.vertexBuffers[0].mutability = MTLMutabilityImmutable;
+        pipelineStateDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+        _renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+        [pipelineStateDescriptor release];
+        assert(error == nil);
         
         [vertexFunction release];
     }
@@ -71,8 +55,7 @@
 - (void)dealloc {
     [_device release];
     CFRelease(_textureCache);
-    [_renderPipelineState_YFormat release];
-    [_renderPipelineState_CbCrFormat release];
+    [_renderPipelineState release];
     [super dealloc];
 }
 
@@ -82,63 +65,26 @@
     size_t width = CVPixelBufferGetWidth(outputBuffer);
     size_t height = CVPixelBufferGetHeight(outputBuffer);
     
-    CVMetalTextureRef image_CbCrFormat;
-    assert(CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, _textureCache, outputBuffer, NULL, MTLPixelFormatRGBA16Float, width, height, 1, &image_CbCrFormat) == kCVReturnSuccess);
-    assert(image_CbCrFormat != NULL);
+    id<MTLRenderCommandEncoder> renderEncoder_YFormat;
     
-    {
-        id<MTLRenderCommandEncoder> renderEncoder_YFormat;
-        
-        CVMetalTextureRef image_YFormat;
-        assert(CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, _textureCache, outputBuffer, NULL, MTLPixelFormatRGBA16Float, width, height, 0, &image_YFormat) == kCVReturnSuccess);
-        assert(image_YFormat != NULL);
-        
-        id<MTLTexture> texture_YFormat = CVMetalTextureGetTexture(image_YFormat);
-        assert(texture_YFormat != nil);
-        
-        MTLRenderPassDescriptor *renderPassDescriptor_YFormat = [MTLRenderPassDescriptor new];
-        renderPassDescriptor_YFormat.colorAttachments[0].texture = texture_YFormat;
-        CFRelease(texture_YFormat);
-        renderPassDescriptor_YFormat.colorAttachments[0].loadAction = MTLLoadActionLoad;
-        renderPassDescriptor_YFormat.colorAttachments[0].storeAction = MTLStoreActionStore;
-        
-        renderEncoder_YFormat = [rectDrawCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor_YFormat];
-        [renderPassDescriptor_YFormat release];
-        
-        [renderEncoder_YFormat setRenderPipelineState:_renderPipelineState_YFormat];
-        
-        [self _drawRectsWithRenderEncoder:renderEncoder_YFormat width:width height:height cinematicScriptFrame:cinematicScriptFrame preferredTransform:preferredTransform strongDecision:strongDecision];
-        [renderEncoder_YFormat endEncoding];
-    }
+    CVMetalTextureRef image_YFormat;
+    assert(CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, _textureCache, outputBuffer, NULL, MTLPixelFormatRGBA16Float, width, height, 0, &image_YFormat) == kCVReturnSuccess);
+    assert(image_YFormat != NULL);
     
-    {
-        id<MTLRenderCommandEncoder> renderEncoder_CbCrFormat;
-        
-        NSLog(@"%ld %ld %ld", CVPixelBufferGetBytesPerRowOfPlane(outputBuffer, 1), width, height);
-        CVMetalTextureRef image_CbCrFormat;
-        assert(CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, _textureCache, outputBuffer, NULL, MTLPixelFormatBGRA10_XR, width, height, 1, &image_CbCrFormat) == kCVReturnSuccess);
-        assert(image_CbCrFormat != NULL);
-        
-        id<MTLTexture> texture_CbCrFormat = CVMetalTextureGetTexture(image_CbCrFormat);
-        assert(texture_CbCrFormat != nil);
-        
-        MTLRenderPassDescriptor *renderPassDescriptor_CbCrFormat = [MTLRenderPassDescriptor new];
-        renderPassDescriptor_CbCrFormat.colorAttachments[0].texture = texture_CbCrFormat;
-        CFRelease(texture_CbCrFormat);
-        renderPassDescriptor_CbCrFormat.colorAttachments[0].loadAction = MTLLoadActionLoad;
-        renderPassDescriptor_CbCrFormat.colorAttachments[0].storeAction = MTLStoreActionStore;
-        
-        renderEncoder_CbCrFormat = [rectDrawCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor_CbCrFormat];
-        [renderPassDescriptor_CbCrFormat release];
-        
-        [renderEncoder_CbCrFormat setRenderPipelineState:_renderPipelineState_CbCrFormat];
-        
-        [self _drawRectsWithRenderEncoder:renderEncoder_CbCrFormat width:width height:height cinematicScriptFrame:cinematicScriptFrame preferredTransform:preferredTransform strongDecision:strongDecision];
-        [renderEncoder_CbCrFormat endEncoding];
-    }
-}
-
-- (void)_drawRectsWithRenderEncoder:(id<MTLRenderCommandEncoder>)renderEncoder width:(size_t)width height:(size_t)height cinematicScriptFrame:(CNScriptFrame *)cinematicScriptFrame preferredTransform:(CGAffineTransform)preferredTransform strongDecision:(BOOL)strongDecision __attribute__((objc_direct)){
+    id<MTLTexture> texture_YFormat = CVMetalTextureGetTexture(image_YFormat);
+    assert(texture_YFormat != nil);
+    
+    MTLRenderPassDescriptor *renderPassDescriptor_YFormat = [MTLRenderPassDescriptor new];
+    renderPassDescriptor_YFormat.colorAttachments[0].texture = texture_YFormat;
+    CFRelease(image_YFormat);
+    renderPassDescriptor_YFormat.colorAttachments[0].loadAction = MTLLoadActionLoad;
+    renderPassDescriptor_YFormat.colorAttachments[0].storeAction = MTLStoreActionStore;
+    
+    renderEncoder_YFormat = [rectDrawCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor_YFormat];
+    [renderPassDescriptor_YFormat release];
+    
+    [renderEncoder_YFormat setRenderPipelineState:_renderPipelineState];
+    
     simd::float4 whiteColor { 1.f, 1.f, 1.f, 1.f};
     simd::float4 yellowColor { 1.f, 1.f, 0.f, 1.f };
     simd::float2 focusRectThickness { 5.f / width, 5.f / height };
@@ -153,7 +99,7 @@
     CGRect transformedRect = [self _applyTransformFromRect:focusRect preferredTransform:preferredTransform textureSize:textureSize];
     
     // Draw Focus
-    [self _drawRectsWithRenderEncoder:renderEncoder color:yellowColor rect:transformedRect strongDecision:strongDecision thickness:focusRectThickness];
+    [self _drawRectsWithRenderEncoder:renderEncoder_YFormat color:yellowColor rect:transformedRect strongDecision:strongDecision thickness:focusRectThickness];
     
     // Draw Detections
     NSArray<CNDetection *> *allDetections = cinematicScriptFrame.allDetections;
@@ -175,8 +121,10 @@
 //            }
 //        }
         CGRect transformedRect = [self _applyTransformFromRect:normalizedRect preferredTransform:preferredTransform textureSize:textureSize];
-        [self _drawRectsWithRenderEncoder:renderEncoder color:whiteColor rect:transformedRect strongDecision:NO thickness:nonFocusRectThickness];
+        [self _drawRectsWithRenderEncoder:renderEncoder_YFormat color:whiteColor rect:transformedRect strongDecision:NO thickness:nonFocusRectThickness];
     }
+    
+    [renderEncoder_YFormat endEncoding];
 }
 
 - (CGRect)_applyTransformFromRect:(CGRect)rect preferredTransform:(CGAffineTransform)preferredTransform textureSize:(CGSize)textureSize __attribute__((objc_direct)) {
