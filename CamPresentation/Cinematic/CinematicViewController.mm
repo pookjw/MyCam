@@ -71,7 +71,11 @@
     ];
     
     {
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"3C146A2B-21CD-4739-A975-0AC6A2CA1777/L0/001"] options:nil];
+        /*
+         3C146A2B-21CD-4739-A975-0AC6A2CA1777/L0/001
+         0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001
+         */
+        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001"] options:nil];
         [self _loadWithPHAsset:assets[0]];
     }
 }

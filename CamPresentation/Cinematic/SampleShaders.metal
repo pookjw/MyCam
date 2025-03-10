@@ -14,8 +14,8 @@ struct RasterizerData {
 };
 
 vertex RasterizerData vertexShader(uint vertexID [[vertex_id]],
-                                   constant float2 *vertices [[buffer(0)]],
-                                   constant float4& color [[buffer(1)]])
+                                                   constant float2 *vertices [[buffer(0)]],
+                                                   constant float4& color [[buffer(1)]])
 {
     RasterizerData out;
     out.position = vector_float4(0.f, 0.f, 0.f, 1.f);
@@ -24,6 +24,10 @@ vertex RasterizerData vertexShader(uint vertexID [[vertex_id]],
     return out;
 }
 
-fragment float4 fragmentShader(RasterizerData in [[stage_in]]) {
+fragment float4 fragmentShader_YFormat(RasterizerData in [[stage_in]]) {
+    return in.color;
+}
+
+fragment float4 fragmentShader_CbCrFormat(RasterizerData in [[stage_in]]) {
     return in.color;
 }

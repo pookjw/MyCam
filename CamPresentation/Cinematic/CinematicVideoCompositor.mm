@@ -114,6 +114,8 @@ __attribute__((objc_direct_members))
     
     id outputBufferObject = (id)outputBuffer;
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull commandBuffer) {
+        NSLog(@"%ld", commandBuffer.status);
+        NSLog(@"%@", commandBuffer.error);
         assert(commandBuffer.status == MTLCommandBufferStatusCompleted);
         [asyncVideoCompositionRequest finishWithComposedVideoFrame:(CVPixelBufferRef)outputBufferObject];
     }];

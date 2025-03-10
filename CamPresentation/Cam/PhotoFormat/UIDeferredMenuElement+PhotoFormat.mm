@@ -32,6 +32,7 @@
 #import <CamPresentation/CaptureDeviceLowLightBoostInfoView.h>
 #import <CamPresentation/TVSlider.h>
 #import <CamPresentation/TVStepper.h>
+#import <CamPresentation/NSString+CP_Category.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CoreMedia/CoreMedia.h>
@@ -364,11 +365,11 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                                                          nullptr,
                                                          &description);
         assert(status == 0);
-        CFRelease(description);
         
         OSType mediaSubType = CMFormatDescriptionGetMediaSubType(description);
+        CFRelease(description);
         
-        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
+        NSString *string = [[[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding] autorelease].cp_reversedString;
         
         UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -381,8 +382,6 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                 if (didChangeHandler) didChangeHandler();
             });
         }];
-        
-        [string release];
         
         action.attributes = UIMenuElementAttributesKeepsMenuPresented;
         action.state = [photoFormatModel.photoPixelFormatType isEqualToNumber:formatNumber] ? UIMenuElementStateOn : UIMenuElementStateOff;
@@ -410,9 +409,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
         CFRelease(description);
         
-        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
+        NSString *string = [[[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding] autorelease].cp_reversedString;
         menu.subtitle = string;
-        [string release];
     }
     
     return menu;
@@ -588,8 +586,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         assert(status == 0);
         
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
+        CFRelease(description);
         
-        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
+        NSString *string = [[[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding] autorelease].cp_reversedString;
         
         UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -627,8 +626,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         assert(status == 0);
         
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
+        CFRelease(description);
         
-        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
+        NSString *string = [[[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding] autorelease].cp_reversedString;
         menu.subtitle = string;
         [string release];
     }
