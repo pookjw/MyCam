@@ -45,8 +45,6 @@
         _renderPipelineState = [device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
         [pipelineStateDescriptor release];
         assert(error == nil);
-        
-        [vertexFunction release];
     }
     
     return self;
@@ -89,8 +87,8 @@
     simd::float4 yellowColor { 1.f, 1.f, 0.f, 1.f };
     simd::float2 focusRectThickness { 5.f / width, 5.f / height };
     simd::float2 nonFocusRectThickness { 2.f / width, 2.f / height };
-    focusRectThickness *= 10.f;
-    nonFocusRectThickness *= 10.f;
+//    focusRectThickness *= 10.f;
+//    nonFocusRectThickness *= 10.f;
     
     CNDetection *focusDetection = cinematicScriptFrame.focusDetection;
     CGRect focusRect = focusDetection.normalizedRect;

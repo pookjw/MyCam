@@ -18,6 +18,7 @@
 @property (retain, nonatomic, readonly, getter=_assetPickerBarButtonItem) UIBarButtonItem *assetPickerBarButtonItem;
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
 @property (retain, nonatomic, getter=_progress, setter=_setProgress:) NSProgress *progress;
+@property (retain, nonatomic, readonly, getter=_debugBarButtonItem) UIBarButtonItem *debugBarButtonItem;
 @end
 
 @implementation CinematicViewController
@@ -25,6 +26,7 @@
 @synthesize assetPickerBarButtonItem = _assetPickerBarButtonItem;
 @synthesize viewModel = _viewModel;
 @synthesize progress = _progress;
+@synthesize debugBarButtonItem = _debugBarButtonItem;
 
 - (void)dealloc {
     [_editViewController release];
@@ -36,6 +38,8 @@
         [progress cancel];
         [progress release];
     }
+    
+    [_debugBarButtonItem release];
     
     [super dealloc];
 }
@@ -66,7 +70,8 @@
     navigationItem.style = UINavigationItemStyleEditor;
     navigationItem.trailingItemGroups = @[
         [UIBarButtonItemGroup fixedGroupWithRepresentativeItem:nil items:@[
-            self.assetPickerBarButtonItem
+            self.assetPickerBarButtonItem,
+            self.debugBarButtonItem
         ]]
     ];
     
@@ -108,6 +113,15 @@
     return viewModel;
 }
 
+- (UIBarButtonItem *)_debugBarButtonItem {
+    if (auto debugBarButtonItem = _debugBarButtonItem) return debugBarButtonItem;
+    
+    UIBarButtonItem *debugBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"ant.fill"] style:UIBarButtonItemStylePlain target:self action:@selector(_didTriggerDebugBarButtonItem:)];
+    
+    _debugBarButtonItem = debugBarButtonItem;
+    return debugBarButtonItem;
+}
+
 - (void)_addObserverForProgress:(NSProgress *)progress {
     [progress addObserver:self forKeyPath:@"cancelled" options:NSKeyValueObservingOptionNew context:NULL];
     [progress addObserver:self forKeyPath:@"finished" options:NSKeyValueObservingOptionNew context:NULL];
@@ -129,6 +143,22 @@
     
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];
+}
+
+- (void)_didTriggerDebugBarButtonItem:(UIBarButtonItem *)sender {
+    CinematicViewModel *viewModel = self.viewModel;
+    
+    dispatch_async(viewModel.queue, ^{
+        for (CNDecision *decision in [viewModel.isolated_snapshot.assetData.cnScript baseDecisionsInTimeRange:viewModel.isolated_snapshot.assetData.cnScript.timeRange]) {
+            NSLog(@"%lld", decision.detectionID);
+        }
+        
+        NSLog(@"------");
+        
+        for (CNDecision *decision in [viewModel.isolated_snapshot.assetData.cnScript decisionsInTimeRange:viewModel.isolated_snapshot.assetData.cnScript.timeRange]) {
+            NSLog(@"%lld", decision.detectionID);
+        }
+    });
 }
 
 - (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {

@@ -11,6 +11,7 @@
 #import <CamPresentation/Constants.h>
 #import <CamPresentation/CinematicVideoCompositor.h>
 #import <CamPresentation/CinematicVideoCompositionInstruction.h>
+#import <CamPresentation/CinematicObjectTracking.h>
 #import <Metal/Metal.h>
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
@@ -21,6 +22,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 @interface CinematicViewModel ()
 @property (retain, nonatomic, readonly, getter=_isolated_commandQueue) id<MTLCommandQueue> isolated_commandQueue;
 @property (retain, nonatomic, setter=_isolated_setSnapshot:) CinematicSnapshot *isolated_snapshot;
+@property (assign, nonatomic, getter=_isolated_isChangingFocus, setter=_isolated_setChaingingFocus:) BOOL isolated_changingFocus;
 @end
 
 @implementation CinematicViewModel
@@ -67,6 +69,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     AVMutableComposition *composition = [AVMutableComposition new];
     CNCompositionInfo *compositionInfo = [composition addTracksForCinematicAssetInfo:data.cnAssetInfo preferredStartingTrackID:kCMPersistentTrackID_Invalid];
     
+//    // AVPlayerItemSampleBufferOutput
 //    NSLog(@"%@", AVMediaTypeAuxiliaryPicture);
     
     NSError * _Nullable error = nil;
@@ -100,6 +103,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 - (void)isolated_changeFocusAtNormalizedPoint:(CGPoint)normalizedPoint atTime:(CMTime)time strongDecision:(BOOL)strongDecision {
     dispatch_assert_queue(self.queue);
     
+    // AVAssetReader가 하나의 Asset에 동시 접근하는 것이 안 되는듯
+    assert(!self.isolated_changingFocus);
+    self.isolated_changingFocus = YES;
+    
     CGPoint finalPoint = [self _invertedNormalizedPointWithNormalizedPoint:normalizedPoint];
     CinematicSnapshot *snapshot = self.isolated_snapshot;
     
@@ -110,7 +117,10 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     CMTime tolerance = CMTimeMakeWithSeconds(1.0 / nominalFrameRate, naturalTimeScale);
     
     CNScriptFrame *cinematicScriptFrame = [cinematicScript frameAtTime:time tolerance:tolerance];
-    if (cinematicScriptFrame == nil) return;
+    if (cinematicScriptFrame == nil) {
+        self.isolated_changingFocus = NO;
+        return;
+    }
     
     
     NSArray<CNDetection *> *allDetections = cinematicScriptFrame.allDetections;
@@ -140,7 +150,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     CMTimeRange timeRange = CMTimeRangeMake(cinematicScriptFrame.time, CMTimeAdd(cinematicScript.timeRange.start, cinematicScript.timeRange.duration));
     
+    CinematicObjectTracking *objectTracking = [[CinematicObjectTracking alloc] initWithCommandQueue:self.isolated_commandQueue];
+    [objectTracking handleObjectTrackingWithAssetData:snapshot.assetData pointOfInterest:finalPoint timeRange:timeRange strongDecision:strongDecision];
+    [objectTracking release];
     
+    self.isolated_changingFocus = NO;
 }
 
 - (id<MTLCommandQueue>)_isolated_commandQueue {

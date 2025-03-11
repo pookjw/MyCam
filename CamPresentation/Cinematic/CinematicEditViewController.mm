@@ -20,6 +20,7 @@
 @property (retain, nonatomic, readonly, getter=_playerControlView) PlayerControlView *playerControlView;
 @property (retain, nonatomic, readonly, getter=_timelineView) CinematicEditTimelineView *timelineView;
 @property (retain, nonatomic, readonly, getter=_stackView) UIStackView *stackView;
+@property (retain, nonatomic, readonly, getter=_activityIndicatorView) UIActivityIndicatorView *activityIndicatorView;
 @end
 
 @implementation CinematicEditViewController
@@ -27,6 +28,7 @@
 @synthesize playerControlView = _playerControlView;
 @synthesize timelineView = _timelineView;
 @synthesize stackView = _stackView;
+@synthesize activityIndicatorView = _activityIndicatorView;
 
 - (instancetype)initWithViewModel:(CinematicViewModel *)viewModel {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -45,6 +47,7 @@
     [_playerControlView release];
     [_timelineView release];
     [_stackView release];
+    [_activityIndicatorView release];
     [super dealloc];
 }
 
@@ -81,6 +84,10 @@
         [controlView.trailingAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.trailingAnchor],
         [controlView.bottomAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.bottomAnchor]
     ]];
+    
+    UIActivityIndicatorView *activityIndicatorView = self.activityIndicatorView;
+    [self.view addSubview:activityIndicatorView];
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self.view, sel_registerName("_addBoundsMatchingConstraintsForView:"), activityIndicatorView);
 }
 
 - (PlayerLayerView *)_playerLayerView {
@@ -115,7 +122,7 @@
 - (CinematicEditTimelineView *)_timelineView {
     if (auto timelineView = _timelineView) return timelineView;
     
-    CinematicEditTimelineView *timelineView = [[CinematicEditTimelineView alloc] initWithViewModel:self.viewModel];
+    CinematicEditTimelineView *timelineView = [[CinematicEditTimelineView alloc] initWithParentViewModel:self.viewModel];
     
     _timelineView = timelineView;
     return timelineView;
@@ -134,6 +141,17 @@
     
     _stackView = stackView;
     return stackView;
+}
+
+- (UIActivityIndicatorView *)_activityIndicatorView {
+    if (auto activityIndicatorView = _activityIndicatorView) return activityIndicatorView;
+    
+    UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    activityIndicatorView.hidesWhenStopped = YES;
+    activityIndicatorView.backgroundColor = [UIColor.systemBackgroundColor colorWithAlphaComponent:0.3];
+    
+    _activityIndicatorView = activityIndicatorView;
+    return activityIndicatorView;
 }
 
 - (void)_didChangeComposition {
@@ -167,12 +185,23 @@
 }
 
 - (void)_changeFocusWithGestureRecognizer:(UITapGestureRecognizer *)gestureRecognizer strongDecision:(BOOL)strongDecision {
+    [self.activityIndicatorView startAnimating];
+    
     CGPoint point = [gestureRecognizer locationInView:self.playerLayerView];
     CGPoint normalizedPoint = [self _normalizedVideoPointFromPoint:point];
-    CMTime currentTime = self.playerLayerView.playerLayer.player.currentTime;
+    [self.playerLayerView.playerLayer.player pause];
+    CMTime currentTime = self.playerLayerView.playerLayer.player.currentItem.currentTime;
     
     dispatch_async(self.viewModel.queue, ^{
         [self.viewModel isolated_changeFocusAtNormalizedPoint:normalizedPoint atTime:currentTime strongDecision:strongDecision];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self _refreshCurrentFrameWithCompletionHandler:^{
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self.activityIndicatorView stopAnimating];
+                });
+            }];
+        });
     });
 }
 
@@ -180,6 +209,28 @@
     CGRect videoRect = self.playerLayerView.layer.visibleRect;
     return CGPointMake((point.x - videoRect.origin.x) / videoRect.size.width,
                        point.y / videoRect.size.height);
+}
+
+- (void)_refreshCurrentFrameWithCompletionHandler:(void (^)(void))completionHandler {
+    AVPlayer *player = self.playerLayerView.playerLayer.player;
+    if (player == nil) return;
+    AVPlayerItem *currentItem = player.currentItem;
+    if (currentItem == nil) return;
+    
+    switch (player.timeControlStatus) {
+        case AVPlayerTimeControlStatusPaused:
+        case AVPlayerTimeControlStatusPlaying: {
+            BOOL original = currentItem.seekingWaitsForVideoCompositionRendering;
+            currentItem.seekingWaitsForVideoCompositionRendering = YES;
+            [player seekToTime:currentItem.currentTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+                currentItem.seekingWaitsForVideoCompositionRendering = original;
+                completionHandler();
+            }];
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 @end
