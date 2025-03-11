@@ -14,6 +14,8 @@
 #import <CamPresentation/CinematicObjectTracking.h>
 #import <Metal/Metal.h>
 
+NSNotificationName const CinematicViewModelDidUpdateScriptNotification = @"CinematicViewModelDidUpdateScriptNotification";
+
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
 AVF_EXPORT AVMediaType const AVMediaTypePointCloudData;
@@ -155,6 +157,8 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [objectTracking release];
     
     self.isolated_changingFocus = NO;
+    
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateScriptNotification object:self];
 }
 
 - (id<MTLCommandQueue>)_isolated_commandQueue {

@@ -70,7 +70,7 @@
     //
     
     CNDetectionTrack *detectionTrack = [_cinematicObjectTracker finishDetectionTrack];
-    CNDetectionID detectionID =  [cinematicAssetData.cnScript addDetectionTrack:detectionTrack];
+    CNDetectionID detectionID = [cinematicAssetData.cnScript addDetectionTrack:detectionTrack];
     CNDecision *cinematicDecision = [[CNDecision alloc] initWithTime:timeRange.start detectionID:detectionID strong:strongDecision];
     
     result = [cinematicAssetData.cnScript addUserDecision:cinematicDecision];

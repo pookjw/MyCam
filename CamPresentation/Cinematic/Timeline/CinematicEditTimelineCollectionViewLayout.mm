@@ -36,10 +36,15 @@
         return;
     }
     
+    // TODO
+    self.collectionViewContentSize = collectionView.bounds.size;
+    
     auto dataSource = static_cast<UICollectionViewDiffableDataSource<CinematicEditTimelineSectionModel *, CinematicEditTimelineItemModel *> *>(collectionView.dataSource);
     assert([dataSource isKindOfClass:[UICollectionViewDiffableDataSource class]]);
     
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedLayoutAttributesByIndexPath = [NSMutableDictionary new];
+    CGFloat yOffset = 0.;
+    CGFloat pixelsForSecond = 30.;
     
     for (NSInteger sectionIndex : std::views::iota(0, collectionView.numberOfSections)) {
         CinematicEditTimelineSectionModel *sectionModel = [dataSource sectionIdentifierForIndex:sectionIndex];
@@ -53,15 +58,51 @@
             
             CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes = [CinematicEditTimelineCollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
             
-            switch (sectionModel.type) {
-                case CinematicEditTimelineSectionModelTypeVideoTrack: {
-                    
+            switch (itemModel.type) {
+                case CinematicEditTimelineItemModelTypeVideoTrack: {
+                    CMTimeRange timeRange = sectionModel.timeRange;
+                    assert(CMTIMERANGE_IS_VALID(timeRange));
+                    layoutAttributes.frame = CGRectMake(CMTimeConvertScale(timeRange.start, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        yOffset,
+                                                        CMTimeConvertScale(timeRange.duration, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        50.);
+                    break;
+                }
+                case CinematicEditTimelineItemModelTypeDetections: {
+                    CMTimeRange timeRange = itemModel.timeRange;
+                    assert(CMTIMERANGE_IS_VALID(timeRange));
+                    CMTimeRangeShow(timeRange);
+                    layoutAttributes.frame = CGRectMake(CMTimeConvertScale(timeRange.start, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        yOffset,
+                                                        CMTimeConvertScale(timeRange.duration, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        50.);
+                    break;
+                }
+                case CinematicEditTimelineItemModelTypeDecision: {
+                    CMTimeRange timeRange = itemModel.timeRange;
+                    assert(CMTIMERANGE_IS_VALID(timeRange));
+                    layoutAttributes.frame = CGRectMake(CMTimeConvertScale(timeRange.start, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        yOffset,
+                                                        CMTimeConvertScale(timeRange.duration, pixelsForSecond, kCMTimeRoundingMethod_Default).value,
+                                                        20.);
                     break;
                 }
                 default:
-                    break;
+                    abort();
             }
-//            layoutAttributes.frame = CGRectMake(<#CGFloat x#>, <#CGFloat y#>, <#CGFloat width#>, <#CGFloat height#>)
+            
+            cachedLayoutAttributesByIndexPath[indexPath] = layoutAttributes;
+        }
+        
+        switch (sectionModel.type) {
+            case CinematicEditTimelineSectionModelTypeVideoTrack:
+                yOffset += 50.;
+                break;
+            case CinematicEditTimelineSectionModelTypeDetectionTrack:
+                yOffset += 50.;
+                break;
+            default:
+                break;
         }
     }
     

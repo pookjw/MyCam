@@ -11,8 +11,11 @@
 #import <CamPresentation/Extern.h>
 #import <CamPresentation/CinematicAssetData.h>
 #import <CamPresentation/CinematicSnapshot.h>
+#import <CamPresentation/Extern.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
+CP_EXTERN NSNotificationName const CinematicViewModelDidUpdateScriptNotification;
 
 @interface CinematicViewModel : NSObject
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;

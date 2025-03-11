@@ -5,37 +5,36 @@
 //  Created by Jinwoo Kim on 3/11/25.
 //
 
+#import <CoreMedia/CoreMedia.h>
 #import <Cinematic/Cinematic.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, CinematicEditTimelineItemModelType) {
     CinematicEditTimelineItemModelTypeVideoTrack,
-    CinematicEditTimelineItemModelTypeDetectionTrack,
+    CinematicEditTimelineItemModelTypeDetections,
     CinematicEditTimelineItemModelTypeDecision
 };
 
 @interface CinematicEditTimelineItemModel : NSObject
 @property (assign, nonatomic, readonly) CinematicEditTimelineItemModelType type;
 
-/* CinematicEditTimelineItemModelTypeVideoTrack */
-@property (assign, nonatomic, readonly) CMPersistentTrackID trackID;
-@property (assign, nonatomic, readonly) CMTimeRange trackTimeRange;
+/* Detections */
+@property (copy, nonatomic, readonly, nullable) NSArray<CNDetection *> *detections;
 
-/* CinematicEditTimelineItemModelTypeDetectionTrack */
-@property (copy, nonatomic, readonly, nullable) __kindof CNDetectionTrack *detectionTrack;
-
-/* CinematicEditTimelineItemModelTypeDecision */
+/* Decision */
 @property (copy, nonatomic, readonly, nullable) CNDecision *decision;
-@property (assign, nonatomic, readonly) CMTimeRange decisionTimeRange;
 @property (assign, nonatomic, readonly) CMTimeRange startTransitionTimeRange;
 @property (assign, nonatomic, readonly) CMTimeRange endTransitionTimeRange;
 
+/* Detections & Decision */
+@property (assign, nonatomic, readonly) CMTimeRange timeRange;
+
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-+ (CinematicEditTimelineItemModel *)videoTrackItemModelWithTrackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange;
-+ (CinematicEditTimelineItemModel *)detectionTrackItemModelWithDetectionTrack:(CNDetectionTrack *)detectionTrack;
-+ (CinematicEditTimelineItemModel *)decisionItemModelWithDecision:(CNDecision *)decision timeRange:(CMTimeRange)timeRange startTransitionTimeRange:(CMTimeRange)startTransitionTimeRange endTransitionTimeRange:(CMTimeRange)endTransitionTimeRange;
++ (CinematicEditTimelineItemModel *)videoTrackItemModel;
++ (CinematicEditTimelineItemModel *)detectionsItemModelWithDetections:(NSArray<CNDetection *> *)detections timeRange:(CMTimeRange)timeRange;
++ (CinematicEditTimelineItemModel *)decisionItemModelWithDecision:(CNDecision *)decision startTransitionTimeRange:(CMTimeRange)startTransitionTimeRange endTransitionTimeRange:(CMTimeRange)endTransitionTimeRange;
 @end
 
 NS_ASSUME_NONNULL_END
