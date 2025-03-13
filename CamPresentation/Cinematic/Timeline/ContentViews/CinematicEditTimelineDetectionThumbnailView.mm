@@ -10,13 +10,14 @@
 #import <CamPresentation/PlayerLayerView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CamPresentation/CinematicEditTimelineDetectionThumbnailVideoCompositor.h>
+#import <CamPresentation/CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction.h>
 
 __attribute__((objc_direct_members))
 @interface CinematicEditTimelineDetectionThumbnailView ()
 @property (retain, nonatomic, readonly, getter=_playerLayerView) PlayerLayerView *playerLayerView;
 @property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
-@property (retain, nonatomic, nullable, getter=_script, setter=_setScript:) CNScript *script;
-@property (copy, nonatomic, nullable, getter=_asset, setter=_setAsset:) AVAsset *asset;
+@property (retain, nonatomic, nullable, getter=_snapshot, setter=_setSnapshot:) CinematicSnapshot *snapshot;
 @end
 
 @implementation CinematicEditTimelineDetectionThumbnailView
@@ -38,8 +39,7 @@ __attribute__((objc_direct_members))
 - (void)dealloc {
     [_playerLayerView release];
     [_player release];
-    [_script release];
-    [_asset release];
+    [_snapshot release];
     [super dealloc];
 }
 
@@ -48,9 +48,8 @@ __attribute__((objc_direct_members))
     [self _updatePlayer];
 }
 
-- (void)updateWithScript:(CNScript *)script asset:(AVAsset *)asset {
-    self.script = script;
-    self.asset = asset;
+- (void)updateWithSnapshot:(CinematicSnapshot *)snapshot {
+    self.snapshot = snapshot;
     [self _updatePlayer];
 }
 
@@ -76,11 +75,12 @@ __attribute__((objc_direct_members))
 }
 
 - (void)_updatePlayer __attribute__((objc_direct)) {
-    CNScript *script = self.script;
-    if (script == nil) return;
+    CinematicSnapshot *snapshot = self.snapshot;
+    if (snapshot == nil) return;
     
-    AVAsset *asset = self.asset;
-    if (asset == nil) return;
+    CNScript *script = snapshot.assetData.cnScript;
+    CNCompositionInfo *compositionInfo = snapshot.compositionInfo;
+    AVAsset *asset = snapshot.assetData.avAsset;
     
     UICollectionViewLayoutAttributes *_layoutAttributes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_layoutAttributes"));
     if (_layoutAttributes == nil) return;
@@ -91,13 +91,49 @@ __attribute__((objc_direct_members))
     assert(CMTIME_IS_VALID(casted.thumbnailPresentationTime));
     assert([CNDetection isValidDetectionID:casted.thumbnailPresentationTrackID]);
     
+    CNDetectionTrack *detectionTrack = [script detectionTrackForID:casted.thumbnailPresentationDetectionTrackID];
+    assert(detectionTrack != nil);
+    
+    CNDetection *detection = [detectionTrack detectionNearestTime:casted.thumbnailPresentationTime];
+    assert(detection != nil);
+    
     AVPlayer *player = self.player;
-    AVPlayerItem *currentItem = player.currentItem;
-    if (currentItem == nil) return;
-    [currentItem cancelPendingSeeks];
+    
+    if (AVPlayerItem *oldPlayerItem = player.currentItem) {
+        [oldPlayerItem cancelPendingSeeks];
+    }
+    
+    AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
+    
+    //
+    
+    AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition new];
+    videoComposition.sourceTrackIDForFrameTiming = compositionInfo.frameTimingTrack.trackID;
+    videoComposition.sourceSampleDataTrackIDs = compositionInfo.sampleDataTrackIDs;
+    videoComposition.customVideoCompositorClass = [CinematicEditTimelineDetectionThumbnailVideoCompositor class];
+    videoComposition.renderSize = snapshot.assetData.cnAssetInfo.preferredSize;
+    
+    CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction *instruction = [[CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction alloc] initWithSnapshot:snapshot detection:detection];
+    
+    videoComposition.instructions = @[instruction];
+    [instruction release];
+    
+    if (snapshot.assetData.nominalFrameRate <= 0.f) {
+        videoComposition.frameDuration = CMTimeMake(1, 30);
+    } else {
+        videoComposition.frameDuration = CMTimeMakeWithSeconds(1.f / snapshot.assetData.nominalFrameRate, snapshot.assetData.naturalTimeScale);
+    }
+    
+    playerItem.videoComposition = videoComposition;
+    [videoComposition release];
+    
+    //
+    
+    [player replaceCurrentItemWithPlayerItem:playerItem];
+    [playerItem release];
     
     BOOL found = NO;
-    for (AVPlayerItemTrack *track in currentItem.tracks) {
+    for (AVPlayerItemTrack *track in playerItem.tracks) {
         if (track.assetTrack.trackID == casted.thumbnailPresentationTrackID) {
             track.enabled = YES;
             found = YES;

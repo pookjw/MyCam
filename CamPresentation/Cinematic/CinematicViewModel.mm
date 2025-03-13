@@ -94,7 +94,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         videoComposition.frameDuration = CMTimeMakeWithSeconds(1.f / data.nominalFrameRate, data.naturalTimeScale);
     }
     
-    CinematicSnapshot *snapshot = [[CinematicSnapshot alloc] initWithComposition:composition videoComposition:videoComposition assetData:data];
+    CinematicSnapshot *snapshot = [[CinematicSnapshot alloc] initWithComposition:composition videoComposition:videoComposition compositionInfo:compositionInfo assetData:data];
     [composition release];
     [videoComposition release];
     self.isolated_snapshot = snapshot;

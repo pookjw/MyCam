@@ -6,7 +6,6 @@
 //
 
 #import <AVFoundation/AVFoundation.h>
-#import <Cinematic/Cinematic.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

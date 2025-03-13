@@ -29,7 +29,7 @@
 }
 
 - (CMTimeRange)timeRange {
-    return self.compositionInfo.timeRange;
+    return _compositionInfo.timeRange;
 }
 
 - (BOOL)enablePostProcessing {
@@ -42,7 +42,7 @@
 }
 
 - (NSArray<NSValue *> *)requiredSourceTrackIDs {
-    return self.compositionInfo.videoCompositionTrackIDs;
+    return _compositionInfo.videoCompositionTrackIDs;
 }
 
 - (CMPersistentTrackID)passthroughTrackID {
@@ -50,7 +50,7 @@
 }
 
 - (NSArray<NSNumber *> *)requiredSourceSampleDataTrackIDs {
-    return self.compositionInfo.sampleDataTrackIDs;
+    return _compositionInfo.sampleDataTrackIDs;
 }
 
 @end

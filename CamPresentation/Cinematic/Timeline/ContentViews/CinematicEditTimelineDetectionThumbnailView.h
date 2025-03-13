@@ -6,14 +6,13 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <Cinematic/Cinematic.h>
-#import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/CinematicSnapshot.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 __attribute__((objc_direct_members))
 @interface CinematicEditTimelineDetectionThumbnailView : UICollectionReusableView
-- (void)updateWithScript:(CNScript *)script asset:(AVAsset *)asset;
+- (void)updateWithSnapshot:(CinematicSnapshot *)snapshot;
 @end
 
 NS_ASSUME_NONNULL_END

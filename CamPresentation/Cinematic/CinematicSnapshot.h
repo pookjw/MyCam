@@ -14,10 +14,11 @@ __attribute__((objc_direct_members))
 @interface CinematicSnapshot : NSObject
 @property (copy, nonatomic, readonly) AVComposition *composition;
 @property (copy, nonatomic, readonly) AVVideoComposition *videoComposition;
+@property (retain, nonatomic, readonly) CNCompositionInfo *compositionInfo;
 @property (retain, nonatomic, readonly) CinematicAssetData *assetData;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition assetData:(CinematicAssetData *)assetData;
+- (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition compositionInfo:(CNCompositionInfo *)compositionInfo assetData:(CinematicAssetData *)assetData;
 @end
 
 NS_ASSUME_NONNULL_END

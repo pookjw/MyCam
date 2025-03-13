@@ -192,7 +192,7 @@ __attribute__((objc_direct_members))
     
     UICollectionViewSupplementaryRegistration *detectionsSupplementaryRegistration = [UICollectionViewSupplementaryRegistration registrationWithSupplementaryClass:[CinematicEditTimelineDetectionThumbnailView class] elementKind:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind configurationHandler:^(CinematicEditTimelineDetectionThumbnailView * _Nonnull supplementaryView, NSString * _Nonnull elementKind, NSIndexPath * _Nonnull indexPath) {
         CinematicSnapshot *snapshot = unretained.viewModel.mainQueue_cinematicSnapshot;
-        [supplementaryView updateWithScript:snapshot.assetData.cnScript asset:snapshot.assetData.avAsset];
+        [supplementaryView updateWithSnapshot:snapshot];
     }];
     
     _detectionsSupplementaryRegistration = [detectionsSupplementaryRegistration retain];
