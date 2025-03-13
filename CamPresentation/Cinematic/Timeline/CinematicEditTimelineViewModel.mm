@@ -68,11 +68,11 @@
         return;
     }
     
+    AVAssetTrack *cinematicVideoTrack = cinematicSnapshot.assetData.cnAssetInfo.cinematicVideoTrack;
+    
     NSDiffableDataSourceSnapshot<CinematicEditTimelineSectionModel * ,CinematicEditTimelineItemModel *> *snapshot = [NSDiffableDataSourceSnapshot new];
     
     {
-        AVAssetTrack *cinematicVideoTrack = cinematicSnapshot.assetData.cnAssetInfo.cinematicVideoTrack;
-        
         CinematicEditTimelineSectionModel *sectionModel = [CinematicEditTimelineSectionModel videoTrackSectionModelWithTrackID:cinematicVideoTrack.trackID timeRange:cinematicVideoTrack.timeRange];
         [snapshot appendSectionsWithIdentifiers:@[sectionModel]];
         
@@ -86,9 +86,12 @@
         NSArray<CNDecision *> *decisions = [cinematicSnapshot.assetData.cnScript decisionsInTimeRange:scriptTimeRange];
         
         for (CNDetectionTrack *detectionTrack in addedDetectionTracks) {
+            assert([CNDetection isValidDetectionID:detectionTrack.detectionID]);
+            
             NSMutableDictionary<NSNumber *, NSMutableArray<CNDetection *> *> *detectionsByID = [NSMutableDictionary new];
             NSArray<CNDetection *> *detections = [detectionTrack detectionsInTimeRange:scriptTimeRange];
             for (CNDetection *detection in detections) {
+                assert([CNDetection isValidDetectionID:detection.detectionID]);
                 NSMutableArray<CNDetection *> *_detections = detectionsByID[@(detection.detectionID)];
                 if (_detections == nil) {
                     _detections = [NSMutableArray array];
@@ -169,7 +172,7 @@
                 [itemModels addObject:itemModel];
             }
             
-            CinematicEditTimelineSectionModel *sectionModel = [CinematicEditTimelineSectionModel detectionTrackSectionModelWithDetectionTrack:detectionTrack timeRange:CMTimeRangeFromTimeToTime(trackStartTime, trackEndTime)];
+            CinematicEditTimelineSectionModel *sectionModel = [CinematicEditTimelineSectionModel detectionTrackSectionModelWithDetectionTrackID:detectionTrack.detectionID trackID:cinematicVideoTrack.trackID timeRange:CMTimeRangeFromTimeToTime(trackStartTime, trackEndTime)];
             
             [snapshot appendSectionsWithIdentifiers:@[sectionModel]];
             [snapshot appendItemsWithIdentifiers:itemModels intoSectionWithIdentifier:sectionModel];

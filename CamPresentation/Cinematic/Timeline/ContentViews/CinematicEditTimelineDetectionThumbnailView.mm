@@ -1,23 +1,25 @@
 //
-//  CinematicEditTimelineVideoThumbnailView.mm
+//  CinematicEditTimelineDetectionThumbnailView.m
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 3/13/25.
 //
 
-#import <CamPresentation/CinematicEditTimelineVideoThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDetectionThumbnailView.h>
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutAttributes.h>
 #import <CamPresentation/PlayerLayerView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
 __attribute__((objc_direct_members))
-@interface CinematicEditTimelineVideoThumbnailView ()
+@interface CinematicEditTimelineDetectionThumbnailView ()
 @property (retain, nonatomic, readonly, getter=_playerLayerView) PlayerLayerView *playerLayerView;
 @property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
+@property (retain, nonatomic, nullable, getter=_script, setter=_setScript:) CNScript *script;
+@property (copy, nonatomic, nullable, getter=_asset, setter=_setAsset:) AVAsset *asset;
 @end
 
-@implementation CinematicEditTimelineVideoThumbnailView
+@implementation CinematicEditTimelineDetectionThumbnailView
 @synthesize playerLayerView = _playerLayerView;
 @synthesize player = _player;
 
@@ -35,8 +37,9 @@ __attribute__((objc_direct_members))
 
 - (void)dealloc {
     [_playerLayerView release];
-    [_asset release];
     [_player release];
+    [_script release];
+    [_asset release];
     [super dealloc];
 }
 
@@ -45,14 +48,9 @@ __attribute__((objc_direct_members))
     [self _updatePlayer];
 }
 
-- (void)setAsset:(AVAsset *)asset {
-    [_asset release];
-    _asset = [asset retain];
-    
-    AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
-    [self.player replaceCurrentItemWithPlayerItem:playerItem];
-    [playerItem release];
-    
+- (void)updateWithScript:(CNScript *)script asset:(AVAsset *)asset {
+    self.script = script;
+    self.asset = asset;
     [self _updatePlayer];
 }
 
@@ -78,6 +76,12 @@ __attribute__((objc_direct_members))
 }
 
 - (void)_updatePlayer __attribute__((objc_direct)) {
+    CNScript *script = self.script;
+    if (script == nil) return;
+    
+    AVAsset *asset = self.asset;
+    if (asset == nil) return;
+    
     UICollectionViewLayoutAttributes *_layoutAttributes = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_layoutAttributes"));
     if (_layoutAttributes == nil) return;
     assert([_layoutAttributes isKindOfClass:[CinematicEditTimelineCollectionViewLayoutAttributes class]]);
@@ -85,6 +89,7 @@ __attribute__((objc_direct_members))
     auto casted = static_cast<CinematicEditTimelineCollectionViewLayoutAttributes *>(_layoutAttributes);
     assert(casted.thumbnailPresentationTrackID != kCMPersistentTrackID_Invalid);
     assert(CMTIME_IS_VALID(casted.thumbnailPresentationTime));
+    assert([CNDetection isValidDetectionID:casted.thumbnailPresentationTrackID]);
     
     AVPlayer *player = self.player;
     AVPlayerItem *currentItem = player.currentItem;

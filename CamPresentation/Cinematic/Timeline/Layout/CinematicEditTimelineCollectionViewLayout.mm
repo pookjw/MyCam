@@ -15,15 +15,18 @@
 #import <CamPresentation/CinematicEditTimelinePlayheadView.h>
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutInvalidationContext.h>
 #import <CamPresentation/CinematicEditTimelineVideoThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDetectionThumbnailView.h>
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
 NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineVideoThumbnailView class]);
+NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineDetectionThumbnailView class]);
 
 @interface CinematicEditTimelineCollectionViewLayout ()
 @property (assign, nonatomic, setter=_setCollectionViewContentSize:) CGSize collectionViewContentSize;
 @property (copy, nonatomic, direct, nullable, getter=_cachedLayoutAttributesByIndexPath, setter=_setCachedLayoutAttributesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedLayoutAttributesByIndexPath;
 @property (copy, nonatomic, direct, nullable, getter=_cachedVideoThumbnailLayoutAttibutesByIndexPath, setter=_setCachedVideoThumbnailLayoutAttibutesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedVideoThumbnailLayoutAttibutesByIndexPath;
+@property (copy, nonatomic, direct, nullable, getter=_cachedDetectionThumbnailLayoutAttibutesByIndexPath, setter=_setCachedDetectionThumbnailLayoutAttibutesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDetectionThumbnailLayoutAttibutesByIndexPath;
 @property (copy, nonatomic, direct, nullable, getter=_playheadLayoutAttributes, setter=_setPlayheadLayoutAttributes:) CinematicEditTimelineCollectionViewLayoutAttributes *playheadLayoutAttributes;
 @end
 
@@ -49,6 +52,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
 - (void)dealloc {
     [_cachedLayoutAttributesByIndexPath release];
     [_cachedVideoThumbnailLayoutAttibutesByIndexPath release];
+    [_cachedDetectionThumbnailLayoutAttibutesByIndexPath release];
     [_playheadLayoutAttributes release];
     [super dealloc];
 }
@@ -77,6 +81,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
     if (collectionView == nil) {
         self.cachedLayoutAttributesByIndexPath = nil;
         self.cachedVideoThumbnailLayoutAttibutesByIndexPath = nil;
+        self.cachedDetectionThumbnailLayoutAttibutesByIndexPath = nil;
         return;
     }
     
@@ -85,6 +90,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
     
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedLayoutAttributesByIndexPath = [NSMutableDictionary new];
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedVideoThumbnailLayoutAttibutesByIndexPath = [NSMutableDictionary new];
+    NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDetectionThumbnailLayoutAttibutesByIndexPath = [NSMutableDictionary new];
     
     CGFloat halfBoundsWidth = CGRectGetWidth(collectionView.bounds) * 0.5;
     CGFloat maxXOffset = 0.;
@@ -95,6 +101,9 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
         CinematicEditTimelineSectionModel *sectionModel = [dataSource sectionIdentifierForIndex:sectionIndex];
         assert(sectionModel != nil);
         NSInteger numberOfItems = [collectionView numberOfItemsInSection:sectionIndex];
+        
+        CGFloat minXForThumbnails = CGFLOAT_MAX;
+        CGFloat maxXForThumbnails = CGFLOAT_MIN;
         
         for (NSInteger itemIndex : std::views::iota(0, numberOfItems)) {
             NSIndexPath *indexPath = [NSIndexPath indexPathForItem:itemIndex inSection:sectionIndex];
@@ -117,6 +126,9 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
                                                         50.);
                     maxXOffset = MAX(xOffset + width, maxXOffset);
                     
+                    minXForThumbnails = MIN(minXForThumbnails, CGRectGetMinX(layoutAttributes.frame));
+                    maxXForThumbnails = MAX(maxXForThumbnails, CGRectGetMaxX(layoutAttributes.frame));
+                    
                     layoutAttributes.zIndex = 0;
                     break;
                 }
@@ -134,6 +146,9 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
                                                         50.);
                     maxXOffset = MAX(xOffset + width, maxXOffset);
                     
+                    minXForThumbnails = MIN(minXForThumbnails, CGRectGetMinX(layoutAttributes.frame));
+                    maxXForThumbnails = MAX(maxXForThumbnails, CGRectGetMaxX(layoutAttributes.frame));
+                    
                     layoutAttributes.zIndex = 0;
                     break;
                 }
@@ -150,7 +165,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
                                                         20.);
                     maxXOffset = MAX(xOffset + width, maxXOffset);
                     
-                    layoutAttributes.zIndex = 0;
+                    layoutAttributes.zIndex = 2;
                     break;
                 }
                 default:
@@ -162,24 +177,13 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
         
         switch (sectionModel.type) {
             case CinematicEditTimelineSectionModelTypeVideoTrack: {
-                CGFloat minX = CGFLOAT_MAX;
-                CGFloat maxX = CGFLOAT_MIN;
-                
-                for (NSIndexPath *indexPath in cachedLayoutAttributesByIndexPath.allKeys) {
-                    if (indexPath.section == sectionIndex) {
-                        CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes = cachedLayoutAttributesByIndexPath[indexPath];
-                        minX = MIN(CGRectGetMinX(layoutAttributes.frame), minX);
-                        maxX = MAX(CGRectGetMaxX(layoutAttributes.frame), maxX);
-                    }
-                }
-                
-                if ((minX != CGFLOAT_MAX) and (maxX != CGFLOAT_MIN)) {
+                if ((minXForThumbnails != CGFLOAT_MAX) and (maxXForThumbnails != CGFLOAT_MIN)) {
                     CGFloat preferredVideoThumbnailWidth = 70.;
-                    NSInteger thumbnailCount = ceil((maxX - minX) / preferredVideoThumbnailWidth);
-                    CGFloat videoThumbnailWidth = (maxX - minX) / thumbnailCount;
+                    NSInteger thumbnailCount = ceil((maxXForThumbnails - minXForThumbnails) / preferredVideoThumbnailWidth);
+                    CGFloat videoThumbnailWidth = (maxXForThumbnails - minXForThumbnails) / thumbnailCount;
                     
                     for (NSInteger thumbnailIndex : std::views::iota(0, thumbnailCount)) {
-                        CGFloat xOffset = minX + (videoThumbnailWidth * thumbnailIndex);
+                        CGFloat xOffset = minXForThumbnails + (videoThumbnailWidth * thumbnailIndex);
                         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:thumbnailIndex inSection:sectionIndex];
                         CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes = [CinematicEditTimelineCollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind withIndexPath:indexPath];
                         layoutAttributes.frame = CGRectMake(xOffset, yOffset, videoThumbnailWidth, 50.);
@@ -194,10 +198,30 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
                 //
                 
                 yOffset += 50.;
-                
                 break;
             }
             case CinematicEditTimelineSectionModelTypeDetectionTrack: {
+                if ((minXForThumbnails != CGFLOAT_MAX) and (maxXForThumbnails != CGFLOAT_MIN)) {
+                    CGFloat preferredVideoThumbnailWidth = 70.;
+                    NSInteger thumbnailCount = ceil((maxXForThumbnails - minXForThumbnails) / preferredVideoThumbnailWidth);
+                    CGFloat videoThumbnailWidth = (maxXForThumbnails - minXForThumbnails) / thumbnailCount;
+                    
+                    for (NSInteger thumbnailIndex : std::views::iota(0, thumbnailCount)) {
+                        CGFloat xOffset = minXForThumbnails + (videoThumbnailWidth * thumbnailIndex);
+                        NSIndexPath *indexPath = [NSIndexPath indexPathForItem:thumbnailIndex inSection:sectionIndex];
+                        CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes = [CinematicEditTimelineCollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind withIndexPath:indexPath];
+                        layoutAttributes.frame = CGRectMake(xOffset, yOffset, videoThumbnailWidth, 50.);
+                        layoutAttributes.thumbnailPresentationDetectionTrackID = sectionModel.detectionTrackID;
+                        layoutAttributes.thumbnailPresentationTrackID = sectionModel.trackID;
+                        layoutAttributes.thumbnailPresentationTime = [self timeFromContentOffset:CGPointMake(xOffset - halfBoundsWidth, yOffset)];
+                        layoutAttributes.zIndex = 1;
+                        
+                        cachedVideoThumbnailLayoutAttibutesByIndexPath[indexPath] = layoutAttributes;
+                    }
+                }
+                
+                //
+                
                 yOffset += 50.;
                 break;
             }
@@ -210,6 +234,8 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
     [cachedLayoutAttributesByIndexPath release];
     self.cachedVideoThumbnailLayoutAttibutesByIndexPath = cachedVideoThumbnailLayoutAttibutesByIndexPath;
     [cachedVideoThumbnailLayoutAttibutesByIndexPath release];
+    self.cachedDetectionThumbnailLayoutAttibutesByIndexPath = cachedDetectionThumbnailLayoutAttibutesByIndexPath;
+    [cachedDetectionThumbnailLayoutAttibutesByIndexPath release];
     
     self.collectionViewContentSize = CGSizeMake(maxXOffset + halfBoundsWidth, yOffset);
     
@@ -233,6 +259,12 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
         }
     }
     
+    for (CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes in self.cachedDetectionThumbnailLayoutAttibutesByIndexPath.allValues) {
+        if (CGRectIntersectsRect(layoutAttributes.frame, rect)) {
+            [results addObject:layoutAttributes];
+        }
+    }
+    
     if (CinematicEditTimelineCollectionViewLayoutAttributes *playheadLayoutAttributes = self.playheadLayoutAttributes) {
         [results addObject:playheadLayoutAttributes];
     }
@@ -247,6 +279,8 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
 - (UICollectionViewLayoutAttributes *)layoutAttributesForSupplementaryViewOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath {
     if ([elementKind isEqualToString:CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind]) {
         return self.cachedVideoThumbnailLayoutAttibutesByIndexPath[indexPath];
+    } else if ([elementKind isEqualToString:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind]) {
+        return self.cachedDetectionThumbnailLayoutAttibutesByIndexPath[indexPath];
     }
     
     abort();
@@ -302,7 +336,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSuppleme
                                                 CGRectGetMinY(collectionView.bounds),
                                                 2.,
                                                 CGRectGetHeight(collectionView.bounds));
-    playheadLayoutAttributes.zIndex = 2;
+    playheadLayoutAttributes.zIndex = 3;
     
     return playheadLayoutAttributes;
 }

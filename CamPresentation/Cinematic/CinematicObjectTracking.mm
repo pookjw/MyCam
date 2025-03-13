@@ -71,6 +71,10 @@
     
     CNDetectionTrack *detectionTrack = [_cinematicObjectTracker finishDetectionTrack];
     CNDetectionID detectionID = [cinematicAssetData.cnScript addDetectionTrack:detectionTrack];
+    assert([CNDetection isValidDetectionID:detectionID]);
+    assert([CNDetection isValidDetectionID:detectionTrack.detectionID]);
+    CNDetectionTrack *newTrack = [cinematicAssetData.cnScript detectionTrackForID:detectionID];
+    assert([CNDetection isValidDetectionID:newTrack.detectionID]);
     CNDecision *cinematicDecision = [[CNDecision alloc] initWithTime:timeRange.start detectionID:detectionID strong:strongDecision];
     
     result = [cinematicAssetData.cnScript addUserDecision:cinematicDecision];

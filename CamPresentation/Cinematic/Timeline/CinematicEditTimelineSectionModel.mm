@@ -12,6 +12,7 @@
 @implementation CinematicEditTimelineSectionModel
 
 + (CinematicEditTimelineSectionModel *)videoTrackSectionModelWithTrackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange {
+    assert(trackID != kCMPersistentTrackID_Invalid);
     assert(CMTIMERANGE_IS_VALID(timeRange));
     CinematicEditTimelineSectionModel *sectionModel = [[CinematicEditTimelineSectionModel alloc] _initWithType:CinematicEditTimelineSectionModelTypeVideoTrack];
     sectionModel->_trackID = trackID;
@@ -19,10 +20,13 @@
     return [sectionModel autorelease];
 }
 
-+ (CinematicEditTimelineSectionModel *)detectionTrackSectionModelWithDetectionTrack:(CNDetectionTrack *)detectionTrack timeRange:(CMTimeRange)timeRange {
++ (CinematicEditTimelineSectionModel *)detectionTrackSectionModelWithDetectionTrackID:(CNDetectionID)detectionTrackID trackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange; {
+    assert([CNDetection isValidDetectionID:detectionTrackID]);
+    assert(trackID != kCMPersistentTrackID_Invalid);
     assert(CMTIMERANGE_IS_VALID(timeRange));
     CinematicEditTimelineSectionModel *sectionModel = [[CinematicEditTimelineSectionModel alloc] _initWithType:CinematicEditTimelineSectionModelTypeDetectionTrack];
-    sectionModel->_detectionTrack = [detectionTrack copy];
+    sectionModel->_detectionTrackID = detectionTrackID;
+    sectionModel->_trackID = trackID;
     sectionModel->_timeRange = timeRange;
     return [sectionModel autorelease];
 }
@@ -31,6 +35,7 @@
     if (self = [super init]) {
         _type = type;
         _trackID = kCMPersistentTrackID_Invalid;
+        _detectionTrackID = reinterpret_cast<CNDetectionGroupID (*)(Class, SEL)>(objc_msgSend)([CNDetection class], sel_registerName("invalidDetectionID"));
         _timeRange = kCMTimeRangeInvalid;
     }
     
@@ -48,7 +53,7 @@
     
     auto casted = static_cast<CinematicEditTimelineSectionModel *>(other);
     
-    return (_type == casted->_type) and (_trackID == casted->_trackID) and ([_detectionTrack isEqual:casted->_detectionTrack]) and (CMTimeRangeEqual(_timeRange, casted->_timeRange));
+    return (_type == casted->_type) and (_trackID == casted->_trackID) and (_detectionTrackID == casted->_detectionTrackID) and (CMTimeRangeEqual(_timeRange, casted->_timeRange));
 }
 
 - (NSUInteger)hash {
@@ -57,7 +62,7 @@
     
     reinterpret_cast<void (*)(id, SEL, const void *, size_t)>(objc_msgSend)(builder, sel_registerName("appendBytes:length:"), &_type, sizeof(CinematicEditTimelineSectionModelType));
     reinterpret_cast<void (*)(id, SEL, const void *, size_t)>(objc_msgSend)(builder, sel_registerName("appendBytes:length:"), &_trackID, sizeof(CMPersistentTrackID));
-    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(builder, sel_registerName("appendObject:"), _detectionTrack);
+    reinterpret_cast<void (*)(id, SEL, const void *, size_t)>(objc_msgSend)(builder, sel_registerName("appendBytes:length:"), &_detectionTrackID, sizeof(CNDetectionID));
     reinterpret_cast<void (*)(id, SEL, const void *, size_t)>(objc_msgSend)(builder, sel_registerName("appendBytes:length:"), &_timeRange, sizeof(CMTimeRange));
     
     NSUInteger hash = reinterpret_cast<NSUInteger (*)(id, SEL)>(objc_msgSend)(builder, @selector(hash));

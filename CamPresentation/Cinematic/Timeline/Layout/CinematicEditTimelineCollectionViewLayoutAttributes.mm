@@ -6,6 +6,8 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutAttributes.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @implementation CinematicEditTimelineCollectionViewLayoutAttributes
 
@@ -13,6 +15,7 @@
     if (self = [super init]) {
         _thumbnailPresentationTime = kCMTimeInvalid;
         _thumbnailPresentationTrackID = kCMPersistentTrackID_Invalid;
+        _thumbnailPresentationDetectionTrackID = reinterpret_cast<CNDetectionID (*)(Class, SEL)>(objc_msgSend)([CNDetection class], sel_registerName("invalidDetectionID"));
     }
     
     return self;
@@ -24,6 +27,7 @@
     if (copy) {
         copy->_thumbnailPresentationTime = _thumbnailPresentationTime;
         copy->_thumbnailPresentationTrackID = _thumbnailPresentationTrackID;
+        copy->_thumbnailPresentationDetectionTrackID = _thumbnailPresentationDetectionTrackID;
     }
     
     return copy;

@@ -14,6 +14,7 @@
 #import <CamPresentation/CinematicEditTimelineDetectionsContentView.h>
 #import <CamPresentation/CinematicEditTimelineDecisionContentView.h>
 #import <CamPresentation/CinematicEditTimelineVideoThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDetectionThumbnailView.h>
 
 __attribute__((objc_direct_members))
 @interface CinematicEditTimelineView () <UICollectionViewDelegate>
@@ -25,6 +26,7 @@ __attribute__((objc_direct_members))
 @property (retain, nonatomic, readonly, getter=_detectionsCellRegistration) UICollectionViewCellRegistration *detectionsCellRegistration;
 @property (retain, nonatomic, readonly, getter=_decisionCellRegistration) UICollectionViewCellRegistration *decisionCellRegistration;
 @property (retain, nonatomic, readonly, getter=_videoThumbnailSupplementaryRegistration) UICollectionViewSupplementaryRegistration *videoThumbnailSupplementaryRegistration;
+@property (retain, nonatomic, readonly, getter=_detectionsSupplementaryRegistration) UICollectionViewSupplementaryRegistration *detectionsSupplementaryRegistration;
 @property (retain, nonatomic, readonly, getter=_pinchGestureRecognizer) UIPinchGestureRecognizer *pinchGestureRecognizer;
 @property (assign, nonatomic, getter=_originalPixelsForSecond, setter=_setOriginalPixelsForSecond:) CGFloat originalPixelsForSecond;
 @end
@@ -35,6 +37,7 @@ __attribute__((objc_direct_members))
 @synthesize videoTrackCellRegistration = _videoTrackCellRegistration;
 @synthesize detectionsCellRegistration = _detectionsCellRegistration;
 @synthesize decisionCellRegistration = _decisionCellRegistration;
+@synthesize detectionsSupplementaryRegistration = _detectionsSupplementaryRegistration;
 @synthesize videoThumbnailSupplementaryRegistration = _videoThumbnailSupplementaryRegistration;
 @synthesize pinchGestureRecognizer = _pinchGestureRecognizer;
 
@@ -58,6 +61,7 @@ __attribute__((objc_direct_members))
     [_detectionsCellRegistration release];
     [_decisionCellRegistration release];
     [_videoThumbnailSupplementaryRegistration release];
+    [_detectionsSupplementaryRegistration release];
     [_pinchGestureRecognizer release];
     [super dealloc];
 }
@@ -76,6 +80,7 @@ __attribute__((objc_direct_members))
     UICollectionViewCellRegistration *detectionsCellRegistration = self.detectionsCellRegistration;
     UICollectionViewCellRegistration *decisionCellRegistration = self.decisionCellRegistration;
     UICollectionViewSupplementaryRegistration *videoThumbnailSupplementaryRegistration = self.videoThumbnailSupplementaryRegistration;
+    UICollectionViewSupplementaryRegistration *detectionsSupplementaryRegistration = self.detectionsSupplementaryRegistration;
     
     UICollectionViewDiffableDataSource *dataSource = [[UICollectionViewDiffableDataSource alloc] initWithCollectionView:self.collectionView cellProvider:^UICollectionViewCell * _Nullable(UICollectionView * _Nonnull collectionView, NSIndexPath * _Nonnull indexPath, CinematicEditTimelineItemModel * _Nonnull itemModel) {
         switch (itemModel.type) {
@@ -99,6 +104,8 @@ __attribute__((objc_direct_members))
     dataSource.supplementaryViewProvider = ^UICollectionReusableView * _Nullable(UICollectionView * _Nonnull collectionView, NSString * _Nonnull elementKind, NSIndexPath * _Nonnull indexPath) {
         if ([elementKind isEqualToString:CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind]) {
             return [collectionView dequeueConfiguredReusableSupplementaryViewWithRegistration:videoThumbnailSupplementaryRegistration forIndexPath:indexPath];
+        } else if ([elementKind isEqualToString:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind]) {
+            return [collectionView dequeueConfiguredReusableSupplementaryViewWithRegistration:detectionsSupplementaryRegistration forIndexPath:indexPath];
         } else {
             abort();
         }
@@ -176,6 +183,20 @@ __attribute__((objc_direct_members))
     
     _videoThumbnailSupplementaryRegistration = [videoThumbnailSupplementaryRegistration retain];
     return videoThumbnailSupplementaryRegistration;
+}
+
+- (UICollectionViewSupplementaryRegistration *)_detectionsSupplementaryRegistration {
+    if (auto detectionsSupplementaryRegistration = _detectionsSupplementaryRegistration) return detectionsSupplementaryRegistration;
+    
+    __block auto unretained = self;
+    
+    UICollectionViewSupplementaryRegistration *detectionsSupplementaryRegistration = [UICollectionViewSupplementaryRegistration registrationWithSupplementaryClass:[CinematicEditTimelineDetectionThumbnailView class] elementKind:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind configurationHandler:^(CinematicEditTimelineDetectionThumbnailView * _Nonnull supplementaryView, NSString * _Nonnull elementKind, NSIndexPath * _Nonnull indexPath) {
+        CinematicSnapshot *snapshot = unretained.viewModel.mainQueue_cinematicSnapshot;
+        [supplementaryView updateWithScript:snapshot.assetData.cnScript asset:snapshot.assetData.avAsset];
+    }];
+    
+    _detectionsSupplementaryRegistration = [detectionsSupplementaryRegistration retain];
+    return detectionsSupplementaryRegistration;
 }
 
 - (UIPinchGestureRecognizer *)_pinchGestureRecognizer {
