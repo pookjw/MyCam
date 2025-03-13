@@ -15,17 +15,20 @@
 #import <CamPresentation/CinematicEditTimelinePlayheadView.h>
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutInvalidationContext.h>
 #import <CamPresentation/CinematicEditTimelineVideoThumbnailView.h>
-#import <CamPresentation/CinematicEditTimelineDetectionThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDetectionsThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDisparityThumbnailView.h>
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
 NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineVideoThumbnailView class]);
-NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineDetectionThumbnailView class]);
+NSString * const CinematicEditTimelineCollectionViewLayoutDisparityThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineDisparityThumbnailView class]);
+NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind = NSStringFromClass([CinematicEditTimelineDetectionsThumbnailView class]);
 
 @interface CinematicEditTimelineCollectionViewLayout ()
 @property (assign, nonatomic, setter=_setCollectionViewContentSize:) CGSize collectionViewContentSize;
 @property (copy, nonatomic, direct, nullable, getter=_cachedLayoutAttributesByIndexPath, setter=_setCachedLayoutAttributesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedLayoutAttributesByIndexPath;
 @property (copy, nonatomic, direct, nullable, getter=_cachedVideoThumbnailLayoutAttibutesByIndexPath, setter=_setCachedVideoThumbnailLayoutAttibutesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedVideoThumbnailLayoutAttibutesByIndexPath;
+@property (copy, nonatomic, direct, nullable, getter=_cachedDisparityThumbnailLayoutAttibutesByIndexPath, setter=_setCachedDisparityThumbnailLayoutAttibutesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDisparityThumbnailLayoutAttibutesByIndexPath;
 @property (copy, nonatomic, direct, nullable, getter=_cachedDetectionThumbnailLayoutAttibutesByIndexPath, setter=_setCachedDetectionThumbnailLayoutAttibutesByIndexPath:) NSDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDetectionThumbnailLayoutAttibutesByIndexPath;
 @property (copy, nonatomic, direct, nullable, getter=_playheadLayoutAttributes, setter=_setPlayheadLayoutAttributes:) CinematicEditTimelineCollectionViewLayoutAttributes *playheadLayoutAttributes;
 @end
@@ -52,6 +55,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
 - (void)dealloc {
     [_cachedLayoutAttributesByIndexPath release];
     [_cachedVideoThumbnailLayoutAttibutesByIndexPath release];
+    [_cachedDisparityThumbnailLayoutAttibutesByIndexPath release];
     [_cachedDetectionThumbnailLayoutAttibutesByIndexPath release];
     [_playheadLayoutAttributes release];
     [super dealloc];
@@ -90,6 +94,7 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
     
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedLayoutAttributesByIndexPath = [NSMutableDictionary new];
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedVideoThumbnailLayoutAttibutesByIndexPath = [NSMutableDictionary new];
+    NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDisparityThumbnailLayoutAttibutesByIndexPath = [NSMutableDictionary new];
     NSMutableDictionary<NSIndexPath *, CinematicEditTimelineCollectionViewLayoutAttributes *> *cachedDetectionThumbnailLayoutAttibutesByIndexPath = [NSMutableDictionary new];
     
     CGFloat halfBoundsWidth = CGRectGetWidth(collectionView.bounds) * 0.5;
@@ -114,6 +119,25 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
             
             switch (itemModel.type) {
                 case CinematicEditTimelineItemModelTypeVideoTrack: {
+                    CMTimeRange timeRange = sectionModel.timeRange;
+                    assert(CMTIMERANGE_IS_VALID(timeRange));
+                    
+                    CGFloat xOffset = halfBoundsWidth + CMTimeConvertScale(timeRange.start, pixelsForSecond, kCMTimeRoundingMethod_Default).value;
+                    CGFloat width = CMTimeConvertScale(timeRange.duration, pixelsForSecond, kCMTimeRoundingMethod_Default).value;
+                    
+                    layoutAttributes.frame = CGRectMake(xOffset,
+                                                        yOffset,
+                                                        width,
+                                                        50.);
+                    maxXOffset = MAX(xOffset + width, maxXOffset);
+                    
+                    minXForThumbnails = MIN(minXForThumbnails, CGRectGetMinX(layoutAttributes.frame));
+                    maxXForThumbnails = MAX(maxXForThumbnails, CGRectGetMaxX(layoutAttributes.frame));
+                    
+                    layoutAttributes.zIndex = 0;
+                    break;
+                }
+                case CinematicEditTimelineItemModelTypeDisparityTrack: {
                     CMTimeRange timeRange = sectionModel.timeRange;
                     assert(CMTIMERANGE_IS_VALID(timeRange));
                     
@@ -200,6 +224,30 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
                 yOffset += 50.;
                 break;
             }
+            case CinematicEditTimelineSectionModelTypeDisparityTrack: {
+                if ((minXForThumbnails != CGFLOAT_MAX) and (maxXForThumbnails != CGFLOAT_MIN)) {
+                    CGFloat preferredVideoThumbnailWidth = 70.;
+                    NSInteger thumbnailCount = ceil((maxXForThumbnails - minXForThumbnails) / preferredVideoThumbnailWidth);
+                    CGFloat videoThumbnailWidth = (maxXForThumbnails - minXForThumbnails) / thumbnailCount;
+                    
+                    for (NSInteger thumbnailIndex : std::views::iota(0, thumbnailCount)) {
+                        CGFloat xOffset = minXForThumbnails + (videoThumbnailWidth * thumbnailIndex);
+                        NSIndexPath *indexPath = [NSIndexPath indexPathForItem:thumbnailIndex inSection:sectionIndex];
+                        CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes = [CinematicEditTimelineCollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:CinematicEditTimelineCollectionViewLayoutDisparityThumbnailSupplementaryElementKind withIndexPath:indexPath];
+                        layoutAttributes.frame = CGRectMake(xOffset, yOffset, videoThumbnailWidth, 50.);
+                        layoutAttributes.thumbnailPresentationTrackID = sectionModel.trackID;
+                        layoutAttributes.thumbnailPresentationTime = [self timeFromContentOffset:CGPointMake(xOffset - halfBoundsWidth, yOffset)];
+                        layoutAttributes.zIndex = 1;
+                        
+                        cachedDisparityThumbnailLayoutAttibutesByIndexPath[indexPath] = layoutAttributes;
+                    }
+                }
+                
+                //
+                
+                yOffset += 50.;
+                break;
+            }
             case CinematicEditTimelineSectionModelTypeDetectionTrack: {
                 if ((minXForThumbnails != CGFLOAT_MAX) and (maxXForThumbnails != CGFLOAT_MIN)) {
                     CGFloat preferredVideoThumbnailWidth = 70.;
@@ -234,6 +282,8 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
     [cachedLayoutAttributesByIndexPath release];
     self.cachedVideoThumbnailLayoutAttibutesByIndexPath = cachedVideoThumbnailLayoutAttibutesByIndexPath;
     [cachedVideoThumbnailLayoutAttibutesByIndexPath release];
+    self.cachedDisparityThumbnailLayoutAttibutesByIndexPath = cachedDisparityThumbnailLayoutAttibutesByIndexPath;
+    [cachedDisparityThumbnailLayoutAttibutesByIndexPath release];
     self.cachedDetectionThumbnailLayoutAttibutesByIndexPath = cachedDetectionThumbnailLayoutAttibutesByIndexPath;
     [cachedDetectionThumbnailLayoutAttibutesByIndexPath release];
     
@@ -248,6 +298,12 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
     NSMutableArray<CinematicEditTimelineCollectionViewLayoutAttributes *> *results = [NSMutableArray array];
     
     for (CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes in self.cachedLayoutAttributesByIndexPath.allValues) {
+        if (CGRectIntersectsRect(layoutAttributes.frame, rect)) {
+            [results addObject:layoutAttributes];
+        }
+    }
+    
+    for (CinematicEditTimelineCollectionViewLayoutAttributes *layoutAttributes in self.cachedDisparityThumbnailLayoutAttibutesByIndexPath.allValues) {
         if (CGRectIntersectsRect(layoutAttributes.frame, rect)) {
             [results addObject:layoutAttributes];
         }
@@ -281,6 +337,8 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
         return self.cachedVideoThumbnailLayoutAttibutesByIndexPath[indexPath];
     } else if ([elementKind isEqualToString:CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind]) {
         return self.cachedDetectionThumbnailLayoutAttibutesByIndexPath[indexPath];
+    } else if ([elementKind isEqual:CinematicEditTimelineCollectionViewLayoutDisparityThumbnailSupplementaryElementKind]) {
+        return self.cachedDisparityThumbnailLayoutAttibutesByIndexPath[indexPath];
     }
     
     abort();

@@ -1,26 +1,26 @@
 //
-//  CinematicEditTimelineDetectionThumbnailView.m
+//  CinematicEditTimelineDisparityThumbnailView.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 3/13/25.
 //
 
-#import <CamPresentation/CinematicEditTimelineDetectionThumbnailView.h>
+#import <CamPresentation/CinematicEditTimelineDisparityThumbnailView.h>
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutAttributes.h>
 #import <CamPresentation/PlayerLayerView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import <CamPresentation/CinematicEditTimelineDetectionThumbnailVideoCompositor.h>
-#import <CamPresentation/CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction.h>
+#import <CamPresentation/CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction.h>
+#import <CamPresentation/CinematicEditTimelineDisparityThumbnailVideoCompositor.h>
 
 __attribute__((objc_direct_members))
-@interface CinematicEditTimelineDetectionThumbnailView ()
+@interface CinematicEditTimelineDisparityThumbnailView ()
 @property (retain, nonatomic, readonly, getter=_playerLayerView) PlayerLayerView *playerLayerView;
 @property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
 @property (retain, nonatomic, nullable, getter=_snapshot, setter=_setSnapshot:) CinematicSnapshot *snapshot;
 @end
 
-@implementation CinematicEditTimelineDetectionThumbnailView
+@implementation CinematicEditTimelineDisparityThumbnailView
 @synthesize playerLayerView = _playerLayerView;
 @synthesize player = _player;
 
@@ -91,12 +91,6 @@ __attribute__((objc_direct_members))
     assert(CMTIME_IS_VALID(casted.thumbnailPresentationTime));
     assert([CNDetection isValidDetectionID:casted.thumbnailPresentationTrackID]);
     
-    CNDetectionTrack *detectionTrack = [script detectionTrackForID:casted.thumbnailPresentationDetectionTrackID];
-    assert(detectionTrack != nil);
-    
-    CNDetection *detection = [detectionTrack detectionNearestTime:casted.thumbnailPresentationTime];
-    assert(detection != nil);
-    
     AVPlayer *player = self.player;
     
     if (AVPlayerItem *oldPlayerItem = player.currentItem) {
@@ -110,10 +104,11 @@ __attribute__((objc_direct_members))
     AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition new];
     videoComposition.sourceTrackIDForFrameTiming = compositionInfo.frameTimingTrack.trackID;
     videoComposition.sourceSampleDataTrackIDs = compositionInfo.sampleDataTrackIDs;
-    videoComposition.customVideoCompositorClass = [CinematicEditTimelineDetectionThumbnailVideoCompositor class];
-    videoComposition.renderSize = snapshot.assetData.cnAssetInfo.preferredSize;
+    videoComposition.customVideoCompositorClass = [CinematicEditTimelineDisparityThumbnailVideoCompositor class];
+//    videoComposition.renderSize = snapshot.assetData.cnAssetInfo.preferredSize;
+    videoComposition.renderSize = CGSizeMake(288, 512);
     
-    CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction *instruction = [[CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction alloc] initWithSnapshot:snapshot detection:detection];
+    CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction *instruction = [[CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction alloc] initWithSnapshot:snapshot];
     
     videoComposition.instructions = @[instruction];
     [instruction release];
@@ -131,17 +126,6 @@ __attribute__((objc_direct_members))
     
     [player replaceCurrentItemWithPlayerItem:playerItem];
     [playerItem release];
-    
-    BOOL found = NO;
-    for (AVPlayerItemTrack *track in playerItem.tracks) {
-        if (track.assetTrack.trackID == casted.thumbnailPresentationTrackID) {
-            track.enabled = YES;
-            found = YES;
-        } else {
-            track.enabled = NO;
-        }
-    }
-    assert(found);
     
     [player seekToTime:casted.thumbnailPresentationTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
     }];

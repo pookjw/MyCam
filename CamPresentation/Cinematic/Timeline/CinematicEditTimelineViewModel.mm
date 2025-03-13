@@ -69,6 +69,7 @@
     }
     
     AVAssetTrack *cinematicVideoTrack = cinematicSnapshot.assetData.cnAssetInfo.cinematicVideoTrack;
+    AVAssetTrack *cinematicDisparityTrack = cinematicSnapshot.assetData.cnAssetInfo.cinematicDisparityTrack;
     
     NSDiffableDataSourceSnapshot<CinematicEditTimelineSectionModel * ,CinematicEditTimelineItemModel *> *snapshot = [NSDiffableDataSourceSnapshot new];
     
@@ -77,6 +78,14 @@
         [snapshot appendSectionsWithIdentifiers:@[sectionModel]];
         
         CinematicEditTimelineItemModel *itemModel = [CinematicEditTimelineItemModel videoTrackItemModel];
+        [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:sectionModel];
+    }
+    
+    {
+        CinematicEditTimelineSectionModel *sectionModel = [CinematicEditTimelineSectionModel disparityTrackSectionModelWithTrackID:cinematicDisparityTrack.trackID timeRange:cinematicDisparityTrack.timeRange];
+        [snapshot appendSectionsWithIdentifiers:@[sectionModel]];
+        
+        CinematicEditTimelineItemModel *itemModel = [CinematicEditTimelineItemModel disparityTrackItemModel];
         [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:sectionModel];
     }
     

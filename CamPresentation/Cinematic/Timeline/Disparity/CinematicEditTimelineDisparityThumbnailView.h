@@ -1,5 +1,5 @@
 //
-//  CinematicEditTimelineDetectionThumbnailView.h
+//  CinematicEditTimelineDisparityThumbnailView.h
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 3/13/25.
@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 __attribute__((objc_direct_members))
-@interface CinematicEditTimelineDetectionThumbnailView : UICollectionReusableView
+@interface CinematicEditTimelineDisparityThumbnailView : UICollectionReusableView
 - (void)updateWithSnapshot:(CinematicSnapshot *)snapshot;
 @end
 

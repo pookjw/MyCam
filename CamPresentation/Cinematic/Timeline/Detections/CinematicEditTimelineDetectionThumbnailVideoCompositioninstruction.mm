@@ -37,7 +37,7 @@
 
 - (BOOL)containsTweening {
     // 두 키프레임 사이에 중간 프레임을 만들어 부드러운 전환을 만드는 기법
-    return YES;
+    return NO;
 }
 
 - (NSArray<NSValue *> *)requiredSourceTrackIDs {

@@ -20,6 +20,15 @@
     return [sectionModel autorelease];
 }
 
++ (CinematicEditTimelineSectionModel *)disparityTrackSectionModelWithTrackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange {
+    assert(trackID != kCMPersistentTrackID_Invalid);
+    assert(CMTIMERANGE_IS_VALID(timeRange));
+    CinematicEditTimelineSectionModel *sectionModel = [[CinematicEditTimelineSectionModel alloc] _initWithType:CinematicEditTimelineSectionModelTypeDisparityTrack];
+    sectionModel->_trackID = trackID;
+    sectionModel->_timeRange = timeRange;
+    return [sectionModel autorelease];
+}
+
 + (CinematicEditTimelineSectionModel *)detectionTrackSectionModelWithDetectionTrackID:(CNDetectionID)detectionTrackID trackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange; {
     assert([CNDetection isValidDetectionID:detectionTrackID]);
     assert(trackID != kCMPersistentTrackID_Invalid);

@@ -12,6 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, CinematicEditTimelineItemModelType) {
     CinematicEditTimelineItemModelTypeVideoTrack,
+    CinematicEditTimelineItemModelTypeDisparityTrack,
     CinematicEditTimelineItemModelTypeDetections,
     CinematicEditTimelineItemModelTypeDecision
 };
@@ -33,6 +34,7 @@ typedef NS_ENUM(NSUInteger, CinematicEditTimelineItemModelType) {
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 + (CinematicEditTimelineItemModel *)videoTrackItemModel;
++ (CinematicEditTimelineItemModel *)disparityTrackItemModel;
 + (CinematicEditTimelineItemModel *)detectionsItemModelWithDetections:(NSArray<CNDetection *> *)detections timeRange:(CMTimeRange)timeRange;
 + (CinematicEditTimelineItemModel *)decisionItemModelWithDecision:(CNDecision *)decision startTransitionTimeRange:(CMTimeRange)startTransitionTimeRange endTransitionTimeRange:(CMTimeRange)endTransitionTimeRange;
 @end

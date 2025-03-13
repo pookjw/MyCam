@@ -12,24 +12,26 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, CinematicEditTimelineSectionModelType) {
     CinematicEditTimelineSectionModelTypeVideoTrack,
+    CinematicEditTimelineSectionModelTypeDisparityTrack,
     CinematicEditTimelineSectionModelTypeDetectionTrack,
 };
 
 @interface CinematicEditTimelineSectionModel : NSObject
 @property (assign, nonatomic, readonly) CinematicEditTimelineSectionModelType type;
 
-/* VideoTrack & DetectionTrack */
+/* VideoTrack & Disparity & DetectionTrack */
 @property (assign, nonatomic, readonly) CMPersistentTrackID trackID;
 
 /* DetectionTrack */
 @property (assign, nonatomic, readonly) CNDetectionID detectionTrackID;
 
-/* VideoTrack & DetectionTrack */
+/* VideoTrack & Disparity & DetectionTrack */
 @property (assign, nonatomic, readonly) CMTimeRange timeRange;
 
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 + (CinematicEditTimelineSectionModel *)videoTrackSectionModelWithTrackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange;
++ (CinematicEditTimelineSectionModel *)disparityTrackSectionModelWithTrackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange;
 + (CinematicEditTimelineSectionModel *)detectionTrackSectionModelWithDetectionTrackID:(CNDetectionID)detectionTrackID trackID:(CMPersistentTrackID)trackID timeRange:(CMTimeRange)timeRange;
 @end
 

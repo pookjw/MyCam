@@ -12,6 +12,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 CP_EXTERN NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind;
+CP_EXTERN NSString * const CinematicEditTimelineCollectionViewLayoutDisparityThumbnailSupplementaryElementKind;
 CP_EXTERN NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupplementaryElementKind;
 
 __attribute__((objc_direct_members))

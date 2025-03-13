@@ -15,6 +15,10 @@
     return [[[CinematicEditTimelineItemModel alloc] _initWithType:CinematicEditTimelineItemModelTypeVideoTrack] autorelease];
 }
 
++ (CinematicEditTimelineItemModel *)disparityTrackItemModel {
+    return [[[CinematicEditTimelineItemModel alloc] _initWithType:CinematicEditTimelineItemModelTypeDisparityTrack] autorelease];
+}
+
 + (CinematicEditTimelineItemModel *)detectionsItemModelWithDetections:(NSArray<CNDetection *> *)detections timeRange:(CMTimeRange)timeRange {
     CinematicEditTimelineItemModel *itemModel = [[CinematicEditTimelineItemModel alloc] _initWithType:CinematicEditTimelineItemModelTypeDetections];
     itemModel->_detections = [detections copy];
