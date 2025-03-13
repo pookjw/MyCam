@@ -71,7 +71,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     AVMutableComposition *composition = [AVMutableComposition new];
     CNCompositionInfo *compositionInfo = [composition addTracksForCinematicAssetInfo:data.cnAssetInfo preferredStartingTrackID:kCMPersistentTrackID_Invalid];
     
-//    // AVPlayerItemSampleBufferOutput
 //    NSLog(@"%@", AVMediaTypeAuxiliaryPicture);
     
     NSError * _Nullable error = nil;

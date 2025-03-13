@@ -85,11 +85,23 @@ __attribute__((objc_direct_members))
     auto casted = static_cast<CinematicEditTimelineCollectionViewLayoutAttributes *>(_layoutAttributes);
     assert(CMTIME_IS_VALID(casted.thumbnailPresentationTime));
     
-    AVPlayerLayer *playerLayer = self.playerLayerView.playerLayer;
-    playerLayer.opacity = 0.;
+    AVPlayer *player = self.player;
+    AVPlayerItem *currentItem = player.currentItem;
+    if (currentItem == nil) return;
+    [currentItem cancelPendingSeeks];
     
-    [self.player seekToTime:casted.thumbnailPresentationTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
-        playerLayer.opacity = 1.;
+    BOOL found = NO;
+    for (AVPlayerItemTrack *track in currentItem.tracks) {
+        if (track.assetTrack.trackID == casted.thumbnailPresentationTrackID) {
+            track.enabled = YES;
+            found = YES;
+        } else {
+            track.enabled = NO;
+        }
+    }
+    assert(found);
+    
+    [player seekToTime:casted.thumbnailPresentationTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
     }];
 }
 
