@@ -78,10 +78,11 @@
     {
         /*
          3C146A2B-21CD-4739-A975-0AC6A2CA1777/L0/001
+         437FFB47-3FE3-4EC6-8D14-C8FB9A1B8DF1/L0/001
          63216E3C-D521-4F30-8F1F-5E6E7EEEE0FD/L0/001
          0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001
          */
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001"] options:nil];
+        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"437FFB47-3FE3-4EC6-8D14-C8FB9A1B8DF1/L0/001"] options:nil];
         [self _loadWithPHAsset:assets[0]];
     }
 }

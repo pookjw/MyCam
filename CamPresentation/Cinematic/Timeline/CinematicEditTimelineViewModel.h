@@ -13,6 +13,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface CinematicEditTimelineViewModel : NSObject
+@property (retain, nonatomic, readonly, nullable) CinematicSnapshot *mainQueue_cinematicSnapshot;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithParentViewModel:(CinematicViewModel *)parentViewModel dataSource:(UICollectionViewDiffableDataSource<CinematicEditTimelineSectionModel *, CinematicEditTimelineItemModel *> *)dataSource;

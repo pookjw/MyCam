@@ -6,11 +6,18 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <CoreMedia/CoreMedia.h>
+#import <CamPresentation/Extern.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CinematicEditTimelineCollectionViewLayout : UICollectionViewLayout
+CP_EXTERN NSString * const CinematicEditTimelineCollectionViewLayoutVideoThumbnailSupplementaryElementKind;
 
+__attribute__((objc_direct_members))
+@interface CinematicEditTimelineCollectionViewLayout : UICollectionViewLayout
+@property (assign, nonatomic) CGFloat pixelsForSecond;
+- (CMTime)timeFromContentOffset:(CGPoint)contentOffset;
+- (CGPoint)contentOffsetFromTime:(CMTime)time;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -14,13 +14,15 @@
 #import <CamPresentation/PlayerLayerView.h>
 #import <CamPresentation/PlayerControlView.h>
 
-@interface CinematicEditViewController ()
+@interface CinematicEditViewController () <CinematicEditTimelineViewDelegate>
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
 @property (retain, nonatomic, readonly, getter=_playerLayerView) PlayerLayerView *playerLayerView;
 @property (retain, nonatomic, readonly, getter=_playerControlView) PlayerControlView *playerControlView;
 @property (retain, nonatomic, readonly, getter=_timelineView) CinematicEditTimelineView *timelineView;
 @property (retain, nonatomic, readonly, getter=_stackView) UIStackView *stackView;
 @property (retain, nonatomic, readonly, getter=_activityIndicatorView) UIActivityIndicatorView *activityIndicatorView;
+@property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
+@property (retain, nonatomic, readonly, getter=_periodicTimeObserver) id periodicTimeObserver;
 @end
 
 @implementation CinematicEditViewController
@@ -29,6 +31,8 @@
 @synthesize timelineView = _timelineView;
 @synthesize stackView = _stackView;
 @synthesize activityIndicatorView = _activityIndicatorView;
+@synthesize player = _player;
+@synthesize periodicTimeObserver = _periodicTimeObserver;
 
 - (instancetype)initWithViewModel:(CinematicViewModel *)viewModel {
     if (self = [super initWithNibName:nil bundle:nil]) {
@@ -48,6 +52,13 @@
     [_timelineView release];
     [_stackView release];
     [_activityIndicatorView release];
+    
+    if (id periodicTimeObserver = _periodicTimeObserver) {
+        [_player removeTimeObserver:periodicTimeObserver];
+        [_periodicTimeObserver release];
+    }
+    
+    [_player release];
     [super dealloc];
 }
 
@@ -88,6 +99,8 @@
     UIActivityIndicatorView *activityIndicatorView = self.activityIndicatorView;
     [self.view addSubview:activityIndicatorView];
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self.view, sel_registerName("_addBoundsMatchingConstraintsForView:"), activityIndicatorView);
+    
+    [self _periodicTimeObserver];
 }
 
 - (PlayerLayerView *)_playerLayerView {
@@ -123,6 +136,7 @@
     if (auto timelineView = _timelineView) return timelineView;
     
     CinematicEditTimelineView *timelineView = [[CinematicEditTimelineView alloc] initWithParentViewModel:self.viewModel];
+    timelineView.delegate = self;
     
     _timelineView = timelineView;
     return timelineView;
@@ -154,6 +168,30 @@
     return activityIndicatorView;
 }
 
+- (AVPlayer *)_player {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    if (auto player = _player) return player;
+    
+    AVPlayer *player = [AVPlayer new];
+    
+    _player = player;
+    return player;
+}
+
+- (id)_periodicTimeObserver {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    if (id periodicTimeObserver = _periodicTimeObserver) return periodicTimeObserver;
+    
+    CinematicEditTimelineView *timelineView = self.timelineView;
+    
+    id periodicTimeObserver = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        [timelineView scrollToTime:time];
+    }];
+    
+    _periodicTimeObserver = [periodicTimeObserver retain];
+    return periodicTimeObserver;
+}
+
 - (void)_didChangeComposition {
     dispatch_async(self.viewModel.queue, ^{
         AVPlayerItem * _Nullable playerItem;
@@ -164,15 +202,15 @@
             playerItem = nil;
         }
         
-        AVPlayer *player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-        
         dispatch_async(dispatch_get_main_queue(), ^{
+            AVPlayer *player = self.player;
+            [player replaceCurrentItemWithPlayerItem:playerItem];
+            
             self.playerLayerView.playerLayer.player = player;
             self.playerControlView.player = player;
         });
         
         [playerItem release];
-        [player release];
     });
 }
 
@@ -231,6 +269,14 @@
         default:
             break;
     }
+}
+
+- (void)cinematicEditTimelineView:(CinematicEditTimelineView *)cinematicEditTimelineView didRequestSeekingTime:(CMTime)time {
+    AVPlayer *player = self.player;
+    [player pause];
+    [player seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+        
+    }];
 }
 
 @end

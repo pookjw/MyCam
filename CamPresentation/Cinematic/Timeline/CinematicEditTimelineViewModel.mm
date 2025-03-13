@@ -8,6 +8,7 @@
 #import <CamPresentation/CinematicEditTimelineViewModel.h>
 
 @interface CinematicEditTimelineViewModel ()
+@property (retain, nonatomic, nullable, setter=_mainQueue_setCinematicSnapshot:) CinematicSnapshot *mainQueue_cinematicSnapshot;
 @property (retain, nonatomic, readonly, getter=_parentViewModel) CinematicViewModel *parentViewModel;
 @property (retain, nonatomic, readonly, getter=_dataSource) UICollectionViewDiffableDataSource<CinematicEditTimelineSectionModel * ,CinematicEditTimelineItemModel *> *dataSource;
 @end
@@ -30,6 +31,7 @@
     [_parentViewModel removeObserver:self forKeyPath:@"isolated_snapshot"];
     [_parentViewModel release];
     [_dataSource release];
+    [_mainQueue_cinematicSnapshot release];
     [super dealloc];
 }
 
@@ -175,7 +177,10 @@
         }
     }
     
-    [self.dataSource applySnapshot:snapshot animatingDifferences:YES];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.mainQueue_cinematicSnapshot = cinematicSnapshot;
+        [self.dataSource applySnapshot:snapshot animatingDifferences:YES];
+    });
     [snapshot release];
 }
 
