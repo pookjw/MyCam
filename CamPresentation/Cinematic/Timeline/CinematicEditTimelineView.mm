@@ -192,8 +192,8 @@ __attribute__((objc_direct_members))
 - (UICollectionViewCellRegistration *)_decisionCellRegistration {
     if (auto decisionCellRegistration = _decisionCellRegistration) return decisionCellRegistration;
     
-    UICollectionViewCellRegistration *decisionCellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:[UICollectionViewCell class] configurationHandler:^(__kindof UICollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, id  _Nonnull item) {
-        CinematicEditTimelineDecisionContentConfiguration *contentConfiguration = [CinematicEditTimelineDecisionContentConfiguration new];
+    UICollectionViewCellRegistration *decisionCellRegistration = [UICollectionViewCellRegistration registrationWithCellClass:[UICollectionViewCell class] configurationHandler:^(__kindof UICollectionViewCell * _Nonnull cell, NSIndexPath * _Nonnull indexPath, CinematicEditTimelineItemModel * _Nonnull item) {
+        CinematicEditTimelineDecisionContentConfiguration *contentConfiguration = [[CinematicEditTimelineDecisionContentConfiguration alloc] initWithItemModel:item];
         cell.contentConfiguration = contentConfiguration;
         [contentConfiguration release];
     }];

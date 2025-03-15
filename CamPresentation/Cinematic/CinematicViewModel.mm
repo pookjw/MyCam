@@ -78,7 +78,6 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     assert(error == nil);
     
     CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript fNumber:data.cnScript.fNumber editMode:YES];
-    [renderingSession release];
     
     AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition new];
     videoComposition.sourceTrackIDForFrameTiming = compositionInfo.frameTimingTrack.trackID;
@@ -94,8 +93,9 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         videoComposition.frameDuration = CMTimeMakeWithSeconds(1.f / data.nominalFrameRate, data.naturalTimeScale);
     }
     
-    CinematicSnapshot *snapshot = [[CinematicSnapshot alloc] initWithComposition:composition videoComposition:videoComposition compositionInfo:compositionInfo assetData:data];
+    CinematicSnapshot *snapshot = [[CinematicSnapshot alloc] initWithComposition:composition videoComposition:videoComposition compositionInfo:compositionInfo renderingSession:renderingSession assetData:data];
     [composition release];
+    [renderingSession release];
     [videoComposition release];
     self.isolated_snapshot = snapshot;
     [snapshot release];

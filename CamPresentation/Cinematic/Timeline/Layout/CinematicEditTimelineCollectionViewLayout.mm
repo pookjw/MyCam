@@ -159,7 +159,6 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
                 case CinematicEditTimelineItemModelTypeDetections: {
                     CMTimeRange timeRange = itemModel.timeRange;
                     assert(CMTIMERANGE_IS_VALID(timeRange));
-                    CMTimeRangeShow(timeRange);
                     
                     CGFloat xOffset = halfBoundsWidth + CMTimeConvertScale(timeRange.start, pixelsForSecond, kCMTimeRoundingMethod_Default).value;
                     CGFloat width = CMTimeConvertScale(timeRange.duration, pixelsForSecond, kCMTimeRoundingMethod_Default).value;

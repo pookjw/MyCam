@@ -36,8 +36,8 @@
 }
 
 - (NSArray<NSValue *> *)requiredSourceTrackIDs {
-    return _snapshot.compositionInfo.videoCompositionTrackIDs;
-//    return @[@(_snapshot.compositionInfo.cinematicDisparityTrack.trackID)];
+//    return _snapshot.compositionInfo.videoCompositionTrackIDs;
+    return @[@(_snapshot.compositionInfo.cinematicDisparityTrack.trackID)];
 }
 
 - (CMPersistentTrackID)passthroughTrackID {

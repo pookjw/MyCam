@@ -9,11 +9,12 @@
 
 @implementation CinematicSnapshot
 
-- (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition compositionInfo:(CNCompositionInfo *)compositionInfo assetData:(CinematicAssetData *)assetData {
+- (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition compositionInfo:(CNCompositionInfo *)compositionInfo renderingSession:(CNRenderingSession *)renderingSession assetData:(CinematicAssetData *)assetData {
     if (self = [super init]) {
         _composition = [composition copy];
         _videoComposition = [videoComposition copy];
         _compositionInfo = [compositionInfo retain];
+        _renderingSession = [renderingSession retain];
         _assetData = [assetData retain];
     }
     
@@ -24,6 +25,7 @@
     [_composition release];
     [_videoComposition release];
     [_compositionInfo release];
+    [_renderingSession release];
     [_assetData release];
     [super dealloc];
 }

@@ -143,7 +143,7 @@ __attribute__((objc_direct_members))
     }
     assert(found);
     
-    [player seekToTime:casted.thumbnailPresentationTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+    [player seekToTime:casted.thumbnailPresentationTime toleranceBefore:kCMTimePositiveInfinity toleranceAfter:kCMTimePositiveInfinity completionHandler:^(BOOL finished) {
     }];
 }
 

@@ -144,9 +144,6 @@
                 }
             }];
             
-            CMTimeShow(trackStartTime);
-            CMTimeShow(trackEndTime);
-            
             assert(detectionsByID.count == timeRangesByDetectionID.count);
             
             NSMutableArray<CinematicEditTimelineItemModel *> *itemModels = [[NSMutableArray alloc] initWithCapacity:detectionsByID.count /* Decision 추가하면 더 많아질 것 */];

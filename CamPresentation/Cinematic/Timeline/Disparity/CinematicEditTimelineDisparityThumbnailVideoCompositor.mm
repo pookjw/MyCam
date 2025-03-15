@@ -12,42 +12,36 @@
 #import <CoreImage/CoreImage.h>
 #import <CoreImage/CIFilterBuiltins.h>
 
-@interface CinematicEditTimelineDisparityThumbnailVideoCompositor ()
-@property (retain, nonatomic, readonly, getter=_ciContext) CIContext *ciContext;
+@interface CinematicEditTimelineDisparityThumbnailVideoCompositor () {
+    
+}
+@property (class, retain, nonatomic, readonly, getter=_ciContext) CIContext *ciContext;
 @end
 
 @implementation CinematicEditTimelineDisparityThumbnailVideoCompositor
 
-- (instancetype)init {
-    if (self = [super init]) {
++ (CIContext *)_ciContext {
+    static CIContext *instance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-        _ciContext = [[CIContext contextWithMTLDevice:device] retain];
+        instance = [[CIContext contextWithMTLDevice:device] retain];
         [device release];
-    }
-    return self;
-}
-
-- (void)dealloc {
-    [_ciContext release];
-    [super dealloc];
+    });
+    return instance;
 }
 
 - (NSDictionary<NSString *,id> *)sourcePixelBufferAttributes {
-//    return @{
-//        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_DisparityFloat16)
-//    };
-    NSArray<NSNumber *> *sourcePixelFormatTypes = CNRenderingSession.sourcePixelFormatTypes;
-    
     return @{
-        (NSString *)kCVPixelBufferPixelFormatTypeKey: sourcePixelFormatTypes
+        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_DisparityFloat16),
+        (NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}
     };
 }
 
 - (NSDictionary<NSString *,id> *)requiredPixelBufferAttributesForRenderContext {
-    NSArray<NSNumber *> *sourcePixelFormatTypes = CNRenderingSession.destinationPixelFormatTypes;
-    
     return @{
-        (NSString *)kCVPixelBufferPixelFormatTypeKey: sourcePixelFormatTypes
+        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32ARGB),
+        (NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}
     };
 }
 
@@ -61,76 +55,77 @@
     
     CNCompositionInfo *compositionInfo = instruction.snapshot.compositionInfo;
     
-    CVPixelBufferRef imageBuffer = [asyncVideoCompositionRequest sourceFrameByTrackID:compositionInfo.cinematicVideoTrack.trackID];
+    CVPixelBufferRef imageBuffer = [asyncVideoCompositionRequest sourceFrameByTrackID:compositionInfo.cinematicDisparityTrack.trackID];
+    if (imageBuffer == NULL) {
+        [asyncVideoCompositionRequest finishCancelledRequest];
+        return;
+    }
     
-//    CVPixelBufferRef imageBuffer = [asyncVideoCompositionRequest sourceFrameByTrackID:compositionInfo.cinematicDisparityTrack.trackID];
-//    if (imageBuffer == NULL) {
-//        [asyncVideoCompositionRequest finishCancelledRequest];
-//        return;
-//    }
-//    
-//    OSType pixelFormat = CVPixelBufferGetPixelFormatType(imageBuffer);
-//    assert(pixelFormat == kCVPixelFormatType_DisparityFloat16);
+    OSType pixelFormat = CVPixelBufferGetPixelFormatType(imageBuffer);
+    assert(pixelFormat == kCVPixelFormatType_DisparityFloat16);
     
     //
     
-    CIImage *inputImage = [[CIImage alloc] initWithCVPixelBuffer:imageBuffer];
-    CIFilter<CIColorMonochrome> *filter = [CIFilter colorMonochromeFilter];
-    filter.inputImage = inputImage;
-    [inputImage release];
-    CIImage *outputImage = filter.outputImage;
+    //    CIImage *inputImage = [[CIImage alloc] initWithCVPixelBuffer:imageBuffer];
+    //    CIFilter<CIColorMonochrome> *filter = [CIFilter colorMonochromeFilter];
+    //    filter.inputImage = inputImage;
+    //    [inputImage release];
+    //    CIImage *outputImage = filter.outputImage;
+    //
+    //    CVPixelBufferRef outputBuffer = [asyncVideoCompositionRequest.renderContext newPixelBuffer];
+    ////    assert(CVPixelBufferCreate(kCFAllocatorDefault,
+    ////                               outputImage.extent.size.width,
+    ////                               outputImage.extent.size.height,
+    ////                               kCVPixelFormatType_32ARGB,
+    ////                               (CFDictionaryRef)@{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}},
+    ////                               &outputBuffer) == kCVReturnSuccess);
+    //    [self.ciContext render:outputImage toCVPixelBuffer:outputBuffer];
+    //    [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
+    //    CVPixelBufferRelease(outputBuffer);
+    
+    size_t disparityWidth = CVPixelBufferGetWidth(imageBuffer);
+    size_t disparityHeight = CVPixelBufferGetHeight(imageBuffer);
     
     CVPixelBufferRef outputBuffer;
-     assert(CVPixelBufferCreate(kCFAllocatorDefault,
-                                                        outputImage.extent.size.width,
-                                                        outputImage.extent.size.height,
-                                CVPixelBufferGetPixelFormatType(imageBuffer),
-                         NULL, &outputBuffer) == kCVReturnSuccess);
-    [self.ciContext render:outputImage toCVPixelBuffer:outputBuffer];
-    [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
-    CVPixelBufferRelease(outputBuffer);
+    assert(CVPixelBufferCreate(kCFAllocatorDefault,
+                               disparityWidth,
+                               disparityHeight,
+                               kCVPixelFormatType_32ARGB,
+                               (CFDictionaryRef)@{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}},
+                               &outputBuffer) == kCVReturnSuccess);
     
-//    size_t disparityWidth = CVPixelBufferGetWidth(imageBuffer);
-//    size_t disparityHeight = CVPixelBufferGetHeight(imageBuffer);
-//    
-//    CVPixelBufferRef outputBuffer;
-//    assert(CVPixelBufferCreate(kCFAllocatorDefault,
-//                               disparityWidth,
-//                               disparityHeight,
-//                               kCVPixelFormatType_16Gray,
-//                               NULL,
-//                               &outputBuffer) == kCVReturnSuccess);
-//    
-//    assert(CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly) == kCVReturnSuccess);
-//    assert(CVPixelBufferLockBaseAddress(outputBuffer, 0) == kCVReturnSuccess);
-//    
-//    assert((CVPixelBufferGetBytesPerRow(imageBuffer) / disparityWidth) == sizeof(float16_t));
-//    assert((CVPixelBufferGetBytesPerRow(outputBuffer) / disparityWidth) == sizeof(float16_t));
-//    
-//    auto address = reinterpret_cast<float16_t *>(CVPixelBufferGetBaseAddress(imageBuffer));
-//    assert(address != NULL);
-//    
-//    auto outAddress = reinterpret_cast<float16_t *>(CVPixelBufferGetBaseAddress(outputBuffer));
-//    assert(outAddress != NULL);
-//    
-////    for (size_t dh = 0; dh < disparityHeight; dh++) {
-////        for (size_t dw = 0; dw < disparityWidth * 4; dw++) {
-////            float16_t disparity = address[dh * disparityWidth + dw];
-////            outAddress[dh * disparityWidth + (dw)] = disparity;
-//////            outAddress[dh * disparityWidth + (dw * 4 + 1)] = disparity;
-//////            outAddress[dh * disparityWidth + (dw * 4 + 2)] = disparity;
-//////            outAddress[dh * disparityWidth + (dw * 4 + 3)] = 1.f;
-////        }
-////    }
-//    memmove(outAddress, address, CVPixelBufferGetBytesPerRow(imageBuffer) * disparityHeight);
-//    
-//    assert(CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly) == kCVReturnSuccess);
-//    assert(CVPixelBufferUnlockBaseAddress(outputBuffer, 0) == kCVReturnSuccess);
-//    
-//    //
-//    
-//    [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
-//    CVBufferRelease(outputBuffer);
+    assert(CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly) == kCVReturnSuccess);
+    assert(CVPixelBufferLockBaseAddress(outputBuffer, 0) == kCVReturnSuccess);
+    
+    assert((CVPixelBufferGetBytesPerRow(imageBuffer) / disparityWidth) == sizeof(float16_t));
+    assert((CVPixelBufferGetBytesPerRow(outputBuffer) / disparityWidth) == sizeof(float));
+    
+    auto address = reinterpret_cast<float16_t *>(CVPixelBufferGetBaseAddress(imageBuffer));
+    assert(address != NULL);
+    
+    auto outAddress = reinterpret_cast<uint32_t *>(CVPixelBufferGetBaseAddress(outputBuffer));
+    assert(outAddress != NULL);
+    
+    // https://x.com/_silgen_name/status/1900559085335982108
+    for (size_t dh = 0; dh < disparityHeight; dh++) {
+        for (size_t dw = 0; dw < disparityWidth; dw++) {
+            float16_t disparity = address[dh * disparityWidth + dw];
+            auto byteVal = static_cast<uint8_t>(disparity * 255.f);
+            uint32_t pixel = (byteVal << 24) | (byteVal << 16) | (byteVal << 8) | 0b11111111;
+            outAddress[dh * disparityWidth + dw] = pixel;
+        }
+    }
+    
+    assert(CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly) == kCVReturnSuccess);
+    assert(CVPixelBufferUnlockBaseAddress(outputBuffer, 0) == kCVReturnSuccess);
+    
+    //
+    
+    [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
+    CVBufferRelease(outputBuffer);
+}
+
+- (void)cancelAllPendingVideoCompositionRequests {
 }
 
 - (BOOL)supportsWideColorSourceFrames {
