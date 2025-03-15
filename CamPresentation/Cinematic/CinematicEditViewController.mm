@@ -21,6 +21,7 @@
 @property (retain, nonatomic, readonly, getter=_timelineView) CinematicEditTimelineView *timelineView;
 @property (retain, nonatomic, readonly, getter=_stackView) UIStackView *stackView;
 @property (retain, nonatomic, readonly, getter=_activityIndicatorView) UIActivityIndicatorView *activityIndicatorView;
+@property (retain, nonatomic, readonly, getter=_fNumberSlider) UISlider *fNumberSlider;
 @property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
 @property (retain, nonatomic, readonly, getter=_periodicTimeObserver) id periodicTimeObserver;
 @end
@@ -31,6 +32,7 @@
 @synthesize timelineView = _timelineView;
 @synthesize stackView = _stackView;
 @synthesize activityIndicatorView = _activityIndicatorView;
+@synthesize fNumberSlider = _fNumberSlider;
 @synthesize player = _player;
 @synthesize periodicTimeObserver = _periodicTimeObserver;
 
@@ -39,18 +41,23 @@
         _viewModel = [viewModel retain];
         [viewModel addObserver:self forKeyPath:@"isolated_snapshot" options:NSKeyValueObservingOptionNew context:NULL];
         [self _didChangeComposition];
+        
+        [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didUpdateScript:) name:CinematicViewModelDidUpdateScriptNotification object:viewModel];
+        [self _updateFNumberSlider];
     }
     
     return self;
 }
 
 - (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
     [_viewModel removeObserver:self forKeyPath:@"isolated_snapshot"];
     [_viewModel release];
     [_playerLayerView release];
     [_playerControlView release];
     [_timelineView release];
     [_stackView release];
+    [_fNumberSlider release];
     [_activityIndicatorView release];
     
     if (id periodicTimeObserver = _periodicTimeObserver) {
@@ -94,6 +101,15 @@
         [controlView.leadingAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.leadingAnchor],
         [controlView.trailingAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.trailingAnchor],
         [controlView.bottomAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.bottomAnchor]
+    ]];
+    
+    UISlider *fNumberSlider = self.fNumberSlider;
+    [self.playerLayerView addSubview:fNumberSlider];
+    fNumberSlider.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [fNumberSlider.leadingAnchor constraintEqualToAnchor:controlView.leadingAnchor],
+        [fNumberSlider.trailingAnchor constraintEqualToAnchor:controlView.trailingAnchor],
+        [fNumberSlider.bottomAnchor constraintEqualToAnchor:controlView.topAnchor]
     ]];
     
     UIActivityIndicatorView *activityIndicatorView = self.activityIndicatorView;
@@ -168,6 +184,19 @@
     return activityIndicatorView;
 }
 
+- (UISlider *)_fNumberSlider {
+    if (auto fNumberSlider = _fNumberSlider) return fNumberSlider;
+    
+    UISlider *fNumberSlider = [UISlider new];
+    fNumberSlider.minimumValue = 2.f;
+    fNumberSlider.maximumValue = 16.f;
+    fNumberSlider.continuous = NO;
+    [fNumberSlider addTarget:self action:@selector(_didChangeFNumberSliderValue:) forControlEvents:UIControlEventValueChanged];
+    
+    _fNumberSlider = fNumberSlider;
+    return fNumberSlider;
+}
+
 - (AVPlayer *)_player {
     dispatch_assert_queue(dispatch_get_main_queue());
     if (auto player = _player) return player;
@@ -211,6 +240,32 @@
         });
         
         [playerItem release];
+    });
+}
+
+- (void)_didChangeFNumberSliderValue:(UISlider *)sender {
+    float value = sender.value;
+    
+    dispatch_async(self.viewModel.queue, ^{
+        [self.viewModel isolated_changeFNumber:value];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self _refreshCurrentFrameWithCompletionHandler:nil];
+        });
+    });
+}
+
+- (void)_didUpdateScript:(NSNotification *)notification {
+    [self _updateFNumberSlider];
+}
+
+- (void)_updateFNumberSlider {
+    dispatch_async(self.viewModel.queue, ^{
+        float fNumber = self.viewModel.isolated_snapshot.assetData.cnScript.fNumber;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.fNumberSlider.value = fNumber;
+        });
     });
 }
 
@@ -262,7 +317,10 @@
             currentItem.seekingWaitsForVideoCompositionRendering = YES;
             [player seekToTime:currentItem.currentTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
                 currentItem.seekingWaitsForVideoCompositionRendering = original;
-                completionHandler();
+                
+                if (completionHandler) {
+                    completionHandler();
+                }
             }];
             break;
         }

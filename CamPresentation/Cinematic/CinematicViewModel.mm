@@ -77,7 +77,7 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [compositionInfo insertTimeRange:data.cnAssetInfo.timeRange ofCinematicAssetInfo:data.cnAssetInfo atTime:kCMTimeZero error:&error];
     assert(error == nil);
     
-    CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript fNumber:data.cnScript.fNumber editMode:YES];
+    CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript editMode:YES];
     
     AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition new];
     videoComposition.sourceTrackIDForFrameTiming = compositionInfo.frameTimingTrack.trackID;
@@ -157,6 +157,11 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     
     self.isolated_changingFocus = NO;
     
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateScriptNotification object:self];
+}
+
+- (void)isolated_changeFNumber:(float)fNumber {
+    self.isolated_snapshot.assetData.cnScript.fNumber = fNumber;
     [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateScriptNotification object:self];
 }
 

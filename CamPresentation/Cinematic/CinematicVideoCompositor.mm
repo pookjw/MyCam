@@ -88,7 +88,7 @@ __attribute__((objc_direct_members))
     
     CNRenderingSessionFrameAttributes *frameAttributes = [[CNRenderingSessionFrameAttributes alloc] initWithSampleBuffer:metadataBuffer sessionAttributes:renderingSession.sessionAttributes];
     assert(frameAttributes != nil);
-    frameAttributes.fNumber = instruction.fNumber;
+    frameAttributes.fNumber = instruction.script.fNumber;
     
     // Find the nearest frame for focus disparity
     CMTime frameTime = asyncVideoCompositionRequest.compositionTime;

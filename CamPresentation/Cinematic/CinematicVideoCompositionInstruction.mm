@@ -9,12 +9,11 @@
 
 @implementation CinematicVideoCompositionInstruction
 
-- (instancetype)initWithRenderingSession:(CNRenderingSession *)renderingSession compositionInfo:(CNCompositionInfo *)compositionInfo script:(CNScript *)script fNumber:(float)fNumber editMode:(BOOL)editMode {
+- (instancetype)initWithRenderingSession:(CNRenderingSession *)renderingSession compositionInfo:(CNCompositionInfo *)compositionInfo script:(CNScript *)script editMode:(BOOL)editMode {
     if (self = [super init]) {
         _renderingSession = [renderingSession retain];
         _compositionInfo = [compositionInfo retain];
         _script = [script retain];
-        _fNumber = fNumber;
         _editMode = editMode;
     }
     

@@ -22,6 +22,7 @@ CP_EXTERN NSNotificationName const CinematicViewModelDidUpdateScriptNotification
 @property (retain, nonatomic, readonly, nullable) CinematicSnapshot *isolated_snapshot;
 - (void)isolated_loadWithData:(CinematicAssetData *)data;
 - (void)isolated_changeFocusAtNormalizedPoint:(CGPoint)normalizedPoint atTime:(CMTime)time strongDecision:(BOOL)strongDecision;
+- (void)isolated_changeFNumber:(float)fNumber;
 @end
 
 NS_ASSUME_NONNULL_END
