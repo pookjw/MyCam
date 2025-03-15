@@ -34,8 +34,7 @@
     itemModel->_endTransitionTimeRange = endTransitionTimeRange;
     assert(CMTIMERANGE_IS_VALID(startTransitionTimeRange));
     assert(CMTIMERANGE_IS_VALID(endTransitionTimeRange));
-    CMTimeRange timeRange = CMTimeRangeMake(startTransitionTimeRange.start, CMTimeRangeGetEnd(endTransitionTimeRange));
-//    CMTimeRange timeRange = CMTimeRangeMake(CMTimeRangeGetEnd(startTransitionTimeRange), endTransitionTimeRange.start);
+    CMTimeRange timeRange = CMTimeRangeMake(startTransitionTimeRange.start, CMTimeSubtract(CMTimeRangeGetEnd(endTransitionTimeRange), startTransitionTimeRange.start));
     assert(CMTIMERANGE_IS_VALID(timeRange));
     itemModel->_timeRange = timeRange;
     return [itemModel autorelease];

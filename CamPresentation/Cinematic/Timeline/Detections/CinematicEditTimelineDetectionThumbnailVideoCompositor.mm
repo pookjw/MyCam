@@ -64,6 +64,8 @@
     
     //
     
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
+    
     CGRect detectionRect = CGRectMake(instruction.detection.normalizedRect.origin.x * CVPixelBufferGetWidth(imageBuffer),
                                       instruction.detection.normalizedRect.origin.y * CVPixelBufferGetHeight(imageBuffer),
                                       instruction.detection.normalizedRect.size.width * CVPixelBufferGetWidth(imageBuffer),
@@ -71,20 +73,25 @@
     CGRect detectionTransformedRect = CGRectApplyAffineTransform(detectionRect, instruction.snapshot.renderingSession.preferredTransform);
     
     CIImage *ciImage = [[CIImage alloc] initWithCVPixelBuffer:imageBuffer options:@{}];
-    CIImage *transformedImage = [[[ciImage imageByApplyingTransform:instruction.snapshot.renderingSession.preferredTransform] imageByCroppingToRect:detectionTransformedRect] imageByApplyingTransform:CGAffineTransformTranslate(CGAffineTransformMakeScale(-1., -1.), -detectionTransformedRect.size.width, -detectionTransformedRect.size.height)];
+    CIImage *transformedImage = [[ciImage imageByApplyingTransform:instruction.snapshot.renderingSession.preferredTransform] imageByCroppingToRect:detectionTransformedRect];
     [ciImage release];
+    
+    CIImage *translatedImage = [transformedImage imageByApplyingTransform:CGAffineTransformMakeTranslation(-transformedImage.extent.origin.x,
+                                                                                                            -transformedImage.extent.origin.y)];
     
     CVPixelBufferRef outputBuffer;
     assert(CVPixelBufferCreate(kCFAllocatorDefault,
-                               transformedImage.extent.size.width,
-                               transformedImage.extent.size.height,
+                               translatedImage.extent.size.width,
+                               translatedImage.extent.size.height,
                                CVPixelBufferGetPixelFormatType(imageBuffer),
                                (CFDictionaryRef)@{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}},
                                &outputBuffer) == kCVReturnSuccess);
-    [CinematicEditTimelineDetectionThumbnailVideoCompositor.ciContext render:transformedImage toCVPixelBuffer:outputBuffer];
+    [CinematicEditTimelineDetectionThumbnailVideoCompositor.ciContext render:translatedImage toCVPixelBuffer:outputBuffer];
     
     [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
     CVPixelBufferRelease(outputBuffer);
+    
+    [pool release];
 }
 
 - (BOOL)supportsWideColorSourceFrames {

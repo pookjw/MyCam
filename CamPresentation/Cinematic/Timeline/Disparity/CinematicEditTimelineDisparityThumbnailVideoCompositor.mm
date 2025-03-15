@@ -11,10 +11,9 @@
 #include <ranges>
 #import <CoreImage/CoreImage.h>
 #import <CoreImage/CIFilterBuiltins.h>
+#import <UIKit/UIKit.h>
 
-@interface CinematicEditTimelineDisparityThumbnailVideoCompositor () {
-    
-}
+@interface CinematicEditTimelineDisparityThumbnailVideoCompositor ()
 @property (class, retain, nonatomic, readonly, getter=_ciContext) CIContext *ciContext;
 @end
 
@@ -121,8 +120,28 @@
     
     //
     
-    [asyncVideoCompositionRequest finishWithComposedVideoFrame:outputBuffer];
+    CVPixelBufferRef transformedBuffer;
+    @autoreleasepool {
+        CIImage *ciImage = [[CIImage alloc] initWithCVPixelBuffer:outputBuffer];
+        CIImage *transformedImage = [ciImage imageByApplyingTransform:instruction.snapshot.renderingSession.preferredTransform];
+        [ciImage release];
+        CIImage *translatedImage_1 = [transformedImage imageByApplyingTransform:CGAffineTransformTranslate(CGAffineTransformMakeScale(-1., -1.), transformedImage.extent.size.width, transformedImage.extent.size.height)];
+        
+        CIImage *translatedImage_2 = [translatedImage_1 imageByApplyingTransform:CGAffineTransformMakeTranslation(-translatedImage_1.extent.origin.x,
+                                                                                                                -translatedImage_1.extent.origin.y)];
+        
+        assert(CVPixelBufferCreate(kCFAllocatorDefault,
+                                   translatedImage_2.extent.size.width,
+                                   translatedImage_2.extent.size.height,
+                                   CVPixelBufferGetPixelFormatType(outputBuffer),
+                                   (CFDictionaryRef)@{(NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{}},
+                                   &transformedBuffer) == kCVReturnSuccess);
+        [CinematicEditTimelineDisparityThumbnailVideoCompositor.ciContext render:translatedImage_2 toCVPixelBuffer:transformedBuffer];
+    }
     CVBufferRelease(outputBuffer);
+    
+    [asyncVideoCompositionRequest finishWithComposedVideoFrame:transformedBuffer];
+    CVBufferRelease(transformedBuffer);
 }
 
 - (void)cancelAllPendingVideoCompositionRequests {

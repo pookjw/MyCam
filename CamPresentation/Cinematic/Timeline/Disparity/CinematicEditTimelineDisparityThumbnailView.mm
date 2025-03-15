@@ -105,8 +105,7 @@ __attribute__((objc_direct_members))
     videoComposition.sourceTrackIDForFrameTiming = compositionInfo.frameTimingTrack.trackID;
     videoComposition.sourceSampleDataTrackIDs = compositionInfo.sampleDataTrackIDs;
     videoComposition.customVideoCompositorClass = [CinematicEditTimelineDisparityThumbnailVideoCompositor class];
-//    videoComposition.renderSize = snapshot.assetData.cnAssetInfo.preferredSize;
-    videoComposition.renderSize = CGSizeMake(512, 288);
+    videoComposition.renderSize = snapshot.assetData.cnAssetInfo.preferredSize;
     
     CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction *instruction = [[CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction alloc] initWithSnapshot:snapshot];
     
