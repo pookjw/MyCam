@@ -38,17 +38,19 @@ static id<NSObject> unmuteToken;
 static id<NSObject> availableInputsChangeToken;
 
 + (void)load {
-    muteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionOutputMuteStateChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
-        NSLog(@"%@", notification);
-    }] retain];
-    
-    unmuteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionUserIntentToUnmuteOutputNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
-        NSLog(@"%@", notification);
-    }] retain];
-    
-    availableInputsChangeToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionAvailableInputsChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
-        NSLog(@"%@", notification);
-    }] retain];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        muteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionOutputMuteStateChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+            NSLog(@"%@", notification);
+        }] retain];
+        
+        unmuteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionUserIntentToUnmuteOutputNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+            NSLog(@"%@", notification);
+        }] retain];
+        
+        availableInputsChangeToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionAvailableInputsChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+            NSLog(@"%@", notification);
+        }] retain];
+    }
 }
 
 + (instancetype)cp_audioElementWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {

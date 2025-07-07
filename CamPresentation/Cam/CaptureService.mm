@@ -1658,33 +1658,40 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (__kindof AVCaptureOutput *)queue_toBeRemoved_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice __attribute__((deprecated)) {
-    NSSet<__kindof AVCaptureOutput *> *outputs = [self queue_outputClass:outputClass fromCaptureDevice:captureDevice];
+//    NSSet<__kindof AVCaptureOutput *> *outputs = [self queue_outputClass:outputClass fromCaptureDevice:captureDevice];
+//    assert(outputs.count < 2);
+//    return outputs.allObjects.firstObject;
+    // -[AVCaptureSession _outputWithClass:forSourceDevice:]도 있음
+    NSArray<__kindof AVCaptureOutput *> *outputs = reinterpret_cast<id (*)(id, SEL, Class, id)>(objc_msgSend)(self.queue_captureSession, sel_registerName("_outputsWithClass:forSourceDevice:"), outputClass, captureDevice);
     assert(outputs.count < 2);
-    return outputs.allObjects.firstObject;
+    return outputs.firstObject;
 }
 
 - (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
+//    NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
+//    
+//    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
+//        if (connection.output.class != outputClass) {
+//            continue;
+//        }
+//        
+//        for (AVCaptureInputPort *port in connection.inputPorts) {
+//            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
+//            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
+//                if ([deviceInput.device isEqual:captureDevice]) {
+//                    [outputs addObject:connection.output];
+//                    break;
+//                }
+//            }
+//        }
+//    }
+//    
+//    return [outputs autorelease];
     
-    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
-        if (connection.output.class != outputClass) {
-            continue;
-        }
-        
-        for (AVCaptureInputPort *port in connection.inputPorts) {
-            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
-            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
-                if ([deviceInput.device isEqual:captureDevice]) {
-                    [outputs addObject:connection.output];
-                    break;
-                }
-            }
-        }
-    }
-    
-    return [outputs autorelease];
+    NSArray<__kindof AVCaptureOutput *> *outputs = reinterpret_cast<id (*)(id, SEL, Class, id)>(objc_msgSend)(self.queue_captureSession, sel_registerName("_outputsWithClass:forSourceDevice:"), outputClass, captureDevice);
+    return [NSSet setWithArray:outputs];
 }
 
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {

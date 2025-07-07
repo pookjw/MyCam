@@ -234,8 +234,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         [self updateContentsScale];
         
-//        self.gestureMode = CaptureVideoPreview::GestureMode::None;
-        self.gestureMode = CaptureVideoPreview::GestureMode::FocusRect;
+        self.gestureMode = CaptureVideoPreview::GestureMode::None;
         
         //
         
@@ -808,15 +807,19 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             }
             case CaptureVideoPreview::GestureMode::FocusRect:
             {
-                if (!captureDevice.isFocusRectOfInterestSupported) abort();
-                if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
-                
-                NSError * _Nullable error = nil;
-                [captureDevice lockForConfiguration:&error];
-                assert(error == nil);
-                captureDevice.focusMode = AVCaptureFocusModeLocked;
-                [captureDevice unlockForConfiguration];
-                break;
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (!captureDevice.isFocusRectOfInterestSupported) abort();
+                    if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
+                    
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    captureDevice.focusMode = AVCaptureFocusModeLocked;
+                    [captureDevice unlockForConfiguration];
+                    break;
+                } else {
+                    abort();
+                }
             }
             case CaptureVideoPreview::GestureMode::ExposurePoint:
             {
@@ -833,15 +836,19 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             }
             case CaptureVideoPreview::GestureMode::ExposureRect:
             {
-                if (!captureDevice.isExposureRectOfInterestSupported) abort();
-                if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
-                
-                NSError * _Nullable error = nil;
-                [captureDevice lockForConfiguration:&error];
-                assert(error == nil);
-                captureDevice.exposureMode = AVCaptureExposureModeLocked;
-                [captureDevice unlockForConfiguration];
-                break;
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (!captureDevice.isExposureRectOfInterestSupported) abort();
+                    if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
+                    
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    captureDevice.exposureMode = AVCaptureExposureModeLocked;
+                    [captureDevice unlockForConfiguration];
+                    break;
+                } else {
+                    abort();
+                }
             }
             default:
                 abort();
@@ -891,30 +898,38 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             
             switch (self.gestureMode) {
                 case CaptureVideoPreview::GestureMode::FocusRect: {
-                    CGSize minFocusRectOfInterestSize = captureDevice.minFocusRectOfInterestSize;
-                    if (CGRectGetWidth(rectOfInterest) < minFocusRectOfInterestSize.width) {
-                        rectOfInterest = CGRectInset(rectOfInterest,
-                                                     (minFocusRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
-                                                     0.);
-                    }
-                    if (CGRectGetHeight(rectOfInterest) < minFocusRectOfInterestSize.height) {
-                        rectOfInterest = CGRectInset(rectOfInterest,
-                                                     0.,
-                                                     (minFocusRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                        CGSize minFocusRectOfInterestSize = captureDevice.minFocusRectOfInterestSize;
+                        if (CGRectGetWidth(rectOfInterest) < minFocusRectOfInterestSize.width) {
+                            rectOfInterest = CGRectInset(rectOfInterest,
+                                                         (minFocusRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
+                                                         0.);
+                        }
+                        if (CGRectGetHeight(rectOfInterest) < minFocusRectOfInterestSize.height) {
+                            rectOfInterest = CGRectInset(rectOfInterest,
+                                                         0.,
+                                                         (minFocusRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                        }
+                    } else {
+                        abort();
                     }
                     break;
                 }
                 case CaptureVideoPreview::GestureMode::ExposureRect: {
-                    CGSize minExposureRectOfInterestSize = captureDevice.minExposureRectOfInterestSize;
-                    if (CGRectGetWidth(rectOfInterest) < minExposureRectOfInterestSize.width) {
-                        rectOfInterest = CGRectInset(rectOfInterest,
-                                                     (minExposureRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
-                                                     0.);
-                    }
-                    if (CGRectGetHeight(rectOfInterest) < minExposureRectOfInterestSize.height) {
-                        rectOfInterest = CGRectInset(rectOfInterest,
-                                                     0.,
-                                                     (minExposureRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                        CGSize minExposureRectOfInterestSize = captureDevice.minExposureRectOfInterestSize;
+                        if (CGRectGetWidth(rectOfInterest) < minExposureRectOfInterestSize.width) {
+                            rectOfInterest = CGRectInset(rectOfInterest,
+                                                         (minExposureRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
+                                                         0.);
+                        }
+                        if (CGRectGetHeight(rectOfInterest) < minExposureRectOfInterestSize.height) {
+                            rectOfInterest = CGRectInset(rectOfInterest,
+                                                         0.,
+                                                         (minExposureRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                        }
+                    } else {
+                        abort();
                     }
                     break;
                 }
@@ -938,12 +953,20 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                         captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
                     }
                     
-                    captureDevice.focusRectOfInterest = rectOfInterest;
+                    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                        captureDevice.focusRectOfInterest = rectOfInterest;
+                    } else {
+                        abort();
+                    }
                     break;
                 }
                 case CaptureVideoPreview::GestureMode::ExposureRect: {
                     captureDevice.exposureMode = AVCaptureExposureModeLocked;
-                    captureDevice.exposureRectOfInterest = rectOfInterest;
+                    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                        captureDevice.exposureRectOfInterest = rectOfInterest;
+                    } else {
+                        abort();
+                    }
                     break;
                 }
                 default:

@@ -149,6 +149,11 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
+            
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            }
+            
 #warning TODO: autoVideoFrameRateEnabled
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -2629,7 +2634,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 + (UIMenu * _Nonnull)_cp_queue_visionDataDeliverySupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
                                                             captureDevice:captureDevice
-                                                                    title:@"Formats Supported Vision Data Delivery"
+                                                                    title:@"Formats Supports Vision Data Delivery"
                                                           includeSubtitle:NO
                                                             filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
         return reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(format, sel_registerName("isVisionDataDeliverySupported"));
@@ -4408,6 +4413,18 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     return menu;
 }
 #endif
+
+
++ (UIMenu * _Nonnull)_cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:captureDevice
+                                                                    title:@"Formats Supports Cinematic Video Capture Supported"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.cinematicVideoCaptureSupported;
+    }
+                                                         didChangeHandler:didChangeHandler];
+}
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
 

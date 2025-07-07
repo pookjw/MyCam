@@ -30,7 +30,9 @@
     [rootViewController release];
     
     navigationController.interactivePopGestureRecognizer.delegate = self;
-    navigationController.interactiveContentPopGestureRecognizer.delegate = self;
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        navigationController.interactiveContentPopGestureRecognizer.delegate = self;
+    }
     
     //
     
