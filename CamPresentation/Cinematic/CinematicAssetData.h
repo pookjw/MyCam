@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 3/9/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
 #import <Cinematic/Cinematic.h>
@@ -28,3 +32,5 @@ CP_EXTERN NSString * CinematicAssetDataErrorKey;
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

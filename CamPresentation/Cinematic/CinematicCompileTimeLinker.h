@@ -1,19 +1,19 @@
 //
-//  CNDetection+CP_Category.h
+//  CinematicCompileTimeLinker.h
 //  CamPresentation
 //
-//  Created by Jinwoo Kim on 3/13/25.
+//  Created by Jinwoo Kim on 7/7/25.
 //
 
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
 
-#import <Cinematic/Cinematic.h>
+#import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CNDetection (CP_Category)
+@interface CinematicCompileTimeLinker : NSObject
 
 @end
 

@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicViewController.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/AssetCollectionsViewController.h>
 #import <CamPresentation/CinematicViewModel.h>
 #import <objc/message.h>
@@ -67,6 +70,12 @@
     [editViewController didMoveToParentViewController:self];
     
     UINavigationItem *navigationItem = self.navigationItem;
+#if TARGET_OS_TV
+    navigationItem.rightBarButtonItems = @[
+        self.assetPickerBarButtonItem,
+        self.debugBarButtonItem
+    ];
+#else
     navigationItem.style = UINavigationItemStyleEditor;
     navigationItem.trailingItemGroups = @[
         [UIBarButtonItemGroup fixedGroupWithRepresentativeItem:nil items:@[
@@ -74,6 +83,7 @@
             self.debugBarButtonItem
         ]]
     ];
+#endif
     
     {
         /*
@@ -140,8 +150,11 @@
     
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:assetPickerViewController];
     [assetPickerViewController release];
+    
+#if !TARGET_OS_TV
     navigationController.modalPresentationStyle = UIModalPresentationPopover;
     navigationController.popoverPresentationController.sourceItem = sender;
+#endif
     
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];
@@ -195,7 +208,11 @@
 }
 
 - (void)_presentProgressAlertControllerWithProgress:(NSProgress *)progress {
+#if TARGET_OS_TV
+    UIProgressView *progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+#else
     UIProgressView *progressView = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleBar];
+#endif
     progressView.observedProgress = progress;
     UIViewController *viewController = [UIViewController new];
     viewController.view = progressView;
@@ -229,3 +246,5 @@
 }
 
 @end
+
+#endif

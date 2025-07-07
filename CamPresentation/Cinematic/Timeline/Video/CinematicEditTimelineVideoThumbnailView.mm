@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineVideoThumbnailView.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutAttributes.h>
 #import <CamPresentation/PlayerLayerView.h>
 #import <objc/message.h>
@@ -107,3 +110,5 @@ __attribute__((objc_direct_members))
 }
 
 @end
+
+#endif

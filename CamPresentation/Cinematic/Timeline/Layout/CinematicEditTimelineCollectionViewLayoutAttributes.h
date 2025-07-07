@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 3/11/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <UIKit/UIKit.h>
 #import <CoreMedia/CoreMedia.h>
 #import <Cinematic/Cinematic.h>
@@ -19,3 +23,5 @@ __attribute__((objc_direct_members))
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

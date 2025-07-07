@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicViewModel.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CamPresentation/Constants.h>
@@ -204,3 +207,5 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 }
 
 @end
+
+#endif

@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 3/10/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <Metal/Metal.h>
 #import <CamPresentation/CinematicAssetData.h>
 
@@ -19,3 +23,5 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

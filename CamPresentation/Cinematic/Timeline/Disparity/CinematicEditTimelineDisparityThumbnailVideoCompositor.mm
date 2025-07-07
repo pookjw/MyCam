@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineDisparityThumbnailVideoCompositor.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <Cinematic/Cinematic.h>
 #import <CamPresentation/CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction.h>
 #include <ranges>
@@ -156,3 +159,5 @@
 }
 
 @end
+
+#endif

@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineDetectionsContentView.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineDetectionsContentConfiguration
 
 - (nonnull id)copyWithZone:(nullable NSZone *)zone { 
@@ -44,3 +46,5 @@
 }
 
 @end
+
+#endif

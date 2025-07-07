@@ -53,7 +53,6 @@
 		4FC661432D24FCDC00AC8728 /* MyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4FA73E5C2C97152500F17348 /* MyWidgetExtension.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4FC661452D24FCDC00AC8728 /* CamPresentation.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F2A41922C98148000726F2F /* CamPresentation.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4FD57C3F2C9AC4A50016FBF0 /* Symbols.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FD57C3E2C9AC4A50016FBF0 /* Symbols.framework */; };
-		4FDF25822D7CA7730021EE5C /* Cinematic.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FDF257C2D7CA37F0021EE5C /* Cinematic.framework */; platformFilters = (ios, tvos, ); };
 		4FED1ACD2C997BC000174044 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACC2C997BC000174044 /* CoreGraphics.framework */; };
 		4FED1ACF2C997E0B00174044 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1ACE2C997E0B00174044 /* QuartzCore.framework */; };
 		4FED1AD12C997E2C00174044 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FED1AD02C997E2C00174044 /* ImageIO.framework */; };
@@ -391,6 +390,8 @@
 				Cinematic/CinematicAssetData.mm,
 				Cinematic/CinematicAssetReader.h,
 				Cinematic/CinematicAssetReader.mm,
+				Cinematic/CinematicCompileTimeLinker.h,
+				Cinematic/CinematicCompileTimeLinker.m,
 				Cinematic/CinematicEditHelper.h,
 				Cinematic/CinematicEditHelper.mm,
 				Cinematic/CinematicEditViewController.h,
@@ -702,6 +703,7 @@
 				Cam/PointCloudPreviewView.h,
 				Cinematic/CinematicAssetData.h,
 				Cinematic/CinematicAssetReader.h,
+				Cinematic/CinematicCompileTimeLinker.h,
 				Cinematic/CinematicEditViewController.h,
 				Cinematic/CinematicObjectTracking.h,
 				Cinematic/CinematicSampleBuffer.h,
@@ -953,7 +955,6 @@
 				4FED1AD12C997E2C00174044 /* ImageIO.framework in Frameworks */,
 				4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */,
 				4FA73EB82C9975E300F17348 /* PhotosUI.framework in Frameworks */,
-				4FDF25822D7CA7730021EE5C /* Cinematic.framework in Frameworks */,
 				4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */,
 				4FA73EB72C9975E300F17348 /* Photos.framework in Frameworks */,
 				4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */,

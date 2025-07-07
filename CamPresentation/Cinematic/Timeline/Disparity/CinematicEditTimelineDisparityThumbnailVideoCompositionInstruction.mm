@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineDisparityThumbnailVideoCompositionInstruction
 
 - (instancetype)initWithSnapshot:(CinematicSnapshot *)snapshot {
@@ -49,3 +51,5 @@
 }
 
 @end
+
+#endif

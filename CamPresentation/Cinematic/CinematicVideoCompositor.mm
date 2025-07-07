@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicVideoCompositor.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/CinematicVideoCompositionInstruction.h>
 #import <CoreVideo/CoreVideo.h>
 #import <CamPresentation/CinematicEditHelper.h>
@@ -155,3 +158,5 @@ __attribute__((objc_direct_members))
 }
 
 @end
+
+#endif

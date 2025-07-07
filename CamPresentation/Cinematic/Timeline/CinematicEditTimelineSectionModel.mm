@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineSectionModel.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -81,3 +84,5 @@
 }
 
 @end
+
+#endif

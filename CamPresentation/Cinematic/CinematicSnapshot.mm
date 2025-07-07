@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicSnapshot.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicSnapshot
 
 - (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition compositionInfo:(CNCompositionInfo *)compositionInfo renderingSession:(CNRenderingSession *)renderingSession assetData:(CinematicAssetData *)assetData {
@@ -31,3 +33,5 @@
 }
 
 @end
+
+#endif

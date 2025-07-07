@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditViewController.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import <objc/message.h>
@@ -13,6 +16,7 @@
 #import <CamPresentation/CinematicEditTimelineView.h>
 #import <CamPresentation/PlayerLayerView.h>
 #import <CamPresentation/PlayerControlView.h>
+#import <CamPresentation/TVSlider.h>
 
 @interface CinematicEditViewController () <CinematicEditTimelineViewDelegate>
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
@@ -21,7 +25,11 @@
 @property (retain, nonatomic, readonly, getter=_timelineView) CinematicEditTimelineView *timelineView;
 @property (retain, nonatomic, readonly, getter=_stackView) UIStackView *stackView;
 @property (retain, nonatomic, readonly, getter=_activityIndicatorView) UIActivityIndicatorView *activityIndicatorView;
+#if TARGET_OS_TV
+@property (retain, nonatomic, readonly, getter=_fNumberSlider) TVSlider *fNumberSlider;
+#else
 @property (retain, nonatomic, readonly, getter=_fNumberSlider) UISlider *fNumberSlider;
+#endif
 @property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
 @property (retain, nonatomic, readonly, getter=_periodicTimeObserver) id periodicTimeObserver;
 @end
@@ -82,7 +90,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+#if !TARGET_OS_TV
     self.view.backgroundColor = UIColor.systemBackgroundColor;
+#endif
     
     UIStackView *stackView = self.stackView;
     [self.view addSubview:stackView];
@@ -103,7 +113,11 @@
         [controlView.bottomAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.bottomAnchor]
     ]];
     
+#if TARGET_OS_TV
+    TVSlider *fNumberSlider = self.fNumberSlider;
+#else
     UISlider *fNumberSlider = self.fNumberSlider;
+#endif
     [self.playerLayerView addSubview:fNumberSlider];
     fNumberSlider.translatesAutoresizingMaskIntoConstraints = NO;
     [NSLayoutConstraint activateConstraints:@[
@@ -178,20 +192,41 @@
     
     UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
     activityIndicatorView.hidesWhenStopped = YES;
+#if TARGET_OS_TV
+    activityIndicatorView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.3];
+#else
     activityIndicatorView.backgroundColor = [UIColor.systemBackgroundColor colorWithAlphaComponent:0.3];
+#endif
     
     _activityIndicatorView = activityIndicatorView;
     return activityIndicatorView;
 }
 
-- (UISlider *)_fNumberSlider {
+#if TARGET_OS_TV
+- (TVSlider *)_fNumberSlider
+#else
+- (UISlider *)_fNumberSlider
+#endif
+{
     if (auto fNumberSlider = _fNumberSlider) return fNumberSlider;
     
+#if TARGET_OS_TV
+    TVSlider *fNumberSlider = [TVSlider new];
+#else
     UISlider *fNumberSlider = [UISlider new];
+#endif
     fNumberSlider.minimumValue = 2.f;
     fNumberSlider.maximumValue = 16.f;
     fNumberSlider.continuous = NO;
+    
+#if TARGET_OS_TV
+    __block auto weakSelf = self;
+    [fNumberSlider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+        [weakSelf _didChangeFNumberSliderValue:action.sender];
+    }]];
+#else
     [fNumberSlider addTarget:self action:@selector(_didChangeFNumberSliderValue:) forControlEvents:UIControlEventValueChanged];
+#endif
     
     _fNumberSlider = fNumberSlider;
     return fNumberSlider;
@@ -243,7 +278,12 @@
     });
 }
 
-- (void)_didChangeFNumberSliderValue:(UISlider *)sender {
+#if TARGET_OS_TV
+- (void)_didChangeFNumberSliderValue:(TVSlider *)sender
+#else
+- (void)_didChangeFNumberSliderValue:(UISlider *)sender
+#endif
+{
     float value = sender.value;
     
     dispatch_async(self.viewModel.queue, ^{
@@ -338,3 +378,5 @@
 }
 
 @end
+
+#endif

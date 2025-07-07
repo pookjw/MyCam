@@ -8,6 +8,9 @@
 // -[PTCinematographyCustomTrack _initWithCustomTrack:]
 
 #import <CamPresentation/CNDetection+CP_Category.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -39,3 +42,5 @@ namespace cp_PTCinematographyCustomTrack {
 }
 
 @end
+
+#endif

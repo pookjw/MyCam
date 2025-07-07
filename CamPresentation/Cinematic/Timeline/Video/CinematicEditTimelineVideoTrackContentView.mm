@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineVideoTrackContentView.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineVideoTrackContentConfiguration
 
 - (nonnull id)copyWithZone:(nullable NSZone *)zone { 
@@ -44,3 +46,5 @@
 }
 
 @end
+
+#endif

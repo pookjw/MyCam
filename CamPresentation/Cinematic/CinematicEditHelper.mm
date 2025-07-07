@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditHelper.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CoreVideo/CoreVideo.h>
 #include <array>
 
@@ -240,3 +243,5 @@
 }
 
 @end
+
+#endif

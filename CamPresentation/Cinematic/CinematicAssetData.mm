@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicAssetData.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/Constants.h>
 
 NSString * CinematicAssetDataErrorKey = @"CinematicAssetDataErrorKey";
@@ -146,3 +149,5 @@ NSString * CinematicAssetDataErrorKey = @"CinematicAssetDataErrorKey";
 }
 
 @end
+
+#endif

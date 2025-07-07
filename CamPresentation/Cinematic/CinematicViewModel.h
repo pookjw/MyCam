@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 3/9/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <Photos/Photos.h>
 #import <Cinematic/Cinematic.h>
 #import <AVFoundation/AVFoundation.h>
@@ -26,3 +30,5 @@ CP_EXTERN NSNotificationName const CinematicViewModelDidUpdateScriptNotification
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

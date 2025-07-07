@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 3/11/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CoreMedia/CoreMedia.h>
 #import <Cinematic/Cinematic.h>
 
@@ -36,3 +40,5 @@ typedef NS_ENUM(NSUInteger, CinematicEditTimelineSectionModelType) {
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

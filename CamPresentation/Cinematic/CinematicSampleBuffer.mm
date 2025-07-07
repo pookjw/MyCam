@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicSampleBuffer.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicSampleBuffer
 
 - (instancetype)initWithImageBuffer:(CVPixelBufferRef)imageBuffer disparityBuffer:(CVPixelBufferRef)disparityBuffer metadataBuffer:(CMSampleBufferRef)metadataBuffer presentationTimestamp:(CMTime)presentationTimestamp {
@@ -32,3 +34,5 @@
 }
 
 @end
+
+#endif

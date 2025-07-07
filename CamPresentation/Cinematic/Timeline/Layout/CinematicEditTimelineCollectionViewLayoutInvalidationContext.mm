@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutInvalidationContext.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineCollectionViewLayoutInvalidationContext
 
 - (instancetype)init {
@@ -19,3 +21,5 @@
 }
 
 @end
+
+#endif

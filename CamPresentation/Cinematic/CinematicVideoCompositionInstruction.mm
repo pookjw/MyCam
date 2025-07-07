@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicVideoCompositionInstruction.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicVideoCompositionInstruction
 
 - (instancetype)initWithRenderingSession:(CNRenderingSession *)renderingSession compositionInfo:(CNCompositionInfo *)compositionInfo script:(CNScript *)script editMode:(BOOL)editMode {
@@ -53,3 +55,5 @@
 }
 
 @end
+
+#endif

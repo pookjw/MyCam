@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineView.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/CinematicEditTimelineViewModel.h>
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayout.h>
 #import <objc/message.h>
@@ -31,7 +34,9 @@ __attribute__((objc_direct_members))
 @property (retain, nonatomic, readonly, getter=_videoThumbnailSupplementaryRegistration) UICollectionViewSupplementaryRegistration *videoThumbnailSupplementaryRegistration;
 @property (retain, nonatomic, readonly, getter=_disparityThumbnailSupplementaryRegistration) UICollectionViewSupplementaryRegistration *disparityThumbnailSupplementaryRegistration;
 @property (retain, nonatomic, readonly, getter=_detectionsSupplementaryRegistration) UICollectionViewSupplementaryRegistration *detectionsSupplementaryRegistration;
+#if !TARGET_OS_TV
 @property (retain, nonatomic, readonly, getter=_pinchGestureRecognizer) UIPinchGestureRecognizer *pinchGestureRecognizer;
+#endif
 @property (assign, nonatomic, getter=_originalPixelsForSecond, setter=_setOriginalPixelsForSecond:) CGFloat originalPixelsForSecond;
 @end
 
@@ -45,7 +50,9 @@ __attribute__((objc_direct_members))
 @synthesize detectionsSupplementaryRegistration = _detectionsSupplementaryRegistration;
 @synthesize videoThumbnailSupplementaryRegistration = _videoThumbnailSupplementaryRegistration;
 @synthesize disparityThumbnailSupplementaryRegistration = _disparityThumbnailSupplementaryRegistration;
+#if !TARGET_OS_TV
 @synthesize pinchGestureRecognizer = _pinchGestureRecognizer;
+#endif
 
 - (instancetype)initWithParentViewModel:(CinematicViewModel *)parentViewModel {
     if (self = [super init]) {
@@ -70,7 +77,9 @@ __attribute__((objc_direct_members))
     [_videoThumbnailSupplementaryRegistration release];
     [_disparityThumbnailSupplementaryRegistration release];
     [_detectionsSupplementaryRegistration release];
+#if !TARGET_OS_TV
     [_pinchGestureRecognizer release];
+#endif
     [super dealloc];
 }
 
@@ -140,7 +149,9 @@ __attribute__((objc_direct_members))
     [collectionViewLayout release];
     
     collectionView.delegate = self;
+#if !TARGET_OS_TV
     [collectionView addGestureRecognizer:self.pinchGestureRecognizer];
+#endif
     
     _collectionView = collectionView;
     return collectionView;
@@ -243,6 +254,7 @@ __attribute__((objc_direct_members))
     return detectionsSupplementaryRegistration;
 }
 
+#if !TARGET_OS_TV
 - (UIPinchGestureRecognizer *)_pinchGestureRecognizer {
     if (auto pinchGestureRecognizer = _pinchGestureRecognizer) return pinchGestureRecognizer;
     
@@ -251,6 +263,7 @@ __attribute__((objc_direct_members))
     _pinchGestureRecognizer = pinchGestureRecognizer;
     return pinchGestureRecognizer;
 }
+#endif
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     id<CinematicEditTimelineViewDelegate> delegate = self.delegate;
@@ -266,6 +279,7 @@ __attribute__((objc_direct_members))
     }
 }
 
+#if !TARGET_OS_TV
 - (void)_didTriggerPinchGestureRecognizer:(UIPinchGestureRecognizer *)sender {
     if (sender.state == UIGestureRecognizerStateBegan) {
         self.originalPixelsForSecond = self.collectionViewLayout.pixelsForSecond;
@@ -273,5 +287,8 @@ __attribute__((objc_direct_members))
     
     self.collectionViewLayout.pixelsForSecond = self.originalPixelsForSecond * sender.scale;
 }
+#endif
 
 @end
+
+#endif

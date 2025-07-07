@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicObjectTracking.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/CinematicAssetReader.h>
 #import <UIKit/UIKit.h>
 
@@ -124,3 +127,5 @@
 }
 
 @end
+
+#endif

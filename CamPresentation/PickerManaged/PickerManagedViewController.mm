@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/PickerManagedViewController.h>
+
+#if !TARGET_OS_TV
+
 #include <dlfcn.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -25,7 +28,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)loadView {
     UIButton *button = [UIButton new];
-    
     button.backgroundColor = UIColor.systemBackgroundColor;
     
     UIButtonConfiguration *configuration = [UIButtonConfiguration tintedButtonConfiguration];
@@ -54,14 +56,18 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [configuration release];
     [contentViewController release];
     
+#if TARGET_OS_IOS
     managedViewController.sheetPresentationController.detents = @[
         [UISheetPresentationControllerDetent mediumDetent],
         [UISheetPresentationControllerDetent largeDetent]
     ];
     managedViewController.sheetPresentationController.largestUndimmedDetentIdentifier = [UISheetPresentationControllerDetent mediumDetent].identifier;
+#endif
     
     [self presentViewController:managedViewController animated:YES completion:nil];
     [managedViewController release];
 }
 
 @end
+
+#endif

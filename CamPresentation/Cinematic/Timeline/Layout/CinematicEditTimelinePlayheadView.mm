@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelinePlayheadView.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelinePlayheadView
 
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -18,3 +20,5 @@
 }
 
 @end
+
+#endif

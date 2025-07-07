@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineViewModel.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @interface CinematicEditTimelineViewModel ()
 @property (retain, nonatomic, nullable, setter=_mainQueue_setCinematicSnapshot:) CinematicSnapshot *mainQueue_cinematicSnapshot;
 @property (retain, nonatomic, readonly, getter=_parentViewModel) CinematicViewModel *parentViewModel;
@@ -194,3 +196,5 @@
 }
 
 @end
+
+#endif

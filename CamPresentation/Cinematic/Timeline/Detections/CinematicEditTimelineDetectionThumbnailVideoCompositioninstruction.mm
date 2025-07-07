@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineDetectionThumbnailVideoCompositioninstruction
 
 - (instancetype)initWithSnapshot:(CinematicSnapshot *)snapshot detection:(CNDetection *)detection {
@@ -54,3 +56,5 @@
 }
 
 @end
+
+#endif

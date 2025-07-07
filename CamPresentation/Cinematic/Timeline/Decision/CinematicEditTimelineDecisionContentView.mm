@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicEditTimelineDecisionContentView.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @implementation CinematicEditTimelineDecisionContentConfiguration
 
 - (instancetype)initWithItemModel:(CinematicEditTimelineItemModel *)itemModel {
@@ -166,3 +168,5 @@
 }
 
 @end
+
+#endif

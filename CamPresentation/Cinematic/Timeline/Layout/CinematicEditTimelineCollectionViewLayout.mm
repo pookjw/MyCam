@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayout.h>
+
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 #import <CamPresentation/CinematicEditTimelineCollectionViewLayoutAttributes.h>
 #include <ranges>
 #import <CamPresentation/CinematicEditTimelineSectionModel.h>
@@ -399,3 +402,5 @@ NSString * const CinematicEditTimelineCollectionViewLayoutDetectionThumbnailSupp
 }
 
 @end
+
+#endif

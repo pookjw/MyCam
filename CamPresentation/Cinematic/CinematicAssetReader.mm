@@ -7,6 +7,8 @@
 
 #import <CamPresentation/CinematicAssetReader.h>
 
+#if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
+
 @interface CinematicAssetReader ()
 @property (retain, nonatomic, readonly, getter=_avAssetReader) AVAssetReader *avAssetReader;
 @property (retain, nonatomic, readonly, getter=_avAssetReaderVideoTrackOutput) AVAssetReaderTrackOutput *avAssetReaderVideoTrackOutput;
@@ -110,3 +112,5 @@
 }
 
 @end
+
+#endif
