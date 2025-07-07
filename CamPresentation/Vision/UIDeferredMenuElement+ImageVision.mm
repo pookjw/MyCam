@@ -59,7 +59,9 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
 }
 
 + (UIMenu *)_cp_imageVisionRequestsMenuWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests observations:(NSArray<__kindof VNObservation *> *)observations image:(UIImage *)image imageVisionLayer:(ImageVisionLayer *)imageVisionLayer {
-    UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:@[
+    NSMutableArray<__kindof UIMenuElement *> *usefulRequests = [NSMutableArray new];
+    
+    [usefulRequests addObjectsFromArray:@[
         [UIDeferredMenuElement _cp_imageVisionElementForVNDetectFaceLandmarksRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNGeneratePersonSegmentationRequestWithViewModel:viewModel addedRequests:requests],
         [UIDeferredMenuElement _cp_imageVisionElementForVNCreateAnimalprintRequestWithViewModel:viewModel addedRequests:requests],
@@ -120,9 +122,15 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackMaskRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackRectangleRequestWithViewModel:viewModel addedRequests:requests observations:observations],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
     ]];
+    
+    if (@available(iOS 26.0, *)) {
+        [usefulRequests addObject:[UIDeferredMenuElement _cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:viewModel addedRequests:requests]];
+    }
+    
+    UIMenu *usefulRequestsMenu = [UIMenu menuWithTitle:@"Useful Requests" children:usefulRequests];
+    [usefulRequests release];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
         [UIDeferredMenuElement _cp_imageVisionElementForVNAlignFaceRectangleRequestWithViewModel:viewModel addedRequests:requests],
@@ -6539,7 +6547,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return menu;
 }
 
-+ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests API_AVAILABLE(ios(26.0)) {
     __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectLensSmudgeRequest") addedRequests:requests];
     
     if (request == nil) {

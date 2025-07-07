@@ -136,6 +136,15 @@
 #endif
     
     void (^requestRecordPermission)() = ^{
+#if TARGET_OS_SIMULATOR
+        
+#if TARGET_OS_TV
+                        requestLocationAuthorization();
+#else
+                        requestMicrophoneInjectionPermission();
+#endif
+        
+#else
         AVAudioApplicationRecordPermission recordPermission = AVAudioApplication.sharedInstance.recordPermission;
         
         switch (recordPermission) {
@@ -167,6 +176,7 @@
                 completionHandler(NO);
                 break;
         }
+#endif
     };
     
     void (^requestPhotoLibraryAuthorization)() = ^{

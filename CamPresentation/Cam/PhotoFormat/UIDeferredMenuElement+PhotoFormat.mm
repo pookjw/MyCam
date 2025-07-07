@@ -3513,7 +3513,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_additionalFaceDetectionFeaturesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    return [UIMenu menuWithTitle:@"Face Detection Features" children:@[
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+    
+    [children addObjectsFromArray:@[
         [UIDeferredMenuElement _cp_queue_toggleSmileDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleEyeClosedDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleEyeDetectionEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
@@ -3521,11 +3523,20 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         [UIDeferredMenuElement _cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-#if !TARGET_OS_TV
-        [UIDeferredMenuElement _cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
-#endif
+        [UIDeferredMenuElement _cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
+    
+    if (@available(iOS 26.0, *)) {
+        
+    } else {
+        [children addObject:[UIDeferredMenuElement _cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+    }
+    
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Face Detection Features" children:children];
+    [children release];
+    
+    return menu;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleSmileDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
@@ -3730,7 +3741,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 #if !TARGET_OS_TV
-+ (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
++ (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_DEPRECATED("No longer supported.", ios(18.0, 26.0)) {
     AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
