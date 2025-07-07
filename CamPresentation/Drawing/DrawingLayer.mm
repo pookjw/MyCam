@@ -7,6 +7,7 @@
 
 #import <CamPresentation/DrawingLayer.h>
 #import <UIKit/UIKit.h>
+#include <cmath>
 
 @interface DrawingLayer ()
 @property (assign, nonatomic, readonly, getter=_currentNormalizedPath) CGMutablePathRef currentNormalizedPath;
@@ -87,6 +88,8 @@
         [self setNeedsDisplay];
     } else {
         CGPoint lastPoint = CGPathGetCurrentPoint(_currentNormalizedPath);
+        if (CGPointEqualToPoint(lastPoint, normalizedPoint)) return;
+        
         CGPathAddLineToPoint(_currentNormalizedPath, NULL, normalizedPoint.x, normalizedPoint.y);
         
         CGRect bounds = self.bounds;
@@ -94,18 +97,35 @@
         CGRect r2 = CGRectMake(normalizedPoint.x, normalizedPoint.y, 0., 0.);
         CGRect updatingRect = CGRectUnion(r1, r2);
         
+        if (CGRectIsNull(updatingRect)) {
+            return;
+        }
+        
         updatingRect.origin.x *= CGRectGetWidth(bounds);
-        updatingRect.origin.x -= _strokeWidth * 0.5;
-        
         updatingRect.origin.y *= CGRectGetHeight(bounds);
-        updatingRect.origin.y -= _strokeWidth * 0.5;
-        
         updatingRect.size.width *= CGRectGetWidth(bounds);
-        updatingRect.size.width += _strokeWidth;
-        
         updatingRect.size.height *= CGRectGetHeight(bounds);
-        updatingRect.size.height += _strokeWidth;
         
+        if ((CGRectGetWidth(updatingRect) != 0.) && (CGRectGetHeight(updatingRect) != 0.)) {
+            CGFloat radian = std::atan(CGRectGetHeight(updatingRect) / CGRectGetWidth(updatingRect));
+            CGFloat sinVal = std::sin(radian);
+            CGFloat cosVal = std::cos(radian);
+            
+            CGFloat xInset = _strokeWidth * 0.5 * sinVal;
+            CGFloat yInset = _strokeWidth * 0.5 * cosVal;
+            
+            updatingRect.origin.x -= xInset;
+            updatingRect.origin.y -= yInset;
+            updatingRect.size.width += xInset * 2.;
+            updatingRect.size.height += yInset * 2.;
+        }
+        
+        if (CGRectGetWidth(updatingRect) == 0.) {
+            updatingRect = CGRectInset(updatingRect, _strokeWidth * -0.5, 0.);
+        }
+        if (CGRectGetHeight(updatingRect) == 0.) {
+            updatingRect = CGRectInset(updatingRect, 0., _strokeWidth * -0.5);
+        }
         
         [self setNeedsDisplayInRect:updatingRect];
     }

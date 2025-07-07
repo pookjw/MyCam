@@ -853,6 +853,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             [drawingLayer addLineToNormalizedPoint:location begin:NO];
             
             CGRect boundingBox = drawingLayer.normalizedBoundingBox;
+            if (CGRectIsNull(boundingBox)) return;
+            
             boundingBox.origin.x *= CGRectGetWidth(bounds);
             boundingBox.origin.y *= CGRectGetHeight(bounds);
             boundingBox.size.width *= CGRectGetWidth(bounds);
@@ -860,14 +862,52 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             
             AVCaptureVideoPreviewLayer *previewLayer = self.previewLayer;
             CGPoint pointOfInterest1 = [previewLayer captureDevicePointOfInterestForPoint:CGPointMake(CGRectGetMinX(boundingBox),
-                                                                                                           CGRectGetMinY(boundingBox))];
+                                                                                                      CGRectGetMinY(boundingBox))];
             CGPoint pointOfInterest2 = [previewLayer captureDevicePointOfInterestForPoint:CGPointMake(CGRectGetMaxX(boundingBox),
-                                                                                                           CGRectGetMaxY(boundingBox))];
+                                                                                                      CGRectGetMaxY(boundingBox))];
             
             CGRect rectOfInterest = CGRectUnion(CGRectMake(pointOfInterest1.x, pointOfInterest1.y, 0., 0.),
                                                 CGRectMake(pointOfInterest2.x, pointOfInterest2.y, 0., 0.));
             
             AVCaptureDevice *captureDevice = self.captureDevice;
+            
+            switch (self.gestureMode) {
+                case CaptureVideoPreview::GestureMode::FocusRect: {
+                    CGSize minFocusRectOfInterestSize = captureDevice.minFocusRectOfInterestSize;
+                    if (CGRectGetWidth(rectOfInterest) < minFocusRectOfInterestSize.width) {
+                        rectOfInterest = CGRectInset(rectOfInterest,
+                                                     (minFocusRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
+                                                     0.);
+                    }
+                    if (CGRectGetHeight(rectOfInterest) < minFocusRectOfInterestSize.height) {
+                        rectOfInterest = CGRectInset(rectOfInterest,
+                                                     0.,
+                                                     (minFocusRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                    }
+                    break;
+                }
+                case CaptureVideoPreview::GestureMode::ExposureRect: {
+                    CGSize minExposureRectOfInterestSize = captureDevice.minExposureRectOfInterestSize;
+                    if (CGRectGetWidth(rectOfInterest) < minExposureRectOfInterestSize.width) {
+                        rectOfInterest = CGRectInset(rectOfInterest,
+                                                     (minExposureRectOfInterestSize.width - CGRectGetWidth(rectOfInterest)) * -0.5,
+                                                     0.);
+                    }
+                    if (CGRectGetHeight(rectOfInterest) < minExposureRectOfInterestSize.height) {
+                        rectOfInterest = CGRectInset(rectOfInterest,
+                                                     0.,
+                                                     (minExposureRectOfInterestSize.height - CGRectGetHeight(rectOfInterest)) * -0.5);
+                    }
+                    break;
+                }
+                default:
+                    abort();
+            }
+            
+            if (CGRectIsNull(rectOfInterest)) return;
+            
+            //
+            
             NSError * _Nullable error = nil;
             [captureDevice lockForConfiguration:&error];
             assert(error == nil);
