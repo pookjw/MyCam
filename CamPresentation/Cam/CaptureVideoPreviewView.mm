@@ -18,25 +18,46 @@
 #include <array>
 #include <vector>
 #include <ranges>
+#import <CamPresentation/DrawingView.h>
 
 #warning 확대할 때 preview 뜨게 하기
 
 namespace CaptureVideoPreview {
 enum class GestureMode {
-    Focus, Exposure
+    None, FocusPoint, FocusRect, ExposurePoint, ExposureRect
 };
 
-constexpr const std::array<GestureMode, 2> allGestureModes {
-    GestureMode::Focus,
-    GestureMode::Exposure
+const std::vector<GestureMode> allGestureModes() {
+    std::vector<GestureMode> results {
+        GestureMode::None,
+        GestureMode::FocusPoint
+    };
+    
+    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+        results.push_back(GestureMode::FocusRect);
+    }
+    
+    results.push_back(GestureMode::ExposurePoint);
+    
+    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+        results.push_back(GestureMode::ExposureRect);
+    }
+    
+    return results;
 };
 
 NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     switch (gestureMode) {
-        case GestureMode::Focus:
-            return @"Focus";
-        case GestureMode::Exposure:
-            return @"Exposure";
+        case GestureMode::None:
+            return @"None";
+        case GestureMode::FocusPoint:
+            return @"Focus Point";
+        case GestureMode::FocusRect:
+            return @"Focus Rect";
+        case GestureMode::ExposurePoint:
+            return @"Exposure Point";
+        case GestureMode::ExposureRect:
+            return @"Exposure Rect";
         default:
             abort();
     }
@@ -70,6 +91,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) ExposureRectLayer *exposureRectLayer;
 @property (retain, nonatomic, readonly) NerualAnalyzerLayer *nerualAnalyzerLayer;
 @property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
+@property (retain, nonatomic, readonly) DrawingView *drawingView;
 @end
 
 @implementation CaptureVideoPreviewView
@@ -88,6 +110,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @synthesize gestureModeMenuBarButtonItem = _gestureModeMenuBarButtonItem;
 @synthesize toolbar = _toolbar;
 @synthesize blurView = _blurView;
+@synthesize drawingView = _drawingView;
 
 - (instancetype)initWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice previewLayer:(AVCaptureVideoPreviewLayer *)previewLayer customPreviewLayer:(PixelBufferLayer *)customPreviewLayer sampleBufferDisplayLayer:(AVSampleBufferDisplayLayer *)sampleBufferDisplayLayer videoThumbnailLayer:(CALayer *)videoThumbnailLayer depthMapLayer:(CALayer *)depthMapLayer visionLayer:(CALayer *)visionLayer metadataObjectsLayer:(CALayer *)metadataObjectsLayer nerualAnalyzerLayer:(NerualAnalyzerLayer *)nerualAnalyzerLayer {
     assert(previewLayer != nil);
@@ -106,7 +129,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         CALayer *layer = self.layer;
 #if !TARGET_OS_TV
-        layer.wantsExtendedDynamicRangeContent = YES;
+        if (@available(iOS 26.0, *)) {
+            layer.preferredDynamicRange = CADynamicRangeHigh;
+        } else {
+            layer.wantsExtendedDynamicRangeContent = YES;
+        }
 #endif
         
         CGRect bounds = layer.bounds;
@@ -149,6 +176,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [layer addSublayer:exposureRectLayer];
         _exposureRectLayer = exposureRectLayer;
         
+        DrawingView *drawingView = self.drawingView;
+        drawingView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        drawingView.frame = self.bounds;
+        [self addSubview:drawingView];
+        
         //
         
         UILabel *spatialCaptureDiscomfortReasonLabel = self.spatialCaptureDiscomfortReasonLabel;
@@ -185,11 +217,15 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         UITapGestureRecognizer *tapGestureRecogninzer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewTapGestureRecognizer:)];
         [self addGestureRecognizer:tapGestureRecogninzer];
-        [tapGestureRecogninzer release];
+        _tapGestureRecogninzer = tapGestureRecogninzer;
         
-        UILongPressGestureRecognizer *longGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewLongGestureRecognizer:)];
-        [self addGestureRecognizer:longGestureRecognizer];
-        [longGestureRecognizer release];
+        UILongPressGestureRecognizer *longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerCaptureVideoPreviewViewLongPressGestureRecognizer:)];
+        [self addGestureRecognizer:longPressGestureRecognizer];
+        _longPressGestureRecognizer = longPressGestureRecognizer;
+        
+        UIPanGestureRecognizer *panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(didTriggerPanGestureRecognizer:)];
+        [self addGestureRecognizer:panGestureRecognizer];
+        _panGestureRecognizer = panGestureRecognizer;
         
         //
         
@@ -197,6 +233,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
         
         [self updateContentsScale];
+        
+//        self.gestureMode = CaptureVideoPreview::GestureMode::None;
+        self.gestureMode = CaptureVideoPreview::GestureMode::FocusRect;
         
         //
         
@@ -264,6 +303,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_gestureModeMenuBarButtonItem release];
     [_toolbar release];
     [_blurView release];
+    [_tapGestureRecogninzer release];
+    [_longPressGestureRecognizer release];
+    [_panGestureRecognizer release];
+    [_drawingView release];
     [super dealloc];
 }
 
@@ -320,6 +363,52 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.exposureRectLayer.frame = bounds;
     self.nerualAnalyzerLayer.frame = bounds;
     [pool release];
+}
+
+- (void)setGestureMode:(CaptureVideoPreview::GestureMode)gestureMode {
+    _gestureMode = gestureMode;
+    
+    switch (gestureMode) {
+        case CaptureVideoPreview::GestureMode::None:
+            self.tapGestureRecogninzer.enabled = NO;
+            self.longPressGestureRecognizer.enabled = NO;
+            self.panGestureRecognizer.enabled = NO;
+            break;
+        case CaptureVideoPreview::GestureMode::FocusPoint:
+            assert(self.captureDevice.focusPointOfInterestSupported);
+            self.tapGestureRecogninzer.enabled = YES;
+            self.longPressGestureRecognizer.enabled = YES;
+            self.panGestureRecognizer.enabled = NO;
+            break;
+        case CaptureVideoPreview::GestureMode::FocusRect:
+            if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                assert(self.captureDevice.focusRectOfInterestSupported);
+                self.tapGestureRecogninzer.enabled = NO;
+                self.longPressGestureRecognizer.enabled = YES;
+                self.panGestureRecognizer.enabled = YES;
+            } else {
+                abort();
+            }
+            break;
+        case CaptureVideoPreview::GestureMode::ExposurePoint:
+            assert(self.captureDevice.exposurePointOfInterestSupported);
+            self.tapGestureRecogninzer.enabled = YES;
+            self.longPressGestureRecognizer.enabled = YES;
+            self.panGestureRecognizer.enabled = NO;
+            break;
+        case CaptureVideoPreview::GestureMode::ExposureRect:
+            if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                assert(self.captureDevice.exposureRectOfInterestSupported);
+                self.tapGestureRecogninzer.enabled = NO;
+                self.longPressGestureRecognizer.enabled = YES;
+                self.panGestureRecognizer.enabled = YES;
+            } else {
+                abort();
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 - (UILabel *)spatialCaptureDiscomfortReasonLabel {
@@ -497,7 +586,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         auto _unreaintedSelf = unreaintedSelf;
         
-        auto actionsVec = CaptureVideoPreview::allGestureModes
+        const std::vector<CaptureVideoPreview::GestureMode> allModes = CaptureVideoPreview::allGestureModes();
+        
+        auto actionsVec = allModes
         | std::views::transform([currentGestureMode, _unreaintedSelf](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
             UIAction *action = [UIAction actionWithTitle:CaptureVideoPreview::NSStringFromGestureMode(gestureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                 _unreaintedSelf.gestureMode = gestureMode;
@@ -507,13 +598,31 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             
             BOOL isSupported;
             switch (gestureMode) {
-                case CaptureVideoPreview::GestureMode::Focus:
-                    isSupported = _unreaintedSelf.captureDevice.isFocusPointOfInterestSupported;
+                case CaptureVideoPreview::GestureMode::None:
+                    isSupported = YES;
                     break;
-                case CaptureVideoPreview::GestureMode::Exposure:
+                case CaptureVideoPreview::GestureMode::FocusPoint:
+                    isSupported = _unreaintedSelf.captureDevice.focusPointOfInterestSupported;
+                    break;
+                case CaptureVideoPreview::GestureMode::FocusRect:
+                    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                        isSupported = _unreaintedSelf.captureDevice.focusRectOfInterestSupported;
+                    } else {
+                        abort();
+                    }
+                    break;
+                case CaptureVideoPreview::GestureMode::ExposurePoint:
                     isSupported = _unreaintedSelf.captureDevice.isExposurePointOfInterestSupported;
                     break;
+                case CaptureVideoPreview::GestureMode::ExposureRect:
+                    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                        isSupported = _unreaintedSelf.captureDevice.exposureRectOfInterestSupported;
+                    } else {
+                        abort();
+                    }
+                    break;
                 default:
+                    NSLog(@"%@", CaptureVideoPreview::NSStringFromGestureMode(gestureMode));
                     abort();
             }
             
@@ -591,6 +700,16 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     return [blurView autorelease];
 }
 
+- (DrawingView *)drawingView {
+    if (auto drawingView = _drawingView) return drawingView;
+    
+    DrawingView *drawingView = [DrawingView new];
+    drawingView.userInteractionEnabled = NO;
+    
+    _drawingView = drawingView;
+    return drawingView;
+}
+
 - (void)updateSpatialCaptureDiscomfortReasonLabelWithReasons:(NSSet<AVSpatialCaptureDiscomfortReason> *)reasons {
     NSString *text = [reasons.allObjects componentsJoinedByString:@"\n"];
     self.spatialCaptureDiscomfortReasonLabel.text = text;
@@ -613,7 +732,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
         
         switch (gestureMode) {
-            case CaptureVideoPreview::GestureMode::Focus:
+            case CaptureVideoPreview::GestureMode::FocusPoint:
             {
                 if (!captureDevice.isFocusPointOfInterestSupported) return;
                 
@@ -632,7 +751,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 [captureDevice unlockForConfiguration];
             }
                 break;
-            case CaptureVideoPreview::GestureMode::Exposure:
+            case CaptureVideoPreview::GestureMode::FocusRect:
+                // Pan Gesture만 가능해야함
+                abort();
+            case CaptureVideoPreview::GestureMode::ExposurePoint:
             {
                 if (!captureDevice.isExposurePointOfInterestSupported) return;
                 
@@ -651,13 +773,16 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 [captureDevice unlockForConfiguration];
             }
                 break;
+            case CaptureVideoPreview::GestureMode::ExposureRect:
+                // Pan Gesture만 가능해야함
+                abort();
             default:
                 abort();
         }
     });
 }
 
-- (void)didTriggerCaptureVideoPreviewViewLongGestureRecognizer:(UILongPressGestureRecognizer *)sender {
+- (void)didTriggerCaptureVideoPreviewViewLongPressGestureRecognizer:(UILongPressGestureRecognizer *)sender {
     auto previewView = static_cast<CaptureVideoPreviewView *>(sender.view);
     AVCaptureVideoPreviewLayer *previewLayer = previewView.previewLayer;
     CGPoint viewPoint = [sender locationInView:previewView];
@@ -668,7 +793,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         AVCaptureDevice *captureDevice = [self.captureService queue_captureDeviceFromPreviewLayer:previewLayer];
         
         switch (gestureMode) {
-            case CaptureVideoPreview::GestureMode::Focus:
+            case CaptureVideoPreview::GestureMode::FocusPoint:
             {
                 if (!captureDevice.isFocusPointOfInterestSupported) return;
                 if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
@@ -681,7 +806,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 [captureDevice unlockForConfiguration];
             }
                 break;
-            case CaptureVideoPreview::GestureMode::Exposure:
+            case CaptureVideoPreview::GestureMode::FocusRect:
+                // TODO
+                abort();
+            case CaptureVideoPreview::GestureMode::ExposurePoint:
             {
                 if (!captureDevice.isExposurePointOfInterestSupported) return;
                 if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
@@ -694,10 +822,83 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 [captureDevice unlockForConfiguration];
             }
                 break;
+            case CaptureVideoPreview::GestureMode::ExposureRect:
+                // TODO
+                abort();
             default:
                 abort();
         }
     });
+}
+
+- (void)didTriggerPanGestureRecognizer:(UIPanGestureRecognizer *)sender {
+    DrawingView *drawingView = self.drawingView;
+    
+    CGPoint location = [sender locationInView:drawingView];
+    CGRect bounds = drawingView.bounds;
+    location.x /= CGRectGetWidth(bounds);
+    location.y /= CGRectGetHeight(bounds);
+    
+    DrawingLayer *drawingLayer = drawingView.drawingLayer;
+    
+    switch (sender.state) {
+        case UIGestureRecognizerStateBegan:
+            [drawingLayer clearPoints];
+            [drawingLayer addLineToNormalizedPoint:location begin:YES];
+            break;
+        case UIGestureRecognizerStateChanged:
+            [drawingLayer addLineToNormalizedPoint:location begin:NO];
+            break;
+        case UIGestureRecognizerStateEnded: {
+            [drawingLayer addLineToNormalizedPoint:location begin:NO];
+            
+            CGRect boundingBox = drawingLayer.normalizedBoundingBox;
+            boundingBox.origin.x *= CGRectGetWidth(bounds);
+            boundingBox.origin.y *= CGRectGetHeight(bounds);
+            boundingBox.size.width *= CGRectGetWidth(bounds);
+            boundingBox.size.height *= CGRectGetHeight(bounds);
+            
+            AVCaptureVideoPreviewLayer *previewLayer = self.previewLayer;
+            CGPoint pointOfInterest1 = [previewLayer captureDevicePointOfInterestForPoint:CGPointMake(CGRectGetMinX(boundingBox),
+                                                                                                           CGRectGetMinY(boundingBox))];
+            CGPoint pointOfInterest2 = [previewLayer captureDevicePointOfInterestForPoint:CGPointMake(CGRectGetMaxX(boundingBox),
+                                                                                                           CGRectGetMaxY(boundingBox))];
+            
+            CGRect rectOfInterest = CGRectUnion(CGRectMake(pointOfInterest1.x, pointOfInterest1.y, 0., 0.),
+                                                CGRectMake(pointOfInterest2.x, pointOfInterest2.y, 0., 0.));
+            
+            AVCaptureDevice *captureDevice = self.captureDevice;
+            NSError * _Nullable error = nil;
+            [captureDevice lockForConfiguration:&error];
+            assert(error == nil);
+            
+            switch (self.gestureMode) {
+                case CaptureVideoPreview::GestureMode::FocusRect: {
+                    if ([captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+                        captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+                    } else if ([captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+                        captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+                    }
+                    
+                    captureDevice.focusRectOfInterest = rectOfInterest;
+                    break;
+                }
+                case CaptureVideoPreview::GestureMode::ExposureRect: {
+                    captureDevice.exposureMode = AVCaptureExposureModeLocked;
+                    captureDevice.exposureRectOfInterest = rectOfInterest;
+                    break;
+                }
+                default:
+                    abort();
+            }
+            
+            [captureDevice unlockForConfiguration];
+            break;
+        }
+        default:
+            [self.drawingView.drawingLayer addLineToNormalizedPoint:location begin:NO];
+            break;
+    }
 }
 
 - (void)updateContentsScale {

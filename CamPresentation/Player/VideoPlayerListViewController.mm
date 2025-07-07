@@ -18,11 +18,13 @@
 #import <VideoToolbox/VideoToolbox.h>
 #import <AVKit/AVKit.h>
 #import <CamPresentation/AVPlayerViewController+Category.h>
+#import <CamPresentation/UIDeferredMenuElement+Audio.h>
 
 @interface VideoPlayerListViewController () <UICollectionViewDataSource, UICollectionViewDelegate>
 @property (retain, nonatomic, readonly) VideoPlayerListViewModel *viewModel;
 @property (retain, nonatomic, readonly) __kindof UIView *progressView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *progressBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @end
@@ -30,6 +32,7 @@
 @implementation VideoPlayerListViewController
 @synthesize progressView = _progressView;
 @synthesize progressBarButtonItem = _progressBarButtonItem;
+@synthesize audioBarButtonItem = _audioBarButtonItem;
 @synthesize collectionView = _collectionView;
 @synthesize cellRegistration = _cellRegistration;
 
@@ -80,6 +83,7 @@
     [_viewModel release];
     [_progressView release];
     [_progressBarButtonItem release];
+    [_audioBarButtonItem release];
     [_collectionView release];
     [_cellRegistration release];
     
@@ -94,7 +98,7 @@
     [super viewDidLoad];
     
     UINavigationItem *navigationItem = self.navigationItem;
-    navigationItem.rightBarButtonItem = self.progressBarButtonItem;
+    navigationItem.rightBarButtonItems = @[self.progressBarButtonItem, self.audioBarButtonItem];
     navigationItem.title = @"Players";
     
     __kindof UIView *progressView = self.progressView;
@@ -144,6 +148,20 @@
     
     _progressBarButtonItem = [progressBarButtonItem retain];
     return [progressBarButtonItem autorelease];
+}
+
+- (UIBarButtonItem *)audioBarButtonItem {
+    if (auto audioBarButtonItem = _audioBarButtonItem) return audioBarButtonItem;
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_audioElementWithDidChangeHandler:^{}]
+    ]];
+    UIBarButtonItem *audioBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Audio" image:[UIImage systemImageNamed:@"homepod.fill"] target:nil action:nil menu:menu];
+    
+    audioBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
+    
+    _audioBarButtonItem = audioBarButtonItem;
+    return audioBarButtonItem;
 }
 
 - (UICollectionView *)collectionView {

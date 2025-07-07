@@ -91,6 +91,13 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
             UIMenu *previewOptimizedStabilizationModeSupportedDevices = [UIDeferredMenuElement _cp_queue_previewOptimizedStabilizationModeSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
             menusVec.push_back(previewOptimizedStabilizationModeSupportedDevices);
             
+            if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                UIMenu *focusRectOfInterestSupportedDevices = [UIDeferredMenuElement _cp_queue_focusRectOfInterestSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+                UIMenu *exposureRectOfInterestSupportedDevices = [UIDeferredMenuElement _cp_queue_exposureRectOfInterestSupportedDevicesWithCaptureService:captureService selectionHandler:selectionHandler deselectionHandler:deselectionHandler];
+                menusVec.push_back(focusRectOfInterestSupportedDevices);
+                menusVec.push_back(exposureRectOfInterestSupportedDevices);
+            }
+            
             //
             
             NSArray<UIMenu *> *menus = [[NSArray alloc] initWithObjects:menusVec.data() count:menusVec.size()];
@@ -256,6 +263,26 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
         }
         
         return NO;
+    }
+                                                                selectionHandler:selectionHandler
+                                                              deselectionHandler:deselectionHandler];
+}
+
++ (UIMenu *)_cp_queue_focusRectOfInterestSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler API_AVAILABLE(macos(26.0), ios(26.0), macCatalyst(26.0), tvos(26.0), visionos(26.0)) API_UNAVAILABLE(watchos); {
+    return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                           title:@"Focus Rect Of Interest Supported"
+                                                                   filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+        return captureDevice.focusRectOfInterestSupported;
+    }
+                                                                selectionHandler:selectionHandler
+                                                              deselectionHandler:deselectionHandler];
+}
+
++ (UIMenu *)_cp_queue_exposureRectOfInterestSupportedDevicesWithCaptureService:(CaptureService *)captureService selectionHandler:(void (^)(AVCaptureDevice * _Nonnull))selectionHandler deselectionHandler:(void (^)(AVCaptureDevice * _Nonnull))deselectionHandler API_AVAILABLE(macos(26.0), ios(26.0), macCatalyst(26.0), tvos(26.0), visionos(26.0)) API_UNAVAILABLE(watchos); {
+    return [UIDeferredMenuElement _cp_queue_captureDevicesMenuWithCaptureService:captureService
+                                                                           title:@"Exposure Rect Of Interest Supported"
+                                                                   filterHandler:^BOOL(AVCaptureDevice *captureDevice) {
+        return captureDevice.exposureRectOfInterestSupported;
     }
                                                                 selectionHandler:selectionHandler
                                                               deselectionHandler:deselectionHandler];

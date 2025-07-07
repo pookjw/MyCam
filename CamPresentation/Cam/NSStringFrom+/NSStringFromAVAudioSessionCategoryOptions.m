@@ -47,6 +47,16 @@ NSString * NSStringFromAVAudioSessionCategoryOptions(AVAudioSessionCategoryOptio
     }
 #endif
     
+    if (@available(iOS 26.0, *)) {
+        if ((audioSessionCategoryOptions & AVAudioSessionCategoryOptionBluetoothHighQualityRecording) == AVAudioSessionCategoryOptionBluetoothHighQualityRecording) {
+            [array addObject:@"Bluetooth High Quality Recording"];
+        }
+    } else if (@available(watchOS 26.0, tvOS 26.0, macCatalyst 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if ((audioSessionCategoryOptions & (1 << 19)) == (1 << 19)) {
+            [array addObject:@"Bluetooth High Quality Recording"];
+        }
+    }
+    
     NSString *string = [array componentsJoinedByString:@", "];
     [array release];
     

@@ -47,6 +47,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 @property (nonatomic, readonly) NSArray<UIBarButtonItem *> *cp_toolbarButtonItems;
 #endif
 @property (retain, nonatomic, readonly) CaptureService *captureService;
+
+@property (nonatomic, readonly) NSArray<CaptureVideoPreviewView *> *captureVideoPreviewViews;
 @end
 
 @implementation CameraRootViewController
@@ -245,6 +247,20 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     });
 }
 
+- (NSArray<UIGestureRecognizer *> *)interactivePopAvoidanceGestureRecognizers {
+    NSMutableArray<UIGestureRecognizer *> *results = [NSMutableArray new];
+    
+    for (CaptureVideoPreviewView *previewView in self.captureVideoPreviewViews) {
+        [results addObjectsFromArray:@[
+            previewView.tapGestureRecogninzer,
+            previewView.longPressGestureRecognizer,
+            previewView.panGestureRecognizer
+        ]];
+    }
+    
+    return [results autorelease];
+}
+
 - (UIStackView *)stackView {
     if (auto stackView = _stackView) return stackView;
     
@@ -396,6 +412,18 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return [captureService autorelease];
 }
 
+- (NSArray<CaptureVideoPreviewView *> *)captureVideoPreviewViews {
+    NSMutableArray<CaptureVideoPreviewView *> *results = [NSMutableArray new];
+    
+    for (CaptureVideoPreviewView *previewView in self.stackView.arrangedSubviews) {
+        if ([previewView isKindOfClass:[CaptureVideoPreviewView class]]) {
+            [results addObject:previewView];
+        }
+    }
+    
+    return [results autorelease];
+}
+
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
     NSLog(@"TODO");
 }
@@ -418,22 +446,14 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     CaptureService *captureService = self.captureService;
     
-    dispatch_async(captureService.captureSessionQueue, ^{
-        AVCaptureVideoPreviewLayer *previewLayer = [captureService queue_previewLayerFromCaptureDevice:captureDevice];
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            for (CaptureVideoPreviewView *captureVideoPreviewView in self.stackView.arrangedSubviews) {
-                if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) {
-                    continue;
-                }
-                
-                if (![captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
-                    continue;
-                }
-                
-                [captureVideoPreviewView reloadMenu];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (CaptureVideoPreviewView *captureVideoPreviewView in self.captureVideoPreviewViews) {
+            if (![captureVideoPreviewView.captureDevice isEqual:captureService]) {
+                continue;
             }
-        });
+            
+            [captureVideoPreviewView reloadMenu];
+        }
     });
 }
 

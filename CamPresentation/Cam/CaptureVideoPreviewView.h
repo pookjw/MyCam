@@ -21,6 +21,9 @@ API_UNAVAILABLE(visionos)
 @property (retain, nonatomic, readonly, nullable) CALayer *visionLayer;
 @property (retain, nonatomic, readonly, nullable) CALayer *metadataObjectsLayer;
 @property (retain, nonatomic, readonly) UILabel *spatialCaptureDiscomfortReasonLabel;
+@property (retain, nonatomic, readonly) UITapGestureRecognizer *tapGestureRecogninzer;
+@property (retain, nonatomic, readonly) UILongPressGestureRecognizer *longPressGestureRecognizer;
+@property (retain, nonatomic, readonly) UIPanGestureRecognizer *panGestureRecognizer;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;

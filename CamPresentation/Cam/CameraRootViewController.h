@@ -11,6 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
 @interface CameraRootViewController : UIViewController
+@property (nonatomic, readonly) NSArray<UIGestureRecognizer *> *interactivePopAvoidanceGestureRecognizers;
 @end
 
 NS_ASSUME_NONNULL_END

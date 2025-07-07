@@ -33,6 +33,24 @@
 
 @implementation UIDeferredMenuElement (Audio)
 
+static id<NSObject> muteToken;
+static id<NSObject> unmuteToken;
+static id<NSObject> availableInputsChangeToken;
+
++ (void)load {
+    muteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionOutputMuteStateChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSLog(@"%@", notification);
+    }] retain];
+    
+    unmuteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionUserIntentToUnmuteOutputNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSLog(@"%@", notification);
+    }] retain];
+    
+    availableInputsChangeToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionAvailableInputsChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSLog(@"%@", notification);
+    }] retain];
+}
+
 + (instancetype)cp_audioElementWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(dispatch_get_global_queue(0, 0), ^{
@@ -89,7 +107,7 @@
             UIAction *togglePrefersEchoCancelledInputAction = [UIDeferredMenuElement _cp_togglePrefersEchoCancelledInputActionWithAudioSession:audioSession didChangeHandler:didChangeHandler];
 #endif
             
-            NSArray<__kindof UIMenuElement *> *children = @[
+            NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithArray:@[
                 categoriesMenu,
                 modesMenu,
                 routeSharingPoliciesMenu,
@@ -130,11 +148,17 @@
                 aggregatedIOPreferenceMenu,
                 togglePrefersEchoCancelledInputAction
 #endif
-            ];
+            ]];
+            
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                [children addObject:[UIDeferredMenuElement _cp_toggleOutputMutedActionWithAudioSession:audioSession didChangeHandler:didChangeHandler]];
+            }
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(children);
             });
+            
+            [children release];
         });
     }];
     
@@ -326,7 +350,7 @@
 }
 
 + (std::vector<AVAudioSessionCategoryOptions>)_cp_CategoryOptionsVector {
-    return {
+    std::vector<AVAudioSessionCategoryOptions> options {
         AVAudioSessionCategoryOptionMixWithOthers,
         AVAudioSessionCategoryOptionDuckOthers,
         AVAudioSessionCategoryOptionAllowBluetooth,
@@ -340,6 +364,14 @@
         AVAudioSessionCategoryOptionOverrideMutedMicrophoneInterruption
 #endif
     };
+    
+    if (@available(iOS 26.0, *)) {
+        options.push_back(AVAudioSessionCategoryOptionBluetoothHighQualityRecording);
+    } else if (@available(watchOS 26.0, tvOS 26.0, macCatalyst 26.0, visionOS 26.0, macOS 26.0, *)) {
+        options.push_back(1 << 19);
+    }
+    
+    return options;
 }
 
 + (UIMenu * _Nonnull)_cp_categoryOptionsMenuWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler {
@@ -416,7 +448,25 @@
             });
         }];
         
-        action.subtitle = [NSString stringWithFormat:@"%@, spatialAudioEnabled : %d", description.UID, description.spatialAudioEnabled];
+        NSMutableString *subtitle = [NSMutableString new];
+        [subtitle appendFormat:@"%@", description.UID];
+        [subtitle appendString:@"\n"];
+        [subtitle appendFormat:@"spatialAudioEnabled : %d", description.spatialAudioEnabled];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, macCatalyst 26.0, visionOS 26.0, *)) {
+            AVAudioSessionPortExtensionBluetoothMicrophone *bluetoothMicrophoneExtension = description.bluetoothMicrophoneExtension;
+            AVAudioSessionCapability *highQualityRecording = bluetoothMicrophoneExtension.highQualityRecording;
+            [subtitle appendString:@"\n"];
+            [subtitle appendFormat:@"High Quality Recording Supported : %d", highQualityRecording.supported];
+            [subtitle appendString:@"\n"];
+            [subtitle appendFormat:@"High Quality Recording Enabled : %d", highQualityRecording.enabled];
+        }
+        
+        action.subtitle = subtitle;
+        [subtitle release];
+        
+        action.cp_overrideNumberOfSubtitleLines = 0;
+        
         action.state = ([description isEqual:preferredInput]) ? UIMenuElementStateOn : UIMenuElementStateOff;
         [actions addObject:action];
     }
@@ -1316,7 +1366,36 @@
 //}
 #endif
 
-// AVAusioApplication Mute
-//+ (UIAction * _Nonnull)
++ (UIAction *)_cp_toggleOutputMutedActionWithAudioSession:(AVAudioSession *)audioSession didChangeHandler:(void (^ _Nullable)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+#if TARGET_OS_IOS
+    BOOL outputMuted = audioSession.outputMuted;
+    
+    UIAction *action = [UIAction actionWithTitle:@"Output Muted" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            NSError * _Nullable error = nil;
+            BOOL result = [audioSession setOutputMuted:!outputMuted error:&error];
+            assert(result);
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = outputMuted ? UIMenuElementStateOn : UIMenuElementStateOff;
+    return action;
+#else
+    BOOL outputMuted = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(audioSession, sel_registerName("isOutputMuted"));
+    
+    UIAction *action = [UIAction actionWithTitle:@"Output Muted" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+            NSError * _Nullable error = nil;
+            BOOL result = reinterpret_cast<BOOL (*)(id, SEL, BOOL, id *)>(objc_msgSend)(audioSession, sel_registerName("setOutputMuted:error:"), !outputMuted, &error);
+            assert(result);
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = outputMuted ? UIMenuElementStateOn : UIMenuElementStateOff;
+    return action;
+#endif
+}
 
 @end

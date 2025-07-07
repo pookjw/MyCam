@@ -7,10 +7,12 @@
 
 #import "SceneDelegate.h"
 #import "CollectionViewController.h"
-#import <objc/runtime.h>
+#include <objc/runtime.h>
+#include <objc/message.h>
 #import <TargetConditionals.h>
+#import <CamPresentation/CameraRootViewController.h>
 
-@interface SceneDelegate ()
+@interface SceneDelegate () <UIGestureRecognizerDelegate>
 @end
 
 @implementation SceneDelegate
@@ -26,6 +28,9 @@
     CollectionViewController *rootViewController = [CollectionViewController new];
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:rootViewController];
     [rootViewController release];
+    
+    navigationController.interactivePopGestureRecognizer.delegate = self;
+    navigationController.interactiveContentPopGestureRecognizer.delegate = self;
     
     //
     
@@ -59,6 +64,17 @@
     self.window = window;
     [window makeKeyAndVisible];
     [window release];
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    UINavigationController *navigationController = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(gestureRecognizer.view, sel_registerName("_viewControllerForAncestor"));
+    if (![navigationController isKindOfClass:[UINavigationController class]]) return NO;
+    if (![navigationController isEqual:self.window.rootViewController]) return NO;
+    
+    CameraRootViewController *cameraRootViewController = static_cast<CameraRootViewController *>(navigationController.topViewController);
+    if (![cameraRootViewController isKindOfClass:[CameraRootViewController class]]) return NO;
+    
+    return [cameraRootViewController.interactivePopAvoidanceGestureRecognizers containsObject:otherGestureRecognizer];
 }
 
 @end
