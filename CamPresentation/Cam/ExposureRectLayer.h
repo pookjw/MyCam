@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 10/24/24.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <QuartzCore/QuartzCore.h>
 #import <AVFoundation/AVFoundation.h>
 
@@ -19,3 +23,5 @@ __attribute__((objc_direct_members))
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

@@ -795,7 +795,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         switch (gestureMode) {
             case CaptureVideoPreview::GestureMode::FocusPoint:
             {
-                if (!captureDevice.isFocusPointOfInterestSupported) return;
+                if (!captureDevice.isFocusPointOfInterestSupported) abort();
                 if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
                 
                 NSError * _Nullable error = nil;
@@ -804,14 +804,23 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 captureDevice.focusPointOfInterest = pointOfInterest;
                 captureDevice.focusMode = AVCaptureFocusModeLocked;
                 [captureDevice unlockForConfiguration];
-            }
                 break;
+            }
             case CaptureVideoPreview::GestureMode::FocusRect:
-                // TODO
-                abort();
+            {
+                if (!captureDevice.isFocusRectOfInterestSupported) abort();
+                if (![captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.focusMode = AVCaptureFocusModeLocked;
+                [captureDevice unlockForConfiguration];
+                break;
+            }
             case CaptureVideoPreview::GestureMode::ExposurePoint:
             {
-                if (!captureDevice.isExposurePointOfInterestSupported) return;
+                if (!captureDevice.isExposurePointOfInterestSupported) abort();
                 if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
                 
                 NSError * _Nullable error = nil;
@@ -820,11 +829,20 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 captureDevice.exposurePointOfInterest = pointOfInterest;
                 captureDevice.exposureMode = AVCaptureExposureModeLocked;
                 [captureDevice unlockForConfiguration];
-            }
                 break;
+            }
             case CaptureVideoPreview::GestureMode::ExposureRect:
-                // TODO
-                abort();
+            {
+                if (!captureDevice.isExposureRectOfInterestSupported) abort();
+                if (![captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) return;
+                
+                NSError * _Nullable error = nil;
+                [captureDevice lockForConfiguration:&error];
+                assert(error == nil);
+                captureDevice.exposureMode = AVCaptureExposureModeLocked;
+                [captureDevice unlockForConfiguration];
+                break;
+            }
             default:
                 abort();
         }
