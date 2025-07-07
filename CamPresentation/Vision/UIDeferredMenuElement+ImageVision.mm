@@ -120,7 +120,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackMaskRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTrackRectangleRequestWithViewModel:viewModel addedRequests:requests observations:observations],
         [UIDeferredMenuElement _cp_imageVisionElementForVNTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests imageVisionLayer:imageVisionLayer],
-        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests]
+        [UIDeferredMenuElement _cp_imageVisionElementForVNTrackTranslationalImageRegistrationRequestWithViewModel:viewModel addedRequests:requests],
+        [UIDeferredMenuElement _cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:viewModel addedRequests:requests]
     ]];
     
     UIMenu *uselessRequestsMenu = [UIMenu menuWithTitle:@"Useless Requests" children:@[
@@ -496,7 +497,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNAlignFaceRectangleRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     menu.subtitle = @"???";
@@ -526,7 +527,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNCalculateImageAestheticsScoresRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -554,7 +555,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyCityNatureImageRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -582,7 +583,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyFaceAttributesRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -610,7 +611,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyImageAestheticsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -638,7 +639,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNClassifyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -666,7 +667,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyJunkImageRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -696,7 +697,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyMemeImageRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     menu.subtitle = subtitle;
     
@@ -725,7 +726,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNVYvzEtX1JlUdu8xx5qhDI")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -753,7 +754,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNClassifyPotentialLandmarkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -784,7 +785,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN5kJNH3eYuyaLxNpZr5Z7zi")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     menu.subtitle = subtitle;
@@ -814,7 +815,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN6Mb1ME89lyW3HpahkEygIG")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -866,7 +867,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNCoreMLRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -894,7 +895,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateAnimalprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -922,7 +923,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateDetectionprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -950,7 +951,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceRegionMapRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -989,7 +990,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateFaceprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         forceFaceprintCreationAction
     ]];
     
@@ -1019,7 +1020,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN6kBnCOr2mZlSV6yV1dLwB")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     menu.subtitle = @"???";
@@ -1049,7 +1050,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageFingerprintsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1077,7 +1078,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateImageprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1105,7 +1106,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateNeuralHashprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1133,7 +1134,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSmartCamprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1161,7 +1162,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateTorsoprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     menu.subtitle = @"Human Detections";
@@ -1191,7 +1192,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNCreateSceneprintRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1255,7 +1256,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectAnimalBodyPoseRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu
     ]];
@@ -1316,7 +1317,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateAnimalSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         qualityLevelsMenu
     ]];
     
@@ -1345,7 +1346,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateForegroundInstanceMaskRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -1427,7 +1428,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGeneratePersonSegmentationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         qualityLevelsMenu,
         useTilingAction,
         supportedOutputPixelFormatsAction
@@ -1501,7 +1502,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         faceCoreEnhanceEyesAndMouthLocalizationAction,
         faceCoreExtractBlinkAction,
         faceCoreExtractSmileAction
@@ -1613,7 +1614,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceLandmarksRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         constellationMenu,
         performBlinkDetectionAction,
         refineMouthRegionAction,
@@ -1734,7 +1735,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectBarcodesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         supportedSymbologyMenu,
         coalesceCompositeSymbologiesAction,
         stopAtFirstPyramidWith2DCodeAction,
@@ -2041,7 +2042,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectContoursRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         contrastAdjustmentSliderMenu,
         contrastPivotMenu,
         detectsDarkOnLightAction,
@@ -2075,7 +2076,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectDocumentSegmentationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2103,7 +2104,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceCaptureQualityRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2131,7 +2132,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFace3DLandmarksRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2159,7 +2160,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceExpressionsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2199,7 +2200,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFaceGazeRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         resolveSomewhereElseDirectionAction
     ]];
     
@@ -2228,7 +2229,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectFacePoseRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2256,7 +2257,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHorizonRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2330,7 +2331,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanBodyPoseRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         detectsHandsAction,
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu
@@ -2408,7 +2409,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu,
         humanBodyPose3DObservationSceneAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2531,7 +2532,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         maximumHandCountMenu,
         supportedJointNamesMenu,
         supportedJointsGroupNamesMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2559,7 +2560,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectHumanHeadRectanglesRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -2600,7 +2601,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectHumanRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         upperBodyOnlyAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3010,7 +3011,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         minimumSizeMenu,
         minimumConfidenceMenu,
         maximumObservationsMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3162,7 +3163,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectScreenGazeRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         screenSizeMenu,
         temporalSmoothingFrameCountMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3396,7 +3397,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         minimumCharacterPixelHeightMenu,
         minimizeFalseDetectionsAction,
         algorithmMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3560,7 +3561,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectTrajectoriesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         objectMinimumNormalizedRadiusMenu,
         objectMaximumNormalizedRadiusMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3588,7 +3589,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateAttentionBasedSaliencyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3686,7 +3687,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateFaceSegmentsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         faceBoundingBoxExpansionRatioMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3746,7 +3747,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateGlassesSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         qualityLevelsMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3825,7 +3826,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateHumanAttributesSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         qualityLevelsMenu,
         supportedHumanAttributesMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3858,7 +3859,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateImageFeaturePrintRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         computeDistanceElement,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -3888,7 +3889,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     menu.subtitle = @"Equivalent to VNGenerateForegroundInstanceMaskRequest";
@@ -3921,7 +3922,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateImageSegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     menu.subtitle = @"Requires Private Entitlement";
     
@@ -3963,7 +3964,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateInstanceMaskGatingRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         applicableDetectorTypeAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     menu.subtitle = @"Detect that masking is capable";
     
@@ -4004,7 +4005,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateObjectnessBasedSaliencyImageRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         applicableDetectorTypeAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4110,7 +4111,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         computationAccuraciesMenu,
         keepNetworkOutputAction,
         supportedOutputPixelFormatsMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4226,7 +4227,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNGenerateOpticalFlowRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         computationAccuraciesMenu,
         keepNetworkOutputAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4273,7 +4274,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VN1JC7R3k4455fKQz0dY1VhQ")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         suportedIdentifiersMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4343,7 +4344,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNGenerateSkySegmentationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         qualityLevelsMenu,
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4416,7 +4417,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNHomographicImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     menu.subtitle = @"항등행렬이 나옴?";
     
@@ -4445,7 +4446,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNIdentifyJunkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4592,7 +4593,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNImageBlurScoreRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         blurDeterminationMethodMenu,
         maximumIntermediateSideLengthMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4620,7 +4621,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNImageExposureScoreRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4648,7 +4649,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNNOPRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4686,7 +4687,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4724,7 +4725,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalHeadsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4762,7 +4763,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeAnimalFacesRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -4800,7 +4801,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeFoodAndDrinkRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5016,7 +5017,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         modelMinimumDetectionConfidenceMenu,
         modelNonMaximumSuppressionThresholdMenu,
         targetedIdentifierActionsMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5054,7 +5055,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeSportBallsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         dependencyProcessingOrdinalityAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5311,7 +5312,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         usesLanguageCorrectionAction,
         customWordsMenu,
         keepResourcesLoadedAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5340,7 +5341,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNRecognizeDocumentElementsRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5708,7 +5709,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         detectionOnlyAction,
         maximumCandidateCountMenu,
         barcodeRequestAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5775,7 +5776,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
         performInPlaceAction,
         cropResultAction,
         returnMaskAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5919,7 +5920,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNSceneClassificationRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         maximumLeafObservationsMenu,
         maximumHierarchicalObservationsMenu,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5949,7 +5950,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackHomographyRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -5979,7 +5980,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackHomographicImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6213,7 +6214,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNDetectFaceRectanglesRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel],
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel],
         faceCoreEnhanceEyesAndMouthLocalizationAction,
         faceCoreExtractBlinkAction,
         faceCoreExtractSmileAction,
@@ -6330,7 +6331,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNTrackMaskRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
         generateCropRectAction,
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6381,7 +6382,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackObjectRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6433,7 +6434,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackRectangleRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6504,7 +6505,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTranslationalImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6532,7 +6533,35 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     //
     
     UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([VNTrackTranslationalImageRegistrationRequest class]) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
-        [UIDeferredMenuElement _cp_imageVissionCommonMenuForRequest:request viewModel:viewModel]
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
+    ]];
+    
+    return menu;
+}
+
++ (__kindof UIMenuElement *)_cp_imageVisionElementForVNDetectLensSmudgeRequestWithViewModel:(ImageVisionViewModel *)viewModel addedRequests:(NSArray<__kindof VNRequest *> *)requests {
+    __kindof VNImageBasedRequest * _Nullable request = [UIDeferredMenuElement _cp_imageVisionRequestForClass:objc_lookUpClass("VNDetectLensSmudgeRequest") addedRequests:requests];
+    
+    if (request == nil) {
+        UIAction *action = [UIAction actionWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectLensSmudgeRequest")) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            __kindof VNImageBasedRequest *request = [[objc_lookUpClass("VNDetectLensSmudgeRequest") alloc] initWithCompletionHandler:nil];
+            
+            [viewModel addRequest:request completionHandler:^(NSError * _Nullable error) {
+                assert(error == nil);
+            }];
+            
+            [request release];
+        }];
+        
+//        reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(action, sel_registerName("performWithSender:target:"), nil, nil);
+        
+        return action;
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass(objc_lookUpClass("VNDetectLensSmudgeRequest")) image:[UIImage systemImageNamed:@"checkmark"] identifier:nil options:0 children:@[
+        [UIDeferredMenuElement _cp_imageVisionCommonMenuForRequest:request viewModel:viewModel]
     ]];
     
     return menu;
@@ -6554,7 +6583,7 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
     return nil;
 }
 
-+ (UIMenu *)_cp_imageVissionCommonMenuForRequest:(__kindof VNRequest *)request viewModel:(ImageVisionViewModel *)viewModel {
++ (UIMenu *)_cp_imageVisionCommonMenuForRequest:(__kindof VNRequest *)request viewModel:(ImageVisionViewModel *)viewModel {
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
 #warning supportedComputeStageDevicesAndReturnError setComputeDevice:forComputeStage:

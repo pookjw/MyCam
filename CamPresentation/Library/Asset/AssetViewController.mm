@@ -179,6 +179,7 @@
     if (auto selectBarButtonItem = _selectBarButtonItem) return selectBarButtonItem;
     
     UIBarButtonItem *selectBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Select" style:UIBarButtonItemStylePlain target:self action:@selector(didTriggerSelectBarButtonItem:)];
+    selectBarButtonItem.image = [UIImage systemImageNamed:@"checkmark"];
     
     _selectBarButtonItem = [selectBarButtonItem retain];
     return [selectBarButtonItem autorelease];

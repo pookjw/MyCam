@@ -330,6 +330,8 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
             [self _drawImageAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else if ([observation class] == [VNImageTranslationAlignmentObservation class]) {
             [self _drawImageTranslationAlignmentObservation:observation aspectBounds:aspectBounds inContext:ctx];
+        } else if ([observation class] == objc_lookUpClass("VNLensSmudgeObservation")) {
+            [self _drawLensSmudgeObservation:observation aspectBounds:aspectBounds inContext:ctx];
         } else {
             NSLog(@"%@", observation);
             abort();
@@ -2626,6 +2628,37 @@ OBJC_EXPORT void objc_setProperty_atomic_copy(id _Nullable self, SEL _Nonnull _c
 
 - (void)_drawImageTranslationAlignmentObservation:(VNImageTranslationAlignmentObservation *)imageTranslationAlignmentObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
     [self _drawImageAlignmentObservation:imageTranslationAlignmentObservation aspectBounds:aspectBounds inContext:ctx];
+}
+
+- (void)_drawLensSmudgeObservation:(__kindof VNObservation *)lensSmudgeObservation aspectBounds:(CGRect)aspectBounds inContext:(CGContextRef)ctx {
+    CGContextSaveGState(ctx);
+    
+    CATextLayer *textLayer = [CATextLayer new];
+    textLayer.string = [NSString stringWithFormat:@"Lens Smudge Confidence : %lf", lensSmudgeObservation.confidence];
+    textLayer.wrapped = YES;
+    textLayer.fontSize = 14.0;
+    textLayer.contentsScale = self.contentsScale;
+    
+    NSAttributedString *attributeString = [[NSAttributedString alloc] initWithString:textLayer.string attributes:@{
+        NSFontAttributeName: (id)textLayer.font
+    }];
+    CGSize textSize = attributeString.size;
+    [attributeString release];
+    
+    textLayer.frame = CGRectMake(0.,
+                                 0.,
+                                 textSize.width,
+                                 textSize.height);
+    
+    CGAffineTransform transform = CGAffineTransformMakeTranslation(CGRectGetMinX(aspectBounds),
+                                                                   CGRectGetMaxY(aspectBounds));
+    
+    CGContextConcatCTM(ctx, transform);
+    
+    [textLayer renderInContext:ctx];
+    [textLayer release];
+    
+    CGContextRestoreGState(ctx);
 }
 
 @end
