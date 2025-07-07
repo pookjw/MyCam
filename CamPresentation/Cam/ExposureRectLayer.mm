@@ -80,8 +80,6 @@
     AVCaptureDevice *captureDevice = self.captureDevice;
     
     if (captureDevice.isExposurePointOfInterestSupported) {
-        CGContextSaveGState(ctx);
-        
         CGColorRef color;
         switch (captureDevice.exposureMode) {
             case AVCaptureExposureModeLocked:
@@ -100,9 +98,24 @@
                 abort();
         }
         
-        CGPoint point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.exposurePointOfInterest];
+        CGRect rect;
+        if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+            CGRect defaultRect = [self.captureDevice defaultRectForExposurePointOfInterest:self.captureDevice.exposurePointOfInterest];
+            CGPoint minOrigin = CGPointMake(CGRectGetMinX(defaultRect), CGRectGetMinY(defaultRect));
+            CGPoint maxOrigin = CGPointMake(CGRectGetMaxX(defaultRect), CGRectGetMaxY(defaultRect));
+            
+            minOrigin = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:minOrigin];
+            maxOrigin = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:maxOrigin];
+            
+            CGRect r1 = CGRectMake(minOrigin.x, minOrigin.y, 0., 0.);
+            CGRect r2 = CGRectMake(maxOrigin.x, maxOrigin.y, 0., 0.);
+            rect = CGRectUnion(r1, r2);
+        } else {
+            CGPoint point = [self.videoPreviewLayer pointForCaptureDevicePointOfInterest:captureDevice.exposurePointOfInterest];
+            rect = CGRectMake(point.x - 50., point.y - 50., 100., 100.);
+        }
         
-        CGRect rect = CGRectMake(point.x - 50., point.y - 50., 100., 100.);
+        CGContextSaveGState(ctx);
         
         CGContextSetStrokeColorWithColor(ctx, color);
         CGContextStrokeRectWithWidth(ctx, rect, 10.);
@@ -135,6 +148,8 @@
                 CGRect r1 = CGRectMake(minOrigin.x, minOrigin.y, 0., 0.);
                 CGRect r2 = CGRectMake(maxOrigin.x, maxOrigin.y, 0., 0.);
                 CGRect rect = CGRectUnion(r1, r2);
+                
+                CGContextSaveGState(ctx);
                 
                 CGColorRef color = CGColorCreateGenericRGB(1., 0., 0., 1.);
                 CGContextSetStrokeColorWithColor(ctx, color);
