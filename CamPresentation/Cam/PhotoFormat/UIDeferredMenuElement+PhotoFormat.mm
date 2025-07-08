@@ -72,7 +72,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     UIDeferredMenuElement *result = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
             PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
-            AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+            AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
             assert(photoOutput != nil);
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
@@ -151,7 +151,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
-                [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+                [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
             }
             
 #warning TODO: autoVideoFrameRateEnabled
@@ -169,7 +169,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 
 + (UIMenu * _Nonnull)_cp_queue_photoMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
-    AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
@@ -237,7 +237,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_movieMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMovieFileOutput * _Nullable movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureMovieFileOutput * _Nullable movieFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
     
     NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
     
@@ -1175,7 +1175,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                AVCaptureMovieFileOutput *output = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+                AVCaptureMovieFileOutput *output = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
                 NSLog(@"%@", [output supportedOutputSettingsKeysForConnection:[output connectionWithMediaType:AVMediaTypeVideo]]);
                 
                 NSError * _Nullable error = nil;
@@ -1203,7 +1203,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_movieOutputSettingsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
     NSArray<NSString *> *supportedOutputSettingsKeys = [movieFileOutput supportedOutputSettingsKeysForConnection:[movieFileOutput connectionWithMediaType:AVMediaTypeVideo]];
     
     NSMutableArray<UIMenu *> *menus = [NSMutableArray new];
@@ -1225,7 +1225,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_videoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
     AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
     NSDictionary<NSString *, id> *outputSettings = [movieFileOutput outputSettingsForConnection:connection];
     AVVideoCodecType activeVideoCodecType = outputSettings[AVVideoCodecKey];
@@ -1893,7 +1893,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_depthMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    UIMenu *menu = [UIMenu menuWithTitle:@"Depth Map" children:@[
+    UIMenu *menu = [UIMenu menuWithTitle:@"Depth" children:@[
+        [UIDeferredMenuElement _cp_queue_toggleDepthDataOutputActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_hasDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_noDepthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_depthDataFormatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Depth Data Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler],
@@ -1903,6 +1904,28 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     ]];
     
     return menu;
+}
+
++ (UIAction * _Nonnull)_cp_queue_toggleDepthDataOutputActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureDepthDataOutput * _Nullable output = [captureService queue_outputWithClass:[AVCaptureDepthDataOutput class] fromCaptureDevice:captureDevice];
+    
+    UIAction *action = [UIAction actionWithTitle:(output == nil) ? @"Add Depth Data Output" : @"Remove Depth Data Output"
+                                           image:nil
+                                      identifier:nil
+                                         handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            if (output == nil) {
+                [captureService queue_addDepthDataOutputWithCaptureDevice:captureDevice];
+            } else {
+                [captureService queue_removeDepthDataOutputWithCaptureDevice:captureDevice];
+            }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = (output != nil) ? UIMenuElementStateOn : UIMenuElementStateOff;
+    return action;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_hasDepthDataFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
@@ -1974,7 +1997,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_outputWithClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     
     if (depthDataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"No Depth Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2047,7 +2070,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleDepthMapFilteringActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput * _Nullable depthDataOutput = [captureService queue_outputWithClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     AVCaptureConnection * _Nullable connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
     assert((depthDataOutput == nil && connection == nil) || (depthDataOutput != nil && connection != nil));
     
@@ -2579,14 +2602,14 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForMovieFileOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
-    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureMovieFileOutput *movieFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
     assert(movieFileOutput != nil);
     
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
     
     for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
-        AVCaptureMovieFileOutput * _Nullable connectedMovileFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:audioDevice];
+        AVCaptureMovieFileOutput * _Nullable connectedMovileFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:audioDevice];
         
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -2654,14 +2677,14 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleVisionVisibilityActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    __kindof AVCaptureOutput * _Nullable visionDataOutput = [captureService queue_toBeRemoved_outputClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
+    __kindof AVCaptureOutput * _Nullable visionDataOutput = [captureService queue_outputWithClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
     
     if (visionDataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"No Vision Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             
         }];
         
-        if ([captureService queue_toBeRemoved_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice] != nil) {
+        if ([captureService queue_outputWithClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice] != nil) {
             action.subtitle = @"Not Supported with Device which has Depth Port";
         }
         
@@ -2731,7 +2754,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (__kindof UIMenuElement * _Nonnull)_cp_queue_metadataObjectTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
-    AVCaptureMetadataOutput * _Nullable metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput * _Nullable metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     
     if (metadataOutput == nil) {
         UIAction *action = [UIAction actionWithTitle:@"Metadata Object Types" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -2844,14 +2867,14 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_setAudioDeviceForPhotoOutputWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^ _Nullable)(void))didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSArray<AVCaptureDevice *> *addedAudioCaptureDevices = captureService.queue_addedAudioCaptureDevices;
     NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioCaptureDevices.count];
     
     for (AVCaptureDevice *audioDevice in addedAudioCaptureDevices) {
-        AVCapturePhotoOutput * _Nullable connectedPhotoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+        AVCapturePhotoOutput * _Nullable connectedPhotoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
         
         UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
@@ -2901,7 +2924,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_configureMovieFileOutputActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    BOOL hasMovieFileOutput = [captureService queue_movieFileOutputFromCaptureDevice:captureDevice] != nil;
+    BOOL hasMovieFileOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice] != nil;
     
     UIAction *action = [UIAction actionWithTitle:hasMovieFileOutput ? @"Remove Movie File Output" : @"Add Movie File Output"
                                            image:nil
@@ -2924,7 +2947,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleLivePhotoCaptureSuspendedActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     BOOL isLivePhotoCaptureSuspended = photoOutput.isLivePhotoCaptureSuspended;
     BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
     
@@ -2941,7 +2964,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleLivePhotoAutoTrimmingEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     BOOL isLivePhotoAutoTrimmingEnabled = photoOutput.isLivePhotoAutoTrimmingEnabled;
     BOOL isLivePhotoCaptureEnabled = photoOutput.isLivePhotoCaptureEnabled;
@@ -2959,7 +2982,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu * _Nonnull)_cp_queue_livePhotoVideoCodecTypesMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice photoFormatModel:(PhotoFormatModel *)photoFormatModel didChangeHandler:(void (^)())didChangeHandler {
-    AVCapturePhotoOutput *photoOutput = [captureService queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     NSArray<AVVideoCodecType> *availableLivePhotoVideoCodecTypes = photoOutput.availableLivePhotoVideoCodecTypes;
@@ -3608,7 +3631,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleAttentionDetectionEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isAttentionDetectionSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("isAttentionDetectionSupported"));
@@ -3629,7 +3652,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleHumanHandMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isHumanHandMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHumanHandMetadataSupported"));
@@ -3683,7 +3706,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleHeadMetadataObjectTypesAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isHeadMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isHeadMetadataSupported"));
@@ -3704,7 +3727,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleTextRegionMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isTextRegionMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isTextRegionMetadataSupported"));
@@ -3725,7 +3748,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleSceneClassificationMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isSceneClassificationMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isSceneClassificationMetadataSupported"));
@@ -3747,7 +3770,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 
 #if !TARGET_OS_TV
 + (UIAction * _Nonnull)_cp_queue_toggleVisualIntelligenceMetadataObjectTypeAvailableActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_DEPRECATED("No longer supported.", ios(18.0, 26.0)) {
-    AVCaptureMetadataOutput *metadataOutput = [captureService queue_toBeRemoved_outputClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:AVCaptureMetadataOutput.class fromCaptureDevice:captureDevice];
     assert(metadataOutput != nil);
     
     BOOL isVisualIntelligenceMetadataSupported = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataOutput, sel_registerName("isVisualIntelligenceMetadataSupported"));
@@ -4004,7 +4027,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu *)_cp_queue_stabilizationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice].allObjects[0];
+    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice].allObjects[0];
     AVCaptureConnection *connection = [videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
     assert(connection != nil);
     
@@ -4052,7 +4075,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             videoDevice.activeFormat = format;
             [videoDevice unlockForConfiguration];
             
-            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
+            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputsWithClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
             if (outputs.count == 0) {
                 AVCaptureMovieFileOutput *output = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
                 outputs = [NSSet setWithObject:output];
@@ -4278,7 +4301,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
     assert(captureSession != nil);
     
-    NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [captureService queue_outputClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
+    NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [captureService queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
     assert(videoThumbnailOutputs.count > 0);
     
     id smartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));
@@ -4414,6 +4437,12 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 #endif
 
++ (UIMenu *)_cp_queue_cinematicVideoCaptureWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    return [UIMenu menuWithTitle:@"Cinematic Video Capture" children:@[
+        [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+    ]];
+}
 
 + (UIMenu * _Nonnull)_cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
     return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
@@ -4424,6 +4453,47 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         return format.cinematicVideoCaptureSupported;
     }
                                                          didChangeHandler:didChangeHandler];
+}
+
++ (UIAction * _Nonnull)_cp_queue_cinematicVideoCaptureEnabledActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    NSSet<AVCaptureDeviceInput *> *deviceInputs = [captureService queue_addedDeviceInputsFromCaptureDevice:captureDevice];
+    
+    BOOL cinematicVideoCaptureEnabled = NO;
+    BOOL cinematicVideoCaptureSupported = NO;
+    for (AVCaptureDeviceInput *input in deviceInputs) {
+        if (input.cinematicVideoCaptureSupported) {
+            cinematicVideoCaptureSupported = YES;
+        }
+        if (input.cinematicVideoCaptureEnabled) {
+            cinematicVideoCaptureEnabled = YES;
+            break;
+        }
+    }
+    
+    if (!cinematicVideoCaptureSupported) {
+        UIAction *action = [UIAction actionWithTitle:@"Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.subtitle = @"No cinematicVideoCaptureSupported Input";
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            [captureService.queue_captureSession beginConfiguration];
+            for (AVCaptureDeviceInput *input in deviceInputs) {
+                if (input.cinematicVideoCaptureSupported) {
+                    input.cinematicVideoCaptureEnabled = !cinematicVideoCaptureEnabled;
+                }
+            }
+            [captureService.queue_captureSession commitConfiguration];
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    action.state = cinematicVideoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+    return action;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

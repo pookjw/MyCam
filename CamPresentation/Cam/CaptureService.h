@@ -66,8 +66,8 @@ __attribute__((objc_direct_members))
 - (PhotoFormatModel * _Nullable)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_setPhotoFormatModel:(PhotoFormatModel * _Nullable)photoFormatModel forCaptureDevice:(AVCaptureDevice *)captureDevice;
 
-- (__kindof AVCaptureOutput * _Nullable)queue_toBeRemoved_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice __attribute__((deprecated));
-- (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (__kindof AVCaptureOutput * _Nullable)queue_outputWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (NSSet<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (BOOL)queue_isPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
 - (void)queue_setPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;
@@ -91,12 +91,13 @@ __attribute__((objc_direct_members))
 - (__kindof CALayer * _Nullable)queue_metadataObjectsLayerFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (NerualAnalyzerLayer * _Nullable)queue_nerualAnalyzerLayerFromVideoDevice:(AVCaptureDevice *)videoDevice;
 - (AVCapturePhotoOutputReadinessCoordinator * _Nullable)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (AVCaptureMovieFileOutput * _Nullable)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice;
-
 - (NSSet<AVCaptureDevice *> *)queue_captureDevicesFromOutput:(AVCaptureOutput *)output;
 
 - (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+
+- (AVCaptureDepthDataOutput *)queue_addDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
+- (void)queue_removeDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
 - (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output;
@@ -107,6 +108,7 @@ __attribute__((objc_direct_members))
 - (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice;
 
 - (NSSet<AVCaptureDeviceInput *> *)queue_audioDeviceInputsForOutput:(__kindof AVCaptureOutput *)output;
+- (NSSet<AVCaptureDeviceInput *> *)queue_addedDeviceInputsFromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice;
 - (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice;

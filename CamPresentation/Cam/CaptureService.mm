@@ -321,7 +321,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 AVCaptureDevice *videoDevice = [self queue_captureDeviceFromPreviewLayer:previewLayer];
                 assert(videoDevice != nil);
                 
-                for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+                for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
                     for (AVCaptureConnection *connection in videoDataOutput.connections) {
                         if (videoDataOutput.deliversPreviewSizedOutputBuffers) {
                             connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview;
@@ -340,7 +340,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 AVCaptureDevice *videoDevice = [self queue_captureDeviceFromPreviewLayer:previewLayer];
                 assert(videoDevice != nil);
                 
-                for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+                for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
                     for (AVCaptureConnection *connection in videoDataOutput.connections) {
                         if (!videoDataOutput.deliversPreviewSizedOutputBuffers) {
                             connection.videoRotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelCapture;
@@ -585,7 +585,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     if ([layer isEqual:object]) {
                         assert(!found);
                         
-                        NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [self queue_outputClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
+                        NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [self queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
                         
                         for (__kindof AVCaptureOutput *output in videoThumbnailOutputs) {
                             CGRect bounds = layer.bounds;
@@ -968,22 +968,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     if (depthDataInputPort != nil) {
-        AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
-        depthDataOutput.filteringEnabled = YES;
-        depthDataOutput.alwaysDiscardsLateDepthData = YES;
-        [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
-        assert([captureSession canAddOutput:depthDataOutput]);
-        [captureSession addOutputWithNoConnections:depthDataOutput];
-        
-        AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
-        [depthDataOutput release];
-        depthDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
-        depthDataOutputConnection.videoMirrored = YES;
-        depthDataOutputConnection.enabled = NO;
-        assert([captureSession canAddConnection:depthDataOutputConnection]);
-        [captureSession addConnection:depthDataOutputConnection];
-        [depthDataOutputConnection release];
-        
         ImageBufferLayer *depthMapLayer = [ImageBufferLayer new];
         depthMapLayer.opacity = 0.75f;
         [self.queue_depthMapLayersByCaptureDevice setObject:depthMapLayer forKey:captureDevice];
@@ -1657,7 +1641,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     }
 }
 
-- (__kindof AVCaptureOutput *)queue_toBeRemoved_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice __attribute__((deprecated)) {
+- (__kindof AVCaptureOutput *)queue_outputWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
 //    NSSet<__kindof AVCaptureOutput *> *outputs = [self queue_outputClass:outputClass fromCaptureDevice:captureDevice];
 //    assert(outputs.count < 2);
 //    return outputs.allObjects.firstObject;
@@ -1667,7 +1652,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return outputs.firstObject;
 }
 
-- (NSSet<__kindof AVCaptureOutput *> *)queue_outputClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
+- (NSSet<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
 //    NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
@@ -1696,7 +1681,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    AVCaptureDepthDataOutput *depthDataOutput = [self queue_toBeRemoved_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput *depthDataOutput = [self queue_outputWithClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     assert(depthDataOutput != nil);
     AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
     assert(connection != nil);
@@ -1710,7 +1695,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    AVCaptureDepthDataOutput *depthDataOutput = [self queue_toBeRemoved_outputClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
+    AVCaptureDepthDataOutput *depthDataOutput = [self queue_outputWithClass:AVCaptureDepthDataOutput.class fromCaptureDevice:captureDevice];
     assert(depthDataOutput != nil);
     AVCaptureConnection *connection = [depthDataOutput connectionWithMediaType:AVMediaTypeDepthData];
     assert(connection != nil);
@@ -1720,7 +1705,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (void)queue_setUpdatesVisionLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    __kindof AVCaptureOutput *visionDataOutput = [self queue_toBeRemoved_outputClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
+    __kindof AVCaptureOutput *visionDataOutput = [self queue_outputWithClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
     assert(visionDataOutput != nil);
     AVCaptureConnection *connection = [visionDataOutput connectionWithMediaType:AVMediaTypeVisionData];
     assert(connection != nil);
@@ -1734,7 +1719,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 
 - (BOOL)queue_updatesVisionLayer:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
-    __kindof AVCaptureOutput *visionDataOutput = [self queue_toBeRemoved_outputClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
+    __kindof AVCaptureOutput *visionDataOutput = [self queue_outputWithClass:objc_lookUpClass("AVCaptureVisionDataOutput") fromCaptureDevice:captureDevice];
     assert(visionDataOutput != nil);
     AVCaptureConnection *connection = [visionDataOutput connectionWithMediaType:AVMediaTypeVisionData];
     assert(connection != nil);
@@ -1787,7 +1772,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NerualAnalyzerLayer *nerualAnalyzerLayer = [self.queue_nerualAnalyzerLayersByVideoDevice objectForKey:videoDevice];
     assert(nerualAnalyzerLayer != nil);
     
-    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
         if (!videoDataOutput.deliversPreviewSizedOutputBuffers) continue;
         
         assert(videoDataOutput.connections.count == 1);
@@ -1823,7 +1808,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NerualAnalyzerLayer *nerualAnalyzerLayer = [self.queue_nerualAnalyzerLayersByVideoDevice objectForKey:videoDevice];
     assert(nerualAnalyzerLayer != nil);
     
-    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
         if (!videoDataOutput.deliversPreviewSizedOutputBuffers) continue;
         
         assert(videoDataOutput.connections.count == 1);
@@ -1859,7 +1844,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NerualAnalyzerLayer *nerualAnalyzerLayer = [self.queue_nerualAnalyzerLayersByVideoDevice objectForKey:videoDevice];
     assert(nerualAnalyzerLayer != nil);
     
-    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
+    for (AVCaptureVideoDataOutput *videoDataOutput in [self queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice]) {
         if (!videoDataOutput.deliversPreviewSizedOutputBuffers) continue;
         
         assert(videoDataOutput.connections.count == 1);
@@ -1887,7 +1872,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     CALayer *videoThumbnailLayer = [self.queue_videoThumbnailLayersByVideoDevice objectForKey:videoDevice];
     assert(videoThumbnailLayer != nil);
     
-    for (__kindof AVCaptureOutput *videoThumbnailOutput in [self queue_outputClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice]) {
+    for (__kindof AVCaptureOutput *videoThumbnailOutput in [self queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice]) {
         AVCaptureConnection *connection = videoThumbnailOutput.connections.firstObject;
         assert(connection != nil);
         
@@ -1959,32 +1944,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (AVCapturePhotoOutputReadinessCoordinator *)queue_readinessCoordinatorFromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    AVCapturePhotoOutput *photoOutput = [self queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *photoOutput = [self queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     assert(photoOutput != nil);
     
     return [self.queue_readinessCoordinatorByCapturePhotoOutput objectForKey:photoOutput];
-}
-
-- (AVCaptureMovieFileOutput *)queue_movieFileOutputFromCaptureDevice:(AVCaptureDevice *)captureDevice {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    for (AVCaptureConnection *connection in self.queue_captureSession.connections) {
-        for (AVCaptureInputPort *port in connection.inputPorts) {
-            auto movieFileOutput = static_cast<AVCaptureMovieFileOutput *>(connection.output);
-            if (![movieFileOutput isKindOfClass:AVCaptureMovieFileOutput.class]) {
-                continue;
-            }
-            
-            auto deviceInput = static_cast<AVCaptureDeviceInput *>(port.input);
-            if ([deviceInput isKindOfClass:AVCaptureDeviceInput.class]) {
-                if ([deviceInput.device isEqual:captureDevice]) {
-                    return movieFileOutput;
-                }
-            }
-        }
-    }
-    
-    return nil;
 }
 
 - (NSSet<AVCaptureDevice *> *)queue_captureDevicesFromOutput:(AVCaptureOutput *)output {
@@ -2047,7 +2010,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (AVCaptureMovieFileOutput *)queue_addMovieFileOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    assert([self queue_movieFileOutputFromCaptureDevice:captureDevice] == nil);
+    assert([self queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice] == nil);
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     
@@ -2175,6 +2138,72 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession commitConfiguration];
 }
 
+- (AVCaptureDepthDataOutput *)queue_addDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    assert([self queue_outputWithClass:[AVCaptureDepthDataOutput class] fromCaptureDevice:captureDevice] == nil);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    AVCaptureInputPort *depthDataInputPort = nil;
+    for (AVCaptureInput *input in captureSession.inputs) {
+        if (![input isKindOfClass:[AVCaptureDeviceInput class]]) continue;
+        
+        AVCaptureDeviceInput *deviceInput = static_cast<AVCaptureDeviceInput *>(input);
+        if (![deviceInput.device isEqual:captureDevice]) continue;
+        
+        AVCaptureInputPort * _Nullable _port = [deviceInput portsWithMediaType:AVMediaTypeDepthData sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
+        if (_port != nil) {
+            depthDataInputPort = _port;
+            break;
+        }
+    }
+    
+    assert(depthDataInputPort != nil);
+    
+    
+    [captureSession beginConfiguration];
+    
+    AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
+    depthDataOutput.filteringEnabled = YES;
+    depthDataOutput.alwaysDiscardsLateDepthData = YES;
+    [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
+    assert([captureSession canAddOutput:depthDataOutput]);
+    [captureSession addOutputWithNoConnections:depthDataOutput];
+    
+    AVCaptureConnection *depthDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:@[depthDataInputPort] output:depthDataOutput];
+    depthDataOutputConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeOff;
+    depthDataOutputConnection.videoMirrored = YES;
+    depthDataOutputConnection.enabled = NO;
+    assert([captureSession canAddConnection:depthDataOutputConnection]);
+    [captureSession addConnection:depthDataOutputConnection];
+    [depthDataOutputConnection release];
+    
+    [captureSession commitConfiguration];
+    
+    return [depthDataOutput autorelease];
+}
+
+- (void)queue_removeDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    __kindof AVCaptureSession *captureSession = self.queue_captureSession;
+    
+    AVCaptureDepthDataOutput *output = [self queue_outputWithClass:[AVCaptureDepthDataOutput class] fromCaptureDevice:captureDevice];
+    assert(output != nil);
+    
+    [captureSession beginConfiguration];
+    
+    for (AVCaptureConnection *connection in captureSession.connections) {
+        if ([connection.output isEqual:output]) {
+            [captureSession removeConnection:connection];
+        }
+    }
+    
+    [captureSession commitConfiguration];
+    
+    [captureSession removeOutput:output];
+}
+
 #warning Multi Mic 지원
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);
@@ -2225,7 +2254,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
     assert(movieWriter != nil);
     
-    AVCaptureAudioDataOutput *audioDataOutput = [self queue_toBeRemoved_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
+    AVCaptureAudioDataOutput *audioDataOutput = [self queue_outputWithClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
     assert(audioDataOutput != nil);
     
     dispatch_sync(self.audioDataOutputQueue, ^{
@@ -2255,7 +2284,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     MovieWriter *movieWriter = [self.queue_movieWritersByVideoDevice objectForKey:videoDevice];
     assert(movieWriter != nil);
     
-    AVCaptureAudioDataOutput *audioDataOutput = [self queue_toBeRemoved_outputClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
+    AVCaptureAudioDataOutput *audioDataOutput = [self queue_outputWithClass:AVCaptureAudioDataOutput.class fromCaptureDevice:audioDevice];
     assert(audioDataOutput != nil);
     
     __block BOOL result = NO;
@@ -2301,6 +2330,23 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [inputs autorelease];
 }
 
+- (NSSet<AVCaptureDeviceInput *> *)queue_addedDeviceInputsFromCaptureDevice:(AVCaptureDevice *)captureDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMutableSet<AVCaptureDeviceInput *> *inputs = [NSMutableSet new];
+    
+    for (AVCaptureInput *input in self.queue_captureSession.inputs) {
+        if (![input isKindOfClass:[AVCaptureDeviceInput class]]) continue;
+        
+        AVCaptureDeviceInput *deviceInput = static_cast<AVCaptureDeviceInput *>(input);
+        if ([deviceInput.device isEqual:captureDevice]) {
+            [inputs addObject:deviceInput];
+        }
+    }
+    
+    return [inputs autorelease];
+}
+
 - (AVCapturePhotoOutput *)queue_photoOutputFromReadinessCoordinator:(AVCapturePhotoOutputReadinessCoordinator *)readinessCoordinator {
     dispatch_assert_queue(self.captureSessionQueue);
     
@@ -2322,7 +2368,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(self.captureSessionQueue);
     
     PhotoFormatModel *photoModel = [self queue_photoFormatModelForCaptureDevice:captureDevice];
-    AVCapturePhotoOutput *capturePhotoOutput = [self queue_toBeRemoved_outputClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+    AVCapturePhotoOutput *capturePhotoOutput = [self queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
     
     NSMutableDictionary<NSString *, id> *format = [NSMutableDictionary new];
     if (NSNumber *photoPixelFormatType = photoModel.photoPixelFormatType) {
@@ -2431,7 +2477,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    AVCaptureMovieFileOutput *movieFileOutput = [self queue_movieFileOutputFromCaptureDevice:captureDevice];
+    AVCaptureMovieFileOutput *movieFileOutput = [self queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:captureDevice];
     assert(movieFileOutput != nil);
     assert(!movieFileOutput.isRecording);
     assert(!movieFileOutput.isRecordingPaused);
