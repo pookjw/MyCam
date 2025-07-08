@@ -2797,27 +2797,51 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     
     //
     
-    UIAction *selectAllAction = [UIAction actionWithTitle:@"Select All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
-            if (didChangeHandler) didChangeHandler();
-        });
-    }];
-    
-    UIAction *deselectAllAction = [UIAction actionWithTitle:@"Deselect All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-        dispatch_async(captureService.captureSessionQueue, ^{
-            metadataOutput.metadataObjectTypes = @[];
-            if (didChangeHandler) didChangeHandler();
-        });
-    }];
-    
-    UIMenu *submenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:@[
-        selectAllAction,
-        deselectAllAction,
-        [UIDeferredMenuElement _cp_queue_additionalFaceDetectionFeaturesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
-    ]];
-    
-    [children addObject:submenu];
+    {
+        NSMutableArray<__kindof UIMenuElement *> *menuChildren = [NSMutableArray new];
+        
+        UIAction *selectAllAction = [UIAction actionWithTitle:@"Select All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                metadataOutput.metadataObjectTypes = metadataOutput.availableMetadataObjectTypes;
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        [menuChildren addObject:selectAllAction];
+        
+        UIAction *deselectAllAction = [UIAction actionWithTitle:@"Deselect All" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                metadataOutput.metadataObjectTypes = @[];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        [menuChildren addObject:deselectAllAction];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            UIAction *selectForCinematicVideoCaptureAction = [UIAction actionWithTitle:@"Select Object Types for Cinemtic Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    NSMutableArray<AVMetadataObjectType> *metadataObjectTypes = [metadataOutput.metadataObjectTypes mutableCopy];
+                    
+                    for (NSString *objectType in metadataOutput.requiredMetadataObjectTypesForCinematicVideoCapture) {
+                        if (![metadataObjectTypes containsObject:objectType]) {
+                            [metadataObjectTypes addObject:objectType];
+                        }
+                    }
+                    
+                    metadataOutput.metadataObjectTypes = metadataObjectTypes;
+                    [metadataObjectTypes release];
+                });
+            }];
+            
+            [menuChildren addObject:selectForCinematicVideoCaptureAction];
+        }
+        
+        [menuChildren addObject:[UIDeferredMenuElement _cp_queue_additionalFaceDetectionFeaturesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+        
+        UIMenu *submenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:menuChildren];
+        [menuChildren release];
+        
+        [children addObject:submenu];
+    }
     
     //
     
@@ -4040,9 +4064,16 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu *)_cp_queue_quickActionsMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    UIMenu *menu = [UIMenu menuWithTitle:@"Quick Actions" children:@[
-        [UIDeferredMenuElement _cp_queue_enableSpatialVideoCaptureQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
-    ]];
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+    
+    [children addObject:[UIDeferredMenuElement _cp_queue_enableSpatialVideoCaptureQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
+    
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        [children addObject:[UIDeferredMenuElement _cp_queue_enableCinematicVideoCaptureQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
+        
+    }
+    UIMenu *menu = [UIMenu menuWithTitle:@"Quick Actions" children:children];
+    [children release];
     
     return menu;
 }
@@ -4058,10 +4089,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     }
     
     if (format == nil) {
-        UIAction *action = [UIAction actionWithTitle:@"Enable Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            
-        }];
-        
+        UIAction *action = [UIAction actionWithTitle:@"Enable Spatial Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.subtitle = @"No Formats support Spatial Video Capture";
         action.attributes = UIMenuElementAttributesDisabled;
         
         return action;
@@ -4087,6 +4116,56 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
                 assert(output.isSpatialVideoCaptureSupported);
                 output.spatialVideoCaptureEnabled = YES;
             }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
+    
+    return action;
+}
+
++ (UIAction *)_cp_queue_enableCinematicVideoCaptureQuickActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    __block AVCaptureDeviceFormat * _Nullable format = nil;
+    
+    for (AVCaptureDeviceFormat *_format in videoDevice.formats) {
+        if (_format.cinematicVideoCaptureSupported) {
+            format = _format;
+            break;
+        }
+    }
+    
+    if (format == nil) {
+        UIAction *action = [UIAction actionWithTitle:@"Enable Cinematic Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.subtitle = @"No Formats support Cinematic Video Capture";
+        action.attributes = UIMenuElementAttributesDisabled;
+        
+        return action;
+    }
+    
+    UIAction *action = [UIAction actionWithTitle:@"Enable Cinematic Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSError * _Nullable error = nil;
+            [videoDevice lockForConfiguration:&error];
+            assert(error == nil);
+            videoDevice.activeFormat = format;
+            [videoDevice unlockForConfiguration];
+            
+            if ([captureService queue_outputWithClass:[AVCaptureDepthDataOutput class] fromCaptureDevice:videoDevice] != nil) {
+                [captureService queue_removeDepthDataOutputWithCaptureDevice:videoDevice];
+            }
+            
+            AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:[AVCaptureMetadataOutput class] fromCaptureDevice:videoDevice];
+            assert(metadataOutput != nil);
+            [captureService.queue_captureSession beginConfiguration];
+            metadataOutput.metadataObjectTypes = metadataOutput.requiredMetadataObjectTypesForCinematicVideoCapture;
+            
+            for (AVCaptureDeviceInput *input in [captureService queue_addedDeviceInputsFromCaptureDevice:videoDevice]) {
+                if (input.cinematicVideoCaptureSupported) {
+                    input.cinematicVideoCaptureEnabled = YES;
+                }
+            }
+            
+            [captureService.queue_captureSession commitConfiguration];
             
             if (didChangeHandler) didChangeHandler();
         });

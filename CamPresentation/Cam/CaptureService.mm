@@ -1687,10 +1687,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert(connection != nil);
     
     connection.enabled = updatesDepthMapLayer;
-    
-    ImageBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
-    assert(depthMapLayer != nil);
-    [depthMapLayer updateWithCIImage:nil rotationAngle:0.f fill:NO];
 }
 
 - (BOOL)queue_updatesDepthMapLayer:(AVCaptureDevice *)captureDevice {
@@ -2014,16 +2010,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     __kindof AVCaptureSession *captureSession = self.queue_captureSession;
     
-    AVCaptureDeviceInput *deviceInput = nil;
-    for (AVCaptureInput *input in captureSession.inputs) {
-        if ([input isKindOfClass:AVCaptureDeviceInput.class]) {
-            auto _deviceInput = static_cast<AVCaptureDeviceInput *>(input);
-            if ([_deviceInput.device isEqual:captureDevice]) {
-                deviceInput = _deviceInput;
-                break;
-            }
-        }
-    }
+    AVCaptureDeviceInput *deviceInput = [self queue_addedDeviceInputsFromCaptureDevice:captureDevice].allObjects.firstObject;
     assert(deviceInput != nil);
     
     AVCaptureInputPort *videoInputPort = [deviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:nil sourceDevicePosition:AVCaptureDevicePositionUnspecified].firstObject;
@@ -2202,6 +2189,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession commitConfiguration];
     
     [captureSession removeOutput:output];
+    
+    ImageBufferLayer *depthMapLayer = [self.queue_depthMapLayersByCaptureDevice objectForKey:captureDevice];
+    assert(depthMapLayer != nil);
+    [depthMapLayer updateWithCIImage:nil rotationAngle:0.f fill:NO];
 }
 
 #warning Multi Mic 지원
