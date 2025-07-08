@@ -66,9 +66,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 #warning lensAperture
 #warning backgroundReplacementSupported, autoVideoFrameRateSupported
 
-@implementation UIDeferredMenuElement (PhotoFormat)
+@implementation UIDeferredMenuElement (VideoDevice)
 
-+ (instancetype)cp_videoDeviceElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
++ (UIDeferredMenuElement *)cp_videoDeviceElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     UIDeferredMenuElement *result = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
             PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:videoDevice];
@@ -4142,6 +4142,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         return action;
     }
     
+    NSArray<AVCaptureDevice *> *audioDevices = captureService.queue_addedAudioCaptureDevices;
+    
     UIAction *action = [UIAction actionWithTitle:@"Enable Cinematic Video Capture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
         dispatch_async(captureService.captureSessionQueue, ^{
             NSError * _Nullable error = nil;
@@ -4152,6 +4154,19 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             if ([captureService queue_outputWithClass:[AVCaptureDepthDataOutput class] fromCaptureDevice:videoDevice] != nil) {
                 [captureService queue_removeDepthDataOutputWithCaptureDevice:videoDevice];
+            }
+            
+            AVCaptureMovieFileOutput *movieOutput = [captureService queue_outputWithClass:[AVCaptureMovieFileOutput class] fromCaptureDevice:videoDevice];
+            if (movieOutput == nil) {
+                movieOutput = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
+            }
+            
+            if (AVCaptureDevice *audioDevice = audioDevices.lastObject) {
+                AVCaptureDeviceInput *audioInput = [captureService queue_addedDeviceInputsFromCaptureDevice:audioDevice].allObjects.firstObject;
+                assert(audioInput != nil);
+                audioInput.multichannelAudioMode = AVCaptureMultichannelAudioModeFirstOrderAmbisonics;
+                
+                [captureService queue_connectAudioDevice:audioDevice withOutput:movieOutput];
             }
             
             AVCaptureMetadataOutput *metadataOutput = [captureService queue_outputWithClass:[AVCaptureMetadataOutput class] fromCaptureDevice:videoDevice];
@@ -4170,6 +4185,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             if (didChangeHandler) didChangeHandler();
         });
     }];
+    
+    action.subtitle = (audioDevices.count == 0) ? @"Adding Audio Device is recommended" : nil;
     
     return action;
 }

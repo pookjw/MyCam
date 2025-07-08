@@ -12,8 +12,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
-@interface UIDeferredMenuElement (PhotoFormat)
-+ (instancetype)cp_videoDeviceElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^ _Nullable)())didChangeHandler;
+@interface UIDeferredMenuElement (VideoDevice)
++ (UIDeferredMenuElement *)cp_videoDeviceElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^ _Nullable)())didChangeHandler;
 @end
 
 NS_ASSUME_NONNULL_END
