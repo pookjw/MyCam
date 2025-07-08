@@ -14,7 +14,6 @@
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PointCloudPreviewView.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
-#import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
 #import <CamPresentation/UIDeferredMenuElement+Audio.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureSession.h>

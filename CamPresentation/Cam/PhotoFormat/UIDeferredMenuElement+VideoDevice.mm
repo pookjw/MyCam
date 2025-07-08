@@ -1,11 +1,11 @@
 //
-//  UIDeferredMenuElement+PhotoFormat.mm
+//  UIDeferredMenuElement+VideoDevice.mm
 //  CamPresentation
 //
 //  Created by Jinwoo Kim on 9/29/24.
 //
 
-#import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
+#import <CamPresentation/UIDeferredMenuElement+VideoDevice.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
@@ -68,90 +68,90 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 
 @implementation UIDeferredMenuElement (PhotoFormat)
 
-+ (instancetype)cp_photoFormatElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
++ (instancetype)cp_videoDeviceElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     UIDeferredMenuElement *result = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         dispatch_async(captureService.captureSessionQueue, ^{
-            PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:captureDevice];
-            AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:captureDevice];
+            PhotoFormatModel *photoFormatModel = [captureService queue_photoFormatModelForCaptureDevice:videoDevice];
+            AVCapturePhotoOutput *photoOutput = [captureService queue_outputWithClass:AVCapturePhotoOutput.class fromCaptureDevice:videoDevice];
             assert(photoOutput != nil);
             
             NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_quickActionsMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
 #if !TARGET_OS_TV
-            [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_smartStyleMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
 #endif
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_nerualAnalyzerModelTypeMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_nerualAnalyzerModelTypeMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_photoMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_movieMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_assetWriterMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_assetWriterMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_zoomMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_flashModesMenuWithCaptureService:captureService captureDevice:videoDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_torchModesMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_torchModesMenuWithCaptureService:captureService captureDevice:videoDevice photoOutput:photoOutput photoFormatModel:photoFormatModel didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:captureDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService captureDevice:videoDevice title:@"Format" includeSubtitle:YES filterHandler:nil didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_selectPreviewLayerMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_selectPreviewLayerMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_depthMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_depthMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_visionMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_visionMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_metadataObjectTypesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_metadataObjectTypesMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_formatsByColorSpaceMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_activeColorSpacesMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleGeometricDistortionCorrectionActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_toggleGeometricDistortionCorrectionActionWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_cameraIntrinsicMatrixDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_cameraIntrinsicMatrixDeliverySupportedFormatsMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:captureDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_reactionEffectsMenuWithCaptureService:captureService captureDevice:videoDevice photoOutput:photoOutput didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_centerStageMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_centerStageMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_focusMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_exposureMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_whiteBalanceMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_whiteBalanceMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_videoFrameRateMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoFrameRateMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightBoostMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightBoostMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightVideoCaptureMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_lowLightVideoCaptureMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_videoGreenGhostMitigationMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoGreenGhostMitigationMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_videoHDRMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_videoHDRMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_portraitEffectSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_portraitEffectSupportedFormatsWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_studioLightSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_studioLightSupportedFormatsWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_backgroundReplacementSupportedFormatsWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_stabilizationMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
-            [elements addObject:[UIDeferredMenuElement _cp_queue_greenGhostMitigationMenuWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]];
+            [elements addObject:[UIDeferredMenuElement _cp_queue_greenGhostMitigationMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
             
             [elements addObject:[UIDeferredMenuElement _cp_showSystemUserInterfaceMenu]];
             
             
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
-                [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]];
+                [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
             }
             
 #warning TODO: autoVideoFrameRateEnabled

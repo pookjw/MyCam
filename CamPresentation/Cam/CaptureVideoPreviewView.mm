@@ -10,7 +10,7 @@
 
 #if !TARGET_OS_VISION
 
-#import <CamPresentation/UIDeferredMenuElement+PhotoFormat.h>
+#import <CamPresentation/UIDeferredMenuElement+VideoDevice.h>
 #import <CamPresentation/FocusRectLayer.h>
 #import <CamPresentation/ExposureRectLayer.h>
 #import <objc/runtime.h>
@@ -430,7 +430,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     if (auto menuBarButtonItem = _menuBarButtonItem) return menuBarButtonItem;
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_photoFormatElementWithCaptureService:self.captureService captureDevice:self.captureDevice didChangeHandler:nil]
+        [UIDeferredMenuElement cp_videoDeviceElementWithCaptureService:self.captureService videoDevice:self.captureDevice didChangeHandler:nil]
     ]];
     
     UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"list.bullet"] menu:menu];
