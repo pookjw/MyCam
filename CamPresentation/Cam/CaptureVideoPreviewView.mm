@@ -65,6 +65,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 }
 
 @interface CaptureVideoPreviewView ()
+@property (retain, nonatomic, readonly) UILabel *spatialCaptureDiscomfortReasonLabel;
+@property (retain, nonatomic, readonly) UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel;
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *captureProgressActivityIndicatorView;
@@ -95,6 +97,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @end
 
 @implementation CaptureVideoPreviewView
+@synthesize cinematicVideoCaptureSceneMonitoringStatusesLabel = _cinematicVideoCaptureSceneMonitoringStatusesLabel;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
 @synthesize menuBarButtonItem = _menuBarButtonItem;
 @synthesize captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView;
@@ -198,6 +201,21 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         //
         
+        UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel = self.cinematicVideoCaptureSceneMonitoringStatusesLabel;
+        cinematicVideoCaptureSceneMonitoringStatusesLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        [self addSubview:cinematicVideoCaptureSceneMonitoringStatusesLabel];
+        
+        [NSLayoutConstraint activateConstraints:@[
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerXAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerXAnchor],
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerYAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerYAnchor],
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.topAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.topAnchor],
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.leadingAnchor],
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.bottomAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.bottomAnchor],
+            [cinematicVideoCaptureSceneMonitoringStatusesLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.trailingAnchor]
+        ]];
+        
+        //
+        
 #if TARGET_OS_TV
         __kindof UIView *toolbar = self.toolbar;
 #else
@@ -263,6 +281,10 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         [captureDevice addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"adjustingExposure" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         [captureDevice addObserver:self forKeyPath:@"adjustingWhiteBalance" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            [captureDevice addObserver:self forKeyPath:@"cinematicVideoCaptureSceneMonitoringStatuses" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+        }
     }
     
     return self;
@@ -276,6 +298,9 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingExposure"];
     [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        [_captureDevice removeObserver:self forKeyPath:@"cinematicVideoCaptureSceneMonitoringStatuses"];
+    }
     [_captureDevice release];
     [_previewLayer release];
     [_customPreviewLayer release];
@@ -288,6 +313,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_exposureRectLayer release];
     [_nerualAnalyzerLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
+    [_cinematicVideoCaptureSceneMonitoringStatusesLabel release];
     [_menuBarButtonItem release];
     [_captureProgressActivityIndicatorView release];
     [_captureProgressBarButtonItem release];
@@ -336,6 +362,17 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         } else if ([keyPath isEqualToString:@"adjustingWhiteBalance"]) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [self didChangeAdjustingWhiteBalance];
+            });
+            return;
+        } else if ([keyPath isEqualToString:@"cinematicVideoCaptureSceneMonitoringStatuses"]) {
+            auto captureDevice = static_cast<AVCaptureDevice *>(object);
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    [self updateCinematicVideoCaptureSceneMonitoringStatuses:captureDevice.cinematicVideoCaptureSceneMonitoringStatuses];
+                } else {
+                    abort();
+                }
             });
             return;
         }
@@ -418,12 +455,26 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     spatialCaptureDiscomfortReasonLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
     spatialCaptureDiscomfortReasonLabel.numberOfLines = 0;
     
-#warning TODO Blur + Vibrancy
     spatialCaptureDiscomfortReasonLabel.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
     spatialCaptureDiscomfortReasonLabel.textColor = UIColor.whiteColor;
     
     _spatialCaptureDiscomfortReasonLabel = [spatialCaptureDiscomfortReasonLabel retain];
     return [spatialCaptureDiscomfortReasonLabel autorelease];
+}
+
+- (UILabel *)cinematicVideoCaptureSceneMonitoringStatusesLabel {
+    if (auto cinematicVideoCaptureSceneMonitoringStatusesLabel = _cinematicVideoCaptureSceneMonitoringStatusesLabel) return cinematicVideoCaptureSceneMonitoringStatusesLabel;
+    
+    UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel = [UILabel new];
+    cinematicVideoCaptureSceneMonitoringStatusesLabel.textAlignment = NSTextAlignmentCenter;
+    cinematicVideoCaptureSceneMonitoringStatusesLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    cinematicVideoCaptureSceneMonitoringStatusesLabel.numberOfLines = 0;
+    
+    cinematicVideoCaptureSceneMonitoringStatusesLabel.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
+    cinematicVideoCaptureSceneMonitoringStatusesLabel.textColor = UIColor.whiteColor;
+    
+    _cinematicVideoCaptureSceneMonitoringStatusesLabel = cinematicVideoCaptureSceneMonitoringStatusesLabel;
+    return cinematicVideoCaptureSceneMonitoringStatusesLabel;
 }
 
 - (UIBarButtonItem *)menuBarButtonItem {
@@ -1124,6 +1175,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 #warning TODO
 #endif
     }
+}
+
+- (void)updateCinematicVideoCaptureSceneMonitoringStatuses:(NSSet<NSString *> *)cinematicVideoCaptureSceneMonitoringStatuses {
+    NSString *text = [cinematicVideoCaptureSceneMonitoringStatuses.allObjects componentsJoinedByString:@"\n"];
+    self.cinematicVideoCaptureSceneMonitoringStatusesLabel.text = text;
 }
 
 @end

@@ -38,7 +38,8 @@ static id<NSObject> unmuteToken;
 static id<NSObject> availableInputsChangeToken;
 
 + (void)load {
-    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+#if TARGET_OS_IOS
+    if (@available(iOS 26.0, *)) {
         muteToken = [[NSNotificationCenter.defaultCenter addObserverForName:AVAudioSessionOutputMuteStateChangeNotification object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
             NSLog(@"%@", notification);
         }] retain];
@@ -51,6 +52,7 @@ static id<NSObject> availableInputsChangeToken;
             NSLog(@"%@", notification);
         }] retain];
     }
+#endif
 }
 
 + (instancetype)cp_audioElementWithDidChangeHandler:(void (^ _Nullable)())didChangeHandler {
@@ -368,7 +370,11 @@ static id<NSObject> availableInputsChangeToken;
     };
     
     if (@available(iOS 26.0, *)) {
+#if TARGET_OS_IOS
         options.push_back(AVAudioSessionCategoryOptionBluetoothHighQualityRecording);
+#else
+        options.push_back(1 << 19);
+#endif
     } else if (@available(watchOS 26.0, tvOS 26.0, macCatalyst 26.0, visionOS 26.0, macOS 26.0, *)) {
         options.push_back(1 << 19);
     }

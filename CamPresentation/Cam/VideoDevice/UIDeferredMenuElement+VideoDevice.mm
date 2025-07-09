@@ -30,6 +30,7 @@
 #import <CamPresentation/CaptureDeviceWhiteBalanceTemperatureAndTintSlidersView.h>
 #import <CamPresentation/CaptureDeviceWhiteBalanceChromaticitySlidersView.h>
 #import <CamPresentation/CaptureDeviceLowLightBoostInfoView.h>
+#import <CamPresentation/DeviceInputSimulatedApertureSliderView.h>
 #import <CamPresentation/TVSlider.h>
 #import <CamPresentation/TVStepper.h>
 #import <CamPresentation/NSString+CP_Category.h>
@@ -4162,6 +4163,10 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             }
             
             if (AVCaptureDevice *audioDevice = audioDevices.lastObject) {
+                AVCaptureAudioDataOutput *audioDataOutput = [captureService queue_outputWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+                assert(audioDataOutput != nil);
+                audioDataOutput.spatialAudioChannelLayoutTag = kAudioChannelLayoutTag_Stereo;
+                
                 AVCaptureDeviceInput *audioInput = [captureService queue_addedDeviceInputsFromCaptureDevice:audioDevice].allObjects.firstObject;
                 assert(audioInput != nil);
                 audioInput.multichannelAudioMode = AVCaptureMultichannelAudioModeFirstOrderAmbisonics;
@@ -4536,7 +4541,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 + (UIMenu *)_cp_queue_cinematicVideoCaptureWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
     return [UIMenu menuWithTitle:@"Cinematic Video Capture" children:@[
         [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_simulatedApertureElementWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
@@ -4590,6 +4596,29 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     
     action.state = cinematicVideoCaptureEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
     return action;
+}
+
++ (UIDeferredMenuElement *)_cp_queue_simulatedApertureElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), macos(26.0)) {
+    NSSet<AVCaptureDeviceInput *> *inputs = [captureService queue_addedDeviceInputsFromCaptureDevice:videoDevice];
+    assert(inputs.count == 1);
+    AVCaptureDeviceInput *input = inputs.allObjects[0];
+    
+    return [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        DeviceInputSimulatedApertureSliderView *sliderView = [[DeviceInputSimulatedApertureSliderView alloc] initWithCaptureService:captureService deviceInput:input];
+        
+        __kindof UIMenuElement *viewElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            return sliderView;
+        });
+        
+        UIAction *defaultAction = [UIAction actionWithTitle:@"Set Default Simulated Aperture" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [sliderView setToDefaultSimulatedAperture];
+        }];
+        defaultAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"Simulated Aperture" children:@[viewElement, defaultAction]];
+        
+        completion(@[menu]);
+    }];
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

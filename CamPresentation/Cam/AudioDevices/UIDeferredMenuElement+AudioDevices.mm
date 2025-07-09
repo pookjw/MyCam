@@ -7,6 +7,8 @@
 
 #import <CamPresentation/UIDeferredMenuElement+AudioDevices.h>
 #import <CamPresentation/NSStringFromAVCaptureMultichannelAudioMode.h>
+#import <CamPresentation/NSStringFromAudioChannelLayoutTag.h>
+#import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 #include <ranges>
 #include <vector>
 
@@ -48,6 +50,7 @@
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     [children addObject:[UIDeferredMenuElement _cp_multichannelAudioModeMenuWithWithCaptureService:captureService audioDevice:audioDevice didChangeHandler:didChangeHandler]];
+    [children addObject:[UIDeferredMenuElement _cp_audioDataOutputMenuWithCaptureService:captureService audioDevice:audioDevice didChangeHandler:didChangeHandler]];
     
     UIMenu *menu = [UIMenu menuWithTitle:audioDevice.localizedName children:children];
     [children release];
@@ -96,9 +99,29 @@
     
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
-    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:children];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        AudioChannelLayoutTag spatialAudioChannelLayoutTag = audioDataOutput.spatialAudioChannelLayoutTag;
+        NSArray<NSNumber *> *allTags = allAudioChannelLayoutTags();
+        NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:allTags.count];
+        
+        for (NSNumber *tagNumber in allTags) {
+            NSString *string = NSStringFromAudioChannelLayoutTag(tagNumber.unsignedIntValue);
+            
+            UIAction *action = [UIAction actionWithTitle:string image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                abort();
+            }];
+            
+            action.cp_overrideNumberOfTitleLines = 0;
+            action.state = ((spatialAudioChannelLayoutTag & tagNumber.unsignedIntValue) == spatialAudioChannelLayoutTag) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            [actions addObject:action];
+        }
+        
+        [children addObject:[UIMenu menuWithTitle:@"Spatial Audio Channel Layout Tag" children:actions]];
+        [actions release];
+    }
     
-    abort();
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:children];
+    return menu;
 }
 
 @end

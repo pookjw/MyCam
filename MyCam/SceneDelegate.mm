@@ -29,10 +29,12 @@
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:rootViewController];
     [rootViewController release];
     
+#if !TARGET_OS_TV
     navigationController.interactivePopGestureRecognizer.delegate = self;
     if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
         navigationController.interactiveContentPopGestureRecognizer.delegate = self;
     }
+#endif
     
     //
     
