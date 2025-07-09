@@ -90,4 +90,15 @@
     return menu;
 }
 
++ (UIMenu *)_cp_audioDataOutputMenuWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice didChangeHandler:(void (^)())didChangeHandler {
+    AVCaptureAudioDataOutput *audioDataOutput = [captureService queue_outputWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+    assert(audioDataOutput != nil);
+    
+    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:children];
+    
+    abort();
+}
+
 @end
