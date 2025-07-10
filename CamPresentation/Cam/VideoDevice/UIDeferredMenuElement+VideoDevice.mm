@@ -4542,7 +4542,8 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     return [UIMenu menuWithTitle:@"Cinematic Video Capture" children:@[
         [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureSupportedFormatsMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_cinematicVideoCaptureEnabledActionWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
-        [UIDeferredMenuElement _cp_queue_simulatedApertureElementWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler]
+        [UIDeferredMenuElement _cp_queue_simulatedApertureElementWithCaptureService:captureService videoDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_activeVideoFrameDurationSlidersForCinematicVideoCaptureMenuWithCaptureService:captureService captureDevice:captureDevice]
     ]];
 }
 
@@ -4619,6 +4620,19 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         
         completion(@[menu]);
     }];
+}
+
++ (UIMenu *)_cp_queue_activeVideoFrameDurationSlidersForCinematicVideoCaptureMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), macos(26.0)) {
+    AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
+    AVFrameRateRange *videoFrameRateRangeForCinematicVideo = activeFormat.videoFrameRateRangeForCinematicVideo;
+    
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        CaptureDeviceFrameRateRangeInfoView *view = [[CaptureDeviceFrameRateRangeInfoView alloc] initWithCaptureService:captureService captureDevice:captureDevice frameRateRange:videoFrameRateRangeForCinematicVideo];
+        return [view autorelease];
+    });
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Video Frame Rate For Cinematic Video" children:@[element]];
+    return menu;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
