@@ -31,6 +31,7 @@
 #import <CamPresentation/CaptureDeviceWhiteBalanceChromaticitySlidersView.h>
 #import <CamPresentation/CaptureDeviceLowLightBoostInfoView.h>
 #import <CamPresentation/DeviceInputSimulatedApertureSliderView.h>
+#import <CamPresentation/VideoDeviceZoomFactorSliderView.h>
 #import <CamPresentation/TVSlider.h>
 #import <CamPresentation/TVStepper.h>
 #import <CamPresentation/NSString+CP_Category.h>
@@ -1447,12 +1448,10 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     return menu;
 }
 
-+ (UIDeferredMenuElement * _Nonnull)_cp_queue_zoomSlidersElementWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
-    CGFloat videoZoomFactor = captureDevice.videoZoomFactor;
++ (UIMenu * _Nonnull)_cp_queue_zoomSlidersMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     AVCaptureDeviceFormat *activeFormat = captureDevice.activeFormat;
     BOOL isCenterStageActive = captureDevice.isCenterStageActive;
     
-    AVZoomRange * _Nullable systemRecommendedVideoZoomRange = activeFormat.systemRecommendedVideoZoomRange;
     CGFloat minAvailableVideoZoomFactor = captureDevice.minAvailableVideoZoomFactor;
     CGFloat maxAvailableVideoZoomFactor = captureDevice.maxAvailableVideoZoomFactor;
     
@@ -1463,149 +1462,67 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     CGFloat videoMinZoomFactorForCenterStage = activeFormat.videoMinZoomFactorForCenterStage;
     CGFloat videoMaxZoomFactorForCenterStage = activeFormat.videoMaxZoomFactorForCenterStage;
     
-    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
-        CaptureDeviceZoomInfoView *infoView = [[CaptureDeviceZoomInfoView alloc] initWithCaptureDevice:captureDevice];
-        
-        //
-        
-        NSMutableArray<__kindof NSValue *> *allSliderValues = [NSMutableArray new];
-        
-        //
-        
-#if TARGET_OS_TV
-        TVSlider *videoZoomFactorSlider = [TVSlider new];
-#else
-        UISlider *videoZoomFactorSlider = [UISlider new];
-#endif
-        videoZoomFactorSlider.minimumValue = minAvailableVideoZoomFactor;
-        videoZoomFactorSlider.maximumValue = maxAvailableVideoZoomFactor;
-        videoZoomFactorSlider.value = videoZoomFactor;
-        if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
-            videoZoomFactorSlider.tintColor = UIColor.systemGreenColor;
-        } else {
-            videoZoomFactorSlider.tintColor = UIColor.systemRedColor;
-        }
-        
-        __kindof NSValue *videoZoomFactorSliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), videoZoomFactorSlider);
-        [allSliderValues addObject:videoZoomFactorSliderValue];
-        [videoZoomFactorSliderValue release];
-        
-        //
-        
-#if TARGET_OS_TV
-        NSMutableArray<TVSlider *> *videoZoomRangesForDepthDataDeliverySliders = [[NSMutableArray alloc] initWithCapacity:supportedVideoZoomRangesForDepthDataDelivery.count];
-#else
-        NSMutableArray<UISlider *> *videoZoomRangesForDepthDataDeliverySliders = [[NSMutableArray alloc] initWithCapacity:supportedVideoZoomRangesForDepthDataDelivery.count];
-#endif
+    //
+    
+    NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
+    
+    {
+        __kindof UIMenuElement *infoViewElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            CaptureDeviceZoomInfoView *infoView = [[CaptureDeviceZoomInfoView alloc] initWithCaptureDevice:captureDevice];
+            return [infoView autorelease];
+        });
+        [elements addObject:infoViewElement];
+    }
+    
+    {
+        __kindof UIMenuElement *videoZoomFactorSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            VideoDeviceZoomFactorSliderView *sliderView = [[VideoDeviceZoomFactorSliderView alloc] initWithCaptureService:captureService videoDevice:captureDevice];
+            sliderView.minZoomFactor = minAvailableVideoZoomFactor;
+            sliderView.maxZoomFactor = maxAvailableVideoZoomFactor;
+            return [sliderView autorelease];
+        });
+        [elements addObject:videoZoomFactorSliderElement];
+    }
+    
+    {
+        NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
         
         for (AVZoomRange *range in supportedVideoZoomRangesForDepthDataDelivery) {
-#if TARGET_OS_TV
-            TVSlider *slider = [TVSlider new];
-#else
-            UISlider *slider = [UISlider new];
-#endif
-            slider.minimumValue = range.minZoomFactor;
-            slider.maximumValue = range.maxZoomFactor;
-            slider.value = videoZoomFactor;
-            if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
-                slider.tintColor = UIColor.systemGreenColor;
-            } else {
-                slider.tintColor = UIColor.systemRedColor;
-            }
-            
-            [videoZoomRangesForDepthDataDeliverySliders addObject:slider];
-            
-            __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), slider);
-            [allSliderValues addObject:sliderValue];
-            [sliderValue release];
-            
-            [slider release];
-        }
-        
-        //
-        
-#if TARGET_OS_TV
-        TVSlider *videoZoomFactorForCenterStageSlider = [TVSlider new];
-#else
-        UISlider *videoZoomFactorForCenterStageSlider = [UISlider new];
-#endif
-        if (isCenterStageActive) {
-            videoZoomFactorForCenterStageSlider.minimumValue = videoMinZoomFactorForCenterStage;
-            videoZoomFactorForCenterStageSlider.maximumValue = videoMaxZoomFactorForCenterStage;
-            videoZoomFactorForCenterStageSlider.value = videoZoomFactor;
-            if ([systemRecommendedVideoZoomRange containsZoomFactor:videoZoomFactor]) {
-                videoZoomFactorForCenterStageSlider.tintColor = UIColor.systemGreenColor;
-            } else {
-                videoZoomFactorForCenterStageSlider.tintColor = UIColor.systemRedColor;
-            }
-            
-            __kindof NSValue *sliderValue = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("NSWeakObjectValue") alloc], sel_registerName("initWithObject:"), videoZoomFactorForCenterStageSlider);
-            [allSliderValues addObject:sliderValue];
-            [sliderValue release];
-        } else {
-            videoZoomFactorForCenterStageSlider.enabled = NO;
-        }
-        
-        //
-        
-        UIAction *sliderAction = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-#if TARGET_OS_TV
-            auto slider = static_cast<TVSlider *>(action.sender);
-#else
-            auto slider = static_cast<UISlider *>(action.sender);
-#endif
-            float value = slider.value;
-            
-            dispatch_async(captureService.captureSessionQueue, ^{
-                NSError * _Nullable error = nil;
-                [captureDevice lockForConfiguration:&error];
-                assert(error == nil);
-                captureDevice.videoZoomFactor = value;
-                [captureDevice unlockForConfiguration];
+            __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                VideoDeviceZoomFactorSliderView *sliderView = [[VideoDeviceZoomFactorSliderView alloc] initWithCaptureService:captureService videoDevice:captureDevice];
+                sliderView.minZoomFactor = range.minZoomFactor;
+                sliderView.maxZoomFactor = range.maxZoomFactor;
+                return [sliderView autorelease];
             });
             
-            for (__kindof NSValue *sliderValue in allSliderValues) {
-#if TARGET_OS_TV
-                TVSlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
-                slider.value = value;
-#else
-                UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
-                
-                if (!slider.isTracking) {
-                    slider.value = value;
-                }
-#endif
-                
-                if ([systemRecommendedVideoZoomRange containsZoomFactor:value]) {
-                    slider.tintColor = UIColor.systemGreenColor;
-                } else {
-                    slider.tintColor = UIColor.systemRedColor;
-                }
-            }
-        }];
-        
-        for (__kindof NSValue *sliderValue in allSliderValues) {
-#if TARGET_OS_TV
-            TVSlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
-            [slider addAction:sliderAction];
-#else
-            UISlider * _Nullable slider = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sliderValue, sel_registerName("weakObjectValue"));
-            [slider addAction:sliderAction forControlEvents:UIControlEventValueChanged];
-#endif
+            [children addObject:element];
         }
         
-        [allSliderValues release];
-        
-        //
-        
-        __kindof UIMenuElement *infoViewElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-            return infoView;
+        UIMenu *menu = [UIMenu menuWithTitle:@"Supported Video Zoom Ranges For Depth Data Delivery" children:children];
+        [children release];
+        [elements addObject:menu];
+    }
+    
+    if (isCenterStageActive) {
+        __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            VideoDeviceZoomFactorSliderView *sliderView = [[VideoDeviceZoomFactorSliderView alloc] initWithCaptureService:captureService videoDevice:captureDevice];
+            sliderView.minZoomFactor = videoMinZoomFactorForCenterStage;
+            sliderView.maxZoomFactor = videoMaxZoomFactorForCenterStage;
+            return [sliderView autorelease];
         });
-        [infoView release];
         
-        //
+        [elements addObject:element];
+    } else {
+        UIAction *action = [UIAction actionWithTitle:@"Zoom Factor For Center Stage" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.attributes = UIMenuElementAttributesDisabled;
+        action.subtitle = @"Center Stage is not active";
+        [elements addObject:action];
+    }
+    
+    
+    {
+        NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:secondaryNativeResolutionZoomFactors.count];
         
-        NSMutableArray<UIAction *> *secondaryNativeResolutionZoomFactorActions = [[NSMutableArray alloc] initWithCapacity:secondaryNativeResolutionZoomFactors.count];
         for (NSNumber *factor in secondaryNativeResolutionZoomFactors) {
             UIAction *action = [UIAction actionWithTitle:factor.stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
                 dispatch_async(captureService.captureSessionQueue, ^{
@@ -1626,26 +1543,17 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             
-            [secondaryNativeResolutionZoomFactorActions addObject:action];
+            [actions addObject:action];
         }
         
-        UIMenu *secondaryNativeResolutionZoomFactorsMenu = [UIMenu menuWithTitle:@"Secondary Native Resolution Zoom Factor" children:secondaryNativeResolutionZoomFactorActions];
-        [secondaryNativeResolutionZoomFactorActions release];
-        
-        //
-        
-        __kindof UIMenuElement *systemRecommendedVideoZoomRangeSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-            return videoZoomFactorSlider;
-        });
-        [videoZoomFactorSlider release];
-        
-        UIMenu *systemRecommendedVideoZoomRangeSliderMenu = [UIMenu menuWithTitle:@"System Recommended Video Zoom Range" children:@[
-            systemRecommendedVideoZoomRangeSliderElement
-        ]];
-        
-        //
-        
-        NSMutableArray<UIAction *> *virtualDeviceSwitchOverVideoZoomFactorActions = [[NSMutableArray alloc] initWithCapacity:virtualDeviceSwitchOverVideoZoomFactors.count];
+        UIMenu *menu = [UIMenu menuWithTitle:@"Secondary Native Resolution Zoom Factors" children:actions];
+        [actions release];
+        [elements addObject:menu];
+    }
+    
+    
+    {
+        NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:virtualDeviceSwitchOverVideoZoomFactors.count];
         
         for (NSNumber *factor in virtualDeviceSwitchOverVideoZoomFactors) {
             UIAction *action = [UIAction actionWithTitle:factor.stringValue image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
@@ -1667,56 +1575,35 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             action.attributes = UIMenuElementAttributesKeepsMenuPresented;
             
-            [virtualDeviceSwitchOverVideoZoomFactorActions addObject:action];
+            [actions addObject:action];
         }
         
-        UIMenu *virtualDeviceSwitchOverVideoZoomFactorsMenu = [UIMenu menuWithTitle:@"Virtual Device Switch Over Video Zoom Factors" children:virtualDeviceSwitchOverVideoZoomFactorActions];
-        [virtualDeviceSwitchOverVideoZoomFactorActions release];
-        
-        //
-        
-        NSMutableArray<__kindof UIMenuElement *> *videoZoomRangesForDepthDataDeliverySliderElements = [[NSMutableArray alloc] initWithCapacity:videoZoomRangesForDepthDataDeliverySliders.count];
-        for (__kindof UIView *slider in videoZoomRangesForDepthDataDeliverySliders) {
-            __kindof UIMenuElement *sliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-                return slider;
-            });
-            
-            [videoZoomRangesForDepthDataDeliverySliderElements addObject:sliderElement];
-        }
-        [videoZoomRangesForDepthDataDeliverySliders release];
-        
-        UIMenu *videoZoomRangesForDepthDataDeliverySlidersMenu = [UIMenu menuWithTitle:@"Video Zoom Ranges For Depth Data Delivery" children:videoZoomRangesForDepthDataDeliverySliderElements];
-        [videoZoomRangesForDepthDataDeliverySliderElements release];
-        
-        //
-        
-        __kindof UIMenuElement *videoZoomFactorForCenterStageSliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
-            return videoZoomFactorForCenterStageSlider;
-        });
-        [videoZoomFactorForCenterStageSlider release];
-        
-        UIMenu *videoZoomFactorForCenterStageSliderMenu = [UIMenu menuWithTitle:@"Video Zoom Factor For Center Stage" children:@[videoZoomFactorForCenterStageSliderElement]];
-        
-        //
-        
-        UIAction *videoZoomFactorUpscaleThresholdAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"Video Zoom Factor Upscale Threshold : %lf", videoZoomFactorUpscaleThreshold] image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        UIMenu *menu = [UIMenu menuWithTitle:@"Virtual Device Switch Over Video Zoom Factors" children:actions];
+        [actions release];
+        [elements addObject:menu];
+    }
+    
+    
+    {
+        UIAction *action = [UIAction actionWithTitle:[NSString stringWithFormat:@"Video Zoom Factor Upscale Threshold : %lf", videoZoomFactorUpscaleThreshold] image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 NSError * _Nullable error = nil;
                 [captureDevice lockForConfiguration:&error];
                 assert(error == nil);
-                captureDevice.videoZoomFactor = videoZoomFactorUpscaleThreshold;
+                [captureDevice rampToVideoZoomFactor:videoZoomFactorUpscaleThreshold withRate:1.f];
                 [captureDevice unlockForConfiguration];
                 
                 if (didChangeHandler) didChangeHandler();
             });
         }];
         
-        videoZoomFactorUpscaleThresholdAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-        videoZoomFactorUpscaleThresholdAction.cp_overrideNumberOfTitleLines = 0;
-        
-        //
-        
-        UIAction *cancelVideoZoomRampAction = [UIAction actionWithTitle:@"Cancel Video Zoom Ramp" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        action.cp_overrideNumberOfTitleLines = 0;
+        [elements addObject:action];
+    }
+    
+    {
+        UIAction *action = [UIAction actionWithTitle:@"Cancel Video Zoom Ramp" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
                 NSError * _Nullable error = nil;
                 [captureDevice lockForConfiguration:&error];
@@ -1726,27 +1613,29 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             });
         }];
         
-        cancelVideoZoomRampAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
-        
-        //
-        
-        UIMenu *menu = [UIMenu menuWithTitle:@"Zoom Sliders" children:@[
-            infoViewElement,
-            systemRecommendedVideoZoomRangeSliderMenu,
-            secondaryNativeResolutionZoomFactorsMenu,
-            videoZoomRangesForDepthDataDeliverySlidersMenu,
-            virtualDeviceSwitchOverVideoZoomFactorsMenu,
-            videoZoomFactorForCenterStageSliderMenu,
-            videoZoomFactorUpscaleThresholdAction,
-            cancelVideoZoomRampAction
-        ]];
-        
-        //
-        
-        completion(@[menu]);
-    }];
+        action.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        [elements addObject:action];
+    }
     
-    return element;
+    
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+            VideoDeviceZoomFactorSliderView *sliderView = [[VideoDeviceZoomFactorSliderView alloc] initWithCaptureService:captureService videoDevice:captureDevice];
+            sliderView.minZoomFactor = activeFormat.videoMinZoomFactorForCinematicVideo;
+            sliderView.maxZoomFactor = activeFormat.videoMaxZoomFactorForCinematicVideo;
+            return [sliderView autorelease];
+        });
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"Zoom Factor For Cinematic Video" children:@[element]];
+        [elements addObject:menu];
+    }
+    
+    //
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Zoom Sliders" children:elements];
+    [elements release];
+    
+    return menu;
 }
 
 + (UIAction * _Nonnull)_cp_queue_toggleCameraIntrinsicMatrixDeliveryActionWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
@@ -3414,7 +3303,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 
 + (UIMenu * _Nonnull)_cp_queue_zoomMenuWithCaptureService:(CaptureService *)captureService captureDevice:(AVCaptureDevice *)captureDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Zoom" children:@[
-        [UIDeferredMenuElement _cp_queue_zoomSlidersElementWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_zoomSlidersMenuWithCaptureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:YES title:@"Enable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setVideoZoomSmoothingForAllConnections:NO title:@"Disable Video Zoom Smoothing for all connections" captureService:captureService captureDevice:captureDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_quuee_minimumSizeZoomMenuWithCaptureService:captureService videoDevice:captureDevice]

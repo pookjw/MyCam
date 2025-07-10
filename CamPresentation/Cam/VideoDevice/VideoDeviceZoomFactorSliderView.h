@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 API_UNAVAILABLE(visionos)
 @interface VideoDeviceZoomFactorSliderView : UIView
+@property (assign, nonatomic) CGFloat minZoomFactor;
+@property (assign, nonatomic) CGFloat maxZoomFactor;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
