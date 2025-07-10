@@ -153,6 +153,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
                 [elements addObject:[UIDeferredMenuElement _cp_queue_cinematicVideoCaptureWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]];
+                [elements addObject:[UIDeferredMenuElement _cp_queue_nominalFocalLengthIn35mmFilmActionWithVideoDevice:videoDevice]];
             }
             
 #warning TODO: autoVideoFrameRateEnabled
@@ -4633,6 +4634,15 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Video Frame Rate For Cinematic Video" children:@[element]];
     return menu;
+}
+
++ (UIAction *)_cp_queue_nominalFocalLengthIn35mmFilmActionWithVideoDevice:(AVCaptureDevice *)captureDevice API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), macos(26.0)) {
+    UIAction *action = [UIAction actionWithTitle:@"Nominal Focal Length In 35mm Film" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+    
+    action.subtitle = @(captureDevice.nominalFocalLengthIn35mmFilm).stringValue;
+    action.attributes = UIMenuElementAttributesDisabled;
+    
+    return action;
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported
