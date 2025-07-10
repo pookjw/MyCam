@@ -16,10 +16,12 @@
 @interface CollectionViewController () <AssetCollectionsViewControllerDelegate>
 @property (class, nonatomic, readonly) NSArray<Class> *viewControllerClasses;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
+@property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
 @end
 
 @implementation CollectionViewController
 @synthesize cellRegistration = _cellRegistration;
+@synthesize menuBarButtonItem = _menuBarButtonItem;
 
 + (NSArray<Class> *)viewControllerClasses {
     return @[
@@ -69,6 +71,7 @@
 
 - (void)dealloc {
     [_cellRegistration release];
+    [_menuBarButtonItem release];
     [super dealloc];
 }
 
@@ -108,6 +111,8 @@
     }];
     
     [authorizationsService release];
+    
+    self.navigationItem.rightBarButtonItem = self.menuBarButtonItem;
     
     //
     
@@ -152,6 +157,47 @@
 //    ImageFiltersViewController *viewController = [ImageFiltersViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
+}
+
+- (UIBarButtonItem *)menuBarButtonItem {
+    if (auto menuBarButtonItem = _menuBarButtonItem) return menuBarButtonItem;
+    
+    UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Menu" image:[UIImage systemImageNamed:@"filemenu.and.selection"] target:nil action:nil menu:[self makeMenu]];
+    
+    _menuBarButtonItem = menuBarButtonItem;
+    return menuBarButtonItem;
+}
+
+- (UIMenu *)makeMenu {
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
+        
+        {
+            NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+            
+#if !TARGET_OS_VISION
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                BOOL deferredStartEnabled = CameraRootViewController.deferredStartEnabled;
+                
+                UIAction *action = [UIAction actionWithTitle:@"Deferred Start Enabled" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    CameraRootViewController.deferredStartEnabled = !deferredStartEnabled;
+                }];
+                action.state = deferredStartEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
+                [children addObject:action];
+            }
+#endif
+            
+            UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([CameraRootViewController class]) children:children];
+            [children release];
+            [elements addObject:menu];
+        }
+        
+        completion(elements);
+        [elements release];
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[element]];
+    return menu;
 }
 
 - (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {

@@ -5,11 +5,11 @@
 //  Created by Jinwoo Kim on 9/14/24.
 //
 
-#import <CamPresentation/CameraRootViewController.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
 
+#import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
 #import <CamPresentation/PointCloudPreviewView.h>
@@ -64,6 +64,14 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 @synthesize audioSessionBarButtonItem = _audioSessionBarButtonItem;
 @synthesize audioDevicesBarButtonItem = _audioDevicesBarButtonItem;
 @synthesize captureSessionBarButton = _captureSessionBarButton;
+
++ (BOOL)isDeferredStartEnabled {
+    return CaptureService.deferredStartEnabled;
+}
+
++ (void)setDeferredStartEnabled:(BOOL)deferredStartEnabled {
+    CaptureService.deferredStartEnabled = deferredStartEnabled;
+}
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     if (self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil]) {

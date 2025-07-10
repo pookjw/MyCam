@@ -20,6 +20,7 @@
 #import <CamPresentation/ImageBufferLayer.h>
 #import <CamPresentation/MetadataObjectsLayer.h>
 #import <CamPresentation/NSURL+CP.h>
+#import <CamPresentation/NSUserDefaults+Category.h>
 #import <UIKit/UIKit.h>
 
 /*
@@ -57,7 +58,7 @@ NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
-@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate>
+@interface CaptureService () <AVCapturePhotoCaptureDelegate, AVCaptureSessionControlsDelegate, CLLocationManagerDelegate, AVCapturePhotoOutputReadinessCoordinatorDelegate, AVCaptureFileOutputRecordingDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate, AVCaptureSessionDeferredStartDelegate>
 @property (retain, nonatomic, readonly) dispatch_queue_t audioDataOutputQueue;
 @property (retain, nonatomic, nullable) __kindof AVCaptureSession *queue_captureSession;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *queue_customPreviewLayersByCaptureDevice;
@@ -106,6 +107,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         assert(AVCaptureVideoThumbnailContentsDelegate != nil);
         assert(class_addProtocol(self, AVCaptureVideoThumbnailContentsDelegate));
     }
+}
+
++ (BOOL)isDeferredStartEnabled {
+    return NSUserDefaults.standardUserDefaults.cp_deferredStartEnabled;
+}
+
++ (void)setDeferredStartEnabled:(BOOL)deferredStartEnabled {
+    NSUserDefaults.standardUserDefaults.cp_deferredStartEnabled = deferredStartEnabled;
 }
 
 - (instancetype)init {
@@ -812,6 +821,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCaptureVideoPreviewLayer *previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSessionWithNoConnection:captureSession];
     previewLayer.hidden = NO;
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(previewLayer.deferredStartSupported);
+            previewLayer.deferredStartEnabled = YES;
+        }
+    }
     
     assert([self.queue_customPreviewLayersByCaptureDevice objectForKey:captureDevice] == nil);
     PixelBufferLayer *customPreviewLayer = [PixelBufferLayer new];
@@ -912,6 +927,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     AVCapturePhotoOutput *photoOutput = [AVCapturePhotoOutput new];
     photoOutput.maxPhotoQualityPrioritization = AVCapturePhotoQualityPrioritizationQuality;
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(photoOutput.deferredStartSupported);
+            photoOutput.deferredStartEnabled = YES;
+        }
+    }
+    
     [self addObserversForPhotoOutput:photoOutput];
     
     [captureSession addOutputWithNoConnections:photoOutput];
@@ -930,6 +952,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     previewVideoDataOutput.deliversPreviewSizedOutputBuffers = YES;
     previewVideoDataOutput.alwaysDiscardsLateVideoFrames = YES;
     [previewVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(previewVideoDataOutput.deferredStartSupported);
+            previewVideoDataOutput.deferredStartEnabled = YES;
+        }
+    }
     assert([captureSession canAddOutput:previewVideoDataOutput]);
     [captureSession addOutputWithNoConnections:previewVideoDataOutput];
     
@@ -945,6 +973,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     AVCaptureVideoDataOutput *movieVideoDataOutput = [AVCaptureVideoDataOutput new];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(movieVideoDataOutput.deferredStartSupported);
+            movieVideoDataOutput.deferredStartEnabled = YES;
+        }
+    }
     assert([captureSession canAddOutput:movieVideoDataOutput]);
     [captureSession addOutputWithNoConnections:movieVideoDataOutput];
     
@@ -990,6 +1024,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (visionDataInputPort != nil && depthDataInputPort == nil) {
         __kindof AVCaptureOutput *visionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(visionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            if (CaptureService.deferredStartEnabled) {
+                visionDataOutput.deferredStartEnabled = YES;
+            }
+        }
         assert([captureSession canAddOutput:visionDataOutput]);
         [captureSession addOutputWithNoConnections:visionDataOutput];
         
@@ -1013,6 +1052,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (cameraCalibrationDataInputPort != nil) {
         __kindof AVCaptureOutput *calibrationDataOutput = [objc_lookUpClass("AVCaptureCameraCalibrationDataOutput") new];
         reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(calibrationDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            if (CaptureService.deferredStartEnabled) {
+                assert(calibrationDataOutput.deferredStartSupported);
+                calibrationDataOutput.deferredStartEnabled = YES;
+            }
+        }
         assert([captureSession canAddOutput:calibrationDataOutput]);
         [captureSession addOutputWithNoConnections:calibrationDataOutput];
         
@@ -1029,6 +1074,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     if (metadataObjectInputPort != nil) {
         AVCaptureMetadataOutput *metadataOutput = [AVCaptureMetadataOutput new];
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            if (CaptureService.deferredStartEnabled) {
+                assert(metadataOutput.deferredStartSupported);
+                metadataOutput.deferredStartEnabled = YES;
+            }
+        }
         [self addObserversForMetadataOutput:metadataOutput];
         [self.queue_metadataObjectsByMetadataOutput setObject:@[] forKey:metadataOutput];
         [metadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
@@ -1228,6 +1279,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     AVCaptureAudioDataOutput *audioDataOutput = [AVCaptureAudioDataOutput new];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(audioDataOutput.deferredStartSupported);
+            audioDataOutput.deferredStartEnabled = YES;
+        }
+    }
     [audioDataOutput setSampleBufferDelegate:self queue:self.audioDataOutputQueue];
     assert([captureSession canAddOutput:audioDataOutput]);
     [captureSession addOutputWithNoConnections:audioDataOutput];
@@ -2032,6 +2089,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession beginConfiguration];
     
     AVCaptureMovieFileOutput *movieFileOutput = [AVCaptureMovieFileOutput new];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(movieFileOutput.deferredStartSupported);
+            movieFileOutput.deferredStartEnabled = YES;
+        }
+    }
     NSString * _Nullable reason = nil;
     assert(reinterpret_cast<BOOL (*)(id, SEL, id, id *)>(objc_msgSend)(captureSession, sel_registerName("_canAddOutput:failureReason:"), movieFileOutput, &reason));
     [captureSession addOutputWithNoConnections:movieFileOutput];
@@ -2164,6 +2227,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession beginConfiguration];
     
     AVCaptureDepthDataOutput *depthDataOutput = [AVCaptureDepthDataOutput new];
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(depthDataOutput.deferredStartSupported);
+            depthDataOutput.deferredStartEnabled = YES;
+        }
+    }
     depthDataOutput.filteringEnabled = YES;
     depthDataOutput.alwaysDiscardsLateDepthData = YES;
     [depthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
@@ -2902,6 +2971,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     auto captureSession = static_cast<__kindof AVCaptureSession *>([captureSessionClass new]);
     
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        if (CaptureService.deferredStartEnabled) {
+            assert(captureSession.manualDeferredStartSupported);
+            captureSession.automaticallyRunsDeferredStart = YES;
+            [captureSession setDeferredStartDelegate:self deferredStartDelegateCallbackQueue:self.captureSessionQueue];
+        }
+    }
+    
 #if !TARGET_OS_TV
     if (!reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("isSystemStyleEnabled"))) {
         reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(captureSession, sel_registerName("setSystemStyleEnabled:"), YES);
@@ -3080,6 +3157,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         for (__kindof AVCaptureOutput *output in oldOutputs) {
             if ([output isKindOfClass:AVCapturePhotoOutput.class]) {
                 AVCapturePhotoOutput *newPhotoOutput = [AVCapturePhotoOutput new];
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newPhotoOutput.deferredStartSupported);
+                        newPhotoOutput.deferredStartEnabled = YES;
+                    }
+                }
                 newPhotoOutput.maxPhotoQualityPrioritization = static_cast<AVCapturePhotoOutput *>(output).maxPhotoQualityPrioritization;
                 assert([captureSession canAddOutput:newPhotoOutput]);
                 [captureSession addOutputWithNoConnections:newPhotoOutput];
@@ -3092,6 +3175,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [newPhotoOutput release];
             } else if ([output isKindOfClass:AVCaptureMovieFileOutput.class]) {
                 AVCaptureMovieFileOutput *newMovieFileOutput = [AVCaptureMovieFileOutput new];
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newMovieFileOutput.deferredStartSupported);
+                        newMovieFileOutput.deferredStartEnabled = YES;
+                    }
+                }
                 
                 assert([captureSession canAddOutput:newMovieFileOutput]);
                 [captureSession addOutputWithNoConnections:newMovieFileOutput];
@@ -3102,6 +3191,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 auto oldVideoDataOutput = static_cast<AVCaptureVideoDataOutput *>(output);
                 
                 AVCaptureVideoDataOutput *newVideoDataOutput = [AVCaptureVideoDataOutput new];
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newVideoDataOutput.deferredStartSupported);
+                        newVideoDataOutput.deferredStartEnabled = YES;
+                    }
+                }
                 
                 if (oldVideoDataOutput.deliversPreviewSizedOutputBuffers) {
                     [newVideoDataOutput setSampleBufferDelegate:self queue:self.captureSessionQueue];
@@ -3119,6 +3214,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             } else if ([output isKindOfClass:AVCaptureDepthDataOutput.class]) {
                 auto depthDataOutput = static_cast<AVCaptureDepthDataOutput *>(output);
                 AVCaptureDepthDataOutput *newDepthDataOutput = [AVCaptureDepthDataOutput new];
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newDepthDataOutput.deferredStartSupported);
+                        newDepthDataOutput.deferredStartEnabled = YES;
+                    }
+                }
                 newDepthDataOutput.filteringEnabled = depthDataOutput.isFilteringEnabled;
                 newDepthDataOutput.alwaysDiscardsLateDepthData = depthDataOutput.alwaysDiscardsLateDepthData;
                 [newDepthDataOutput setDelegate:self callbackQueue:self.captureSessionQueue];
@@ -3130,6 +3231,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [newDepthDataOutput release];
             } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
                 AVCaptureAudioDataOutput *newAudioDataOutput = [AVCaptureAudioDataOutput new];
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newAudioDataOutput.deferredStartSupported);
+                        newAudioDataOutput.deferredStartEnabled = YES;
+                    }
+                }
                 [newAudioDataOutput setSampleBufferDelegate:self queue:self.audioDataOutputQueue];
                 
                 assert([captureSession canAddOutput:newAudioDataOutput]);
@@ -3141,6 +3248,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 __kindof AVCaptureOutput *newPointCloudDataOutput = [objc_lookUpClass("AVCapturePointCloudDataOutput") new];
                 reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(newPointCloudDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
                 
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newPointCloudDataOutput.deferredStartSupported);
+                        newPointCloudDataOutput.deferredStartEnabled = YES;
+                    }
+                }
+                
                 assert([captureSession canAddOutput:newPointCloudDataOutput]);
                 [captureSession addOutputWithNoConnections:newPointCloudDataOutput];
                 
@@ -3149,6 +3263,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
                 __kindof AVCaptureOutput *newVisionDataOutput = [objc_lookUpClass("AVCaptureVisionDataOutput") new];
                 reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(newVisionDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
+                
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newVisionDataOutput.deferredStartSupported);
+                        newVisionDataOutput.deferredStartEnabled = YES;
+                    }
+                }
                 
                 assert([captureSession canAddOutput:newVisionDataOutput]);
                 [captureSession addOutputWithNoConnections:newVisionDataOutput];
@@ -3159,6 +3280,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 __kindof AVCaptureOutput *newCalibrationDataOutput = [objc_lookUpClass("AVCaptureCameraCalibrationDataOutput") new];
                 reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(newCalibrationDataOutput, sel_registerName("setDelegate:callbackQueue:"), self, self.captureSessionQueue);
                 
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newCalibrationDataOutput.deferredStartSupported);
+                        newCalibrationDataOutput.deferredStartEnabled = YES;
+                    }
+                }
+                
                 assert([captureSession canAddOutput:newCalibrationDataOutput]);
                 [captureSession addOutputWithNoConnections:newCalibrationDataOutput];
                 
@@ -3167,6 +3295,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
                 assert([self.queue_metadataObjectsByMetadataOutput objectForKey:output] == nil);
                 AVCaptureMetadataOutput *newMetadataOutput = [AVCaptureMetadataOutput new];
+                
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newMetadataOutput.deferredStartSupported);
+                        newMetadataOutput.deferredStartEnabled = YES;
+                    }
+                }
+                
                 [self.queue_metadataObjectsByMetadataOutput setObject:@[] forKey:newMetadataOutput];
                 [self addObserversForMetadataOutput:newMetadataOutput];
                 [newMetadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
@@ -3178,6 +3314,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [newMetadataOutput release];
             } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
                 __kindof AVCaptureOutput *newThumbnailOutput = [objc_lookUpClass("AVCaptureVideoThumbnailOutput") new];
+                
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    if (CaptureService.deferredStartEnabled) {
+                        assert(newThumbnailOutput.deferredStartSupported);
+                        newThumbnailOutput.deferredStartEnabled = YES;
+                    }
+                }
+                
                 reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(newThumbnailOutput, sel_registerName("setThumbnailContentsDelegate:"), self);
                 
                 CGSize thumbnailSize = reinterpret_cast<CGSize (*)(id, SEL)>(objc_msgSend)(output, sel_registerName("thumbnailSize"));
@@ -4083,6 +4227,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         assert(videoThumbnailLayer != nil);
         videoThumbnailLayer.contents = nil;
     });
+}
+
+- (void)sessionDidRunDeferredStart:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
+}
+
+- (void)sessionWillRunDeferredStart:(AVCaptureSession *)session {
+    NSLog(@"%s", sel_getName(_cmd));
 }
 
 @end
