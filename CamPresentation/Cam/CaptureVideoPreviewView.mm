@@ -19,6 +19,7 @@
 #include <vector>
 #include <ranges>
 #import <CamPresentation/DrawingView.h>
+#import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
 
 #warning 확대할 때 preview 뜨게 하기
 
@@ -709,6 +710,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 }
                 
                 action.attributes = isSupported ? 0 : UIMenuElementAttributesDisabled;
+                action.cp_overrideNumberOfTitleLines = 0;
                 
                 return action;
             })
@@ -871,6 +873,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 abort();
             case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
                 if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
                     NSError * _Nullable error = nil;
                     [captureDevice lockForConfiguration:&error];
                     assert(error == nil);
@@ -882,6 +885,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 break;
             case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
                 if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
                     NSError * _Nullable error = nil;
                     [captureDevice lockForConfiguration:&error];
                     assert(error == nil);
@@ -891,6 +895,22 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                     abort();
                 }
                 break;
+            case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID: {
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
+                    AVMetadataObject * _Nullable metadata = [self queue_metadataObjectLayerPoint:viewPoint];
+                    if (metadata != nil) {
+                        NSError * _Nullable error = nil;
+                        [captureDevice lockForConfiguration:&error];
+                        assert(error == nil);
+                        [self.captureDevice setCinematicVideoTrackingFocusWithDetectedObjectID:metadata.objectID focusMode:AVCaptureCinematicVideoFocusModeWeak];
+                        [captureDevice unlockForConfiguration];
+                    }
+                } else {
+                    abort();
+                }
+                break;
+            }
             default:
                 abort();
         }
@@ -968,6 +988,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             }
             case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
                 if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
                     NSError * _Nullable error = nil;
                     [captureDevice lockForConfiguration:&error];
                     assert(error == nil);
@@ -979,11 +1000,26 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 break;
             case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
                 if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
                     NSError * _Nullable error = nil;
                     [captureDevice lockForConfiguration:&error];
                     assert(error == nil);
                     [captureDevice setCinematicVideoTrackingFocusAtPoint:pointOfInterest focusMode:AVCaptureCinematicVideoFocusModeStrong];
                     [captureDevice unlockForConfiguration];
+                } else {
+                    abort();
+                }
+            case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID:
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    assert(self.cinematicVideoCaptureEnabled);
+                    AVMetadataObject * _Nullable metadata = [self queue_metadataObjectLayerPoint:viewPoint];
+                    if (metadata != nil) {
+                        NSError * _Nullable error = nil;
+                        [captureDevice lockForConfiguration:&error];
+                        assert(error == nil);
+                        [self.captureDevice setCinematicVideoTrackingFocusWithDetectedObjectID:metadata.objectID focusMode:AVCaptureCinematicVideoFocusModeStrong];
+                        [captureDevice unlockForConfiguration];
+                    }
                 } else {
                     abort();
                 }
@@ -1132,6 +1168,25 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     self.focusRectLayer.contentsScale = displayScale;
     self.exposureRectLayer.contentsScale = displayScale;
     self.nerualAnalyzerLayer.contentsScale = displayScale;
+}
+
+- (__kindof AVMetadataObject * _Nullable)queue_metadataObjectLayerPoint:(CGPoint)layerPoint {
+    AVCaptureMetadataOutput *metadataOutput = [self.captureService queue_outputWithClass:[AVCaptureMetadataOutput class] fromCaptureDevice:self.captureDevice];
+    assert(metadataOutput != nil);
+    
+    NSArray<__kindof AVMetadataObject *> *metadataObjects = [self.captureService.queue_metadataObjectsByMetadataOutputCopiedMapTable objectForKey:metadataOutput];
+    assert(metadataObjects != nil);
+    
+    for (__kindof AVMetadataObject *metadataObject in metadataObjects) {
+        __kindof AVMetadataObject *transformed = [self.previewLayer transformedMetadataObjectForMetadataObject:metadataObject];
+        if (transformed != nil) {
+            if (CGRectContainsPoint(transformed.bounds, layerPoint)) {
+                return transformed;
+            }
+        }
+    }
+    
+    return nil;
 }
 
 - (void)willBeginSnapshotSessionNotification:(NSNotification *)notification {

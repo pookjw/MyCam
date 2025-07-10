@@ -15,6 +15,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <CamPresentation/NSStringFromAVCaptureCinematicVideoFocusMode.h>
 
 @interface MetadataObjectsLayer ()
 @property (copy, atomic, nullable) NSArray<__kindof AVMetadataObject *> *metadataObjects;
@@ -126,23 +127,25 @@
         
         CATextLayer *textLayer = [CATextLayer new];
         
-        NSString *string;
+        NSMutableString *string = [NSMutableString new];
         if ([metadataObject.type isEqualToString:AVMetadataObjectTypeFace]) {
             BOOL hasSmileConfidence = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(metadataObject, sel_registerName("hasSmileConfidence"));
             
             if (hasSmileConfidence) {
                 int smileConfidence = reinterpret_cast<int (*)(id, SEL)>(objc_msgSend)(metadataObject, sel_registerName("smileConfidence"));
-                string = [NSString stringWithFormat:@"%@ (smile: %d)", metadataObject.type, smileConfidence];
-            } else {
-                string = metadataObject.type;
+                [string appendFormat:@"%@ (smile: %d)", metadataObject.type, smileConfidence];
             }
-        } else {
-            string = metadataObject.type;
+        }
+        [string appendString:metadataObject.type];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            AVCaptureCinematicVideoFocusMode cinematicVideoFocusMode = metadataObject.cinematicVideoFocusMode;
+            [string appendFormat:@"(%@)", NSStringFromAVCaptureCinematicVideoFocusMode(cinematicVideoFocusMode)];
         }
         
         textLayer.string = string;
         textLayer.foregroundColor = color;
-        textLayer.fontSize = 30.;
+        textLayer.fontSize = 10.;
         textLayer.alignmentMode = kCAAlignmentCenter;
         textLayer.contentsScale = self.contentsScale;
         textLayer.frame = CGRectMake(0., 0., CGRectGetWidth(rect), 30.);

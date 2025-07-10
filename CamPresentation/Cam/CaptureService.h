@@ -59,6 +59,7 @@ __attribute__((objc_direct_members))
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *queue_nerualAnalyzerLayersByVideoDeviceCopiedMapTable;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *queue_metadataObjectsByMetadataOutputCopiedMapTable;
 
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice;

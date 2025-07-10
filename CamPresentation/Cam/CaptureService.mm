@@ -74,6 +74,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *queue_movieFileOutputsByFileOutput;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieWriter *> *queue_movieWritersByVideoDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *queue_metadataObjectsByMetadataOutput;
 @property (retain, nonatomic, readonly) NSMapTable<MovieWriter *, AVCaptureAudioDataOutput *> *adoQueue_audioDataOutputsByMovieWriter;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureAudioDataOutput *, id> *adoQueue_audioSourceFormatHintsByAudioDataOutput;
 
@@ -144,6 +145,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MovieWriter *> *movieWritersByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
+        NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *metadataObjectsByMetadataOutput = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<MovieWriter *, AVCaptureAudioDataOutput *> *audioDataOutputsByMovieWriter = [NSMapTable strongToStrongObjectsMapTable];
@@ -180,6 +182,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
+        _queue_metadataObjectsByMetadataOutput = [metadataObjectsByMetadataOutput retain];
         _adoQueue_audioDataOutputsByMovieWriter = [audioDataOutputsByMovieWriter retain];
         _adoQueue_audioSourceFormatHintsByAudioDataOutput = [audioSourceFormatHintsByAudioDataOutput retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
@@ -253,6 +256,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
     [_queue_movieWritersByVideoDevice release];
+    [_queue_metadataObjectsByMetadataOutput release];
     [_adoQueue_audioDataOutputsByMovieWriter release];
     [_adoQueue_audioSourceFormatHintsByAudioDataOutput release];
     [_mainQueue_capturePhotosByUniqueID release];
@@ -762,6 +766,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return [[self.queue_nerualAnalyzerLayersByVideoDevice copy] autorelease];
 }
 
+- (NSMapTable<AVCaptureMetadataOutput *,NSArray<__kindof AVMetadataObject *> *> *)queue_metadataObjectsByMetadataOutputCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_metadataObjectsByMetadataOutput copy] autorelease];
+}
+
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice {
     NSArray<AVCaptureDeviceType> *allVideoDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allVideoDeviceTypes"));
     
@@ -1021,6 +1030,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (metadataObjectInputPort != nil) {
         AVCaptureMetadataOutput *metadataOutput = [AVCaptureMetadataOutput new];
         [self addObserversForMetadataOutput:metadataOutput];
+        [self.queue_metadataObjectsByMetadataOutput setObject:@[] forKey:metadataOutput];
         [metadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
         assert([captureSession canAddOutput:metadataOutput]);
         [captureSession addOutputWithNoConnections:metadataOutput];
@@ -1439,6 +1449,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             
             assert([self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice] != nil);
             [self.queue_metadataObjectsLayersByCaptureDevice removeObjectForKey:captureDevice];
+            
+            assert([self.queue_metadataObjectsByMetadataOutput objectForKey:metadataOutput] != nil);
+            [self.queue_metadataObjectsByMetadataOutput removeObjectForKey:metadataOutput];
         } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
             assert([self.queue_videoThumbnailLayersByVideoDevice objectForKey:captureDevice] != nil);
             [self.queue_videoThumbnailLayersByVideoDevice removeObjectForKey:captureDevice];
@@ -2964,6 +2977,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
                 } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
                     auto metadataOutput = static_cast<AVCaptureMetadataOutput *>(output);
+                    [self.queue_metadataObjectsByMetadataOutput removeObjectForKey:metadataOutput];
                     [metadataOutput setMetadataObjectsDelegate:nil queue:nil];
                     [self removeObserversForMetadataOutput:metadataOutput];
                 } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput")]) {
@@ -3151,7 +3165,9 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [addedOutputsByOutputs setObject:newCalibrationDataOutput forKey:output];
                 [newCalibrationDataOutput release];
             } else if ([output isKindOfClass:AVCaptureMetadataOutput.class]) {
+                assert([self.queue_metadataObjectsByMetadataOutput objectForKey:output] == nil);
                 AVCaptureMetadataOutput *newMetadataOutput = [AVCaptureMetadataOutput new];
+                [self.queue_metadataObjectsByMetadataOutput setObject:@[] forKey:newMetadataOutput];
                 [self addObserversForMetadataOutput:newMetadataOutput];
                 [newMetadataOutput setMetadataObjectsDelegate:self queue:self.captureSessionQueue];
                 
@@ -3590,10 +3606,13 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 #warning Asset Writier - Metadata Face & Location
-- (void)queue_handleMetadataOutput:(AVCaptureMetadataOutput *)depthDataOutput didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects {
+- (void)queue_handleMetadataOutput:(AVCaptureMetadataOutput *)metadataOutput didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects {
     dispatch_assert_queue(self.captureSessionQueue);
     
-    for (AVCaptureDevice *captureDevice in [self queue_videoCaptureDevicesFromOutput:depthDataOutput]) {
+    assert([self.queue_metadataObjectsByMetadataOutput objectForKey:metadataOutput] != nil);
+    [self.queue_metadataObjectsByMetadataOutput setObject:metadataObjects forKey:metadataOutput];
+    
+    for (AVCaptureDevice *captureDevice in [self queue_videoCaptureDevicesFromOutput:metadataOutput]) {
         MetadataObjectsLayer *metadataObjectsLayer = [self.queue_metadataObjectsLayersByCaptureDevice objectForKey:captureDevice];
         assert(metadataObjectsLayer != nil);
         
