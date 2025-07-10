@@ -159,6 +159,10 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             
 #warning TODO: autoVideoFrameRateEnabled
             
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                [elements addObject:[UIDeferredMenuElement _cp_queue_cameraLensSmudgeDetectionMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
+            }
+            
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(elements);
             });
@@ -4532,6 +4536,84 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     action.attributes = UIMenuElementAttributesDisabled;
     
     return action;
+}
+
++ (UIMenu *)_cp_queue_cameraLensSmudgeDetectionMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), macos(26.0)) {
+    NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
+    
+    [elements addObject:[UIDeferredMenuElement _cp_queue_cameraLensSmudgeDetectionSupportedFormatsMenuWithCaptureService:captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:didChangeHandler]];
+    
+    if (videoDevice.activeFormat.cameraLensSmudgeDetectionSupported) {
+        CMTime cameraLensSmudgeDetectionInterval = videoDevice.cameraLensSmudgeDetectionInterval;
+        __kindof UIMenuElement *sliderElement = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+#if TARGET_OS_TV
+            TVSlider *slider = [TVSlider new];
+#else
+            UISlider *slider = [UISlider new];
+#endif
+            
+            slider.minimumValue = 0.f;
+            slider.maximumValue = 5.f;
+            slider.value = static_cast<float>(CMTimeConvertScale(cameraLensSmudgeDetectionInterval, 1000000UL, kCMTimeRoundingMethod_Default).value) / 1000000.f;
+            
+            UIAction *action = [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+                float value;
+#if TARGET_OS_TV
+                value = static_cast<TVSlider *>(action.sender).value;
+#else
+                value = static_cast<UISlider *>(action.sender).value;
+#endif
+                
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    NSError * _Nullable error = nil;
+                    [videoDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    [videoDevice setCameraLensSmudgeDetectionEnabled:YES detectionInterval:CMTimeMake(value * 1000000.f, 1000000UL)];
+                    [videoDevice unlockForConfiguration];
+                });
+            }];
+            
+#if TARGET_OS_TV
+            [slider addAction:action];
+#else
+            [slider addAction:action forControlEvents:UIControlEventValueChanged];
+#endif
+            return [slider autorelease];
+        });
+        
+        [elements addObject:sliderElement];
+        
+        UIAction *disableAction = [UIAction actionWithTitle:@"Disable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                NSError * _Nullable error = nil;
+                [videoDevice lockForConfiguration:&error];
+                assert(error == nil);
+                [videoDevice setCameraLensSmudgeDetectionEnabled:NO detectionInterval:kCMTimeInvalid];
+                [videoDevice unlockForConfiguration];
+            });
+        }];
+        disableAction.attributes = UIMenuElementAttributesKeepsMenuPresented;
+        [elements addObject:disableAction];
+    } else {
+        UIAction *action = [UIAction actionWithTitle:@"Current Format does not support Camera Lens Smudge Detection" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.attributes = UIMenuElementAttributesDisabled;
+        [elements addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Camera Lens Smudge Detection" children:elements];
+    [elements release];
+    return menu;
+}
+
++ (UIMenu * _Nonnull)_cp_queue_cameraLensSmudgeDetectionSupportedFormatsMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    return [UIDeferredMenuElement _cp_queue_formatsMenuWithCaptureService:captureService
+                                                            captureDevice:videoDevice
+                                                                    title:@"Camera Lens Smudge Detection Supported"
+                                                          includeSubtitle:NO
+                                                            filterHandler:^BOOL(AVCaptureDeviceFormat *format) {
+        return format.cameraLensSmudgeDetectionSupported;
+    }
+                                                         didChangeHandler:didChangeHandler];
 }
 
 #warning isVariableFrameRateVideoCaptureSupported isResponsiveCaptureWithDepthSupported isVideoBinned autoRedEyeReductionSupported

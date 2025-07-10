@@ -20,6 +20,7 @@
 #include <ranges>
 #import <CamPresentation/DrawingView.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>
+#import <CamPresentation/NSStringFromAVCaptureCameraLensSmudgeDetectionStatus.h>
 
 #warning 확대할 때 preview 뜨게 하기
 
@@ -77,7 +78,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 
 @interface CaptureVideoPreviewView ()
 @property (retain, nonatomic, readonly) UILabel *spatialCaptureDiscomfortReasonLabel;
-@property (retain, nonatomic, readonly) UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel;
+@property (retain, nonatomic, readonly) UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0));
+@property (retain, nonatomic, readonly) UILabel *cameraLensSmudgeDetectionLabel API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0));
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 @property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
 @property (retain, nonatomic, readonly) UIActivityIndicatorView *captureProgressActivityIndicatorView;
@@ -111,6 +113,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @implementation CaptureVideoPreviewView
 @synthesize cinematicVideoCaptureSceneMonitoringStatusesLabel = _cinematicVideoCaptureSceneMonitoringStatusesLabel;
 @synthesize spatialCaptureDiscomfortReasonLabel = _spatialCaptureDiscomfortReasonLabel;
+@synthesize cameraLensSmudgeDetectionLabel = _cameraLensSmudgeDetectionLabel;
 @synthesize menuBarButtonItem = _menuBarButtonItem;
 @synthesize captureProgressActivityIndicatorView = _captureProgressActivityIndicatorView;
 @synthesize captureProgressBarButtonItem = _captureProgressBarButtonItem;
@@ -213,18 +216,34 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         //
         
-        UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel = self.cinematicVideoCaptureSceneMonitoringStatusesLabel;
-        cinematicVideoCaptureSceneMonitoringStatusesLabel.translatesAutoresizingMaskIntoConstraints = NO;
-        [self addSubview:cinematicVideoCaptureSceneMonitoringStatusesLabel];
-        
-        [NSLayoutConstraint activateConstraints:@[
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerXAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerXAnchor],
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerYAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerYAnchor],
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.topAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.topAnchor],
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.leadingAnchor],
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.bottomAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.bottomAnchor],
-            [cinematicVideoCaptureSceneMonitoringStatusesLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.trailingAnchor]
-        ]];
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            UILabel *cinematicVideoCaptureSceneMonitoringStatusesLabel = self.cinematicVideoCaptureSceneMonitoringStatusesLabel;
+            cinematicVideoCaptureSceneMonitoringStatusesLabel.translatesAutoresizingMaskIntoConstraints = NO;
+            [self addSubview:cinematicVideoCaptureSceneMonitoringStatusesLabel];
+            
+            [NSLayoutConstraint activateConstraints:@[
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerXAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerXAnchor],
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.centerYAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerYAnchor],
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.topAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.topAnchor],
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.leadingAnchor],
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.bottomAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.bottomAnchor],
+                [cinematicVideoCaptureSceneMonitoringStatusesLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.trailingAnchor]
+            ]];
+            
+            
+            UILabel *cameraLensSmudgeDetectionLabel = self.cameraLensSmudgeDetectionLabel;
+            cameraLensSmudgeDetectionLabel.translatesAutoresizingMaskIntoConstraints = NO;
+            [self addSubview:cameraLensSmudgeDetectionLabel];
+            
+            [NSLayoutConstraint activateConstraints:@[
+                [cameraLensSmudgeDetectionLabel.centerXAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerXAnchor],
+                [cameraLensSmudgeDetectionLabel.centerYAnchor constraintEqualToAnchor:self.layoutMarginsGuide.centerYAnchor],
+                [cameraLensSmudgeDetectionLabel.topAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.topAnchor],
+                [cameraLensSmudgeDetectionLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.layoutMarginsGuide.leadingAnchor],
+                [cameraLensSmudgeDetectionLabel.bottomAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.bottomAnchor],
+                [cameraLensSmudgeDetectionLabel.trailingAnchor constraintLessThanOrEqualToAnchor:self.layoutMarginsGuide.trailingAnchor]
+            ]];
+        }
         
         //
         
@@ -296,6 +315,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         
         if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
             [captureDevice addObserver:self forKeyPath:@"cinematicVideoCaptureSceneMonitoringStatuses" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+            [captureDevice addObserver:self forKeyPath:@"cameraLensSmudgeDetectionStatus" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
+            [captureDevice addObserver:self forKeyPath:@"cameraLensSmudgeDetectionEnabled" options:NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew context:nullptr];
         }
     }
     
@@ -312,6 +333,8 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_captureDevice removeObserver:self forKeyPath:@"adjustingWhiteBalance"];
     if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
         [_captureDevice removeObserver:self forKeyPath:@"cinematicVideoCaptureSceneMonitoringStatuses"];
+        [_captureDevice removeObserver:self forKeyPath:@"cameraLensSmudgeDetectionStatus"];
+        [_captureDevice removeObserver:self forKeyPath:@"cameraLensSmudgeDetectionStatus"];
     }
     [_captureDevice release];
     [_previewLayer release];
@@ -326,6 +349,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     [_nerualAnalyzerLayer release];
     [_spatialCaptureDiscomfortReasonLabel release];
     [_cinematicVideoCaptureSceneMonitoringStatusesLabel release];
+    [_cameraLensSmudgeDetectionLabel release];
     [_menuBarButtonItem release];
     [_captureProgressActivityIndicatorView release];
     [_captureProgressBarButtonItem release];
@@ -352,8 +376,11 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         if ([keyPath isEqualToString:@"spatialCaptureDiscomfortReasons"]) {
             auto captureDevice = static_cast<AVCaptureDevice *>(object);
             
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:captureDevice.spatialCaptureDiscomfortReasons];
+            dispatch_async(self.captureService.captureSessionQueue, ^{
+                NSSet<AVSpatialCaptureDiscomfortReason> *spatialCaptureDiscomfortReasons = captureDevice.spatialCaptureDiscomfortReasons;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self updateSpatialCaptureDiscomfortReasonLabelWithReasons:spatialCaptureDiscomfortReasons];
+                });
             });
             return;
         } else if ([keyPath isEqualToString:@"reactionEffectsInProgress"]) {
@@ -379,13 +406,41 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
         } else if ([keyPath isEqualToString:@"cinematicVideoCaptureSceneMonitoringStatuses"]) {
             auto captureDevice = static_cast<AVCaptureDevice *>(object);
             
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
-                    [self updateCinematicVideoCaptureSceneMonitoringStatuses:captureDevice.cinematicVideoCaptureSceneMonitoringStatuses];
-                } else {
-                    abort();
-                }
-            });
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                dispatch_async(self.captureService.captureSessionQueue, ^{
+                    NSSet<AVCaptureSceneMonitoringStatus> *cinematicVideoCaptureSceneMonitoringStatuses = captureDevice.cinematicVideoCaptureSceneMonitoringStatuses;
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                            [self updateCinematicVideoCaptureSceneMonitoringStatusesLabel:cinematicVideoCaptureSceneMonitoringStatuses];
+                        } else {
+                            abort();
+                        }
+                    });
+                });
+            } else {
+                abort();
+            }
+            return;
+        } else if ([keyPath isEqualToString:@"cameraLensSmudgeDetectionStatus"] or [keyPath isEqualToString:@"cameraLensSmudgeDetectionEnabled"]) {
+            auto captureDevice = static_cast<AVCaptureDevice *>(object);
+            
+            if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                dispatch_async(self.captureService.captureSessionQueue, ^{
+                    AVCaptureCameraLensSmudgeDetectionStatus cameraLensSmudgeDetectionStatus = captureDevice.cameraLensSmudgeDetectionStatus;
+                    BOOL cameraLensSmudgeDetectionEnabled = captureDevice.cameraLensSmudgeDetectionEnabled;
+                    
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                            [self updateCameraLensSmudgeDetectionStatusLabel:cameraLensSmudgeDetectionStatus cameraLensSmudgeDetectionEnabled:cameraLensSmudgeDetectionEnabled];
+                        } else {
+                            abort();
+                        }
+                    });
+                });
+            } else {
+                abort();
+            }
+            
             return;
         }
     }
@@ -498,6 +553,21 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     
     _cinematicVideoCaptureSceneMonitoringStatusesLabel = cinematicVideoCaptureSceneMonitoringStatusesLabel;
     return cinematicVideoCaptureSceneMonitoringStatusesLabel;
+}
+
+- (UILabel *)cameraLensSmudgeDetectionLabel {
+    if (auto cameraLensSmudgeDetectionLabel = _cameraLensSmudgeDetectionLabel) return cameraLensSmudgeDetectionLabel;
+    
+    UILabel *cameraLensSmudgeDetectionLabel = [UILabel new];
+    cameraLensSmudgeDetectionLabel.textAlignment = NSTextAlignmentCenter;
+    cameraLensSmudgeDetectionLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+    cameraLensSmudgeDetectionLabel.numberOfLines = 0;
+    
+    cameraLensSmudgeDetectionLabel.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
+    cameraLensSmudgeDetectionLabel.textColor = UIColor.whiteColor;
+    
+    _cameraLensSmudgeDetectionLabel = cameraLensSmudgeDetectionLabel;
+    return cameraLensSmudgeDetectionLabel;
 }
 
 - (UIBarButtonItem *)menuBarButtonItem {
@@ -1319,9 +1389,14 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     }
 }
 
-- (void)updateCinematicVideoCaptureSceneMonitoringStatuses:(NSSet<NSString *> *)cinematicVideoCaptureSceneMonitoringStatuses {
+- (void)updateCinematicVideoCaptureSceneMonitoringStatusesLabel:(NSSet<NSString *> *)cinematicVideoCaptureSceneMonitoringStatuses API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
     NSString *text = [cinematicVideoCaptureSceneMonitoringStatuses.allObjects componentsJoinedByString:@"\n"];
     self.cinematicVideoCaptureSceneMonitoringStatusesLabel.text = text;
+}
+
+- (void)updateCameraLensSmudgeDetectionStatusLabel:(AVCaptureCameraLensSmudgeDetectionStatus)status cameraLensSmudgeDetectionEnabled:(BOOL)cameraLensSmudgeDetectionEnabled API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    self.cameraLensSmudgeDetectionLabel.text = NSStringFromAVCaptureCameraLensSmudgeDetectionStatus(status);
+    self.cameraLensSmudgeDetectionLabel.hidden = !cameraLensSmudgeDetectionEnabled;
 }
 
 @end
