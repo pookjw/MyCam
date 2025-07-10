@@ -24,7 +24,8 @@
 
 namespace CaptureVideoPreview {
 enum class GestureMode {
-    None, FocusPoint, FocusRect, ExposurePoint, ExposureRect
+    None, FocusPoint, FocusRect, ExposurePoint, ExposureRect,
+    CinematicVideoFixedFocusAtPoint, CinematicVideoTrackingFocusPoint, CinematicVideoTrackingFocusWithDetectedObjectID
 };
 
 const std::vector<GestureMode> allGestureModes() {
@@ -41,6 +42,9 @@ const std::vector<GestureMode> allGestureModes() {
     
     if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
         results.push_back(GestureMode::ExposureRect);
+        results.push_back(GestureMode::CinematicVideoFixedFocusAtPoint);
+        results.push_back(GestureMode::CinematicVideoTrackingFocusPoint);
+        results.push_back(GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID);
     }
     
     return results;
@@ -58,6 +62,12 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             return @"Exposure Point";
         case GestureMode::ExposureRect:
             return @"Exposure Rect";
+        case GestureMode::CinematicVideoFixedFocusAtPoint:
+            return @"Cinematic Video Fixed Focus At Point";
+        case GestureMode::CinematicVideoTrackingFocusPoint:
+            return @"Cinematic Video Tracking Focus Point";
+        case GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID:
+            return @"Cinematic Video Tracking Focus With Detected ObjectID";
         default:
             abort();
     }
@@ -94,6 +104,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
 @property (retain, nonatomic, readonly) NerualAnalyzerLayer *nerualAnalyzerLayer;
 @property (assign, nonatomic) CaptureVideoPreview::GestureMode gestureMode;
 @property (retain, nonatomic, readonly) DrawingView *drawingView;
+@property (nonatomic, readonly) BOOL cinematicVideoCaptureEnabled API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0));
 @end
 
 @implementation CaptureVideoPreviewView
@@ -442,8 +453,19 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                 abort();
             }
             break;
-        default:
+        case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
+        case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
+        case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID:
+            if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                self.tapGestureRecogninzer.enabled = YES;
+                self.longPressGestureRecognizer.enabled = YES;
+                self.panGestureRecognizer.enabled = NO;
+            } else {
+                abort();
+            }
             break;
+        default:
+            abort();
     }
 }
 
@@ -634,57 +656,70 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         CaptureVideoPreview::GestureMode currentGestureMode = unreaintedSelf.gestureMode;
         
-        auto _unreaintedSelf = unreaintedSelf;
-        
-        const std::vector<CaptureVideoPreview::GestureMode> allModes = CaptureVideoPreview::allGestureModes();
-        
-        auto actionsVec = allModes
-        | std::views::transform([currentGestureMode, _unreaintedSelf](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
-            UIAction *action = [UIAction actionWithTitle:CaptureVideoPreview::NSStringFromGestureMode(gestureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-                _unreaintedSelf.gestureMode = gestureMode;
-            }];
+        dispatch_async(unreaintedSelf.captureService.captureSessionQueue, ^{
+            auto _unreaintedSelf = unreaintedSelf;
             
-            action.state = (currentGestureMode == gestureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+            const std::vector<CaptureVideoPreview::GestureMode> allModes = CaptureVideoPreview::allGestureModes();
             
-            BOOL isSupported;
-            switch (gestureMode) {
-                case CaptureVideoPreview::GestureMode::None:
-                    isSupported = YES;
-                    break;
-                case CaptureVideoPreview::GestureMode::FocusPoint:
-                    isSupported = _unreaintedSelf.captureDevice.focusPointOfInterestSupported;
-                    break;
-                case CaptureVideoPreview::GestureMode::FocusRect:
-                    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
-                        isSupported = _unreaintedSelf.captureDevice.focusRectOfInterestSupported;
-                    } else {
+            auto actionsVec = allModes
+            | std::views::transform([currentGestureMode, _unreaintedSelf](CaptureVideoPreview::GestureMode gestureMode) -> UIAction * {
+                UIAction *action = [UIAction actionWithTitle:CaptureVideoPreview::NSStringFromGestureMode(gestureMode) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                    _unreaintedSelf.gestureMode = gestureMode;
+                }];
+                
+                action.state = (currentGestureMode == gestureMode) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                
+                BOOL isSupported;
+                switch (gestureMode) {
+                    case CaptureVideoPreview::GestureMode::None:
+                        isSupported = YES;
+                        break;
+                    case CaptureVideoPreview::GestureMode::FocusPoint:
+                        isSupported = _unreaintedSelf.captureDevice.focusPointOfInterestSupported;
+                        break;
+                    case CaptureVideoPreview::GestureMode::FocusRect:
+                        if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                            isSupported = _unreaintedSelf.captureDevice.focusRectOfInterestSupported;
+                        } else {
+                            abort();
+                        }
+                        break;
+                    case CaptureVideoPreview::GestureMode::ExposurePoint:
+                        isSupported = _unreaintedSelf.captureDevice.isExposurePointOfInterestSupported;
+                        break;
+                    case CaptureVideoPreview::GestureMode::ExposureRect:
+                        if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                            isSupported = _unreaintedSelf.captureDevice.exposureRectOfInterestSupported;
+                        } else {
+                            abort();
+                        }
+                        break;
+                    case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
+                    case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
+                    case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusWithDetectedObjectID:
+                        if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                            isSupported = _unreaintedSelf.cinematicVideoCaptureEnabled;
+                        } else {
+                            abort();
+                        }
+                        break;
+                    default:
+                        NSLog(@"%@", CaptureVideoPreview::NSStringFromGestureMode(gestureMode));
                         abort();
-                    }
-                    break;
-                case CaptureVideoPreview::GestureMode::ExposurePoint:
-                    isSupported = _unreaintedSelf.captureDevice.isExposurePointOfInterestSupported;
-                    break;
-                case CaptureVideoPreview::GestureMode::ExposureRect:
-                    if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
-                        isSupported = _unreaintedSelf.captureDevice.exposureRectOfInterestSupported;
-                    } else {
-                        abort();
-                    }
-                    break;
-                default:
-                    NSLog(@"%@", CaptureVideoPreview::NSStringFromGestureMode(gestureMode));
-                    abort();
-            }
+                }
+                
+                action.attributes = isSupported ? 0 : UIMenuElementAttributesDisabled;
+                
+                return action;
+            })
+            | std::ranges::to<std::vector<UIAction *>>();
             
-            action.attributes = isSupported ? 0 : UIMenuElementAttributesDisabled;
-            
-            return action;
-        })
-        | std::ranges::to<std::vector<UIAction *>>();
-        
-        NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
-        completion(actions);
-        [actions release];
+            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(actions);
+            });
+            [actions release];
+        });
     }];
     
     UIMenu *menu = [UIMenu menuWithChildren:@[
@@ -692,6 +727,7 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     ]];
     
     UIBarButtonItem *gestureModeMenuBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"hand.rays"] menu:menu];
+    gestureModeMenuBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
     
     _gestureModeMenuBarButtonItem = [gestureModeMenuBarButtonItem retain];
     return [gestureModeMenuBarButtonItem autorelease];
@@ -760,6 +796,13 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
     return drawingView;
 }
 
+- (BOOL)cinematicVideoCaptureEnabled API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    NSSet<AVCaptureDeviceInput *> *addedDeviceInputs = [self.captureService queue_addedDeviceInputsFromCaptureDevice:self.captureDevice];
+    assert(addedDeviceInputs.count == 1);
+    AVCaptureDeviceInput *input = addedDeviceInputs.allObjects[0];
+    return input.cinematicVideoCaptureEnabled;
+}
+
 - (void)updateSpatialCaptureDiscomfortReasonLabelWithReasons:(NSSet<AVSpatialCaptureDiscomfortReason> *)reasons {
     NSString *text = [reasons.allObjects componentsJoinedByString:@"\n"];
     self.spatialCaptureDiscomfortReasonLabel.text = text;
@@ -826,6 +869,28 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
             case CaptureVideoPreview::GestureMode::ExposureRect:
                 // Pan Gesture만 가능해야함
                 abort();
+            case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    [captureDevice setCinematicVideoFixedFocusAtPoint:pointOfInterest focusMode:AVCaptureCinematicVideoFocusModeWeak];
+                    [captureDevice unlockForConfiguration];
+                } else {
+                    abort();
+                }
+                break;
+            case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    [captureDevice setCinematicVideoTrackingFocusAtPoint:pointOfInterest focusMode:AVCaptureCinematicVideoFocusModeWeak];
+                    [captureDevice unlockForConfiguration];
+                } else {
+                    abort();
+                }
+                break;
             default:
                 abort();
         }
@@ -901,6 +966,28 @@ NSString *NSStringFromGestureMode(GestureMode gestureMode) {
                     abort();
                 }
             }
+            case CaptureVideoPreview::GestureMode::CinematicVideoFixedFocusAtPoint:
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    [captureDevice setCinematicVideoFixedFocusAtPoint:pointOfInterest focusMode:AVCaptureCinematicVideoFocusModeStrong];
+                    [captureDevice unlockForConfiguration];
+                } else {
+                    abort();
+                }
+                break;
+            case CaptureVideoPreview::GestureMode::CinematicVideoTrackingFocusPoint:
+                if (@available(macOS 26.0, iOS 26.0, macCatalyst 26.0, tvOS 26.0, visionOS 26.0, *)) {
+                    NSError * _Nullable error = nil;
+                    [captureDevice lockForConfiguration:&error];
+                    assert(error == nil);
+                    [captureDevice setCinematicVideoTrackingFocusAtPoint:pointOfInterest focusMode:AVCaptureCinematicVideoFocusModeStrong];
+                    [captureDevice unlockForConfiguration];
+                } else {
+                    abort();
+                }
+                break;
             default:
                 abort();
         }
