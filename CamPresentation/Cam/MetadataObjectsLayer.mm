@@ -141,6 +141,10 @@
         if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
             AVCaptureCinematicVideoFocusMode cinematicVideoFocusMode = metadataObject.cinematicVideoFocusMode;
             [string appendFormat:@"(%@)", NSStringFromAVCaptureCinematicVideoFocusMode(cinematicVideoFocusMode)];
+            
+            if (metadataObject.fixedFocus) {
+                [string appendString:@"\nFixed Focus"];
+            }
         }
         
         textLayer.string = string;

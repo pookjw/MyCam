@@ -5,11 +5,11 @@
 //  Created by Jinwoo Kim on 10/19/24.
 //
 
-#import <CamPresentation/UIDeferredMenuElement+CaptureSession.h>
 #import <TargetConditionals.h>
 
 #if !TARGET_OS_VISION
 
+#import <CamPresentation/UIDeferredMenuElement+CaptureSession.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <CamPresentation/UIMenuElement+CP_NumberOfLines.h>

@@ -25,6 +25,7 @@
 #include <vector>
 #include <ranges>
 #import <TargetConditionals.h>
+#import <CamPresentation/AudioInputPickerView.h>
 
 #warning TODO visionOS Spatial Experience
 #warning 남은 기능 구현하기
@@ -156,6 +157,7 @@ static id<NSObject> availableInputsChangeToken;
             
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
                 [children addObject:[UIDeferredMenuElement _cp_toggleOutputMutedActionWithAudioSession:audioSession didChangeHandler:didChangeHandler]];
+                [children addObject:[UIDeferredMenuElement _cp_inputPickerInteractionMenuWithAudioSession:audioSession]];
             }
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -1405,5 +1407,17 @@ static id<NSObject> availableInputsChangeToken;
     return action;
 #endif
 }
+
+#if TARGET_OS_IOS
++ (UIMenu *)_cp_inputPickerInteractionMenuWithAudioSession:(AVAudioSession *)audioSession API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+        AudioInputPickerView *view = [[AudioInputPickerView alloc] initWithAudioSession:audioSession];
+        return [view autorelease];
+    });
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Input Picker" children:@[element]];
+    return menu;
+}
+#endif
 
 @end

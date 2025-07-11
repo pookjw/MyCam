@@ -263,8 +263,12 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"_KeyValueCodingAndObserving+ObserveAsync.swift",
+				Audio/AudioInputPickerView.h,
+				Audio/AudioInputPickerView.mm,
 				Audio/AudioSessionInfoView.h,
 				Audio/AudioSessionInfoView.mm,
+				"Audio/AVInputPickerInteraction+Category.h",
+				"Audio/AVInputPickerInteraction+Category.mm",
 				"Audio/UIDeferredMenuElement+Audio.h",
 				"Audio/UIDeferredMenuElement+Audio.mm",
 				Audio/VolumeSlider.h,
@@ -671,7 +675,9 @@
 				XRCam/XRPhotoSettings.mm,
 			);
 			privateHeaders = (
+				Audio/AudioInputPickerView.h,
 				Audio/AudioSessionInfoView.h,
+				"Audio/AVInputPickerInteraction+Category.h",
 				"Audio/UIDeferredMenuElement+Audio.h",
 				Audio/VolumeSlider.h,
 				Audio/VolumeStepper.h,
