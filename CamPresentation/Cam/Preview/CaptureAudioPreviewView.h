@@ -1,0 +1,22 @@
+//
+//  CaptureAudioPreviewView.h
+//  CamPresentation
+//
+//  Created by Jinwoo Kim on 7/11/25.
+//
+
+#import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
+#import <CamPresentation/CaptureService.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface CaptureAudioPreviewView : UIView
++ (instancetype)new NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
+- (nullable instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice;
+@end
+
+NS_ASSUME_NONNULL_END

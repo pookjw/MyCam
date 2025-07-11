@@ -23,9 +23,6 @@ CP_EXTERN NSNotificationName const CaptureServiceDidAddDeviceNotificationName /*
 CP_EXTERN NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName /* CaptureServiceCaptureDeviceKey */;
 CP_EXTERN NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName /* CaptureServiceCaptureDeviceKey */;
 
-CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName;
-CP_EXTERN NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName;
-
 CP_EXTERN NSString * const CaptureServiceCaptureReadinessKey;
 CP_EXTERN NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName /* CaptureServiceCaptureDeviceKey, CaptureServiceCaptureReadinessKey */;
 

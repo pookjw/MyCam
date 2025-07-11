@@ -12,6 +12,7 @@
 #import <CamPresentation/CameraRootViewController.h>
 #import <CamPresentation/CaptureService.h>
 #import <CamPresentation/CaptureVideoPreviewView.h>
+#import <CamPresentation/CaptureAudioPreviewView.h>
 #import <CamPresentation/PointCloudPreviewView.h>
 #import <CamPresentation/UIDeferredMenuElement+CaptureDevices.h>
 #import <CamPresentation/UIDeferredMenuElement+FileOutputs.h>
@@ -50,6 +51,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 @property (retain, nonatomic, readonly) CaptureService *captureService;
 
 @property (nonatomic, readonly) NSArray<CaptureVideoPreviewView *> *captureVideoPreviewViews;
+@property (nonatomic, readonly) NSArray<CaptureAudioPreviewView *> *captureAudioPreviewViews;
+@property (nonatomic, readonly) NSArray<PointCloudPreviewView *> *pointCloudPreviewViews;
 @end
 
 @implementation CameraRootViewController
@@ -412,16 +415,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didUpdatePreviewLayersNotification:)
-                                               name:CaptureServiceDidUpdatePreviewLayersNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
-                                           selector:@selector(didUpdatePointCloudLayersNotification:)
-                                               name:CaptureServiceDidUpdatePointCloudLayersNotificationName
-                                             object:captureService];
-    
-    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveCaptureSessionRuntimeErrorNotification:)
                                                name:AVCaptureSessionRuntimeErrorNotification
                                              object:nil];
@@ -452,17 +445,45 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return [results autorelease];
 }
 
+- (NSArray<CaptureAudioPreviewView *> *)captureAudioPreviewViews {
+    NSMutableArray<CaptureAudioPreviewView *> *results = [NSMutableArray new];
+    
+    for (CaptureAudioPreviewView *previewView in self.stackView.arrangedSubviews) {
+        if ([previewView isKindOfClass:[CaptureAudioPreviewView class]]) {
+            [results addObject:previewView];
+        }
+    }
+    
+    return [results autorelease];
+}
+
+- (NSArray<PointCloudPreviewView *> *)pointCloudPreviewViews {
+    NSMutableArray<PointCloudPreviewView *> *results = [NSMutableArray new];
+    
+    for (PointCloudPreviewView *previewView in self.stackView.arrangedSubviews) {
+        if ([previewView isKindOfClass:[PointCloudPreviewView class]]) {
+            [results addObject:previewView];
+        }
+    }
+    
+    return [results autorelease];
+}
+
 - (void)didTriggerPhotosBarButtonItem:(UIBarButtonItem *)sender {
     NSLog(@"TODO");
 }
 
 - (void)didAddDeviceNotification:(NSNotification *)notification {
+    [self nonisolated_addedCaptureDevicesDidChange:notification];
+    
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
     });
 }
 
 - (void)didRemoveDeviceNotification:(NSNotification *)notification {
+    [self nonisolated_addedCaptureDevicesDidChange:notification];
+    
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
     });
@@ -485,10 +506,16 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     });
 }
 
-- (void)didUpdatePreviewLayersNotification:(NSNotification *)notification {
+- (void)nonisolated_addedCaptureDevicesDidChange:(NSNotification *)notification {
+    [self nonisolated_updateCaptureVideoPreviewViews];
+    [self nonisolated_updatePointCloudPreviewViews];
+}
+
+- (void)nonisolated_updateCaptureVideoPreviewViews {
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
+        NSArray<AVCaptureDevice *> *videoCaptureDevices = captureService.queue_addedVideoCaptureDevices;
         NSMapTable<AVCaptureDevice *, AVCaptureVideoPreviewLayer *> *previewLayersByCaptureDevice = captureService.queue_previewLayersByCaptureDevice;
         NSMapTable<AVCaptureDevice *, PixelBufferLayer *> *customPreviewLayersByCaptureDeviceCopiedMapTable = captureService.queue_customPreviewLayersByCaptureDeviceCopiedMapTable;
         NSMapTable<AVCaptureDevice *, AVSampleBufferDisplayLayer *> *sampleBufferDisplayLayersByVideoDevice = captureService.queue_sampleBufferDisplayLayersByVideoDeviceCopiedMapTable;
@@ -501,12 +528,12 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
             
-            for (CaptureVideoPreviewView *captureVideoPreviewView in stackView.arrangedSubviews) {
-                if (![captureVideoPreviewView isKindOfClass:CaptureVideoPreviewView.class]) continue;
-                
+            NSMutableArray<AVCaptureDevice *> *addedVideoCaptureDevices = [videoCaptureDevices mutableCopy];
+            
+            for (CaptureVideoPreviewView *captureVideoPreviewView in self.captureVideoPreviewViews) {
                 BOOL isRemoved = YES;
-                for (AVCaptureVideoPreviewLayer *previewLayer in previewLayersByCaptureDevice.objectEnumerator) {
-                    if ([captureVideoPreviewView.previewLayer isEqual:previewLayer]) {
+                for (AVCaptureDevice *videoDevice in videoCaptureDevices) {
+                    if ([captureVideoPreviewView.previewLayer isEqual:[previewLayersByCaptureDevice objectForKey:videoDevice]]) {
                         isRemoved = NO;
                         break;
                     }
@@ -516,13 +543,13 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                     // 삭제된 Layer - View 제거
                     [captureVideoPreviewView removeFromSuperview];
                 } else {
-                    // 이미 존재하는 Layer
-                    [customPreviewLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureVideoPreviewView.captureDevice];
+                    [addedVideoCaptureDevices removeObject:captureVideoPreviewView.captureDevice];
                 }
             }
             
-            for (AVCaptureDevice * captureDevice in customPreviewLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+            for (AVCaptureDevice * captureDevice in addedVideoCaptureDevices) {
                 AVCaptureVideoPreviewLayer *previewLayer = [previewLayersByCaptureDevice objectForKey:captureDevice];
+                assert(previewLayer != nil);
                 PixelBufferLayer *customPreviewLayer = [customPreviewLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 AVSampleBufferDisplayLayer *sampleBufferDisplayLayer = [sampleBufferDisplayLayersByVideoDevice objectForKey:captureDevice];
                 CALayer *videoThumbnailLayer = [videoThumbnailLayersByVideoDevice objectForKey:captureDevice];
@@ -536,50 +563,47 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 [previewView release];
             }
             
+            [addedVideoCaptureDevices release];
             [stackView updateConstraintsIfNeeded];
         });
     });
 }
 
-- (void)didUpdatePointCloudLayersNotification:(NSNotification *)notification {
+- (void)nonisolated_updatePointCloudPreviewViews {
     CaptureService *captureService = self.captureService;
     
     dispatch_async(captureService.captureSessionQueue, ^{
+        NSArray<AVCaptureDevice *> *pointCloudCaptureDevices = captureService.queue_addedPointCloudCaptureDevices;
         NSMapTable<AVCaptureDevice *,__kindof CALayer *> *pointCloudLayersByCaptureDeviceCopiedMapTable = captureService.queue_pointCloudLayersByCaptureDeviceCopiedMapTable;
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
             
-            for (PointCloudPreviewView *pointCloudPreviewView in stackView.arrangedSubviews) {
-                if (![pointCloudPreviewView isKindOfClass:PointCloudPreviewView.class]) continue;
-                
-                AVCaptureDevice * _Nullable captureDevice = nil;
-                for (AVCaptureDevice * _captureDevice in pointCloudLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
-                    CALayer *pointCloudLayer = [pointCloudLayersByCaptureDeviceCopiedMapTable objectForKey:_captureDevice];
-                    
-                    if ([pointCloudPreviewView.pointCloudLayer isEqual:pointCloudLayer]) {
-                        captureDevice = _captureDevice;
-                        break;
-                    }
+            NSMutableArray<AVCaptureDevice *> *addedPointCloudCaptureDevices = [pointCloudCaptureDevices mutableCopy];
+            
+            for (PointCloudPreviewView *pointCloudPreviewView in self.pointCloudPreviewViews) {
+                BOOL isRemoved = YES;
+                if ([pointCloudPreviewView.pointCloudLayer isEqual:[pointCloudLayersByCaptureDeviceCopiedMapTable objectForKey:pointCloudPreviewView.pointCloudDevice]]) {
+                    isRemoved = NO;
                 }
                 
-                if (captureDevice != nil) {
-                    // 이미 존재하는 Layer
-                    [pointCloudLayersByCaptureDeviceCopiedMapTable removeObjectForKey:captureDevice];;
-                } else {
+                if (isRemoved) {
                     // 삭제된 Layer - View 제거
                     [pointCloudPreviewView removeFromSuperview];
+                } else {
+                    [addedPointCloudCaptureDevices removeObject:pointCloudPreviewView.pointCloudDevice];
                 }
             }
             
-            for (AVCaptureDevice * captureDevice in pointCloudLayersByCaptureDeviceCopiedMapTable.keyEnumerator) {
+            for (AVCaptureDevice * captureDevice in addedPointCloudCaptureDevices) {
                 CALayer *pointCloudLayer = [pointCloudLayersByCaptureDeviceCopiedMapTable objectForKey:captureDevice];
                 
-                PointCloudPreviewView *pointCloudPreviewView = [[PointCloudPreviewView alloc] initWithPointCloudLayer:pointCloudLayer];
+                PointCloudPreviewView *pointCloudPreviewView = [[PointCloudPreviewView alloc] initWithPointCloudLayer:pointCloudLayer pointCloudDevice:captureDevice];
                 [stackView addArrangedSubview:pointCloudPreviewView];
                 [pointCloudPreviewView release];
             }
             
+            [addedPointCloudCaptureDevices release];
             [stackView updateConstraintsIfNeeded];
         });
     });

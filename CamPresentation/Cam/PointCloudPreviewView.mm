@@ -12,9 +12,10 @@
 
 @implementation PointCloudPreviewView
 
-- (instancetype)initWithPointCloudLayer:(CALayer *)pointCloudLayer {
+- (instancetype)initWithPointCloudLayer:(CALayer *)pointCloudLayer pointCloudDevice:(nonnull AVCaptureDevice *)pointCloudDevice {
     if (self = [super initWithFrame:CGRectNull]) {
         _pointCloudLayer = [pointCloudLayer retain];
+        _pointCloudDevice = [pointCloudDevice retain];
         
         CALayer *layer = self.layer;
         CGRect bounds = self.layer.bounds;
@@ -27,6 +28,7 @@
 
 - (void)dealloc {
     [_pointCloudLayer release];
+    [_pointCloudDevice release];
     [super dealloc];
 }
 

@@ -52,9 +52,6 @@ NSNotificationName const CaptureServiceDidRemoveDeviceNotificationName = @"Captu
 NSNotificationName const CaptureServiceReloadingPhotoFormatMenuNeededNotificationName = @"CaptureServiceReloadingPhotoFormatMenuNeededNotificationName";
 NSString * const CaptureServiceCaptureDeviceKey = @"CaptureServiceCaptureDeviceKey";
 
-NSNotificationName const CaptureServiceDidUpdatePreviewLayersNotificationName = @"CaptureServiceDidUpdatePreviewLayersNotificationName";
-NSNotificationName const CaptureServiceDidUpdatePointCloudLayersNotificationName = @"CaptureServiceDidUpdatePointCloudLayersNotificationName";
-
 NSNotificationName const CaptureServiceDidChangeCaptureReadinessNotificationName = @"CaptureServiceDidChangeCaptureReadinessNotificationName";
 NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureReadinessKey";
 
@@ -1244,7 +1241,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [photoFormatModel release];
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
-    [self postDidUpdatePreviewLayersNotification];
     
     NSLog(@"%@", captureSession);
 }
@@ -1359,7 +1355,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
-    [self postDidUpdatePointCloudLayersNotification];
 }
 
 - (void)queue_removeCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1554,7 +1549,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     //
     
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
-    [self postDidUpdatePreviewLayersNotification];
 }
 
 - (void)_queue_removeAudioCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -1691,7 +1685,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [self queue_switchCaptureSessionByAddingDevice:NO postNotification:NO];
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
-    [self postDidUpdatePointCloudLayersNotification];
 }
 
 - (PhotoFormatModel *)queue_photoFormatModelForCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -2045,6 +2038,26 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
             if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
             if (![allVideoDeviceTypes containsObject:deviceInput.device.deviceType]) continue;
+            
+            [captureDevices addObject:deviceInput.device];
+        }
+    }
+    
+    return [captureDevices autorelease];
+}
+
+- (NSSet<AVCaptureDevice *> *)queue_pointCloudDevicesFromOutput:(AVCaptureOutput *)output {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSArray<AVCaptureDeviceType> *allPointCloudDeviceTypes = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(AVCaptureDeviceDiscoverySession.class, sel_registerName("allPointCloudDeviceTypes"));
+    
+    NSMutableSet<AVCaptureDevice *> *captureDevices = [NSMutableSet new];
+    
+    for (AVCaptureConnection *connection in output.connections) {
+        for (AVCaptureInputPort *inputPort in connection.inputPorts) {
+            auto deviceInput = static_cast<AVCaptureDeviceInput *>(inputPort.input);
+            if (![deviceInput isKindOfClass:AVCaptureDeviceInput.class]) continue;
+            if (![allPointCloudDeviceTypes containsObject:deviceInput.device.deviceType]) continue;
             
             [captureDevices addObject:deviceInput.device];
         }
@@ -2733,20 +2746,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     if (captureDevice == nil) return;
     
     [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName object:self userInfo:@{CaptureServiceCaptureDeviceKey: captureDevice}];
-}
-
-- (void)postDidUpdatePreviewLayersNotification {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    // NSMapTable은 Thread-safe하지 않기에 다른 Thread에서 불릴 여지가 없어야 한다. 따라서 userInfo에 전달하지 않는다.
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidUpdatePreviewLayersNotificationName object:self userInfo:nil];
-}
-
-- (void)postDidUpdatePointCloudLayersNotification {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    // NSMapTable은 Thread-safe하지 않기에 다른 Thread에서 불릴 여지가 없어야 한다. 따라서 userInfo에 전달하지 않는다.
-    [NSNotificationCenter.defaultCenter postNotificationName:CaptureServiceDidUpdatePointCloudLayersNotificationName object:self userInfo:nil];
 }
 
 - (void)postDidAddDeviceNotificationWithCaptureDevice:(AVCaptureDevice *)captureDevice {
@@ -3619,10 +3618,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             [self.adoQueue_audioSourceFormatHintsByAudioDataOutput removeAllObjects];
         });
         
-        if (postNotification) {
-            [self postDidUpdatePreviewLayersNotification];
-        }
-        
         [captureSession commitConfiguration];
     }
     
@@ -4146,7 +4141,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     CIImage *ciImage = [[CIImage alloc] initWithCVImageBuffer:imageBuffer options:@{kCIImageAuxiliaryDisparity: @YES}];
     CVPixelBufferRelease(imageBuffer);
     
-    for (AVCaptureDevice *captureDevice in [self queue_videoCaptureDevicesFromOutput:output]) {
+    for (AVCaptureDevice *captureDevice in [self queue_pointCloudDevicesFromOutput:output]) {
         AVCaptureDeviceRotationCoordinator *rotationCoordinator = [self.queue_rotationCoordinatorsByCaptureDevice objectForKey:captureDevice];
         assert(rotationCoordinator != nil);
         
