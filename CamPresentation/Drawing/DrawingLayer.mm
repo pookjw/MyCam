@@ -39,6 +39,9 @@
 
 - (void)dealloc {
     CGPathRelease(_currentNormalizedPath);
+    if (_strokeColor != NULL) {
+        CGColorRelease(_strokeColor);
+    }
     [super dealloc];
 }
 

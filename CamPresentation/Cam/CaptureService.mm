@@ -74,6 +74,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *queue_metadataInputsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MovieWriter *> *queue_movieWritersByVideoDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *queue_metadataObjectsByMetadataOutput;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureAudioDataOutput *, AVCaptureSpatialAudioMetadataSampleGenerator *> *adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0));
 @property (retain, nonatomic, readonly) NSMapTable<MovieWriter *, AVCaptureAudioDataOutput *> *adoQueue_audioDataOutputsByMovieWriter;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureAudioDataOutput *, id> *adoQueue_audioSourceFormatHintsByAudioDataOutput;
 
@@ -154,6 +155,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MovieWriter *> *movieWritersByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *metadataObjectsByMetadataOutput = [NSMapTable strongToStrongObjectsMapTable];
+        NSMapTable * _Nullable spatialAudioMetadataSampleGeneratorsByAudioDataOutput;
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            spatialAudioMetadataSampleGeneratorsByAudioDataOutput = [NSMapTable strongToStrongObjectsMapTable];
+        } else {
+            spatialAudioMetadataSampleGeneratorsByAudioDataOutput = nil;
+        }
         NSMapTable<NSNumber *, AVCapturePhoto *> *capturePhotosByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<NSNumber *, NSURL *> *livePhotoMovieFileURLsByUniqueID = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<MovieWriter *, AVCaptureAudioDataOutput *> *audioDataOutputsByMovieWriter = [NSMapTable strongToStrongObjectsMapTable];
@@ -192,6 +199,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
         _queue_metadataObjectsByMetadataOutput = [metadataObjectsByMetadataOutput retain];
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            assert(spatialAudioMetadataSampleGeneratorsByAudioDataOutput != nil);
+            _adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput = [spatialAudioMetadataSampleGeneratorsByAudioDataOutput retain];
+        } else {
+            assert(spatialAudioMetadataSampleGeneratorsByAudioDataOutput == nil);
+        }
         _adoQueue_audioDataOutputsByMovieWriter = [audioDataOutputsByMovieWriter retain];
         _adoQueue_audioSourceFormatHintsByAudioDataOutput = [audioSourceFormatHintsByAudioDataOutput retain];
         _mainQueue_capturePhotosByUniqueID = [capturePhotosByUniqueID retain];
@@ -267,6 +280,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_metadataInputsByCaptureDevice release];
     [_queue_movieWritersByVideoDevice release];
     [_queue_metadataObjectsByMetadataOutput release];
+    [_adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput release];
     [_adoQueue_audioDataOutputsByMovieWriter release];
     [_adoQueue_audioSourceFormatHintsByAudioDataOutput release];
     [_mainQueue_capturePhotosByUniqueID release];
@@ -1294,11 +1308,19 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     assert([captureSession canAddOutput:audioDataOutput]);
     [captureSession addOutputWithNoConnections:audioDataOutput];
     
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        dispatch_sync(self.audioDataOutputQueue, ^{
+            AVCaptureSpatialAudioMetadataSampleGenerator *generator = [AVCaptureSpatialAudioMetadataSampleGenerator new];
+            [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput setObject:generator forKey:audioDataOutput];
+            [generator release];
+        });
+    }
+    [audioDataOutput release];
+    
     //
     
     AVCaptureConnection *connection = [[AVCaptureConnection alloc] initWithInputPorts:audioDevicePorts output:audioDataOutput];
     [deviceInput release];
-    [audioDataOutput release];
     assert([captureSession canAddConnection:connection]);
     [captureSession addConnection:connection];
     [connection release];
@@ -1608,6 +1630,12 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             if ([connection.output isKindOfClass:AVCaptureAudioDataOutput.class]) {
                 auto audioDataOutput = static_cast<AVCaptureAudioDataOutput *>(connection.output);
                 [captureSession removeOutput:audioDataOutput];
+                
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    dispatch_sync(self.audioDataOutputQueue, ^{
+                        [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput removeObjectForKey:audioDataOutput];
+                    });
+                }
                 
                 dispatch_sync(self.audioDataOutputQueue, ^{
                     [self.adoQueue_audioSourceFormatHintsByAudioDataOutput removeObjectForKey:audioDataOutput];
@@ -3063,6 +3091,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 } else if ([output isKindOfClass:AVCaptureAudioDataOutput.class]) {
                     auto audioDataOutput = static_cast<AVCaptureAudioDataOutput *>(output);
                     [audioDataOutput setSampleBufferDelegate:nil queue:nil];
+                    
+                    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                        dispatch_sync(self.audioDataOutputQueue, ^{
+                            AVCaptureSpatialAudioMetadataSampleGenerator *generator = [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput objectForKey:output];
+                            assert(generator != nil);
+                            [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput removeObjectForKey:audioDataOutput];
+                        });
+                    }
                 } else if ([output isKindOfClass:objc_lookUpClass("AVCapturePointCloudDataOutput")]) {
                     reinterpret_cast<void (*)(id, SEL, id, id)>(objc_msgSend)(output, sel_registerName("setDelegate:callbackQueue:"), nil, nil);
                 } else if ([output isKindOfClass:objc_lookUpClass("AVCaptureVisionDataOutput")]) {
@@ -3255,6 +3291,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     }
                 }
                 [newAudioDataOutput setSampleBufferDelegate:self queue:self.audioDataOutputQueue];
+                
+                if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+                    dispatch_sync(self.audioDataOutputQueue, ^{
+                        AVCaptureSpatialAudioMetadataSampleGenerator *generator = [AVCaptureSpatialAudioMetadataSampleGenerator new];
+                        [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput setObject:generator forKey:newAudioDataOutput];
+                        [generator release];
+                    });
+                }
                 
                 assert([captureSession canAddOutput:newAudioDataOutput]);
                 [captureSession addOutputWithNoConnections:newAudioDataOutput];
@@ -3887,6 +3931,15 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
             
             break;
         }
+    }
+    
+    
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        AVCaptureSpatialAudioMetadataSampleGenerator *generator = [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput objectForKey:audioDataOutput];
+        assert([generator analyzeAudioSample:sampleBuffer] == noErr);
+        CMFormatDescriptionRef desc = generator.timedMetadataSampleBufferFormatDescription;
+        CFShow(desc);
+#warning TODO
     }
 }
 
