@@ -21,6 +21,7 @@
 @property (retain, nonatomic, readonly) UIButton *presentButton;
 @property (retain, nonatomic, readonly) UIButton *internalPresentButton;
 @property (retain, nonatomic, readonly) UIButton *dismissWithDelayButton;
+@property (retain, nonatomic, readonly) UILabel *statusLabel;
 @end
 
 @implementation AudioInputPickerView
@@ -29,6 +30,7 @@
 @synthesize presentButton = _presentButton;
 @synthesize internalPresentButton = _internalPresentButton;
 @synthesize dismissWithDelayButton = _dismissWithDelayButton;
+@synthesize statusLabel = _statusLabel;
 
 - (instancetype)initWithAudioSession:(AVAudioSession *)audioSession {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -56,6 +58,7 @@
     [_presentButton release];
     [_internalPresentButton release];
     [_dismissWithDelayButton release];
+    [_statusLabel release];
     [super dealloc];
 }
 
@@ -72,7 +75,7 @@
 - (UIStackView *)stackView {
     if (auto stackView = _stackView) return stackView;
     
-    UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[self.presentButton, self.internalPresentButton, self.dismissWithDelayButton]];
+    UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[self.presentButton, self.internalPresentButton, self.dismissWithDelayButton, self.statusLabel]];
     stackView.axis = UILayoutConstraintAxisVertical;
     stackView.alignment = UIStackViewAlignmentFill;
     stackView.distribution = UIStackViewDistributionFill;
@@ -126,6 +129,18 @@
     return dismissWithDelayButton;
 }
 
+- (UILabel *)statusLabel {
+    if (auto statusLabel = _statusLabel) return statusLabel;
+    
+    UILabel *statusLabel = [UILabel new];
+    statusLabel.textColor = UIColor.labelColor;
+    statusLabel.textAlignment = NSTextAlignmentCenter;
+    statusLabel.text = @"Pending";
+    
+    _statusLabel = statusLabel;
+    return statusLabel;
+}
+
 - (void)presentButtonDidTrigger:(UIButton *)sender {
     [self.inputPickerInteraction present];
 }
@@ -155,6 +170,22 @@
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self.inputPickerInteraction dismiss];
     });
+}
+
+- (void)inputPickerInteractionWillBeginPresenting:(AVInputPickerInteraction *)inputPickerInteraction {
+    self.statusLabel.text = NSStringFromSelector(_cmd);
+}
+
+- (void)inputPickerInteractionDidEndPresenting:(AVInputPickerInteraction *)inputPickerInteraction {
+    self.statusLabel.text = NSStringFromSelector(_cmd);
+}
+
+- (void)inputPickerInteractionWillBeginDismissing:(AVInputPickerInteraction *)inputPickerInteraction {
+    self.statusLabel.text = NSStringFromSelector(_cmd);
+}
+
+- (void)inputPickerInteractionDidEndDismissing:(AVInputPickerInteraction *)inputPickerInteraction {
+    self.statusLabel.text = NSStringFromSelector(_cmd);
 }
 
 @end
