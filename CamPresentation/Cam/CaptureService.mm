@@ -2989,6 +2989,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     captureSession.usesApplicationAudioSession = YES;
     captureSession.automaticallyConfiguresApplicationAudioSession = YES;
     
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        captureSession.configuresApplicationAudioSessionForBluetoothHighQualityRecording = YES;
+    }
+    
     if (captureSessionClass == AVCaptureSession.class) {
         captureSession.sessionPreset = AVCaptureSessionPresetInputPriority;
     } else if (captureSessionClass == AVCaptureMultiCamSession.class) {

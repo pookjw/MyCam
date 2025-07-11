@@ -19,6 +19,8 @@ NSString * NSStringFromAVCaptureSessionInterruptionReason(AVCaptureSessionInterr
             return @"Video Device Not Available With Multiple Foreground Apps";
         case AVCaptureSessionInterruptionReasonVideoDeviceNotAvailableDueToSystemPressure:
             return @"Video Device Not Available Due To System Pressure";
+        case AVCaptureSessionInterruptionReasonSensitiveContentMitigationActivated:
+            return @"Sensitive Content Mitigation Activated";
         default:
             abort();
     }
