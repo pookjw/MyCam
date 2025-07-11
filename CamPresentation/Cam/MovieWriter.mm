@@ -11,6 +11,7 @@
 #import <CamPresentation/NSURL+CP.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <TargetConditionals.h>
+#import <VideoToolbox/VideoToolbox.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -87,6 +88,10 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
 #endif
         videoDataOutput.alwaysDiscardsLateVideoFrames = NO;
         [videoDataOutput setSampleBufferDelegate:self queue:videoQueue];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            videoDataOutput.preservesDynamicHDRMetadata = YES;
+        }
     }
     
     return self;
@@ -188,13 +193,30 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     
     //
     
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        assetWriter.movieTimeScale = self.videoDataOutput.recommendedMediaTimeScaleForAssetWriter;
+    }
+    
+    //
+    
+    [self _enableAllConnections];
+    
 #if TARGET_OS_VISION
-    NSDictionary<NSString *, id> *videoOutputSettings = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(self.videoDataOutput, sel_registerName("recommendedVideoSettingsForAssetWriterWithOutputFileType:"), AVFileTypeQuickTimeMovie);
+    NSMutableDictionary<NSString *, id> *videoOutputSettings = [reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)(self.videoDataOutput, sel_registerName("recommendedVideoSettingsForAssetWriterWithOutputFileType:"), AVFileTypeQuickTimeMovie) mutableCopy];
 #else
-    NSDictionary<NSString *, id> *videoOutputSettings = [self.videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie];
+    NSMutableDictionary<NSString *, id> *videoOutputSettings = [[self.videoDataOutput recommendedVideoSettingsForAssetWriterWithOutputFileType:AVFileTypeQuickTimeMovie] mutableCopy];
 #endif
     
+    assert(videoOutputSettings != nil);
+    
+    NSMutableDictionary<NSString *, id> *compressionPropertiesKey = [videoOutputSettings[AVVideoCompressionPropertiesKey] mutableCopy];
+    compressionPropertiesKey[(id)kVTCompressionPropertyKey_PreserveDynamicHDRMetadata] = @YES;
+    videoOutputSettings[AVVideoCompressionPropertiesKey] = compressionPropertiesKey;
+    [compressionPropertiesKey release];
+    
     AVAssetWriterInput *videoPixelBufferInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeVideo outputSettings:videoOutputSettings sourceFormatHint:_videoSourceFormatHint];
+    [videoOutputSettings release];
+    
     videoPixelBufferInput.expectsMediaDataInRealTime = YES;
     assert([assetWriter canAddInput:videoPixelBufferInput]);
     [assetWriter addInput:videoPixelBufferInput];
@@ -239,8 +261,6 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
 //    [inputGroup release];
     
     //
-    
-    [self _enableAllConnections];
     
     BOOL started = [assetWriter startWriting];
     
