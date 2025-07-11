@@ -210,18 +210,36 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     CaptureService *captureService = self.captureService;
     
 #if TARGET_OS_IOS
-    AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
-        if (event.phase == AVCaptureEventPhaseBegan) {
-            dispatch_async(captureService.captureSessionQueue, ^{
-                AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedVideoCaptureDevices.lastObject;
-                if (captureDevice == nil) return;
-                
-                [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
-            });
+    if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+        AVCaptureEventInteraction.defaultCaptureSoundDisabled = YES;
+        
+        AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithEventHandler:^(AVCaptureEvent * _Nonnull event) {
+            {
+                Ivar ivar = object_getInstanceVariable(event, "_physicalButton", NULL);
+                assert(ivar != NULL);
+                *reinterpret_cast<NSUInteger *>(reinterpret_cast<uintptr_t>(event) + ivar_getOffset(ivar)) = 0x6;
+            }
+            
+            assert(event.shouldPlaySound);
+            assert([event playSound:[AVCaptureEventSound cameraShutterSound]]);
+        }];
+        
+        [self.view addInteraction:captureEventInteraction];
+        
+        {
+            Ivar ivar = object_getInstanceVariable(captureEventInteraction, "_soundOptions", NULL);
+            assert(ivar != NULL);
+            NSDictionary<NSString *, id> *soundOptions = *reinterpret_cast<id *>(reinterpret_cast<uintptr_t>(captureEventInteraction) + ivar_getOffset(ivar));
+            NSMutableDictionary<NSString *, id> *mutableOptions = [soundOptions mutableCopy];
+            [soundOptions release];
+            mutableOptions[@"PlaySystemSoundOption_PrefersToPlayAudioToHeadphonesOnly"] = @NO;
+            *reinterpret_cast<id *>(reinterpret_cast<uintptr_t>(captureEventInteraction) + ivar_getOffset(ivar)) = [mutableOptions copy];
+            [mutableOptions release];
         }
-    }
-                                                                                                  secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
-        if (event.phase == AVCaptureEventPhaseBegan) {
+        
+        [captureEventInteraction release];
+    } else {
+        AVCaptureEventInteraction *captureEventInteraction = [[AVCaptureEventInteraction alloc] initWithPrimaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
             if (event.phase == AVCaptureEventPhaseBegan) {
                 dispatch_async(captureService.captureSessionQueue, ^{
                     AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedVideoCaptureDevices.lastObject;
@@ -231,10 +249,22 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                 });
             }
         }
-    }];
-    
-    [self.view addInteraction:captureEventInteraction];
-    [captureEventInteraction release];
+                                                                                                      secondaryEventHandler:^(AVCaptureEvent * _Nonnull event) {
+            if (event.phase == AVCaptureEventPhaseBegan) {
+                if (event.phase == AVCaptureEventPhaseBegan) {
+                    dispatch_async(captureService.captureSessionQueue, ^{
+                        AVCaptureDevice * _Nullable captureDevice = captureService.queue_addedVideoCaptureDevices.lastObject;
+                        if (captureDevice == nil) return;
+                        
+                        [captureService queue_startPhotoCaptureWithCaptureDevice:captureDevice];
+                    });
+                }
+            }
+        }];
+        
+        [self.view addInteraction:captureEventInteraction];
+        [captureEventInteraction release];
+    }
 #endif
     
 #if TARGET_OS_TV
