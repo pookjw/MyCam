@@ -66,6 +66,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *queue_visionLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *queue_metadataObjectsLayersByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *queue_nerualAnalyzerLayersByVideoDevice;
+@property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AudioWaveLayer *> *queue_audioWaveLayersByVideoDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, PhotoFormatModel *> *queue_photoFormatModelsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AVCaptureDeviceRotationCoordinator *> *queue_rotationCoordinatorsByCaptureDevice;
 @property (retain, nonatomic, readonly) NSMapTable<AVCapturePhotoOutput *, AVCapturePhotoOutputReadinessCoordinator *> *queue_readinessCoordinatorByCapturePhotoOutput;
@@ -148,6 +149,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         NSMapTable<AVCaptureDevice *, ImageBufferLayer *> *visionLayersByCaptureDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MetadataObjectsLayer *> *metadataObjectsLayersByCaptureDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *nerualAnalyzerLayersByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
+        NSMapTable<AVCaptureDevice *, AudioWaveLayer *> *audioWaveLayersByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureMovieFileOutput *, __kindof BaseFileOutput *> *movieFileOutputsByFileOutput = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, AVCaptureMetadataInput *> *metadataInputsByCaptureDevice = [NSMapTable strongToStrongObjectsMapTable];
         NSMapTable<AVCaptureDevice *, MovieWriter *> *movieWritersByVideoDevice = [NSMapTable strongToStrongObjectsMapTable];
@@ -185,6 +187,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         _queue_pointCloudLayersByCaptureDevice = [pointCloudLayersByCaptureDevice retain];
         _queue_metadataObjectsLayersByCaptureDevice = [metadataObjectsLayersByCaptureDevice retain];
         _queue_nerualAnalyzerLayersByVideoDevice = [nerualAnalyzerLayersByVideoDevice retain];
+        _queue_audioWaveLayersByVideoDevice = [audioWaveLayersByVideoDevice retain];
         _queue_movieFileOutputsByFileOutput = [movieFileOutputsByFileOutput retain];
         _queue_metadataInputsByCaptureDevice = [metadataInputsByCaptureDevice retain];
         _queue_movieWritersByVideoDevice = [movieWritersByVideoDevice retain];
@@ -259,6 +262,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [_queue_visionLayersByCaptureDevice release];
     [_queue_metadataObjectsLayersByCaptureDevice release];
     [_queue_nerualAnalyzerLayersByVideoDevice release];
+    [_queue_audioWaveLayersByVideoDevice release];
     [_queue_movieFileOutputsByFileOutput release];
     [_queue_metadataInputsByCaptureDevice release];
     [_queue_movieWritersByVideoDevice release];
@@ -770,6 +774,11 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 - (NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *)queue_nerualAnalyzerLayersByVideoDeviceCopiedMapTable {
     dispatch_assert_queue(self.captureSessionQueue);
     return [[self.queue_nerualAnalyzerLayersByVideoDevice copy] autorelease];
+}
+
+- (NSMapTable<AVCaptureDevice *,AudioWaveLayer *> *)queue_audioWaveLayersByVideoDeviceCopiedMapTable {
+    dispatch_assert_queue(self.captureSessionQueue);
+    return [[self.queue_audioWaveLayersByVideoDevice copy] autorelease];
 }
 
 - (NSMapTable<AVCaptureMetadataOutput *,NSArray<__kindof AVMetadataObject *> *> *)queue_metadataObjectsByMetadataOutputCopiedMapTable {
@@ -1296,6 +1305,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     
     [captureSession commitConfiguration];
     
+    AudioWaveLayer *audioWaveLayer = [AudioWaveLayer new];
+    [self.queue_audioWaveLayersByVideoDevice setObject:audioWaveLayer forKey:captureDevice];
+    [audioWaveLayer release];
+    
     [self postDidAddDeviceNotificationWithCaptureDevice:captureDevice];
 }
 
@@ -1619,6 +1632,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [captureSession removeInput:deviceInput];
     [captureSession commitConfiguration];
     
+    [self.queue_audioWaveLayersByVideoDevice removeObjectForKey:captureDevice];
     [self postDidRemoveDeviceNotificationWithCaptureDevice:captureDevice];
 }
 

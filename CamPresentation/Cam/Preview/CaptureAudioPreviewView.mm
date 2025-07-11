@@ -9,15 +9,15 @@
 
 @interface CaptureAudioPreviewView ()
 @property (retain, nonatomic, readonly) CaptureService *captureService;
-@property (retain, nonatomic, readonly) AVCaptureDevice *audioDevice;
 @end
 
 @implementation CaptureAudioPreviewView
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice audioWaveLayer:(AudioWaveLayer *)audioWaveLayer {
     if (self = [super initWithFrame:CGRectNull]) {
         _captureService = [captureService retain];
         _audioDevice = [audioDevice retain];
+        _audioWaveLayer = [audioWaveLayer retain];
         
         self.backgroundColor = UIColor.systemPinkColor;
     }
@@ -28,6 +28,7 @@
 - (void)dealloc {
     [_captureService release];
     [_audioDevice release];
+    [_audioWaveLayer release];
     [super dealloc];
 }
 

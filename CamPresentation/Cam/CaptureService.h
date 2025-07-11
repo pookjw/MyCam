@@ -13,6 +13,7 @@
 #import <CamPresentation/PixelBufferLayer.h>
 #import <CamPresentation/MovieWriter.h>
 #import <CamPresentation/NerualAnalyzerLayer.h>
+#import <CamPresentation/AudioWaveLayer.h>
 #import <TargetConditionals.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -58,6 +59,7 @@ __attribute__((objc_direct_members))
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_visionLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *,__kindof CALayer *> *queue_metadataObjectsLayersByCaptureDeviceCopiedMapTable;
 @property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *, NerualAnalyzerLayer *> *queue_nerualAnalyzerLayersByVideoDeviceCopiedMapTable;
+@property (copy, nonatomic, readonly) NSMapTable<AVCaptureDevice *, AudioWaveLayer *> *queue_audioWaveLayersByVideoDeviceCopiedMapTable;
 @property (retain, nonatomic, readonly) NSMapTable<AVCaptureMetadataOutput *, NSArray<__kindof AVMetadataObject *> *> *queue_metadataObjectsByMetadataOutputCopiedMapTable;
 
 - (void)queue_addCaptureDevice:(AVCaptureDevice *)captureDevice;

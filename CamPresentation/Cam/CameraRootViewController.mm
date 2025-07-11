@@ -508,6 +508,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)nonisolated_addedCaptureDevicesDidChange:(NSNotification *)notification {
     [self nonisolated_updateCaptureVideoPreviewViews];
+    [self nonisolated_updateCaptureAudioPreviewViews];
     [self nonisolated_updatePointCloudPreviewViews];
 }
 
@@ -527,7 +528,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
-            
             NSMutableArray<AVCaptureDevice *> *addedVideoCaptureDevices = [videoCaptureDevices mutableCopy];
             
             for (CaptureVideoPreviewView *captureVideoPreviewView in self.captureVideoPreviewViews) {
@@ -564,6 +564,44 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             }
             
             [addedVideoCaptureDevices release];
+            [stackView updateConstraintsIfNeeded];
+        });
+    });
+}
+
+- (void)nonisolated_updateCaptureAudioPreviewViews {
+    CaptureService *captureService = self.captureService;
+    
+    dispatch_async(captureService.captureSessionQueue, ^{
+        NSArray<AVCaptureDevice *> *audioDevices = captureService.queue_addedAudioCaptureDevices;
+        NSMapTable<AVCaptureDevice *, AudioWaveLayer *> *audioWaveLayersByVideoDeviceCopiedMapTable = captureService.queue_audioWaveLayersByVideoDeviceCopiedMapTable;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIStackView *stackView = self.stackView;
+            NSMutableArray<AVCaptureDevice *> *addedAudioDevices = [audioDevices mutableCopy];
+            
+            for (CaptureAudioPreviewView *previewView in self.captureAudioPreviewViews) {
+                BOOL isRemoved = YES;
+                if ([previewView.audioDevice isEqual:[audioWaveLayersByVideoDeviceCopiedMapTable objectForKey:previewView.audioDevice]]) {
+                    isRemoved = NO;
+                }
+                
+                if (isRemoved) {
+                    [previewView removeFromSuperview];
+                } else {
+                    [addedAudioDevices removeObject:previewView.audioDevice];
+                }
+            }
+            
+            for (AVCaptureDevice *audioDevice in addedAudioDevices) {
+                AudioWaveLayer *audioWaveLayer = [audioWaveLayersByVideoDeviceCopiedMapTable objectForKey:audioDevice];
+                assert(audioWaveLayer != nil);
+                CaptureAudioPreviewView *previewView = [[CaptureAudioPreviewView alloc] initWithCaptureService:captureService audioDevice:audioDevice audioWaveLayer:audioWaveLayer];
+                [stackView addArrangedSubview:previewView];
+                [previewView release];
+            }
+            
+            [addedAudioDevices release];
             [stackView updateConstraintsIfNeeded];
         });
     });
