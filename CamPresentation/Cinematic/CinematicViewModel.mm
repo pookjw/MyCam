@@ -80,11 +80,14 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     [compositionInfo insertTimeRange:data.cnAssetInfo.timeRange ofCinematicAssetInfo:data.cnAssetInfo atTime:kCMTimeZero error:&error];
     assert(error == nil);
     
-    for (AVAssetTrack *audioTrack in [data.avAsset tracksWithMediaType:AVMediaTypeAudio]) {
-        AVMutableCompositionTrack *newTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
-        assert(newTrack != nil);
-        [newTrack insertTimeRange:audioTrack.timeRange ofTrack:audioTrack atTime:kCMTimeZero error:&error];
-        assert(error == nil);
+    if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+        if (CNAssetSpatialAudioInfo *spatialAudioInfo = data.spatialAudioInfo) {
+            AVMutableCompositionTrack *newTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+            assert(newTrack != nil);
+            AVAssetTrack *audioTrack = spatialAudioInfo.defaultSpatialAudioTrack;
+            [newTrack insertTimeRange:audioTrack.timeRange ofTrack:audioTrack atTime:kCMTimeZero error:&error];
+            assert(error == nil);
+        }
     }
     
     CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript editMode:YES];

@@ -97,8 +97,8 @@
          63216E3C-D521-4F30-8F1F-5E6E7EEEE0FD/L0/001
          0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001
          */
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"50DE405C-7C07-4B55-B7A9-4AE450E4FD7C/L0/001"] options:nil];
-        [self _loadWithPHAsset:assets[0]];
+//        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"50DE405C-7C07-4B55-B7A9-4AE450E4FD7C/L0/001"] options:nil];
+//        [self _loadWithPHAsset:assets[0]];
     }
 }
 
