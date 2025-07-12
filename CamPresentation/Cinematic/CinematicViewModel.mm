@@ -16,8 +16,10 @@
 #import <CamPresentation/CinematicVideoCompositionInstruction.h>
 #import <CamPresentation/CinematicObjectTracking.h>
 #import <Metal/Metal.h>
+#import <CamPresentation/CinematicSnapshot+Private.h>
 
 NSNotificationName const CinematicViewModelDidUpdateScriptNotification = @"CinematicViewModelDidUpdateScriptNotification";
+NSNotificationName const CinematicViewModelDidUpdateSpatioAudioMixInfoNotification = @"CinematicViewModelDidUpdateSpatioAudioMixInfoNotification";
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 AVF_EXPORT AVMediaType const AVMediaTypeVisionData;
@@ -74,11 +76,16 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
     AVMutableComposition *composition = [AVMutableComposition new];
     CNCompositionInfo *compositionInfo = [composition addTracksForCinematicAssetInfo:data.cnAssetInfo preferredStartingTrackID:kCMPersistentTrackID_Invalid];
     
-//    NSLog(@"%@", AVMediaTypeAuxiliaryPicture);
-    
     NSError * _Nullable error = nil;
     [compositionInfo insertTimeRange:data.cnAssetInfo.timeRange ofCinematicAssetInfo:data.cnAssetInfo atTime:kCMTimeZero error:&error];
     assert(error == nil);
+    
+    for (AVAssetTrack *audioTrack in [data.avAsset tracksWithMediaType:AVMediaTypeAudio]) {
+        AVMutableCompositionTrack *newTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+        assert(newTrack != nil);
+        [newTrack insertTimeRange:audioTrack.timeRange ofTrack:audioTrack atTime:kCMTimeZero error:&error];
+        assert(error == nil);
+    }
     
     CinematicVideoCompositionInstruction *instruction = [[CinematicVideoCompositionInstruction alloc] initWithRenderingSession:renderingSession compositionInfo:compositionInfo script:data.cnScript editMode:YES];
     
@@ -166,6 +173,28 @@ AVF_EXPORT AVMediaType const AVMediaTypeCameraCalibrationData;
 - (void)isolated_changeFNumber:(float)fNumber {
     self.isolated_snapshot.assetData.cnScript.fNumber = fNumber;
     [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateScriptNotification object:self];
+}
+
+- (void)isolated_enableSpatialAudioMix {
+    self.isolated_snapshot.spatialAudioMixEnabled = YES;
+    self.isolated_snapshot.spatialAudioMixEffectIntensity = 1.f;
+    self.isolated_snapshot.spatialAudioMixRenderingStyle = CNSpatialAudioRenderingStyleCinematic;
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateSpatioAudioMixInfoNotification object:self];
+}
+
+- (void)isolated_disableSpatialAudioMix {
+    self.isolated_snapshot.spatialAudioMixEnabled = NO;
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateSpatioAudioMixInfoNotification object:self];
+}
+
+- (void)isolated_setSpatialAudioMixEffectIntensity:(float)spatialAudioMixEffectIntensity {
+    self.isolated_snapshot.spatialAudioMixEffectIntensity = spatialAudioMixEffectIntensity;
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateSpatioAudioMixInfoNotification object:self];
+}
+
+- (void)isolated_setSpatialAudioMixRenderingStyle:(CNSpatialAudioRenderingStyle)spatialAudioMixRenderingStyle {
+    self.isolated_snapshot.spatialAudioMixRenderingStyle = spatialAudioMixRenderingStyle;
+    [NSNotificationCenter.defaultCenter postNotificationName:CinematicViewModelDidUpdateSpatioAudioMixInfoNotification object:self];
 }
 
 - (id<MTLCommandQueue>)_isolated_commandQueue {

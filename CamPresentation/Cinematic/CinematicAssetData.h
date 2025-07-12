@@ -23,12 +23,14 @@ CP_EXTERN NSString * CinematicAssetDataErrorKey;
 @property (retain, nonatomic, readonly) CNAssetInfo *cnAssetInfo;
 @property (retain, nonatomic, readonly) CNScript *cnScript;
 @property (retain, nonatomic, readonly) CNRenderingSessionAttributes *renderingSessionAttributes;
+@property (retain, nonatomic, readonly, nullable) CNAssetSpatialAudioInfo *spatialAudioInfo API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
 @property (assign, nonatomic, readonly) float nominalFrameRate;
 @property (assign, nonatomic, readonly) CMTimeScale naturalTimeScale;
 + (NSProgress *)loadDataFromPHAsset:(PHAsset *)phAsset completionHandler:(void (^)(CinematicAssetData * _Nullable data, NSError * _Nullable error))completionHandler;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithAVAsset:(AVAsset *)avAsset cnAssetInfo:(CNAssetInfo *)cnAssetInfo cnScript:(CNScript *)cnScript renderingSessionAttributes:(CNRenderingSessionAttributes *)renderingSessionAttributes nominalFrameRate:(float)nominalFrameRate naturalTimeScale:(CMTimeScale)naturalTimeScale;
+- (instancetype)initWithAVAsset:(AVAsset *)avAsset cnAssetInfo:(CNAssetInfo *)cnAssetInfo cnScript:(CNScript *)cnScript renderingSessionAttributes:(CNRenderingSessionAttributes *)renderingSessionAttributes spatialAudioInfo:(CNAssetSpatialAudioInfo * _Nullable)spatialAudioInfo nominalFrameRate:(float)nominalFrameRate naturalTimeScale:(CMTimeScale)naturalTimeScale API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
 @end
 
 NS_ASSUME_NONNULL_END

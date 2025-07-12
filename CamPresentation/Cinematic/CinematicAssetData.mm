@@ -20,7 +20,7 @@ NSString * CinematicAssetDataErrorKey = @"CinematicAssetDataErrorKey";
     assert((phAsset.mediaSubtypes & PHAssetMediaSubtypeVideoCinematic) != 0);
     
     NSProgress *progress = [NSProgress new];
-    progress.totalUnitCount = 1400000UL;
+    progress.totalUnitCount = 1500000UL;
     
     PHVideoRequestOptions *options = [PHVideoRequestOptions new];
     options.version = PHVideoRequestOptionsVersionOriginal;
@@ -107,11 +107,45 @@ NSString * CinematicAssetDataErrorKey = @"CinematicAssetDataErrorKey";
                         
                         assert(!progress.finished);
                         progress.completedUnitCount = 1400000UL;
-                        assert(progress.finished);
                         
-                        CinematicAssetData *data = [[CinematicAssetData alloc] initWithAVAsset:asset cnAssetInfo:cinematicAssetInfo cnScript:script renderingSessionAttributes:sessionAttributes nominalFrameRate:nominalFrameRate naturalTimeScale:naturalTimeScale];
-                        completionHandler(data, nil);
-                        [data release];
+                        if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+                            [CNAssetSpatialAudioInfo checkIfContainsSpatialAudio:asset completionHandler:^(BOOL result) {
+                                if (result) {
+                                    [CNAssetSpatialAudioInfo loadFromAsset:asset completionHandler:^(CNAssetSpatialAudioInfo * _Nullable assetInfo, NSError * _Nullable error) {
+                                        if (error != nil) {
+                                            [progress setUserInfoObject:error forKey:CinematicAssetDataErrorKey];
+                                            [progress cancel];
+                                            completionHandler(nil, error);
+                                            return;
+                                        }
+                                        
+                                        assert(!progress.finished);
+                                        progress.completedUnitCount = 1500000UL;
+                                        assert(progress.finished);
+                                        
+                                        CinematicAssetData *data = [[CinematicAssetData alloc] initWithAVAsset:asset cnAssetInfo:cinematicAssetInfo cnScript:script renderingSessionAttributes:sessionAttributes spatialAudioInfo:assetInfo nominalFrameRate:nominalFrameRate naturalTimeScale:naturalTimeScale];
+                                        completionHandler(data, nil);
+                                        [data release];   
+                                    }];
+                                } else {
+                                    assert(!progress.finished);
+                                    progress.completedUnitCount = 1500000UL;
+                                    assert(progress.finished);
+                                    
+                                    CinematicAssetData *data = [[CinematicAssetData alloc] initWithAVAsset:asset cnAssetInfo:cinematicAssetInfo cnScript:script renderingSessionAttributes:sessionAttributes spatialAudioInfo:nil nominalFrameRate:nominalFrameRate naturalTimeScale:naturalTimeScale];
+                                    completionHandler(data, nil);
+                                    [data release];   
+                                }
+                            }];
+                        } else {
+                            assert(!progress.finished);
+                            progress.completedUnitCount = 1500000UL;
+                            assert(progress.finished);
+                            
+                            CinematicAssetData *data = [[CinematicAssetData alloc] initWithAVAsset:asset cnAssetInfo:cinematicAssetInfo cnScript:script renderingSessionAttributes:sessionAttributes nominalFrameRate:nominalFrameRate naturalTimeScale:naturalTimeScale];
+                            completionHandler(data, nil);
+                            [data release];   
+                        }
                     }];
                 }];
             }];
@@ -140,11 +174,20 @@ NSString * CinematicAssetDataErrorKey = @"CinematicAssetDataErrorKey";
     return self;
 }
 
+- (instancetype)initWithAVAsset:(AVAsset *)avAsset cnAssetInfo:(CNAssetInfo *)cnAssetInfo cnScript:(CNScript *)cnScript renderingSessionAttributes:(CNRenderingSessionAttributes *)renderingSessionAttributes spatialAudioInfo:(CNAssetSpatialAudioInfo *)spatialAudioInfo nominalFrameRate:(float)nominalFrameRate naturalTimeScale:(CMTimeScale)naturalTimeScale {
+    if (self = [self initWithAVAsset:avAsset cnAssetInfo:cnAssetInfo cnScript:cnScript renderingSessionAttributes:renderingSessionAttributes nominalFrameRate:nominalFrameRate naturalTimeScale:naturalTimeScale]) {
+        _spatialAudioInfo = [spatialAudioInfo retain];
+    }
+    
+    return self;
+}
+
 - (void)dealloc {
     [_avAsset release];
     [_cnAssetInfo release];
     [_cnScript release];
     [_renderingSessionAttributes release];
+    [_spatialAudioInfo release];
     [super dealloc];
 }
 

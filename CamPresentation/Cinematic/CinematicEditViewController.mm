@@ -17,6 +17,9 @@
 #import <CamPresentation/PlayerLayerView.h>
 #import <CamPresentation/PlayerControlView.h>
 #import <CamPresentation/TVSlider.h>
+#import <CamPresentation/NSStringFromCNSpatialAudioRenderingStyle.h>
+#include <ranges>
+#include <vector>
 
 @interface CinematicEditViewController () <CinematicEditTimelineViewDelegate>
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
@@ -25,12 +28,17 @@
 @property (retain, nonatomic, readonly, getter=_timelineView) CinematicEditTimelineView *timelineView;
 @property (retain, nonatomic, readonly, getter=_stackView) UIStackView *stackView;
 @property (retain, nonatomic, readonly, getter=_activityIndicatorView) UIActivityIndicatorView *activityIndicatorView;
+@property (retain, nonatomic, readonly, getter=_editButton) UIButton *editButton;
+
 #if TARGET_OS_TV
 @property (retain, nonatomic, readonly, getter=_fNumberSlider) TVSlider *fNumberSlider;
+@property (retain, nonatomic, readonly, getter=_spatialAudioMixEffectIntensitySlider) TVSlider *spatialAudioMixEffectIntensitySlider API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
 #else
 @property (retain, nonatomic, readonly, getter=_fNumberSlider) UISlider *fNumberSlider;
+@property (retain, nonatomic, readonly, getter=_spatialAudioMixEffectIntensitySlider) UISlider *spatialAudioMixEffectIntensitySlider API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
 #endif
-@property (retain, nonatomic, readonly, getter=_player) AVPlayer *player;
+@property (retain, nonatomic, readonly, getter=_player) AVQueuePlayer *player;
+@property (retain, nonatomic, nullable, getter=_playerLooper, setter=_setPlayerLooper:) AVPlayerLooper *playerLooper;
 @property (retain, nonatomic, readonly, getter=_periodicTimeObserver) id periodicTimeObserver;
 @end
 
@@ -40,8 +48,11 @@
 @synthesize timelineView = _timelineView;
 @synthesize stackView = _stackView;
 @synthesize activityIndicatorView = _activityIndicatorView;
+@synthesize editButton = _editButton;
 @synthesize fNumberSlider = _fNumberSlider;
+@synthesize spatialAudioMixEffectIntensitySlider = _spatialAudioMixEffectIntensitySlider;
 @synthesize player = _player;
+@synthesize playerLooper = _playerLooper;
 @synthesize periodicTimeObserver = _periodicTimeObserver;
 
 - (instancetype)initWithViewModel:(CinematicViewModel *)viewModel {
@@ -51,6 +62,11 @@
         [self _didChangeComposition];
         
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didUpdateScript:) name:CinematicViewModelDidUpdateScriptNotification object:viewModel];
+        
+        if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+            [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(_didUpdateSpatialAudioMixInfo:) name:CinematicViewModelDidUpdateSpatioAudioMixInfoNotification object:viewModel];
+        }
+        
         [self _updateFNumberSlider];
     }
     
@@ -65,7 +81,9 @@
     [_playerControlView release];
     [_timelineView release];
     [_stackView release];
+    [_editButton release];
     [_fNumberSlider release];
+    [_spatialAudioMixEffectIntensitySlider release];
     [_activityIndicatorView release];
     
     if (id periodicTimeObserver = _periodicTimeObserver) {
@@ -74,6 +92,7 @@
     }
     
     [_player release];
+    [_playerLooper release];
     [super dealloc];
 }
 
@@ -111,19 +130,6 @@
         [controlView.leadingAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.leadingAnchor],
         [controlView.trailingAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.trailingAnchor],
         [controlView.bottomAnchor constraintEqualToAnchor:self.playerLayerView.layoutMarginsGuide.bottomAnchor]
-    ]];
-    
-#if TARGET_OS_TV
-    TVSlider *fNumberSlider = self.fNumberSlider;
-#else
-    UISlider *fNumberSlider = self.fNumberSlider;
-#endif
-    [self.playerLayerView addSubview:fNumberSlider];
-    fNumberSlider.translatesAutoresizingMaskIntoConstraints = NO;
-    [NSLayoutConstraint activateConstraints:@[
-        [fNumberSlider.leadingAnchor constraintEqualToAnchor:controlView.leadingAnchor],
-        [fNumberSlider.trailingAnchor constraintEqualToAnchor:controlView.trailingAnchor],
-        [fNumberSlider.bottomAnchor constraintEqualToAnchor:controlView.topAnchor]
     ]];
     
     UIActivityIndicatorView *activityIndicatorView = self.activityIndicatorView;
@@ -177,11 +183,14 @@
     
     UIStackView *stackView = [UIStackView new];
     stackView.axis = UILayoutConstraintAxisVertical;
-    stackView.distribution = UIStackViewDistributionFillEqually;
+    stackView.distribution = UIStackViewDistributionFill;
     stackView.alignment = UIStackViewAlignmentFill;
     
     [stackView addArrangedSubview:self.playerLayerView];
+    [stackView addArrangedSubview:self.editButton];
     [stackView addArrangedSubview:self.timelineView];
+    
+    [self.playerLayerView.heightAnchor constraintEqualToAnchor:self.timelineView.heightAnchor].active = YES;
     
     _stackView = stackView;
     return stackView;
@@ -200,6 +209,140 @@
     
     _activityIndicatorView = activityIndicatorView;
     return activityIndicatorView;
+}
+
+- (UIButton *)_editButton {
+    if (auto editButton = _editButton) return editButton;
+    
+    UIButton *editButton = [UIButton new];
+    
+    UIButtonConfiguration *configuration = [UIButtonConfiguration borderedTintedButtonConfiguration];
+    configuration.title = @"Edit";
+    editButton.configuration = configuration;
+    
+    editButton.showsMenuAsPrimaryAction = YES;
+    editButton.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
+    editButton.menu = [self _makeEditMenu];
+    
+    _editButton = editButton;
+    return editButton;
+}
+
+- (UIMenu *)_makeEditMenu {
+    CinematicViewModel *viewModel = self.viewModel;
+#if TARGET_OS_TV
+    TVSlider *fNumberSlider = self.fNumberSlider;
+#else
+    UISlider *fNumberSlider = self.fNumberSlider;
+#endif
+    
+#if TARGET_OS_TV
+    TVSlider * _Nullable spatialAudioMixEffectIntensitySlider;
+#else
+    UISlider * _Nullable spatialAudioMixEffectIntensitySlider;
+#endif
+    if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+        spatialAudioMixEffectIntensitySlider = self.spatialAudioMixEffectIntensitySlider;
+    } else {
+        spatialAudioMixEffectIntensitySlider = nil;
+    }
+    
+    UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
+        dispatch_async(viewModel.queue, ^{
+            NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
+            
+            {
+                __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                    return fNumberSlider;
+                });
+                
+                UIMenu *menu = [UIMenu menuWithTitle:@"fNumber" children:@[element]];
+                [elements addObject:menu];
+            }
+            
+            if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+                if (!CNAssetSpatialAudioInfo.isSupported) {
+                    UIAction *action = [UIAction actionWithTitle:@"Spatial Audio Mix" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+                    action.attributes = UIMenuElementAttributesDisabled;
+                    action.subtitle = @"This device not supported";
+                    [elements addObject:action];
+                } else if (viewModel.isolated_snapshot.assetData.spatialAudioInfo != nil) {
+                    NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
+                    
+                    if (viewModel.isolated_snapshot.spatialAudioMixEnabled) {
+                        {
+                            UIAction *action = [UIAction actionWithTitle:@"Disable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                                dispatch_async(viewModel.queue, ^{
+                                    [viewModel isolated_disableSpatialAudioMix];
+                                });
+                            }];
+                            action.attributes = UIMenuOptionsDestructive;
+                            [children addObject:action];
+                        }
+                        
+                        {
+                            NSUInteger count;
+                            const CNSpatialAudioRenderingStyle *allStyles = allCNSpatialAudioRenderingStyles(&count);
+                            
+                            auto actionsVec = std::views::iota(allStyles, allStyles + count)
+                            | std::views::transform([](const CNSpatialAudioRenderingStyle *ptr) { return *ptr; })
+                            | std::views::transform([viewModel](const CNSpatialAudioRenderingStyle style) -> UIAction * {
+                                UIAction *action = [UIAction actionWithTitle:NSStringFromCNSpatialAudioRenderingStyle(style) image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                                    dispatch_async(viewModel.queue, ^{
+                                        [viewModel isolated_setSpatialAudioMixRenderingStyle:style];
+                                    });
+                                }];
+                                
+                                action.state = (viewModel.isolated_snapshot.spatialAudioMixRenderingStyle == style) ? UIMenuElementStateOn : UIMenuElementStateOff;
+                                return action;
+                            })
+                            | std::ranges::to<std::vector<UIAction *>>();
+                            
+                            NSArray<UIAction *> *actions = [[NSArray alloc] initWithObjects:actionsVec.data() count:actionsVec.size()];
+                            UIMenu *menu = [UIMenu menuWithTitle:@"Rendering Style" children:actions];
+                            [actions release];
+                            [children addObject:menu];
+                        }
+                        
+                        {
+                            __kindof UIMenuElement *element = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("UICustomViewMenuElement"), sel_registerName("elementWithViewProvider:"), ^ UIView * (__kindof UIMenuElement *menuElement) {
+                                assert(spatialAudioMixEffectIntensitySlider != nil);
+                                return spatialAudioMixEffectIntensitySlider;
+                            });
+                            
+                            UIMenu *menu = [UIMenu menuWithTitle:@"Effect Intensity" children:@[element]];
+                            [children addObject:menu];
+                        }
+                    } else {
+                        UIAction *action = [UIAction actionWithTitle:@"Enable" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+                            dispatch_async(viewModel.queue, ^{
+                                [viewModel isolated_enableSpatialAudioMix];
+                            });
+                        }];
+                        
+                        [children addObject:action];
+                    }
+                    
+                    UIMenu *menu = [UIMenu menuWithTitle:@"Spatial Audio Mix" children:children];
+                    [children release];
+                    [elements addObject:menu];
+                } else {
+                    UIAction *action = [UIAction actionWithTitle:@"Spatial Audio Mix" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+                    action.attributes = UIMenuElementAttributesDisabled;
+                    action.subtitle = @"Asset does not contain Spatial Audio Info";
+                    [elements addObject:action];
+                }
+            }
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completion(elements);
+            });
+            [elements release];
+        });
+    }];
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[element]];
+    return menu;
 }
 
 #if TARGET_OS_TV
@@ -232,11 +375,41 @@
     return fNumberSlider;
 }
 
-- (AVPlayer *)_player {
+#if TARGET_OS_TV
+- (TVSlider *)_spatialAudioMixEffectIntensitySlider
+#else
+- (UISlider *)_spatialAudioMixEffectIntensitySlider
+#endif
+{
+    if (auto spatialAudioMixEffectIntensitySlider = _spatialAudioMixEffectIntensitySlider) return spatialAudioMixEffectIntensitySlider;
+    
+#if TARGET_OS_TV
+    TVSlider *spatialAudioMixEffectIntensitySlider = [TVSlider new];
+#else
+    UISlider *spatialAudioMixEffectIntensitySlider = [UISlider new];
+#endif
+    spatialAudioMixEffectIntensitySlider.minimumValue = 0.1f;
+    spatialAudioMixEffectIntensitySlider.maximumValue = 1.f;
+    spatialAudioMixEffectIntensitySlider.continuous = YES;
+    
+#if TARGET_OS_TV
+    __block auto weakSelf = self;
+    [spatialAudioMixEffectIntensitySlider addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+        [weakSelf _didChangeSpatialAudioMixEffectIntensitySliderValue:action.sender];
+    }]];
+#else
+    [spatialAudioMixEffectIntensitySlider addTarget:self action:@selector(_didChangeSpatialAudioMixEffectIntensitySliderValue:) forControlEvents:UIControlEventValueChanged];
+#endif
+    
+    _spatialAudioMixEffectIntensitySlider = spatialAudioMixEffectIntensitySlider;
+    return spatialAudioMixEffectIntensitySlider;
+}
+
+- (AVQueuePlayer *)_player {
     dispatch_assert_queue(dispatch_get_main_queue());
     if (auto player = _player) return player;
     
-    AVPlayer *player = [AVPlayer new];
+    AVQueuePlayer *player = [AVQueuePlayer new];
     
     _player = player;
     return player;
@@ -259,19 +432,33 @@
 - (void)_didChangeComposition {
     dispatch_async(self.viewModel.queue, ^{
         AVPlayerItem * _Nullable playerItem;
-        if (CinematicSnapshot *compositions = self.viewModel.isolated_snapshot) {
-            playerItem = [[AVPlayerItem alloc] initWithAsset:compositions.composition];
-            playerItem.videoComposition = compositions.videoComposition;
+        if (CinematicSnapshot *snapshot = self.viewModel.isolated_snapshot) {
+            playerItem = [[AVPlayerItem alloc] initWithAsset:snapshot.composition];
+            playerItem.videoComposition = snapshot.videoComposition;
         } else {
             playerItem = nil;
         }
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            AVPlayer *player = self.player;
+            AVQueuePlayer *player = self.player;
             [player replaceCurrentItemWithPlayerItem:playerItem];
+            
+            if (playerItem == nil) {
+                self.playerLooper = nil;
+            } else {
+                AVPlayerLooper *playerLooper = [[AVPlayerLooper alloc] initWithPlayer:player templateItem:playerItem timeRange:CMTimeRangeMake(kCMTimeZero, playerItem.duration)];
+                self.playerLooper = playerLooper;
+                [playerLooper release];
+            }
             
             self.playerLayerView.playerLayer.player = player;
             self.playerControlView.player = player;
+            
+            if (playerItem != nil) {
+                if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+                    [self _didUpdateSpatialAudioMixInfo:nil];
+                }
+            }
         });
         
         [playerItem release];
@@ -295,8 +482,51 @@
     });
 }
 
+#if TARGET_OS_TV
+- (void)_didChangeSpatialAudioMixEffectIntensitySliderValue:(TVSlider *)sender
+#else
+- (void)_didChangeSpatialAudioMixEffectIntensitySliderValue:(UISlider *)sender
+#endif
+API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0)) {
+    float value = sender.value;
+    
+    dispatch_async(self.viewModel.queue, ^{
+        [self.viewModel isolated_setSpatialAudioMixEffectIntensity:value];
+    });
+}
+
 - (void)_didUpdateScript:(NSNotification *)notification {
     [self _updateFNumberSlider];
+}
+
+- (void)_didUpdateSpatialAudioMixInfo:(NSNotification * _Nullable)notification API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0)) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        AVPlayerItem * _Nullable playerItem = self.player.currentItem;
+        assert(playerItem != nil);
+        
+        dispatch_async(self.viewModel.queue, ^{
+            if (CinematicSnapshot *snapshot = self.viewModel.isolated_snapshot) {
+                if (snapshot.spatialAudioMixEnabled) {
+                    playerItem.audioMix = [snapshot.assetData.spatialAudioInfo audioMixWithEffectIntensity:snapshot.spatialAudioMixEffectIntensity renderingStyle:snapshot.spatialAudioMixRenderingStyle];
+                    assert(playerItem.audioMix != nil);
+                } else {
+                    playerItem.audioMix = nil;
+                }
+                
+                float spatialAudioMixEffectIntensity = snapshot.spatialAudioMixEffectIntensity;
+                dispatch_async(dispatch_get_main_queue(), ^{
+#if TARGET_OS_TV
+                        if (!self.spatialAudioMixEffectIntensitySlider.editing)
+#else
+                        if (!self.spatialAudioMixEffectIntensitySlider.tracking)
+#endif
+                        {
+                            self.spatialAudioMixEffectIntensitySlider.value = spatialAudioMixEffectIntensity;
+                        }
+                });
+            }
+        });
+    });
 }
 
 - (void)_updateFNumberSlider {

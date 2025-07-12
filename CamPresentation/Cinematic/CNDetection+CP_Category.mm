@@ -38,7 +38,11 @@ namespace cp_PTCinematographyCustomTrack {
 @implementation CNDetection (CP_Category)
 
 + (void)load {
-    cp_PTCinematographyCustomTrack::_initWithCustomTrack_::swizzle();
+    if (@available(macOS 26.0, iOS 26.0, tvOS 26.0, *)) {
+        // nop
+    } else {
+        cp_PTCinematographyCustomTrack::_initWithCustomTrack_::swizzle();
+    }
 }
 
 @end

@@ -15,12 +15,14 @@
 #import <objc/runtime.h>
 #import <CamPresentation/CinematicAssetData.h>
 #import <CamPresentation/CinematicEditViewController.h>
+#import <CamPresentation/UIDeferredMenuElement+Audio.h>
 
 @interface CinematicViewController () <AssetCollectionsViewControllerDelegate>
 @property (retain, nonatomic, readonly, getter=_editViewController) CinematicEditViewController *editViewController;
 @property (retain, nonatomic, readonly, getter=_assetPickerBarButtonItem) UIBarButtonItem *assetPickerBarButtonItem;
 @property (retain, nonatomic, readonly, getter=_viewModel) CinematicViewModel *viewModel;
 @property (retain, nonatomic, getter=_progress, setter=_setProgress:) NSProgress *progress;
+@property (retain, nonatomic, readonly, getter=_audioBarButtonItem) UIBarButtonItem *audioBarButtonItem;
 @property (retain, nonatomic, readonly, getter=_debugBarButtonItem) UIBarButtonItem *debugBarButtonItem;
 @end
 
@@ -29,6 +31,7 @@
 @synthesize assetPickerBarButtonItem = _assetPickerBarButtonItem;
 @synthesize viewModel = _viewModel;
 @synthesize progress = _progress;
+@synthesize audioBarButtonItem = _audioBarButtonItem;
 @synthesize debugBarButtonItem = _debugBarButtonItem;
 
 - (void)dealloc {
@@ -43,6 +46,7 @@
     }
     
     [_debugBarButtonItem release];
+    [_audioBarButtonItem release];
     
     [super dealloc];
 }
@@ -80,6 +84,7 @@
     navigationItem.trailingItemGroups = @[
         [UIBarButtonItemGroup fixedGroupWithRepresentativeItem:nil items:@[
             self.assetPickerBarButtonItem,
+            self.audioBarButtonItem,
             self.debugBarButtonItem
         ]]
     ];
@@ -92,7 +97,7 @@
          63216E3C-D521-4F30-8F1F-5E6E7EEEE0FD/L0/001
          0AAFD5FE-6EBB-4C6B-BEA6-A6D661292519/L0/001
          */
-        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"437FFB47-3FE3-4EC6-8D14-C8FB9A1B8DF1/L0/001"] options:nil];
+        PHFetchResult<PHAsset *> *assets = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"50DE405C-7C07-4B55-B7A9-4AE450E4FD7C/L0/001"] options:nil];
         [self _loadWithPHAsset:assets[0]];
     }
 }
@@ -132,6 +137,20 @@
     
     _debugBarButtonItem = debugBarButtonItem;
     return debugBarButtonItem;
+}
+
+- (UIBarButtonItem *)_audioBarButtonItem {
+    if (auto audioBarButtonItem = _audioBarButtonItem) return audioBarButtonItem;
+    
+    UIMenu *menu = [UIMenu menuWithChildren:@[
+        [UIDeferredMenuElement cp_audioElementWithDidChangeHandler:^{}]
+    ]];
+    UIBarButtonItem *audioBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Audio" image:[UIImage systemImageNamed:@"homepod.fill"] target:nil action:nil menu:menu];
+    
+    audioBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
+    
+    _audioBarButtonItem = audioBarButtonItem;
+    return audioBarButtonItem;
 }
 
 - (void)_addObserverForProgress:(NSProgress *)progress {

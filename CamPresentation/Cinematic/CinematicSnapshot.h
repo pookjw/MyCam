@@ -14,13 +14,18 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-__attribute__((objc_direct_members))
 @interface CinematicSnapshot : NSObject
-@property (copy, nonatomic, readonly) AVComposition *composition;
-@property (copy, nonatomic, readonly) AVVideoComposition *videoComposition;
-@property (retain, nonatomic, readonly) CNCompositionInfo *compositionInfo;
-@property (retain, nonatomic, readonly) CNRenderingSession *renderingSession;
+@property (copy, nonatomic, readonly, direct) AVComposition *composition;
+@property (copy, nonatomic, readonly, direct) AVVideoComposition *videoComposition;
+@property (retain, nonatomic, readonly, direct) CNCompositionInfo *compositionInfo;
+@property (retain, nonatomic, readonly, direct) CNRenderingSession *renderingSession;
+
+@property (assign, nonatomic, readonly, getter=isSpatialAudioMixEnabled) BOOL spatialAudioMixEnabled API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
+@property (assign, nonatomic, readonly) float spatialAudioMixEffectIntensity API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
+@property (assign, nonatomic, readonly) CNSpatialAudioRenderingStyle spatialAudioMixRenderingStyle API_AVAILABLE(macos(26.0), ios(26.0), tvos(26.0));
+
 @property (retain, nonatomic, readonly) CinematicAssetData *assetData;
+
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithComposition:(AVComposition *)composition videoComposition:(AVVideoComposition *)videoComposition compositionInfo:(CNCompositionInfo *)compositionInfo renderingSession:(CNRenderingSession *)renderingSession assetData:(CinematicAssetData *)assetData;
