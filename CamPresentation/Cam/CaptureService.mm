@@ -2342,6 +2342,14 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     [depthMapLayer updateWithCIImage:nil rotationAngle:0.f fill:NO];
 }
 
+- (AVCaptureAudioDataOutput *)queue_addAudioDataOutputWithAudioDevice:(AVCaptureDevice *)audioDevice {
+    abort();
+}
+
+- (void)queue_removeAudioDataOutputOutputWithAudioDevice:(AVCaptureDevice *)audioDevice {
+    abort();
+}
+
 #warning Multi Mic 지원
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output {
     dispatch_assert_queue(self.captureSessionQueue);

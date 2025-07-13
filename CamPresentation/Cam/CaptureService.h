@@ -101,6 +101,9 @@ __attribute__((objc_direct_members))
 - (AVCaptureDepthDataOutput *)queue_addDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 - (void)queue_removeDepthDataOutputWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 
+- (AVCaptureAudioDataOutput *)queue_addAudioDataOutputWithAudioDevice:(AVCaptureDevice *)audioDevice;
+- (void)queue_removeAudioDataOutputOutputWithAudioDevice:(AVCaptureDevice *)audioDevice;
+
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
 - (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output;
 
