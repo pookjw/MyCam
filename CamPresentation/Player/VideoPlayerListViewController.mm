@@ -25,6 +25,7 @@
 @property (retain, nonatomic, readonly) __kindof UIView *progressView;
 @property (retain, nonatomic, readonly) UIBarButtonItem *progressBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *audioBarButtonItem;
+@property (retain, nonatomic, readonly) UIBarButtonItem *menuBarButtonItem;
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly) UICollectionViewCellRegistration *cellRegistration;
 @end
@@ -33,6 +34,7 @@
 @synthesize progressView = _progressView;
 @synthesize progressBarButtonItem = _progressBarButtonItem;
 @synthesize audioBarButtonItem = _audioBarButtonItem;
+@synthesize menuBarButtonItem = _menuBarButtonItem;
 @synthesize collectionView = _collectionView;
 @synthesize cellRegistration = _cellRegistration;
 
@@ -84,6 +86,7 @@
     [_progressView release];
     [_progressBarButtonItem release];
     [_audioBarButtonItem release];
+    [_menuBarButtonItem release];
     [_collectionView release];
     [_cellRegistration release];
     

@@ -24,7 +24,6 @@
 #import <CoreMedia/CoreMedia.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import <CamPresentation/UIDeferredMenuElement+AudioDevices.h>
 
 OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self class] }; */
 
@@ -43,7 +42,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 @property (retain, nonatomic, readonly) UIBarButtonItem *continuityDevicePickerBarButtonItem;
 #endif
 @property (retain, nonatomic, readonly) UIBarButtonItem *audioSessionBarButtonItem;
-@property (retain, nonatomic, readonly) UIBarButtonItem *audioDevicesBarButtonItem;
 @property (retain, nonatomic, readonly) UIBarButtonItem *captureSessionBarButton;
 #if !TARGET_OS_TV
 @property (nonatomic, readonly) NSArray<UIBarButtonItem *> *cp_toolbarButtonItems;
@@ -65,7 +63,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 #endif
 @synthesize captureService = _captureService;
 @synthesize audioSessionBarButtonItem = _audioSessionBarButtonItem;
-@synthesize audioDevicesBarButtonItem = _audioDevicesBarButtonItem;
 @synthesize captureSessionBarButton = _captureSessionBarButton;
 
 + (BOOL)isDeferredStartEnabled {
@@ -105,7 +102,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [_continuityDevicePickerBarButtonItem release];
 #endif
     [_audioSessionBarButtonItem release];
-    [_audioDevicesBarButtonItem release];
     [_captureSessionBarButton release];
     
     if (auto captureService = _captureService) {
@@ -384,20 +380,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return [audioSessionBarButtonItem autorelease];
 }
 
-- (UIBarButtonItem *)audioDevicesBarButtonItem {
-    if (auto audioDevicesBarButtonItem = _audioDevicesBarButtonItem) return audioDevicesBarButtonItem;
-    
-    UIMenu *menu = [UIMenu menuWithChildren:@[
-        [UIDeferredMenuElement cp_audioDevicesElementWithCaptureService:self.captureService didChangeHandler:nil]
-    ]];
-    
-    UIBarButtonItem *audioDevicesBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"microphone.fill"] menu:menu];
-    audioDevicesBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
-    
-    _audioDevicesBarButtonItem = audioDevicesBarButtonItem;
-    return audioDevicesBarButtonItem;
-}
-
 - (UIBarButtonItem *)captureSessionBarButton {
     if (auto captureSessionBarButton = _captureSessionBarButton) return captureSessionBarButton;
     
@@ -419,7 +401,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
         self.audioSessionBarButtonItem,
         self.fileOutputsBarButtonItem,
         [UIBarButtonItem flexibleSpaceItem],
-        self.audioDevicesBarButtonItem,
         self.captureDevicesBarButtonItem
     ];
 }

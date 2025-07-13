@@ -316,6 +316,8 @@ static id<NSObject> availableInputsChangeToken;
         AVAudioSessionRouteSharingPolicyLongFormAudio,
 #if !TARGET_OS_TV
         AVAudioSessionRouteSharingPolicyLongFormVideo,
+#else
+        static_cast<AVAudioSessionRouteSharingPolicy>(3),
 #endif
         AVAudioSessionRouteSharingPolicyIndependent
     }

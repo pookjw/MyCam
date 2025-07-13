@@ -16,6 +16,9 @@ NSString * NSStringFromAVAudioSessionRouteSharingPolicy(AVAudioSessionRouteShari
 #if !TARGET_OS_TV
         case AVAudioSessionRouteSharingPolicyLongFormVideo:
             return @"Long Form Video";
+#else
+        case 3:
+            return @"Long Form Video";
 #endif
         case AVAudioSessionRouteSharingPolicyIndependent:
             return @"Independent";
