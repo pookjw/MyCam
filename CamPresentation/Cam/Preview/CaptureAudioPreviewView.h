@@ -12,6 +12,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_UNAVAILABLE(visionos)
 @interface CaptureAudioPreviewView : UIView
 @property (retain, nonatomic, readonly) AVCaptureDevice *audioDevice;
 @property (retain, nonatomic, readonly) AudioWaveLayer *audioWaveLayer;

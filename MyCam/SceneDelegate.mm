@@ -75,10 +75,14 @@
     if (![navigationController isKindOfClass:[UINavigationController class]]) return NO;
     if (![navigationController isEqual:self.window.rootViewController]) return NO;
     
+#if !TARGET_OS_VISION
     CameraRootViewController *cameraRootViewController = static_cast<CameraRootViewController *>(navigationController.topViewController);
     if (![cameraRootViewController isKindOfClass:[CameraRootViewController class]]) return NO;
     
     return [cameraRootViewController.interactivePopAvoidanceGestureRecognizers containsObject:otherGestureRecognizer];
+#else
+    return YES;
+#endif
 }
 
 @end

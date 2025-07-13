@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 7/9/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/UIDeferredMenuElement+AudioDevices.h>
 #import <CamPresentation/NSStringFromAVCaptureMultichannelAudioMode.h>
 #import <CamPresentation/NSStringFromAudioChannelLayoutTag.h>
@@ -125,3 +129,5 @@
 }
 
 @end
+
+#endif

@@ -24,26 +24,45 @@
 @synthesize menuBarButtonItem = _menuBarButtonItem;
 
 + (NSArray<Class> *)viewControllerClasses {
-    return @[
+    static NSArray<Class> *result;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSMutableArray<Class> *array = [NSMutableArray new];
+        
 #if TARGET_OS_VISION
-        XRCamRootViewController.class,
-#else
-        CameraRootViewController.class,
+        [array addObject:[XRCamRootViewController class]];
 #endif
-        AssetCollectionsViewController.class,
-        VideoPlayerListViewController.class,
+        
+#if !TARGET_OS_VISION
+        [array addObject:[CameraRootViewController class]];
+#endif
+        
+        [array addObject:[AssetCollectionsViewController class]];
+        [array addObject:[VideoPlayerListViewController class]];
+        
 #if !TARGET_OS_TV
-        VisionKitDemoViewController.class,
+        [array addObject:[VisionKitDemoViewController class]];
 #endif
-        ImageFiltersViewController.class,
+        
+        [array addObject:[ImageFiltersViewController class]];
 #if !TARGET_OS_TV
-        objc_lookUpClass("VKKeyboardCameraViewController"),
-        PickerManagedViewController.class,
+        [array addObject:objc_lookUpClass("VKKeyboardCameraViewController")];
+        [array addObject:[PickerManagedViewController class]];
 #endif
+        
 #if !TARGET_OS_SIMULATOR && !TARGET_OS_VISION
-        CinematicViewController.class
+        [array addObject:[CinematicViewController class]];
 #endif
-    ];
+        
+        if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
+            [array addObject:[SpatialAudioViewController class]];
+        }
+        
+        result = [array copy];
+        [array release];
+    });
+    
+    return result;
 }
 
 + (void)load {
@@ -138,9 +157,13 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    CinematicViewController *viewController = [CinematicViewController new];
-    [self.navigationController pushViewController:viewController animated:YES];
-    [viewController release];
+//    CinematicViewController *viewController = [CinematicViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
+    
+//    SpatialAudioViewController *viewController = [SpatialAudioViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
     
 //#if TARGET_OS_VISION
 //    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
@@ -172,10 +195,10 @@
     UIDeferredMenuElement *element = [UIDeferredMenuElement elementWithUncachedProvider:^(void (^ _Nonnull completion)(NSArray<UIMenuElement *> * _Nonnull)) {
         NSMutableArray<__kindof UIMenuElement *> *elements = [NSMutableArray new];
         
+#if !TARGET_OS_VISION
         {
             NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
             
-#if !TARGET_OS_VISION
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
                 BOOL deferredStartEnabled = CameraRootViewController.deferredStartEnabled;
                 
@@ -185,12 +208,12 @@
                 action.state = deferredStartEnabled ? UIMenuElementStateOn : UIMenuElementStateOff;
                 [children addObject:action];
             }
-#endif
             
             UIMenu *menu = [UIMenu menuWithTitle:NSStringFromClass([CameraRootViewController class]) children:children];
             [children release];
             [elements addObject:menu];
         }
+#endif
         
         completion(elements);
         [elements release];

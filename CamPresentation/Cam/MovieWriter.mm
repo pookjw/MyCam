@@ -193,9 +193,11 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     
     //
     
+#if !TARGET_OS_VISION
     if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
         assetWriter.movieTimeScale = self.videoDataOutput.recommendedMediaTimeScaleForAssetWriter;
     }
+#endif
     
     //
     

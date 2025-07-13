@@ -360,9 +360,14 @@
 }
 
 - (void)addAction:(UIAction *)action {
-    assert(![self._actions containsObject:action]);
-    UIAction *_immutableCopy = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_immutableCopy"));
-    [self._actions addObject:_immutableCopy];
+    if (@available(tvOS 26.0, *)) {
+        UIAction *copy = [action copy];
+        [self._actions addObject:copy];
+        [copy release];
+    } else {
+        __kindof UIAction * __autoreleasing immutableCopy = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(action, sel_registerName("_immutableCopy"));
+        [self._actions addObject:immutableCopy];
+    }
 }
 
 - (void)removeAction:(UIAction *)action {

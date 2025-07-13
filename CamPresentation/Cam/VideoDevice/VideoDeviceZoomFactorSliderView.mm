@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 7/10/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/VideoDeviceZoomFactorSliderView.h>
 #import <CamPresentation/TVSlider.h>
 
@@ -168,3 +172,5 @@
 }
 
 @end
+
+#endif

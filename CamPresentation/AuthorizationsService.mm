@@ -41,10 +41,11 @@
 - (void)requestAuthorizationsWithCompletionHandler:(void (^)(BOOL authorized))completionHandler {
 #if !TARGET_OS_VISION
     void (^requestLocationAuthorization)() = ^{
+        CLLocationManager *locationManager = self.locationManager;
+        CLAuthorizationStatus authorizationStatus = locationManager.authorizationStatus;
+        
         dispatch_async(dispatch_get_main_queue(), ^{
-            CLLocationManager *locationManager = self.locationManager;
-            
-            switch (locationManager.authorizationStatus) {
+            switch (authorizationStatus) {
                 case kCLAuthorizationStatusNotDetermined:
                     locationManager.delegate = self;
                     

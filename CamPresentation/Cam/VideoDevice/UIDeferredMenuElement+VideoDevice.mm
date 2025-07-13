@@ -4532,7 +4532,13 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 + (UIAction *)_cp_queue_nominalFocalLengthIn35mmFilmActionWithVideoDevice:(AVCaptureDevice *)captureDevice API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), macos(26.0)) {
     UIAction *action = [UIAction actionWithTitle:@"Nominal Focal Length In 35mm Film" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
     
-    action.subtitle = @(captureDevice.nominalFocalLengthIn35mmFilm).stringValue;
+    float nominalFocalLengthIn35mmFilm;
+#if TARGET_OS_TV
+    nominalFocalLengthIn35mmFilm = reinterpret_cast<float (*)(id, SEL)>(objc_msgSend)(captureDevice, sel_registerName("nominalFocalLengthIn35mmFilm"));
+#else
+    nominalFocalLengthIn35mmFilm = captureDevice.nominalFocalLengthIn35mmFilm;
+#endif
+    action.subtitle = @(nominalFocalLengthIn35mmFilm).stringValue;
     action.attributes = UIMenuElementAttributesDisabled;
     
     return action;

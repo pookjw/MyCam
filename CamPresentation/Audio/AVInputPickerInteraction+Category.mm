@@ -6,6 +6,9 @@
 //
 
 #import <CamPresentation/AVInputPickerInteraction+Category.h>
+
+#if !TARGET_OS_VISION && !TARGET_OS_TV
+
 #include <objc/message.h>
 #include <objc/runtime.h>
 
@@ -63,3 +66,5 @@ void swizzle() API_AVAILABLE(ios(26.0)) {
 }
 
 @end
+
+#endif

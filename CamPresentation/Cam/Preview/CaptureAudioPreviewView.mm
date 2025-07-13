@@ -5,6 +5,10 @@
 //  Created by Jinwoo Kim on 7/11/25.
 //
 
+#import <TargetConditionals.h>
+
+#if !TARGET_OS_VISION
+
 #import <CamPresentation/CaptureAudioPreviewView.h>
 
 @interface CaptureAudioPreviewView ()
@@ -33,3 +37,5 @@
 }
 
 @end
+
+#endif

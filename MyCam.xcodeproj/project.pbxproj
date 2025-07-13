@@ -598,6 +598,10 @@
 				Player/VideoPlayerListViewModel.mm,
 				SampleBufferDisplayLayerView.h,
 				SampleBufferDisplayLayerView.mm,
+				SpatialAudio/SpatialAudioViewController.h,
+				SpatialAudio/SpatialAudioViewController.mm,
+				SpatialAudio/SpatialAudioViewModel.h,
+				SpatialAudio/SpatialAudioViewModel.mm,
 				SVRunLoop.hpp,
 				SVRunLoop.mm,
 				TVSlider.h,
@@ -830,6 +834,7 @@
 				Player/PlayerOutput/PlayerOutputViewController.h,
 				Player/VideoPlayerListViewModel.h,
 				SampleBufferDisplayLayerView.h,
+				SpatialAudio/SpatialAudioViewModel.h,
 				SVRunLoop.hpp,
 				TVSlider.h,
 				TVStepper.h,
@@ -874,6 +879,7 @@
 				Library/AssetCollections/AssetCollectionsViewController.h,
 				PickerManaged/PickerManagedViewController.h,
 				Player/VideoPlayerListViewController.h,
+				SpatialAudio/SpatialAudioViewController.h,
 				"UISceneConfiguration+CamPresentation.h",
 				VisionKit/VisionKitDemoViewController.h,
 				XRCam/XRCamRootViewController.h,
@@ -1472,7 +1478,7 @@
 				TVOS_DEPLOYMENT_TARGET = 18.2;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
 		};
@@ -1513,7 +1519,7 @@
 				TVOS_DEPLOYMENT_TARGET = 18.2;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
 		};
@@ -1550,7 +1556,7 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 18.2;
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
 		};
@@ -1587,7 +1593,7 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 18.2;
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
 		};
@@ -1876,7 +1882,7 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 18.2;
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Debug;
 		};
@@ -1913,7 +1919,7 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 18.2;
-				XROS_DEPLOYMENT_TARGET = 2.0;
+				XROS_DEPLOYMENT_TARGET = 2.1;
 			};
 			name = Release;
 		};
