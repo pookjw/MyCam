@@ -620,7 +620,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     if ([layer isEqual:object]) {
                         assert(!found);
                         
-                        NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [self queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
+                        NSArray<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [self queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
                         
                         for (__kindof AVCaptureOutput *output in videoThumbnailOutputs) {
                             CGRect bounds = layer.bounds;
@@ -1719,7 +1719,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return outputs.firstObject;
 }
 
-- (NSSet<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
+- (NSArray<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice {
     dispatch_assert_queue(self.captureSessionQueue);
     
 //    NSMutableSet<__kindof AVCaptureOutput *> *outputs = [NSMutableSet new];
@@ -1743,21 +1743,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 //    return [outputs autorelease];
     
     NSArray<__kindof AVCaptureOutput *> *outputs = reinterpret_cast<id (*)(id, SEL, Class, id)>(objc_msgSend)(self.queue_captureSession, sel_registerName("_outputsWithClass:forSourceDevice:"), outputClass, captureDevice);
-    return [NSSet setWithArray:outputs];
-}
-
-- (NSMapTable<AVCaptureDevice *,NSSet<__kindof AVCaptureOutput *> *> *)queue_outputsByDeviceWithClass:(Class)outputClass {
-    dispatch_assert_queue(self.captureSessionQueue);
-    
-    NSMapTable<AVCaptureDevice *, NSSet<__kindof AVCaptureOutput *> *> *results = [NSMapTable weakToWeakObjectsMapTable];
-    
-    for (AVCaptureDevice *captureDevice in self.queue_addedCaptureDevices) {
-        NSSet<__kindof AVCaptureOutput *> *outputs = [self queue_outputsWithClass:outputClass fromCaptureDevice:captureDevice];
-        if (outputs.count == 0) continue;
-        [results setObject:outputs forKey:captureDevice];
-    }
-    
-    return results;
+    return outputs;
 }
 
 - (void)queue_setUpdatesDepthMapLayer:(BOOL)updatesDepthMapLayer captureDevice:(AVCaptureDevice *)captureDevice {
@@ -2829,7 +2815,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     NSMapTable<AVCaptureDevice *,NSSet<AudioWaveLayer *> *> *result = [NSMapTable strongToStrongObjectsMapTable];
     
     for (AVCaptureDevice *device in audioDevices) {
-        NSSet<AVCaptureAudioDataOutput *> *audioDataOutputs = [self queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:device];
+        NSArray<AVCaptureAudioDataOutput *> *audioDataOutputs = [self queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:device];
         
         if (audioDataOutputs.count > 0) {
             dispatch_sync(self.audioDataOutputQueue, ^{

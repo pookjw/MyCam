@@ -71,8 +71,7 @@ __attribute__((objc_direct_members))
 - (void)queue_setPhotoFormatModel:(PhotoFormatModel * _Nullable)photoFormatModel forCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (__kindof AVCaptureOutput * _Nullable)queue_outputWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (NSSet<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
-- (NSMapTable<AVCaptureDevice *, NSSet<__kindof AVCaptureOutput *> *> *)queue_outputsByDeviceWithClass:(Class)outputClass;
+- (NSArray<__kindof AVCaptureOutput *> *)queue_outputsWithClass:(Class)outputClass fromCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (BOOL)queue_isPreviewLayerEnabledForVideoDevice:(AVCaptureDevice *)videoDevice;
 - (void)queue_setPreviewLayerEnabled:(BOOL)enabled forVideoDeivce:(AVCaptureDevice *)videoDevice;

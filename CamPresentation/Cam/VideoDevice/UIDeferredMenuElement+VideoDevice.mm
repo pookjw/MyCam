@@ -3946,7 +3946,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu *)_cp_queue_stabilizationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputsWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice].allObjects[0];
+    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
     AVCaptureConnection *connection = [videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
     assert(connection != nil);
     
@@ -3999,10 +3999,10 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
             videoDevice.activeFormat = format;
             [videoDevice unlockForConfiguration];
             
-            NSSet<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputsWithClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
+            NSArray<AVCaptureMovieFileOutput *> *outputs = [captureService queue_outputsWithClass:AVCaptureMovieFileOutput.class fromCaptureDevice:videoDevice];
             if (outputs.count == 0) {
                 AVCaptureMovieFileOutput *output = [captureService queue_addMovieFileOutputWithCaptureDevice:videoDevice];
-                outputs = [NSSet setWithObject:output];
+                outputs = @[output];
             }
             
             [captureService queue_setPreferredStablizationModeForAllConnections:AVCaptureVideoStabilizationModeCinematicExtendedEnhanced forVideoDevice:videoDevice];
@@ -4296,7 +4296,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     __kindof AVCaptureSession *captureSession = captureService.queue_captureSession;
     assert(captureSession != nil);
     
-    NSSet<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [captureService queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
+    NSArray<__kindof AVCaptureOutput *> *videoThumbnailOutputs = [captureService queue_outputsWithClass:objc_lookUpClass("AVCaptureVideoThumbnailOutput") fromCaptureDevice:videoDevice];
     assert(videoThumbnailOutputs.count > 0);
     
     id smartStyle = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(captureSession, sel_registerName("smartStyle"));

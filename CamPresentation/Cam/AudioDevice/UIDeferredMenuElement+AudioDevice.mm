@@ -73,7 +73,7 @@
 }
 
 + (UIMenu *)_cp_audioDataOutputsMenuWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice didChangeHandler:(void (^)())didChangeHandler {
-    NSSet<AVCaptureAudioDataOutput *> *outputs = [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+    NSArray<AVCaptureAudioDataOutput *> *outputs = [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
     NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:outputs.count];
     
     {
