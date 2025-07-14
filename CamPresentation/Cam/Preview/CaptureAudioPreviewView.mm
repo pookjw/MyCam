@@ -28,11 +28,11 @@
 @synthesize toolbar = _toolbar;
 @synthesize menuBarButtonItem = _menuBarButtonItem;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice audioWaveLayer:(AudioWaveLayer *)audioWaveLayer {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice audioWaveLayers:(NSSet<AudioWaveLayer *> *)audioWaveLayers {
     if (self = [super initWithFrame:CGRectNull]) {
         _captureService = [captureService retain];
         _audioDevice = [audioDevice retain];
-        _audioWaveLayer = [audioWaveLayer retain];
+        _audioWaveLayers = [audioWaveLayers copy];
         
         self.backgroundColor = UIColor.systemPinkColor;
         
@@ -56,7 +56,7 @@
 - (void)dealloc {
     [_captureService release];
     [_audioDevice release];
-    [_audioWaveLayer release];
+    [_audioWaveLayers release];
     [_toolbar release];
     [_menuBarButtonItem release];
     [super dealloc];
@@ -97,6 +97,7 @@
     if (auto menuBarButtonItem = _menuBarButtonItem) return menuBarButtonItem;
     
     UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Menu" image:[UIImage systemImageNamed:@"list.bullet"] target:nil action:nil menu:[self _makeMenu]];
+    menuBarButtonItem.preferredMenuElementOrder = UIContextMenuConfigurationElementOrderFixed;
     
     _menuBarButtonItem = menuBarButtonItem;
     return menuBarButtonItem;

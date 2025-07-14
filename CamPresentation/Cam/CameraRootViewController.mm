@@ -585,15 +585,16 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     dispatch_async(captureService.captureSessionQueue, ^{
         NSArray<AVCaptureDevice *> *audioDevices = captureService.queue_addedAudioCaptureDevices;
-        NSMapTable<AVCaptureDevice *, AudioWaveLayer *> *audioWaveLayersByVideoDeviceCopiedMapTable = captureService.queue_audioWaveLayersByVideoDeviceCopiedMapTable;
+        NSMapTable<AVCaptureDevice *, NSSet<AudioWaveLayer *> *> *audioWaveLayersByDevice = [captureService queue_audioWaveLayersByAudioDeviceWithAudioDevices:[NSSet setWithArray:audioDevices]];
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
             NSMutableArray<AVCaptureDevice *> *addedAudioDevices = [audioDevices mutableCopy];
             
             for (CaptureAudioPreviewView *previewView in self.captureAudioPreviewViews) {
+                
                 BOOL isRemoved = YES;
-                if ([previewView.audioDevice isEqual:[audioWaveLayersByVideoDeviceCopiedMapTable objectForKey:previewView.audioDevice]]) {
+                if ([previewView.audioWaveLayers isEqualToSet:[audioWaveLayersByDevice objectForKey:previewView.audioDevice]]) {
                     isRemoved = NO;
                 }
                 
@@ -605,9 +606,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
             }
             
             for (AVCaptureDevice *audioDevice in addedAudioDevices) {
-                AudioWaveLayer *audioWaveLayer = [audioWaveLayersByVideoDeviceCopiedMapTable objectForKey:audioDevice];
-                assert(audioWaveLayer != nil);
-                CaptureAudioPreviewView *previewView = [[CaptureAudioPreviewView alloc] initWithCaptureService:captureService audioDevice:audioDevice audioWaveLayer:audioWaveLayer];
+                CaptureAudioPreviewView *previewView = [[CaptureAudioPreviewView alloc] initWithCaptureService:captureService audioDevice:audioDevice audioWaveLayers:[audioWaveLayersByDevice objectForKey:audioDevice]];
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
             }

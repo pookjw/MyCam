@@ -24,7 +24,7 @@
             NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
             
             [children addObject:[UIDeferredMenuElement _cp_multichannelAudioModeMenuWithWithCaptureService:captureService audioDevice:audioDevice didChangeHandler:didChangeHandler]];
-            [children addObject:[UIDeferredMenuElement _cp_audioDataOutputMenuWithCaptureService:captureService audioDevice:audioDevice didChangeHandler:didChangeHandler]];
+            [children addObject:[UIDeferredMenuElement _cp_audioDataOutputsMenuWithCaptureService:captureService audioDevice:audioDevice didChangeHandler:didChangeHandler]];
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 completion(children);
@@ -72,10 +72,39 @@
     return menu;
 }
 
-+ (UIMenu *)_cp_audioDataOutputMenuWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureAudioDataOutput *audioDataOutput = [captureService queue_outputWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
-    assert(audioDataOutput != nil);
++ (UIMenu *)_cp_audioDataOutputsMenuWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice didChangeHandler:(void (^)())didChangeHandler {
+    NSSet<AVCaptureAudioDataOutput *> *outputs = [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+    NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:outputs.count];
     
+    {
+        NSMutableArray<__kindof UIMenuElement *> *elements = [[NSMutableArray alloc] initWithCapacity:outputs.count];
+        for (AVCaptureAudioDataOutput *output in outputs) {
+            UIMenu *menu = [UIDeferredMenuElement _cp_audioDataOutputMenuWithCaptureService:captureService audioDevice:audioDevice audioDataOutput:output didChangeHandler:didChangeHandler];
+            [elements addObject:menu];
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:elements];
+        [elements release];
+        [children addObject:menu];
+    }
+    
+    {
+        UIAction *action = [UIAction actionWithTitle:@"Add" image:[UIImage systemImageNamed:@"plus"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_addAudioDataOutputWithAudioDevice:audioDevice];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        [children addObject:action];
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Outputs" children:children];
+    [children release];
+    
+    return menu;
+}
+
++ (UIMenu *)_cp_audioDataOutputMenuWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice audioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput didChangeHandler:(void (^)())didChangeHandler {
     NSMutableArray<__kindof UIMenuElement *> *children = [NSMutableArray new];
     
     if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
@@ -97,6 +126,18 @@
         
         [children addObject:[UIMenu menuWithTitle:@"Spatial Audio Channel Layout Tag" children:actions]];
         [actions release];
+    }
+    
+    {
+        UIAction *action = [UIAction actionWithTitle:@"Remove" image:[UIImage systemImageNamed:@"trash"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            dispatch_async(captureService.captureSessionQueue, ^{
+                [captureService queue_removeAudioDataOutput:audioDataOutput];
+                if (didChangeHandler) didChangeHandler();
+            });
+        }];
+        
+        action.attributes = UIMenuOptionsDestructive;
+        [children addObject:action];
     }
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:children];
