@@ -72,6 +72,7 @@
                 assert(error == nil);
                 
                 id<MLFeatureProvider> outputProvider = [model predictionFromFeatures:inputProvider error:&error];
+                [inputProvider release];
                 assert(error == nil);
                 
                 NSString *target = [outputProvider featureValueForName:@"target"].stringValue;

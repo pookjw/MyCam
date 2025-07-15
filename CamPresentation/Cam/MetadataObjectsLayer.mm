@@ -148,6 +148,7 @@
         }
         
         textLayer.string = string;
+        [string release];
         textLayer.foregroundColor = color;
         textLayer.fontSize = 10.;
         textLayer.alignmentMode = kCAAlignmentCenter;

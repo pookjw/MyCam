@@ -109,10 +109,9 @@ __attribute__((objc_direct_members))
 - (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice withOutput:(AVCaptureOutput *)output;
 - (void)queue_disconnectAudioDevice:(AVCaptureDevice *)audioDevice fromOutput:(AVCaptureOutput *)output;
 
-- (void)queue_connectAudioDevice:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (void)queue_disconnectAudioDeviceForAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (BOOL)queue_isAudioDeviceConnected:(AVCaptureDevice *)audioDevice forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
-- (BOOL)queue_isAssetWriterConnectedWithAudioDevice:(AVCaptureDevice *)audioDevice;
+- (void)queue_connectAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_disconnectAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
+- (BOOL)queue_isAudioDataOutputConnected:(AVCaptureAudioDataOutput *)audioDataOutput forAssetWriterVideoDevice:(AVCaptureDevice *)videoDevice;
 
 - (NSSet<AVCaptureDeviceInput *> *)queue_audioDeviceInputsForOutput:(__kindof AVCaptureOutput *)output;
 - (NSSet<AVCaptureDeviceInput *> *)queue_addedDeviceInputsFromCaptureDevice:(AVCaptureDevice *)captureDevice;
@@ -127,6 +126,7 @@ __attribute__((objc_direct_members))
 - (void)queue_startRecordingWithCaptureDevice:(AVCaptureDevice *)captureDevice;
 
 - (void)queue_startRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
+- (void)queue_stopRecordingUsingAssetWriterWithVideoDevice:(AVCaptureDevice *)videoDevice completionHandler:(void (^)(void))completionHandler;
 - (MovieWriter *)queue_movieWriterWithVideoDevice:(AVCaptureDevice *)videoDevice;
 
 - (void)queue_setPreferredStablizationModeForAllConnections:(AVCaptureVideoStabilizationMode)stabilizationMode forVideoDevice:(AVCaptureDevice *)videoDevice;

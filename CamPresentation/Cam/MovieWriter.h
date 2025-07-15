@@ -10,6 +10,7 @@
 #import <CoreMedia/CoreMedia.h>
 #import <CamPresentation/BaseFileOutput.h>
 #import <CamPresentation/Extern.h>
+#import <CamPresentation/MovieInputDescriptor.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -39,13 +40,16 @@ __attribute__((objc_direct_members))
 
 - (instancetype)initWithFileOutput:(__kindof BaseFileOutput *)fileOutput videoDataOutput:(AVCaptureVideoDataOutput *)videoDataOutput useFastRecording:(BOOL)useFastRecording isolatedQueue:(dispatch_queue_t)isolatedQueue locationHandler:(CLLocation * _Nullable (^ _Nullable)())locationHandler;
 
-- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef _Nullable)audioSourceFormatHint metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef _Nullable)metadataSourceFormatHint;
+- (void)startRecordingWithAudioDescriptors:(NSArray<MovieInputDescriptor *> *)audioDescriptors metadataDescriptors:(NSArray<MovieInputDescriptor *> *)MovieInputDescriptor metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef _Nullable)metadataSourceFormatHint;
 - (void)pauseRecording;
 - (void)resumeRecording;
 - (void)stopRecordingWithCompletionHandler:(void (^ _Nullable)(void))completionHandler;
 
-- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer;
+- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer forInputKey:(id)audioInputKey;
+- (void)nonisolated_appendTimedMetadataSampleBuffer:(CMSampleBufferRef)sampleBuffer forInputKey:(id)audioInputKey;
 - (void)nonisolated_appendTimedMetadataGroup:(AVTimedMetadataGroup *)timedMetadataGroup;
+
+- (void)nonislated_userInfoHandler:(void (^)(NSMutableDictionary *userInfo))userInfoHandler;
 @end
 
 NS_ASSUME_NONNULL_END

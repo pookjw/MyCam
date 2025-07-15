@@ -640,9 +640,10 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
         FourCharCode mediaSubType = CMFormatDescriptionGetMediaSubType(description);
         CFRelease(description);
         
-        NSString *string = [[[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding] autorelease].cp_reversedString;
-        menu.subtitle = string;
+        NSString *string = [[NSString alloc] initWithBytes:reinterpret_cast<const char *>(&mediaSubType) length:4 encoding:NSUTF8StringEncoding];
+        NSString *reversedString = string.cp_reversedString;
         [string release];
+        menu.subtitle = reversedString;
     }
     
     [rawPhotoPixelFormatTypeActions release];
@@ -3712,51 +3713,69 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 
 + (UIMenu * _Nonnull)_cp_queue_assetWriterMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     return [UIMenu menuWithTitle:@"Asset Writer" children:@[
-        [UIDeferredMenuElement _cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
+        [UIDeferredMenuElement _cp_queue_configureAudioDataOutputForMovieWriterElementWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleUseFastRecordingWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_toggleAssetWriterRecordingStatusActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]
     ]];
 }
 
-+ (UIMenu * _Nonnull)_cp_queue_configureAudioDeviceForAssetWriterVideoRecordingMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
++ (__kindof UIMenuElement * _Nonnull)_cp_queue_configureAudioDataOutputForMovieWriterElementWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
     NSArray<AVCaptureDevice *> *addedAudioDevices = captureService.queue_addedAudioCaptureDevices;
-    
-    NSMutableArray<UIAction *> *actions = [[NSMutableArray alloc] initWithCapacity:addedAudioDevices.count];
-    
-    AVCaptureDevice * _Nullable connectedAudioDevice = nil;
-    
-    for (AVCaptureDevice *audioDevice in addedAudioDevices) {
-        BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
-        
-        UIAction *action = [UIAction actionWithTitle:audioDevice.localizedName image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
-            dispatch_async(captureService.captureSessionQueue, ^{
-                BOOL isConnected = [captureService queue_isAudioDeviceConnected:audioDevice forAssetWriterVideoDevice:videoDevice];
-                
-                if (isConnected) {
-                    [captureService queue_disconnectAudioDeviceForAssetWriterVideoDevice:videoDevice];
-                } else {
-                    [captureService queue_connectAudioDevice:audioDevice forAssetWriterVideoDevice:videoDevice];
-                }
-                
-                if (didChangeHandler) didChangeHandler();
-            });
-        }];
-        
-        action.state = isConnected ? UIMenuElementStateOn : UIMenuElementStateOff;
-        
-        [actions addObject:action];
-        
-        if (isConnected) {
-            assert(connectedAudioDevice == nil);
-            connectedAudioDevice = audioDevice;
-        }
+    if (addedAudioDevices.count == 0) {
+        UIAction *action = [UIAction actionWithTitle:@"No Audio Device" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.attributes = UIMenuElementAttributesDisabled;
+        return action;
     }
     
-    UIMenu *menu = [UIMenu menuWithTitle:@"Configure Audio Device" children:actions];
-    [actions release];
+    NSMutableArray<__kindof UIMenuElement *> *children = [[NSMutableArray alloc] initWithCapacity:addedAudioDevices.count];
+    NSUInteger totalAudioDataOutputsCount = 0;
     
-    menu.subtitle = connectedAudioDevice.localizedName;
+    for (AVCaptureDevice *audioDevice in addedAudioDevices) {
+        NSArray<AVCaptureAudioDataOutput *> *audioDataOutputs = [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+        totalAudioDataOutputsCount += audioDataOutputs.count;
+        
+        NSMutableArray<__kindof UIMenuElement *> *elements = [[NSMutableArray alloc] initWithCapacity:audioDataOutputs.count];
+        
+        for (AVCaptureAudioDataOutput *audioDataOutput in audioDataOutputs) {
+            BOOL isAdded = [captureService queue_isAudioDataOutputConnected:audioDataOutput forAssetWriterVideoDevice:videoDevice];
+            
+            UIAction *action = [UIAction actionWithTitle:(isAdded ? @"Remove" : @"Add")
+                                                   image:nil
+                                              identifier:nil
+                                                 handler:^(__kindof UIAction * _Nonnull action) {
+                dispatch_async(captureService.captureSessionQueue, ^{
+                    if (isAdded) {
+                        [captureService queue_disconnectAudioDataOutput:audioDataOutput forAssetWriterVideoDevice:videoDevice];
+                    } else {
+                        [captureService queue_connectAudioDataOutput:audioDataOutput forAssetWriterVideoDevice:videoDevice];
+                    }
+                    
+                    if (didChangeHandler) didChangeHandler();
+                });
+            }];
+            
+            action.attributes = (isAdded ? UIMenuElementAttributesDestructive : 0);
+            
+            UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:@[action]];
+            menu.subtitle = (isAdded ? @"Added" : @"Not Added");
+            [elements addObject:menu];
+        }
+        
+        UIMenu *menu = [UIMenu menuWithTitle:audioDevice.localizedName children:elements];
+        [elements release];
+        [children addObject:menu];
+    }
     
+    if (totalAudioDataOutputsCount == 0) {
+        [children release];
+        
+        UIAction *action = [UIAction actionWithTitle:@"No Audio Data Output" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {}];
+        action.attributes = UIMenuElementAttributesDisabled;
+        return action;
+    }
+    
+    UIMenu *menu = [UIMenu menuWithTitle:@"Audio Devices" children:children];
+    [children release];
     return menu;
 }
 
@@ -3767,7 +3786,9 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     if (movieWriter.status == MovieWriterStatusRecording) {
         UIAction *action = [UIAction actionWithTitle:@"Stop Recording" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
             dispatch_async(captureService.captureSessionQueue, ^{
-                [movieWriter stopRecordingWithCompletionHandler:didChangeHandler];
+                [captureService queue_stopRecordingUsingAssetWriterWithVideoDevice:videoDevice completionHandler:^{
+                    if (didChangeHandler) didChangeHandler();
+                }];
             });
         }];
         
@@ -3946,10 +3967,6 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
 }
 
 + (UIMenu *)_cp_queue_stabilizationMenuWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler {
-    AVCaptureVideoDataOutput *videoDataOutput = [captureService queue_outputWithClass:AVCaptureVideoDataOutput.class fromCaptureDevice:videoDevice];
-    AVCaptureConnection *connection = [videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
-    assert(connection != nil);
-    
     UIMenu *menu = [UIMenu menuWithTitle:@"Stabilization" children:@[
         [UIDeferredMenuElement _cp_queue_formatsByVideoStabilizationModeWithCaptureService:captureService captureDevice:videoDevice title:@"Formats by all Video Stabilizations" modeFilterHandler:nil formatFilterHandler:nil didChangeHandler:didChangeHandler],
         [UIDeferredMenuElement _cp_queue_setPreferredVideoStabilizationModeMenuWithCaptureService:captureService captureDevice:videoDevice didChangeHandler:didChangeHandler]
@@ -3965,6 +3982,7 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     
     if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
         [children addObject:[UIDeferredMenuElement _cp_queue_enableCinematicVideoCaptureQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
+        [children addObject:[UIDeferredMenuElement _cp_queue_prepareForSpatialAudioMovieWriterQuickActionWithCaptureService:captureService videoDevice:videoDevice didChangeHandler:didChangeHandler]];
         
     }
     UIMenu *menu = [UIMenu menuWithTitle:@"Quick Actions" children:children];
@@ -4086,6 +4104,48 @@ AVF_EXPORT NSString * const AVSmartStyleCastTypeLongGray;
     }];
     
     action.subtitle = (audioDevices.count == 0) ? @"Adding Audio Device is recommended" : nil;
+    
+    return action;
+}
+
++ (UIAction *)_cp_queue_prepareForSpatialAudioMovieWriterQuickActionWithCaptureService:(CaptureService *)captureService videoDevice:(AVCaptureDevice *)videoDevice didChangeHandler:(void (^)())didChangeHandler API_AVAILABLE(ios(26.0), watchos(26.0), tvos(26.0), visionos(26.0), macos(26.0)) {
+    UIAction *action = [UIAction actionWithTitle:@"Prepare for Spatial Audio Movie Writer" image:nil identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+        dispatch_async(captureService.captureSessionQueue, ^{
+            NSArray<AVCaptureDevice *> *audioDevices = captureService.queue_addedAudioCaptureDevices;
+            AVCaptureDevice *audioDevice = audioDevices.firstObject;
+            
+            if (audioDevice == nil) {
+                NSArray<AVCaptureDevice *> *discoveredAudioDevices = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)([AVCaptureDeviceDiscoverySession class], sel_registerName("allAudioDevices"));
+                audioDevice = discoveredAudioDevices.firstObject;
+                assert(audioDevice != nil);
+                
+                [captureService queue_addCaptureDevice:audioDevice];
+            }
+            
+            NSSet<AVCaptureDeviceInput *> *inputs = [captureService queue_addedDeviceInputsFromCaptureDevice:audioDevice];
+            assert(inputs.count == 1);
+            AVCaptureDeviceInput *input = inputs.allObjects[0];
+            input.multichannelAudioMode = AVCaptureMultichannelAudioModeFirstOrderAmbisonics;
+            
+            for (AVCaptureAudioDataOutput *audioDataOutput in [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice]) {
+                [captureService queue_removeAudioDataOutput:audioDataOutput];
+            }
+            
+            [captureService queue_addAudioDataOutputWithAudioDevice:audioDevice];
+            [captureService queue_addAudioDataOutputWithAudioDevice:audioDevice];
+            
+            //
+            
+            NSArray<AVCaptureAudioDataOutput *> *audioDataOutputs = [captureService queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+            assert(audioDataOutputs.count == 2);
+            
+            for (AVCaptureAudioDataOutput *audioDataOutput in audioDataOutputs) {
+                [captureService queue_connectAudioDataOutput:audioDataOutput forAssetWriterVideoDevice:videoDevice];
+            }
+            
+            if (didChangeHandler) didChangeHandler();
+        });
+    }];
     
     return action;
 }

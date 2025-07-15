@@ -141,6 +141,7 @@
     }
     
     UIMenu *menu = [UIMenu menuWithTitle:@"Audio Data Output" children:children];
+    [children release];
     return menu;
 }
 

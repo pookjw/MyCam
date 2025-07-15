@@ -14,15 +14,20 @@
 #import <VideoToolbox/VideoToolbox.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <os/lock.h>
 
 NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWriterChangedStatusNotificationName";
 
 @interface MovieWriter () <AVCaptureVideoDataOutputSampleBufferDelegate> {
     CMFormatDescriptionRef _Nullable _videoSourceFormatHint;
+    
+    os_unfair_lock _userInfoLock;
+    NSDictionary *_userInfo;
 }
 @property (retain, atomic, nullable) AVAssetWriter *assetWriter;
 @property (retain, atomic, nullable) AVAssetWriterInputPixelBufferAdaptor *videoPixelBufferAdaptor;
-@property (retain, atomic, nullable) AVAssetWriterInput *audioWriterInput;
+@property (retain, atomic, nullable) NSMapTable<id, AVAssetWriterInput *> *audioWriterInputsByAudioInputKey;
+@property (retain, atomic, nullable) NSMapTable<id, AVAssetWriterInput *> *metadataWriterInputsByAudioInputKey;
 @property (retain, atomic, nullable) AVAssetWriterInputMetadataAdaptor *metadataAdaptor;
 @property (copy, nonatomic, nullable, readonly) CLLocation * _Nullable (^locationHandler)(void);
 @property (retain, nonatomic, readonly) dispatch_queue_t isolatedQueue;
@@ -92,16 +97,21 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
         if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
             videoDataOutput.preservesDynamicHDRMetadata = YES;
         }
+        
+        _userInfoLock = OS_UNFAIR_LOCK_INIT;
+        _userInfo = [[NSDictionary alloc] init];
     }
     
     return self;
 }
 
 - (void)dealloc {
+    [self _flushAssetWriter];
     [_videoDataOutput release];
     [_fileOutput release];
     [_videoPixelBufferAdaptor release];
-    [_audioWriterInput release];
+    [_audioWriterInputsByAudioInputKey release];
+    [_metadataWriterInputsByAudioInputKey release];
     [_metadataAdaptor release];
     [self _unregisterObserversForAssetWriter:_assetWriter];
     [_assetWriter release];
@@ -113,6 +123,8 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     if (_videoSourceFormatHint) {
         CFRelease(_videoSourceFormatHint);
     }
+    
+    [_userInfo release];
     
     [super dealloc];
 }
@@ -178,7 +190,7 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     }
 }
 
-- (void)startRecordingWithAudioOutputSettings:(NSDictionary<NSString *, id> * _Nullable)audioOutputSettings audioSourceFormatHint:(CMFormatDescriptionRef _Nullable)audioSourceFormatHint metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef _Nullable)metadataSourceFormatHint {
+- (void)startRecordingWithAudioDescriptors:(NSArray<MovieInputDescriptor *> *)audioDescriptors metadataDescriptors:(NSArray<MovieInputDescriptor *> *)metadataDescriptors metadataOutputSettings:(NSDictionary<NSString *, id> * _Nullable)metadataOutputSettings metadataSourceFormatHint:(CMMetadataFormatDescriptionRef _Nullable)metadataSourceFormatHint {
     dispatch_assert_queue(self.isolatedQueue);
     assert(self.assetWriter == nil);
     
@@ -230,12 +242,29 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     
     //
     
-    AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioOutputSettings sourceFormatHint:audioSourceFormatHint];
-    audioWriterInput.expectsMediaDataInRealTime = YES;
-    assert([assetWriter canAddInput:audioWriterInput]);
-    [assetWriter addInput:audioWriterInput];
-    self.audioWriterInput = audioWriterInput;
-    [audioWriterInput release];
+    NSMapTable<id, AVAssetWriterInput *> *audioWriterInputsByAudioInputKey = [NSMapTable strongToStrongObjectsMapTable];
+    for (MovieInputDescriptor *audioDescriptor in audioDescriptors) {
+        AVAssetWriterInput *audioWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeAudio outputSettings:audioDescriptor.outputSettings sourceFormatHint:audioDescriptor.sourceFomratHints];
+        audioWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:audioWriterInput]);
+        [assetWriter addInput:audioWriterInput];
+        [audioWriterInputsByAudioInputKey setObject:audioWriterInput forKey:audioDescriptor.key];
+        [audioWriterInput release];
+    }
+    self.audioWriterInputsByAudioInputKey = audioWriterInputsByAudioInputKey;
+    
+    //
+    
+    NSMapTable<id, AVAssetWriterInput *> *metadataWriterInputsByAudioInputKey = [NSMapTable strongToStrongObjectsMapTable];
+    for (MovieInputDescriptor *metadataDescriptor in metadataDescriptors) {
+        AVAssetWriterInput *metadataWriterInput = [[AVAssetWriterInput alloc] initWithMediaType:AVMediaTypeMetadata outputSettings:metadataDescriptor.outputSettings sourceFormatHint:metadataDescriptor.sourceFomratHints];
+        metadataWriterInput.expectsMediaDataInRealTime = YES;
+        assert([assetWriter canAddInput:metadataWriterInput]);
+        [assetWriter addInput:metadataWriterInput];
+        [metadataWriterInputsByAudioInputKey setObject:metadataWriterInput forKey:metadataDescriptor.key];
+        [metadataWriterInput release];
+    }
+    self.metadataWriterInputsByAudioInputKey = metadataWriterInputsByAudioInputKey;
     
     //
     
@@ -342,7 +371,6 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
 - (void)_appendVideoSampleBuffer:(CMSampleBufferRef)sampleBuffer {
     dispatch_assert_queue(self.videoQueue);
     CMTaggedBufferGroupRef group = CMSampleBufferGetTaggedBufferGroup(sampleBuffer);
-    CFShow(group);
     
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
@@ -394,7 +422,7 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     }
 }
 
-- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer {
+- (void)nonisolated_appendAudioSampleBuffer:(CMSampleBufferRef)sampleBuffer forInputKey:(nonnull id)audioInputKey {
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
     CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
     assert(mediaType == kCMMediaType_Audio);
@@ -420,7 +448,46 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
     
     if (startSessionCalled) {
-        AVAssetWriterInput *audioWriterInput = self.audioWriterInput;
+        AVAssetWriterInput *audioWriterInput = [self.audioWriterInputsByAudioInputKey objectForKey:audioInputKey];
+        assert(audioWriterInput != nil);
+        
+        if (audioWriterInput.isReadyForMoreMediaData) {
+            BOOL success = [audioWriterInput appendSampleBuffer:sampleBuffer];
+            
+            if (!success) {
+                NSLog(@"%@", assetWriter.error);
+            }
+        }
+    }
+}
+
+- (void)nonisolated_appendTimedMetadataSampleBuffer:(CMSampleBufferRef)sampleBuffer forInputKey:(id)audioInputKey {
+    CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
+    CMMediaType mediaType = CMFormatDescriptionGetMediaType(desc);
+    assert(mediaType == kCMMediaType_Metadata);
+    
+    CMAttachmentMode mode = 0;
+    CFStringRef _Nullable reason = (CFStringRef)CMGetAttachment(sampleBuffer, kCMSampleBufferAttachmentKey_DroppedFrameReason, &mode);
+    if (reason) {
+        CFShow(reason);
+    }
+    
+    AVAssetWriter *assetWriter = self.assetWriter;
+    if (assetWriter == nil) return;
+    if (assetWriter.status != AVAssetWriterStatusWriting or self.isPaused) {
+        return;
+    }
+    
+    if ([MovieWriter _isFinishWriting:assetWriter]) {
+        return;
+    }
+    
+    assert(assetWriter.status == AVAssetWriterStatusWriting);
+    
+    BOOL startSessionCalled = [MovieWriter _startSessionCalledForAssetWriter:assetWriter];
+    
+    if (startSessionCalled) {
+        AVAssetWriterInput *audioWriterInput = [self.metadataWriterInputsByAudioInputKey objectForKey:audioInputKey];
         assert(audioWriterInput != nil);
         
         if (audioWriterInput.isReadyForMoreMediaData) {
@@ -531,16 +598,31 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
 }
 
 - (void)_flushAssetWriter {
-    dispatch_assert_queue(self.isolatedQueue);
+    BOOL isDeallocating = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_isDeallocating"));
+    if (!isDeallocating) {
+        dispatch_assert_queue(self.isolatedQueue);
+    }
     
     AVAssetWriter *assetWriter = self.assetWriter;
-    assert(assetWriter != nil);
-    assert(assetWriter.status != AVAssetWriterStatusWriting);
+    if (assetWriter != nil) {
+        assert(assetWriter.status != AVAssetWriterStatusWriting);
+        [self _unregisterObserversForAssetWriter:assetWriter];
+        self.assetWriter = nil;
+    }
     
-    [self _unregisterObserversForAssetWriter:assetWriter];
-    self.assetWriter = nil;
     self.videoPixelBufferAdaptor = nil;
-    self.audioWriterInput = nil;
+    
+    for (AVAssetWriterInput *input in self.audioWriterInputsByAudioInputKey.objectEnumerator) {
+        [input markAsFinished];
+    }
+    self.audioWriterInputsByAudioInputKey = nil;
+    
+    // metadataWriterInputsByAudioInputKey
+    for (AVAssetWriterInput *input in self.metadataWriterInputsByAudioInputKey.objectEnumerator) {
+        [input markAsFinished];
+    }
+    self.metadataWriterInputsByAudioInputKey = nil;
+    
     self.metadataAdaptor = nil;
 }
 
@@ -594,6 +676,19 @@ NSNotificationName const MovieWriterChangedStatusNotificationName = @"MovieWrite
     if (mediaType == kCMMediaType_Video) {
         [self _appendVideoSampleBuffer:sampleBuffer];
     }
+}
+
+- (void)nonislated_userInfoHandler:(void (^)(NSMutableDictionary * _Nonnull))userInfoHandler {
+    os_unfair_lock_lock(&_userInfoLock);
+    
+    NSMutableDictionary *mutableUserInfo = [_userInfo mutableCopy];
+    userInfoHandler(mutableUserInfo);
+    assert(mutableUserInfo != nil);
+    [_userInfo release];
+    _userInfo = [mutableUserInfo copy];
+    [mutableUserInfo release];
+    
+    os_unfair_lock_unlock(&_userInfoLock);
 }
 
 @end
