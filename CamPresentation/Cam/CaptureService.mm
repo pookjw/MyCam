@@ -2712,6 +2712,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [audioDescriptor release];
             }
             
+#if !TARGET_OS_TV
             if (@available(iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, macOS 26.0, *)) {
                 AVCaptureSpatialAudioMetadataSampleGenerator *spatialAudioMetadataSampleGenerator = [self.adoQueue_spatialAudioMetadataSampleGeneratorsByAudioDataOutput objectForKey:audioDataOutput];
                 assert(spatialAudioMetadataSampleGenerator != nil);
@@ -2722,6 +2723,7 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                 [metadataDescriptors addObject:metadataDescriptor];
                 [metadataDescriptor release];
             }
+#endif
         }
     });
     
@@ -4109,8 +4111,8 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
                     [userInfo removeAllObjects];
                 }];
             }
-#endif
         }
+#endif
     }
 }
 
