@@ -58,6 +58,8 @@
             [array addObject:[SpatialAudioViewController class]];
         }
         
+        [array addObject:[CompositionViewController class]];
+        
         result = [array copy];
         [array release];
     });
@@ -165,13 +167,13 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-#if TARGET_OS_VISION
-    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
-#else
-    CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
-#endif
-    [self.navigationController pushViewController:cameraRootViewController animated:YES];
-    [cameraRootViewController release];
+//#if TARGET_OS_VISION
+//    XRCamRootViewController *cameraRootViewController = [XRCamRootViewController new];
+//#else
+//    CameraRootViewController *cameraRootViewController = [CameraRootViewController new];
+//#endif
+//    [self.navigationController pushViewController:cameraRootViewController animated:YES];
+//    [cameraRootViewController release];
     
 //    VisionKitDemoViewController *viewController = [VisionKitDemoViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
@@ -180,6 +182,10 @@
 //    ImageFiltersViewController *viewController = [ImageFiltersViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
+    
+    CompositionViewController *viewController = [CompositionViewController new];
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
 }
 
 - (UIBarButtonItem *)menuBarButtonItem {
