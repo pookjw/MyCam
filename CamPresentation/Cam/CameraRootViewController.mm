@@ -421,6 +421,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                                              object:captureService];
     
     [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(audioWaveLayersDidChangeNotification:)
+                                               name:CaptureServiceAudioWaveLayersDidChangeNotificationName
+                                             object:captureService];
+    
+    [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(didReceiveReloadingPhotoFormatMenuNeededNotification:)
                                                name:CaptureServiceReloadingPhotoFormatMenuNeededNotificationName
                                              object:captureService];
@@ -485,7 +490,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)didAddDeviceNotification:(NSNotification *)notification {
-    [self nonisolated_addedCaptureDevicesDidChange:notification];
+    [self nonisolated_updatePreviewViews];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
@@ -493,11 +498,15 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)didRemoveDeviceNotification:(NSNotification *)notification {
-    [self nonisolated_addedCaptureDevicesDidChange:notification];
+    [self nonisolated_updatePreviewViews];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(self.captureDevicesBarButtonItem, sel_registerName("_updateMenuInPlace"));
     });
+}
+
+- (void)audioWaveLayersDidChangeNotification:(NSNotification *)notification {
+    [self nonisolated_updatePreviewViews];
 }
 
 - (void)didReceiveReloadingPhotoFormatMenuNeededNotification:(NSNotification *)notification {
@@ -517,7 +526,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     });
 }
 
-- (void)nonisolated_addedCaptureDevicesDidChange:(NSNotification *)notification {
+- (void)nonisolated_updatePreviewViews {
     [self nonisolated_updateCaptureVideoPreviewViews];
     [self nonisolated_updateCaptureAudioPreviewViews];
     [self nonisolated_updatePointCloudPreviewViews];
@@ -585,16 +594,15 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     dispatch_async(captureService.captureSessionQueue, ^{
         NSArray<AVCaptureDevice *> *audioDevices = captureService.queue_addedAudioCaptureDevices;
-        NSMapTable<AVCaptureDevice *, NSSet<AudioWaveLayer *> *> *audioWaveLayersByDevice = [captureService queue_audioWaveLayersByAudioDeviceWithAudioDevices:[NSSet setWithArray:audioDevices]];
+        NSMapTable<AVCaptureDevice *, NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> *> *audioWaveLayersTableByAudioDevice = [captureService queue_audioWaveLayersTableByAudioDevice];
         
         dispatch_async(dispatch_get_main_queue(), ^{
             UIStackView *stackView = self.stackView;
             NSMutableArray<AVCaptureDevice *> *addedAudioDevices = [audioDevices mutableCopy];
             
             for (CaptureAudioPreviewView *previewView in self.captureAudioPreviewViews) {
-                
                 BOOL isRemoved = YES;
-                if ([previewView.audioWaveLayers isEqualToSet:[audioWaveLayersByDevice objectForKey:previewView.audioDevice]]) {
+                if ([audioDevices containsObject:previewView.audioDevice]) {
                     isRemoved = NO;
                 }
                 
@@ -602,11 +610,30 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
                     [previewView removeFromSuperview];
                 } else {
                     [addedAudioDevices removeObject:previewView.audioDevice];
+                    
+                    NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> * _Nullable audioWaveLayersTable = [audioWaveLayersTableByAudioDevice objectForKey:previewView.audioDevice];
+                    if (audioWaveLayersTable != nil) {
+                        NSArray<AudioWaveLayer *> *waveLayers = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioWaveLayersTable, sel_registerName("allValues"));
+                        previewView.audioWaveLayers = waveLayers;
+                    } else {
+                        // 추가된 AVCaptureAudioDataOutput이 없을 때
+                        previewView.audioWaveLayers = @[];
+                    }
                 }
             }
             
             for (AVCaptureDevice *audioDevice in addedAudioDevices) {
-                CaptureAudioPreviewView *previewView = [[CaptureAudioPreviewView alloc] initWithCaptureService:captureService audioDevice:audioDevice audioWaveLayers:[audioWaveLayersByDevice objectForKey:audioDevice]];
+                CaptureAudioPreviewView *previewView = [[CaptureAudioPreviewView alloc] initWithCaptureService:captureService audioDevice:audioDevice];
+                
+                NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> * _Nullable audioWaveLayersTable = [audioWaveLayersTableByAudioDevice objectForKey:audioDevice];
+                if (audioWaveLayersTable != nil) {
+                    NSArray<AudioWaveLayer *> *waveLayers = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(audioWaveLayersTable, sel_registerName("allValues"));
+                    previewView.audioWaveLayers = waveLayers;
+                } else {
+                    // 추가된 AVCaptureAudioDataOutput이 없을 때
+                    previewView.audioWaveLayers = @[];
+                }
+                
                 [stackView addArrangedSubview:previewView];
                 [previewView release];
             }

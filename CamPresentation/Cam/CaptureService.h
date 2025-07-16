@@ -135,7 +135,7 @@ __attribute__((objc_direct_members))
 - (void)queue_setGreenGhostMitigationEnabledForAllConnections:(BOOL)greenGhostMitigationEnabled forVideoDevice:(AVCaptureDevice *)videoDevice;
 - (BOOL)queue_isGreenGhostMitigationEnabledForAllConnectionsForVideoDevice:(AVCaptureDevice *)videoDevice;
 
-- (NSMapTable<AVCaptureDevice *, NSSet<AudioWaveLayer *> *> *)queue_audioWaveLayersByAudioDeviceWithAudioDevices:(NSSet<AVCaptureDevice *> *)audioDevices;
+- (NSMapTable<AVCaptureDevice *, NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> *> *)queue_audioWaveLayersTableByAudioDevice;
 @end
 
 NS_ASSUME_NONNULL_END

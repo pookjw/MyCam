@@ -2837,6 +2837,31 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
     return NO;
 }
 
+- (NSMapTable<AVCaptureDevice *, NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> *> *)queue_audioWaveLayersTableByAudioDevice {
+    dispatch_assert_queue(self.captureSessionQueue);
+    
+    NSMapTable<AVCaptureDevice *, NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> *> *result = [NSMapTable strongToStrongObjectsMapTable];
+    
+    for (AVCaptureDevice *audioDevice in self.queue_addedAudioCaptureDevices) {
+        NSArray<AVCaptureAudioDataOutput *> *audioDataOutputs = [self queue_outputsWithClass:[AVCaptureAudioDataOutput class] fromCaptureDevice:audioDevice];
+        if (audioDataOutputs.count == 0) continue;
+        
+        NSMapTable<AVCaptureAudioDataOutput *, AudioWaveLayer *> *audioWaveLayersTable = [NSMapTable strongToStrongObjectsMapTable];
+        
+        dispatch_sync(self.audioDataOutputQueue, ^{
+            for (AVCaptureAudioDataOutput *audioDataOutput in audioDataOutputs) {
+                AudioWaveLayer *waveLayer = [self.adoQueue_audioWaveLayersByAudioDataOutput objectForKey:audioDataOutput];
+                assert(waveLayer != nil);
+                [audioWaveLayersTable setObject:waveLayer forKey:audioDataOutput];
+            }
+        });
+        
+        [result setObject:audioWaveLayersTable forKey:audioDevice];
+    }
+    
+    return result;
+}
+
 - (NSMapTable<AVCaptureDevice *, NSSet<AudioWaveLayer *> *> *)queue_audioWaveLayersByAudioDeviceWithAudioDevices:(NSSet<AVCaptureDevice *> *)audioDevices {
     dispatch_assert_queue(self.captureSessionQueue);
     

@@ -28,11 +28,10 @@
 @synthesize toolbar = _toolbar;
 @synthesize menuBarButtonItem = _menuBarButtonItem;
 
-- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice audioWaveLayers:(NSSet<AudioWaveLayer *> *)audioWaveLayers {
+- (instancetype)initWithCaptureService:(CaptureService *)captureService audioDevice:(AVCaptureDevice *)audioDevice {
     if (self = [super initWithFrame:CGRectNull]) {
         _captureService = [captureService retain];
         _audioDevice = [audioDevice retain];
-        _audioWaveLayers = [audioWaveLayers copy];
         
         self.backgroundColor = UIColor.systemPinkColor;
         
@@ -56,10 +55,78 @@
 - (void)dealloc {
     [_captureService release];
     [_audioDevice release];
-    [_audioWaveLayers release];
     [_toolbar release];
     [_menuBarButtonItem release];
     [super dealloc];
+}
+
+- (void)layoutSublayersOfLayer:(CALayer *)layer {
+    [super layoutSublayersOfLayer:layer];
+    
+    assert([layer isEqual:self.layer]);
+    
+    NSArray<AudioWaveLayer *> *audioWaveLayers = self.audioWaveLayers;
+    NSUInteger count = audioWaveLayers.count;
+    
+    if (count == 0) return;
+    
+    CGRect bounds = layer.bounds;
+    UIEdgeInsets safeAreaInsets = self.safeAreaInsets;
+    bounds = CGRectMake(CGRectGetMinX(bounds) + safeAreaInsets.left,
+                        CGRectGetMinY(bounds) + safeAreaInsets.top,
+                        CGRectGetWidth(bounds) - safeAreaInsets.left - safeAreaInsets.right,
+                        CGRectGetHeight(bounds) - safeAreaInsets.top - safeAreaInsets.bottom);
+    
+    CGFloat heightPerLayer = CGRectGetHeight(bounds) / static_cast<CGFloat>(count);
+    
+    for (NSUInteger idx = 0; idx < count; idx++) {
+        AudioWaveLayer *waveLayer = audioWaveLayers[idx];
+        waveLayer.frame = CGRectMake(CGRectGetMinX(bounds),
+                                     CGRectGetMinY(bounds) + heightPerLayer * static_cast<CGFloat>(idx),
+                                     CGRectGetWidth(bounds),
+                                     heightPerLayer);
+    }
+}
+
+- (void)safeAreaInsetsDidChange {
+    [super safeAreaInsetsDidChange];
+    [self.layer setNeedsLayout];
+}
+
+- (NSArray<AudioWaveLayer *> *)audioWaveLayers {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    NSMutableArray<AudioWaveLayer *> *waveLayers = [[NSMutableArray alloc] init];
+    
+    for (CALayer *sublayer in self.layer.sublayers) {
+        if ([sublayer isKindOfClass:[AudioWaveLayer class]]) {
+            [waveLayers addObject:static_cast<AudioWaveLayer *>(sublayer)];
+        }
+    }
+    
+    return [waveLayers autorelease];
+}
+
+- (void)setAudioWaveLayers:(NSArray<AudioWaveLayer *> *)audioWaveLayers {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    
+    NSArray<AudioWaveLayer *> *oldWaveLayer = self.audioWaveLayers;
+    NSOrderedCollectionDifference<AudioWaveLayer *> *difference = [audioWaveLayers differenceFromArray:oldWaveLayer withOptions:0];
+    
+    for (NSOrderedCollectionChange<AudioWaveLayer *> *removal in difference.removals) {
+        assert(removal.object != nil);
+        [removal.object removeFromSuperlayer];
+    }
+    
+    CALayer *layer = self.layer;
+    for (NSOrderedCollectionChange<AudioWaveLayer *> *insertion in difference.insertions) {
+        assert(insertion.object != nil);
+        [layer insertSublayer:insertion.object atIndex:static_cast<unsigned>(insertion.index)];
+    }
+    
+    if (difference.hasChanges) {
+        [self.layer setNeedsLayout];
+    }
 }
 
 #if TARGET_OS_TV
