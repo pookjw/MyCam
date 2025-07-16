@@ -4093,7 +4093,6 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
 }
 
 - (void)adoQueue_handleAudioDataOutput:(AVCaptureAudioDataOutput *)audioDataOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer {
-#warning 파형 그려보기
     dispatch_assert_queue(self.audioDataOutputQueue);
     
     CMFormatDescriptionRef desc = CMSampleBufferGetFormatDescription(sampleBuffer);
@@ -4139,6 +4138,10 @@ NSString * const CaptureServiceCaptureReadinessKey = @"CaptureServiceCaptureRead
         }
 #endif
     }
+    
+    AudioWaveLayer *waveLayer = [self.adoQueue_audioWaveLayersByAudioDataOutput objectForKey:audioDataOutput];
+    assert(waveLayer != nil);
+    [waveLayer nonisolated_processSampleBuffer:sampleBuffer];
 }
 
 

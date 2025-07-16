@@ -283,6 +283,9 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     dispatch_async(captureService.captureSessionQueue, ^{
         if (AVCaptureDevice *defaultVideoCaptureDevice = captureService.defaultVideoCaptureDevice) {
             [captureService queue_addCaptureDevice:defaultVideoCaptureDevice];
+            
+            UIAction *action = reinterpret_cast<id (*)(Class, SEL, id, id, id)>(objc_msgSend)([UIDeferredMenuElement class], sel_registerName("_cp_queue_prepareForSpatialAudioMovieWriterQuickActionWithCaptureService:videoDevice:didChangeHandler:"), captureService, defaultVideoCaptureDevice, nil);
+            [action performWithSender:nil target:nil];
         }
     });
 }

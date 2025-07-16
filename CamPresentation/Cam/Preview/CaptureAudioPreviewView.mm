@@ -22,6 +22,7 @@
 @property (retain, nonatomic, readonly, getter=_toolbar) UIToolbar *toolbar;
 #endif
 @property (retain, nonatomic, readonly, getter=_menuBarButtonItem) UIBarButtonItem *menuBarButtonItem;
+@property (retain, nonatomic, readonly, getter=_colorAppearanceChangeRegistration) id<UITraitChangeRegistration> colorAppearanceChangeRegistration;
 @end
 
 @implementation CaptureAudioPreviewView
@@ -33,7 +34,7 @@
         _captureService = [captureService retain];
         _audioDevice = [audioDevice retain];
         
-        self.backgroundColor = UIColor.systemPinkColor;
+        self.backgroundColor = UIColor.systemBackgroundColor;
         
 #if TARGET_OS_TV
         __kindof UIView *toolbar = self.toolbar;
@@ -47,6 +48,9 @@
             [toolbar.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
             [toolbar.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
+        
+        _colorAppearanceChangeRegistration = [[self registerForTraitChanges:UITraitCollection.systemTraitsAffectingColorAppearance withTarget:self action:@selector(_colorAppearanceDidChange:)] retain];
+        [self _colorAppearanceDidChange:self];
     }
     
     return self;
@@ -57,6 +61,7 @@
     [_audioDevice release];
     [_toolbar release];
     [_menuBarButtonItem release];
+    [_colorAppearanceChangeRegistration release];
     [super dealloc];
 }
 
@@ -119,14 +124,28 @@
     }
     
     CALayer *layer = self.layer;
-    for (NSOrderedCollectionChange<AudioWaveLayer *> *insertion in difference.insertions) {
-        assert(insertion.object != nil);
-        [layer insertSublayer:insertion.object atIndex:static_cast<unsigned>(insertion.index)];
-    }
+    [self.traitCollection performAsCurrentTraitCollection:^{
+        CGColorRef cgColor = UIColor.labelColor.CGColor;
+        for (NSOrderedCollectionChange<AudioWaveLayer *> *insertion in difference.insertions) {
+            assert(insertion.object != nil);
+            insertion.object.waveColor = cgColor;
+            [layer insertSublayer:insertion.object atIndex:static_cast<unsigned>(insertion.index)];
+        }
+    }];
     
     if (difference.hasChanges) {
         [self.layer setNeedsLayout];
     }
+}
+
+- (void)_colorAppearanceDidChange:(CaptureAudioPreviewView *)sender {
+    [sender.traitCollection performAsCurrentTraitCollection:^{
+        CGColorRef cgColor = UIColor.labelColor.CGColor;
+        
+        for (AudioWaveLayer *waveLayer in self.audioWaveLayers) {
+            waveLayer.waveColor = cgColor;
+        }
+    }];
 }
 
 #if TARGET_OS_TV

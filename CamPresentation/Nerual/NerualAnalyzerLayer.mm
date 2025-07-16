@@ -61,7 +61,7 @@ __attribute__((objc_direct_members))
     
     if (self = [super initWithLayer:casted]) {
         self.modelType = casted.modelType;
-        _lock = casted->_lock;
+        _lock = OS_UNFAIR_LOCK_INIT;
         __runLoop = [casted->__runLoop retain];
         
         for (CATextLayer *textLayer in self.sublayers) {
