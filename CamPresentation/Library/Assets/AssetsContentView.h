@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetsContentView : UIView
 @property (retain, nonatomic, nullable) AssetsItemModel *model;
+@property (assign, nonatomic, getter=isHighlighted) BOOL highlighted;
+@property (assign, nonatomic, getter=isSelected) BOOL selected;
 @end
 
 NS_ASSUME_NONNULL_END

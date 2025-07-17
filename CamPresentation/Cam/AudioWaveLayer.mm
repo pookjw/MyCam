@@ -72,6 +72,10 @@
     }
     
     os_unfair_lock_unlock(&_lock);
+    
+    [self.runLoop runBlock:^{
+        [self setNeedsDisplay];
+    }];
 }
 
 - (void)drawInContext:(CGContextRef)ctx {

@@ -11,18 +11,26 @@
 
 @interface AssetsContentView ()
 @property (retain, nonatomic, readonly) UIImageView *imageView;
+@property (retain, nonatomic, readonly) UIView *overlayView;
 @property (assign, nonatomic, readonly) CGSize targetSize;
 @property (nonatomic, readonly) PHImageRequestOptions *imageRequestOptions;
 @end
 
 @implementation AssetsContentView
 @synthesize imageView = _imageView;
+@synthesize overlayView = _overlayView;
 
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         UIImageView *imageView = self.imageView;
         [self addSubview:imageView];
         reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), imageView);
+        
+        UIView *overlayView = self.overlayView;
+        [self addSubview:overlayView];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), overlayView);
+        
+        [self updateOverlayView];
     }
     
     return self;
@@ -31,6 +39,7 @@
 - (void)dealloc {
     [_model release];
     [_imageView release];
+    [_overlayView release];
     [super dealloc];
 }
 
@@ -56,6 +65,16 @@
     [self.model requestImageWithTargetSize:self.targetSize options:self.imageRequestOptions resultHandler:[self resultHandler]];
 }
 
+- (void)setHighlighted:(BOOL)highlighted {
+    _highlighted = highlighted;
+    [self updateOverlayView];
+}
+
+- (void)setSelected:(BOOL)selected {
+    _selected = selected;
+    [self updateOverlayView];
+}
+
 - (UIImageView *)imageView {
     if (auto imageView = _imageView) return imageView;
     
@@ -75,6 +94,15 @@
     targetSize.height *= displayScale;
     
     return targetSize;
+}
+
+- (UIView *)overlayView {
+    if (auto overlayView = _overlayView) return overlayView;
+    
+    UIView *overlayView = [UIView new];
+    
+    _overlayView = overlayView;
+    return overlayView;
 }
 
 - (PHImageRequestOptions *)imageRequestOptions {
@@ -118,6 +146,22 @@
             imageView.alpha = 1.;
         }];
     } copy] autorelease];
+}
+
+- (void)updateOverlayView {
+    if (self.selected) {
+//        self.overlayView.hidden = NO;
+        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.75];
+//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceSecondary];
+    } else if (self.highlighted) {
+//        self.overlayView.hidden = NO;
+        
+        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
+//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceQuaternary];
+    } else {
+//        self.overlayView.hidden = YES;
+        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.];
+    }
 }
 
 @end

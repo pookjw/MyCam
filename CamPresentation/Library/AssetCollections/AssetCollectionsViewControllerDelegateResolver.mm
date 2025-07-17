@@ -14,7 +14,7 @@
     [super dealloc];
 }
 
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     if (auto didSelectAssetsHandler = self.didSelectAssetsHandler) {
         didSelectAssetsHandler(assetCollectionsViewController, selectedAssets);
     }

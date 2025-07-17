@@ -10,7 +10,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AssetCollectionsViewControllerDelegateResolver : NSObject <AssetCollectionsViewControllerDelegate>
-@property (copy, nonatomic, nullable) void (^didSelectAssetsHandler)(AssetCollectionsViewController *assetCollectionsViewController, NSSet<PHAsset *> *selectedAssets);
+@property (copy, nonatomic, nullable) void (^didSelectAssetsHandler)(AssetCollectionsViewController *assetCollectionsViewController, NSArray<PHAsset *> *selectedAssets);
 @end
 
 NS_ASSUME_NONNULL_END

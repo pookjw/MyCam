@@ -38,6 +38,25 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    self.navigationItem.rightBarButtonItems = @[
+        self.editButtonItem
+    ];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    
+    if (!self.collectionView.allowsMultipleSelection) {
+        reinterpret_cast<void (*)(id, SEL, id, BOOL, id)>(objc_msgSend)(self.collectionView, sel_registerName("_deselectItemsAtIndexPaths:animated:transitionCoordinator:"), self.collectionView.indexPathsForSelectedItems, animated, self.transitionCoordinator);
+    }
+}
+
+- (void)setEditing:(BOOL)editing animated:(BOOL)animated {
+    [super setEditing:editing animated:animated];
+    
+    self.navigationItem.hidesBackButton = editing;
+    self.collectionView.editing = editing;
 }
 
 - (void)setCollection:(PHAssetCollection *)collection {
@@ -54,6 +73,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
     
+    collectionView.allowsMultipleSelectionDuringEditing = YES;
     collectionView.delegate = self;
     
     _collectionView = [collectionView retain];
@@ -74,6 +94,8 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    if (self.editing) return;
+    
     PHAssetCollection *collection = self.collection;
     PHAsset *asset = [self.dataSource assetAtIndexPath:indexPath];
     assert(asset != nil);
@@ -86,7 +108,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)assetViewController:(AssetViewController *)assetViewController didSelectAsset:(PHAsset *)selectedAsset {
     if (id<AssetsViewControllerDelegate> delegate = self.delegate) {
-        [delegate assetsViewController:self didSelectAssets:[NSSet setWithObject:selectedAsset]];
+        [delegate assetsViewController:self didSelectAssets:@[selectedAsset]];
     }
 }
 

@@ -418,8 +418,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-                PHAsset *asset = selectedAssets.allObjects.firstObject;
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSArray<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.firstObject;
                 assert(asset != nil);
                 
                 UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
@@ -4133,8 +4133,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-                PHAsset *asset = selectedAssets.allObjects.firstObject;
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSArray<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.firstObject;
                 assert(asset != nil);
                 
                 UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
@@ -4366,8 +4366,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-                PHAsset *asset = selectedAssets.allObjects.firstObject;
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSArray<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.firstObject;
                 assert(asset != nil);
                 
                 UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
@@ -6248,8 +6248,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
 #endif
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-                PHAsset *asset = selectedAssets.allObjects.firstObject;
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSArray<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.firstObject;
                 assert(asset != nil);
                 
                 UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;
@@ -6456,8 +6456,8 @@ VN_EXPORT NSString * const VNTextRecognitionOptionSwedishCharacterSet;
             AssetCollectionsViewController *assetCollectionsViewController = [AssetCollectionsViewController new];
             
             AssetCollectionsViewControllerDelegateResolver *resolver = [AssetCollectionsViewControllerDelegateResolver new];
-            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSSet<PHAsset *> * _Nonnull selectedAssets) {
-                PHAsset *asset = selectedAssets.allObjects.firstObject;
+            resolver.didSelectAssetsHandler = ^(AssetCollectionsViewController * _Nonnull assetCollectionsViewController, NSArray<PHAsset *> * _Nonnull selectedAssets) {
+                PHAsset *asset = selectedAssets.firstObject;
                 assert(asset != nil);
                 
                 UIViewController *presentingViewController = assetCollectionsViewController.presentingViewController;

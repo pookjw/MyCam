@@ -195,9 +195,9 @@
     });
 }
 
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     [assetCollectionsViewController dismissViewControllerAnimated:YES completion:^{
-        if (PHAsset *asset = selectedAssets.allObjects.firstObject) {
+        if (PHAsset *asset = selectedAssets.firstObject) {
             [self _loadWithPHAsset:asset];
         }
     }];

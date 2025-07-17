@@ -267,7 +267,7 @@
     [viewController release];
 }
 
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     [self.navigationController popToRootViewControllerAnimated:YES];
 }
 

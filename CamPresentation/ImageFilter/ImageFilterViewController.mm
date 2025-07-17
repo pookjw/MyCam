@@ -1250,13 +1250,13 @@
     [options release];
 }
 
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     [assetCollectionsViewController dismissViewControllerAnimated:YES completion:nil];
     
     NSString *inputKey = objc_getAssociatedObject(assetCollectionsViewController, ImageFilterViewController.inputKey);
     assert(inputKey != nil);
     
-    PHAsset *asset = selectedAssets.allObjects.firstObject;
+    PHAsset *asset = selectedAssets.firstObject;
     if (asset == nil) return;
     
     [self _didSelectPHAsset:asset byUpdatingInputKey:inputKey];

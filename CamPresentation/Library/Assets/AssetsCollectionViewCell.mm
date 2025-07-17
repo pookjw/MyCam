@@ -19,6 +19,16 @@
     [super dealloc];
 }
 
+- (void)setSelected:(BOOL)selected {
+    [super setSelected:selected];
+    static_cast<AssetsContentView *>(self.contentView).selected = selected;
+}
+
+- (void)setHighlighted:(BOOL)highlighted {
+    [super setHighlighted:highlighted];
+    static_cast<AssetsContentView *>(self.contentView).highlighted = highlighted;
+}
+
 - (void)setModel:(AssetsItemModel *)model {
     [_model release];
     _model = [model retain];

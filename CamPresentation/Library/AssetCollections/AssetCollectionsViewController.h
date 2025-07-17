@@ -12,7 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class AssetCollectionsViewController;
 @protocol AssetCollectionsViewControllerDelegate <NSObject>
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets;
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets;
 @end
 
 @interface AssetCollectionsViewController : UIViewController

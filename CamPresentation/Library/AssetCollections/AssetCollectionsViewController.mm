@@ -272,7 +272,7 @@
     return [[[UICollectionViewTransitionLayout alloc] initWithCurrentLayout:fromLayout nextLayout:toLayout] autorelease];
 }
 
-- (void)assetsViewController:(AssetsViewController *)assetsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetsViewController:(AssetsViewController *)assetsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     if (id<AssetCollectionsViewControllerDelegate> delegate = self.delegate) {
         [delegate assetCollectionsViewController:self didSelectAssets:selectedAssets];
     }

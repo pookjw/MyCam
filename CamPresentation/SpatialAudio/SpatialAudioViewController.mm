@@ -218,21 +218,23 @@
 - (void)_assetCollectionsBarButtonItemDidTrigger:(UIBarButtonItem *)sender {
     AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
     viewController.delegate = self;
-#if !TARGET_OS_TV
-    viewController.modalPresentationStyle = UIModalPresentationPopover;
-    viewController.popoverPresentationController.sourceItem = sender;
-#endif
     
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:viewController];
     [viewController release];
+    
+#if !TARGET_OS_TV
+    navigationController.modalPresentationStyle = UIModalPresentationPopover;
+    navigationController.popoverPresentationController.sourceItem = sender;
+#endif
+    
     [self presentViewController:navigationController animated:YES completion:nil];
     [navigationController release];
 }
 
-- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSSet<PHAsset *> *)selectedAssets {
+- (void)assetCollectionsViewController:(AssetCollectionsViewController *)assetCollectionsViewController didSelectAssets:(NSArray<PHAsset *> *)selectedAssets {
     [assetCollectionsViewController dismissViewControllerAnimated:YES completion:nil];
     
-    PHAsset *asset = selectedAssets.allObjects.firstObject;
+    PHAsset *asset = selectedAssets.firstObject;
     assert(asset != nil);
     [self.viewModel updateWithPHAsset:asset completionHandler: ^(NSError * _Nullable error) {
         assert(error == nil);
