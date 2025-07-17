@@ -56,6 +56,26 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     [super setEditing:editing animated:animated];
     
     self.navigationItem.hidesBackButton = editing;
+    
+    if (!editing) {
+        auto delegate = self.delegate;
+        
+        if (delegate != nil) {
+            NSArray<NSIndexPath *> *indexPathsForSelectedItems = self.collectionView.indexPathsForSelectedItems;
+            
+            if (indexPathsForSelectedItems.count != 0) {
+                NSMutableArray<PHAsset *> *phAssets = [[NSMutableArray alloc] initWithCapacity:indexPathsForSelectedItems.count];
+                for (NSIndexPath *indexPath in indexPathsForSelectedItems) {
+                    PHAsset *phAsset = [self.dataSource assetAtIndexPath:indexPath];
+                    assert(phAsset != nil);
+                    [phAssets addObject:phAsset];
+                }
+                [delegate assetsViewController:self didSelectAssets:phAssets];
+                [phAssets release];
+            }
+        }
+    }
+    
     self.collectionView.editing = editing;
 }
 

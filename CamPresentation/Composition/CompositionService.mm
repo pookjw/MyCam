@@ -9,6 +9,7 @@
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <objc/objc-sync.h>
+#import <CamPresentation/PHImageManager+Category.h>
 
 @interface CompositionService ()
 @property (class, nonatomic, getter=_archivedComposition, setter=_setArchivedComposition:) AVComposition *archivedComposition;
@@ -85,8 +86,10 @@
     dispatch_assert_queue(self.queue);
     assert(composition != nil);
     
+    [self willChangeValueForKey:@"queue_composition"];
     [_queue_composition release];
     _queue_composition = [composition copy];
+    [self didChangeValueForKey:@"queue_composition"];
 }
 
 - (AVMutableComposition *)_queue_mutableComposition {
@@ -102,7 +105,7 @@
     _queue_mutableComposition = [mutableComposition retain];
 }
 
-- (void)queue_loadLastComposition {
+- (void)queue_loadComposition {
     dispatch_assert_queue(self.queue);
     
     AVComposition * _Nullable composition = CompositionService.archivedComposition;
@@ -115,9 +118,62 @@
     self.queue_composition = composition;
 }
 
-- (void)queue_addVideoSegmentsFromPHAssets:(NSArray<PHAsset *> *)phAssets {
+- (void)queue_saveComposition {
     dispatch_assert_queue(self.queue);
-    abort();
+    CompositionService.archivedComposition = self.queue_composition;
+}
+
+- (NSProgress *)nonisolated_addVideoSegmentsFromPHAssets:(NSArray<PHAsset *> *)phAssets {    
+    PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+    options.version = PHVideoRequestOptionsVersionOriginal;
+    options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+    options.networkAccessAllowed = YES;
+    
+    NSMutableArray<AVAsset *> *avAssets = [[NSMutableArray alloc] init];
+    NSProgress *progress = [PHImageManager.defaultManager cp_requestAVAssetForAssets:phAssets options:options resultHandler:^BOOL(AVAsset * _Nonnull asset, AVAudioMix * _Nonnull audioMix, NSDictionary * _Nonnull info, BOOL isLast) {
+        [avAssets addObject:asset];
+        
+        if (isLast) {
+            dispatch_async(self.queue, ^{
+                [self queue_addVideoSegmentsFromAVAssets:avAssets];
+            });
+        }
+        
+        return YES;
+    }];
+    
+    [options release];
+    [avAssets release];
+    
+    return progress;
+}
+
+- (void)queue_addVideoSegmentsFromAVAssets:(NSArray<AVAsset *> *)avAssets {
+    AVMutableComposition *mutableComposition = self.queue_mutableComposition;
+    
+    AVMutableCompositionTrack *newVideoTrack = [mutableComposition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    assert(newVideoTrack != nil);
+    
+    NSMutableArray<NSValue *> *timeRanges = [[NSMutableArray alloc] init];
+    NSMutableArray<AVAssetTrack *> *tracks = [[NSMutableArray alloc] init];
+    
+    for (AVAsset *avAsset in avAssets) {
+#warning TODO
+//        AVAssetTrack *videoTrack = [avAsset tracksWithMediaType:AVMediaTypeVideo].firstObject;
+        AVAssetTrack *videoTrack = reinterpret_cast<NSArray * (*)(id, SEL, id)>(objc_msgSend)(avAsset, sel_registerName("tracksWithMediaType:"), AVMediaTypeVideo).firstObject;
+        assert(videoTrack != nil);
+        [timeRanges addObject:[NSValue valueWithCMTimeRange:videoTrack.timeRange]];
+        [tracks addObject:videoTrack];
+    }
+    
+    NSError * _Nullable error = nil;
+    [newVideoTrack insertTimeRanges:timeRanges ofTracks:tracks atTime:kCMTimeZero error:&error];
+    assert(error == nil);
+    
+    [timeRanges release];
+    [tracks release];
+    
+    self.queue_composition = mutableComposition;
 }
 
 @end

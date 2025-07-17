@@ -14,8 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface CompositionService : NSObject
 @property (retain, nonatomic, readonly) dispatch_queue_t queue;
 @property (copy, nonatomic, readonly) AVComposition *queue_composition;
-- (void)queue_loadLastComposition;
-- (void)queue_addVideoSegmentsFromPHAssets:(NSArray<PHAsset *> *)phAssets;
+- (void)queue_loadComposition;
+- (void)queue_saveComposition;
+- (NSProgress *)nonisolated_addVideoSegmentsFromPHAssets:(NSArray<PHAsset *> *)phAssets;
 @end
 
 NS_ASSUME_NONNULL_END
