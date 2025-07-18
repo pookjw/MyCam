@@ -142,7 +142,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     | std::ranges::to<std::vector<UICollectionViewLayoutAttributes *>>();
     
     NSArray<UICollectionViewLayoutAttributes *> *layoutAttributesArray = [[NSArray alloc] initWithObjects:vector.data() count:vector.size()];
-    NSLog(@"%@ %@", NSStringFromCGRect(rect), layoutAttributesArray);
     
     return [layoutAttributesArray autorelease];
 }
