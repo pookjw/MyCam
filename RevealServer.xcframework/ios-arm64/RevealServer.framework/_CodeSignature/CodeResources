@@ -6,7 +6,7 @@
 	<dict>
 		<key>Headers/RevealServer-Swift.h</key>
 		<data>
-		KvejJgDjTak5ae7xx+8ARFbT+Mk=
+		gNrU3PwlgLh2/cOTJbVrsrFV2uU=
 		</data>
 		<key>Headers/RevealServer.h</key>
 		<data>
@@ -14,23 +14,23 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		28KBKhaNO0YUcJlhHBaRXWDszF4=
+		W1LpBWuwmcN4thrBrKzkhzCMmHc=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.abi.json</key>
 		<data>
-		hUukBs0WiabpdrmhL5drx4hHPrk=
+		LddV5b1TNKOFSGgJArGr81WrqXE=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.private.swiftinterface</key>
 		<data>
-		ROP+P9AJ29yWsOWg4oHPRs2Ln7E=
+		iaP10ex8WCy0Qm9p9JrCdvQRcl0=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.swiftdoc</key>
 		<data>
-		Vfk7Mh+FLZSQ7RXxdcvmOwNZD3Q=
+		GMavInhugsha2ssx9s2pP/J8p/I=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.swiftinterface</key>
 		<data>
-		ROP+P9AJ29yWsOWg4oHPRs2Ln7E=
+		iaP10ex8WCy0Qm9p9JrCdvQRcl0=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -47,7 +47,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			919q1fjJeKtQfoMQrhr8uXgvObX4sO6euMqgxzwKPUA=
+			OJLTnwCZtfa8a7IVD9sfNhSwiRs/ph0kw7BxehHXccQ=
 			</data>
 		</dict>
 		<key>Headers/RevealServer.h</key>
@@ -61,28 +61,28 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			flSYfKyRC2RNMieqdFO4Fa8+MRF1vkSMK/6y5kugBNw=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZOnY+/ru20Y7HvZCQQwzLc1p/xF2ATRHToG35j9T7/A=
+			8z2WFxvGGpd/8Cbi8OMRgZQ2HNy3acttz07xp9i7How=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Ossxhg/TYhTpxbKtzN2fz7WkrQzZJpgvyZ5JPANSY2I=
+			rLeUGJ6UvpSTSw8RaUImdqOFBpkz9ObHHRAxqorwUAg=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			ZOnY+/ru20Y7HvZCQQwzLc1p/xF2ATRHToG35j9T7/A=
+			8z2WFxvGGpd/8Cbi8OMRgZQ2HNy3acttz07xp9i7How=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>

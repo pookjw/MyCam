@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/Info.plist</key>
 		<data>
-		ujQ1hXdrJS1gn8EiTIyfKz31Lws=
+		Zwb8g2RuCHCCEdPzsIKPTz2IAPc=
 		</data>
 		<key>Resources/Scripts/integrate_revealserver.sh</key>
 		<data>
@@ -19,7 +19,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			P8yDD7GdEYt1LE98W4sw5BhLjTlcvlOLrUl4NMyO4j4=
+			6mVeqQRM0C/XEX8DqmKN7iIvSBycgodB4t8CjF6Ut+w=
 			</data>
 		</dict>
 		<key>Headers/RevealServer.h</key>
@@ -33,56 +33,56 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			ut5K8xD+WJ7AH4A40IAnjWb5B1FSweomrd1wb84k/O4=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-macabi.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			smkLwiOp6RBWGKolXVMTMhu5+s3va/kCFyYZPKGysEE=
+			lVLi1pcwH6OghmNg2QvPLfGEbU0CE9rI31S+gX2ylpk=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-macabi.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			AEZTp6je+Z9deoCT06PFuIg9D4Olahc13F3X9WWXSzI=
+			gfsCN6uCN4Hy07jzIMjzk7TdpTzlQAK67t9bJMDzMhg=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-macabi.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			smkLwiOp6RBWGKolXVMTMhu5+s3va/kCFyYZPKGysEE=
+			lVLi1pcwH6OghmNg2QvPLfGEbU0CE9rI31S+gX2ylpk=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-macabi.abi.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			ut5K8xD+WJ7AH4A40IAnjWb5B1FSweomrd1wb84k/O4=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-macabi.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			399qXN1kzyi3KTySdjo6ZtEHi41S+ilt7co8NQNL8t4=
+			6lwUzoDRiOC1likNbEflUfaGKfDIBgpXwWhnN16vCsY=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-macabi.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Y4v7/K+BROtDWzc7wOhNhHFJC/slJMyaFRGjpTgMYcs=
+			Add5Zfi2HhRtlaKlqQ4T3dYmu140kYSymaJdR8jnI5k=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-macabi.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			399qXN1kzyi3KTySdjo6ZtEHi41S+ilt7co8NQNL8t4=
+			6lwUzoDRiOC1likNbEflUfaGKfDIBgpXwWhnN16vCsY=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>
@@ -96,7 +96,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			HGEV+6bpFgXyf7+Wu0WZdEGY4GFVO9Qf9YeuUY9oXeg=
+			z67wA0Lk9INtxGXS4i1xH+CAxNj6uuQSnkXdu0lLR2Y=
 			</data>
 		</dict>
 		<key>Resources/Scripts/integrate_revealserver.sh</key>

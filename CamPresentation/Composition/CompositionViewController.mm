@@ -78,20 +78,6 @@
     [self addChildViewController:self.tracksViewController];
     [self.stackView addArrangedSubview:self.tracksViewController.view];
     [self.tracksViewController didMoveToParentViewController:self];
-    
-    dispatch_async(self.compositionService.queue, ^{
-        [self.compositionService queue_loadComposition];
-    });
-    
-//    {
-//        PHFetchResult<PHAsset *> *fetchResult = [PHAsset fetchAssetsWithLocalIdentifiers:@[@"D0267D90-A412-4BC9-ACB1-A8557B320515/L0/001", @"8564FEDF-6762-48DB-8723-028D55254E93/L0/001", @"0BBC9A47-1F90-4EAA-AB7D-4AD582B70B8F/L0/001"] options:nil];
-//        __kindof NSArray<PHAsset *> *allObjects = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(fetchResult, sel_registerName("allObjects"));
-//        // PHBatchFetchingArray은 mutableCopy를 지원하지 않음
-//        NSArray<PHAsset *> *copied = [[NSArray alloc] initWithArray:allObjects];
-//        
-//        [self assetCollectionsViewController:nil didSelectAssets:copied];
-//        [copied release];
-//    }
 }
 
 - (UIBarButtonItem *)_menuBarButtonItem {
@@ -178,6 +164,7 @@
 #if !TARGET_OS_TV
     navigationController.modalPresentationStyle = UIModalPresentationPopover;
     navigationController.popoverPresentationController.sourceItem = sender;
+    navigationController.preferredContentSize = CGSizeMake(600., 600.);
 #endif
     
     [self presentViewController:navigationController animated:YES completion:nil];

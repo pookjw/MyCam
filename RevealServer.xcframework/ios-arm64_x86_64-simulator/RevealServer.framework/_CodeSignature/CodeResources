@@ -6,7 +6,7 @@
 	<dict>
 		<key>Headers/RevealServer-Swift.h</key>
 		<data>
-		dOV8N33meRmtZ7aMvx++JCgG3+k=
+		tDio25umxRqR9hGNHl2LXqltEjA=
 		</data>
 		<key>Headers/RevealServer.h</key>
 		<data>
@@ -14,39 +14,39 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		bwsGLsfBuswhHasnAO9AGMSNlWo=
+		WK4PWwQeTiyZ9dZdLhSNwlulmBE=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
 		<data>
-		hUukBs0WiabpdrmhL5drx4hHPrk=
+		d2KxqpxCwZkNvN/O9qY2jfH+RK4=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.private.swiftinterface</key>
 		<data>
-		1OAberZ76QRWBiTlVve4O+crw6U=
+		tZUnDUOp/X7/Y9x7Mho7aAGZVhI=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.swiftdoc</key>
 		<data>
-		Cb36PQL7kgatj+RKoXihEIzOsz0=
+		OLe4OqBmlPiDXypZQTdtVy5edro=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.swiftinterface</key>
 		<data>
-		1OAberZ76QRWBiTlVve4O+crw6U=
+		tZUnDUOp/X7/Y9x7Mho7aAGZVhI=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
 		<data>
-		hUukBs0WiabpdrmhL5drx4hHPrk=
+		d2KxqpxCwZkNvN/O9qY2jfH+RK4=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.private.swiftinterface</key>
 		<data>
-		9PwP61j2knVEGVQyrPUuvfe8b5M=
+		qEnIOnVXY+mVO5Me4xM//oLZm8M=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.swiftdoc</key>
 		<data>
-		gfPWrta96KEwbHS9LCW0+8DeNG0=
+		0fEUPzQUAW1hizxUMLbUOeLEa6o=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.swiftinterface</key>
 		<data>
-		9PwP61j2knVEGVQyrPUuvfe8b5M=
+		qEnIOnVXY+mVO5Me4xM//oLZm8M=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -63,7 +63,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			P8yDD7GdEYt1LE98W4sw5BhLjTlcvlOLrUl4NMyO4j4=
+			6mVeqQRM0C/XEX8DqmKN7iIvSBycgodB4t8CjF6Ut+w=
 			</data>
 		</dict>
 		<key>Headers/RevealServer.h</key>
@@ -77,56 +77,56 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			P5WUGPNNEltqQnH7alejWurOPCO7aInN5Eb0HijzLvE=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			E4vr28TmQ4v7Y7KzriSeODjU50l5h3bmjhy5gXARG3A=
+			jU3u52nOjtZRvBAJGHNOGXnsdDsNXcCQ1TSgBtMp7Zw=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4u9WOsoauNHuFd7OHbG9bWkR9eOs0r4BLiID1KErexU=
+			RhyYmVMvR0y+Bz6hz0gPTeRi8RBXH7NnRG9Y0Y8Y/cI=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-ios-simulator.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			E4vr28TmQ4v7Y7KzriSeODjU50l5h3bmjhy5gXARG3A=
+			jU3u52nOjtZRvBAJGHNOGXnsdDsNXcCQ1TSgBtMp7Zw=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.abi.json</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			P5WUGPNNEltqQnH7alejWurOPCO7aInN5Eb0HijzLvE=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2eixO6nhchrgJGNkgYHrRepOtscwFVnPLtCPB/La5AQ=
+			sBPO28MRhjU6AlIYc1/b7wGs8HI/a6eg5/i2t+cFA00=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			OHWtvY0tOBe58uZ89qZuK8r0p2QJqMniOdT/CUGOqSA=
+			2tjj4CPibsxxuM9qjXQ7T7p7v/Zi5W7/k5K3CINFtYc=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/x86_64-apple-ios-simulator.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2eixO6nhchrgJGNkgYHrRepOtscwFVnPLtCPB/La5AQ=
+			sBPO28MRhjU6AlIYc1/b7wGs8HI/a6eg5/i2t+cFA00=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>

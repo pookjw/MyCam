@@ -27,6 +27,8 @@
 		4F4780342C984BE500813671 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4780332C984BE500813671 /* CoreVideo.framework */; };
 		4F4BFE752D2E6F20002AB203 /* VisionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F4BFE742D2E6F20002AB203 /* VisionKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F52C3122D8484BF00FE2881 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F52C3112D8484BF00FE2881 /* Accelerate.framework */; };
+		4F7B71182E2A67E6002A8B09 /* RevealServer.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; };
+		4F7B71192E2A67E6002A8B09 /* RevealServer.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F14FFFB2CDC74E000EAA5D0 /* RevealServer.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F951D4A2D265C340081887B /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F951D492D265C340081887B /* SceneKit.framework */; };
 		4F96C7722D3274C600E1A4EC /* SafariServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F96C7712D3274C600E1A4EC /* SafariServices.framework */; platformFilters = (ios, maccatalyst, xros, ); };
 		4F9AA4902CED6B1100CCABDB /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9AA48F2CED6B1100CCABDB /* ARKit.framework */; platformFilters = (ios, maccatalyst, xros, ); };
@@ -122,6 +124,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				4F2A41992C98148000726F2F /* CamPresentation.framework in Embed Frameworks */,
+				4F7B71192E2A67E6002A8B09 /* RevealServer.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -482,6 +485,8 @@
 				Composition/CompositionPlayerViewController.mm,
 				Composition/CompositionService.h,
 				Composition/CompositionService.mm,
+				Composition/CompositionStorage.h,
+				Composition/CompositionStorage.mm,
 				Composition/CompositionTracksViewController.h,
 				Composition/CompositionTracksViewController.mm,
 				Composition/CompositionViewController.h,
@@ -800,6 +805,7 @@
 				Cinematic/Timeline/Video/CinematicEditTimelineVideoTrackContentView.h,
 				Composition/CompositionPlayerViewController.h,
 				Composition/CompositionService.h,
+				Composition/CompositionStorage.h,
 				Composition/CompositionTracksViewController.h,
 				"Composition/UIDeferredMenuElement+Composition.h",
 				Constants.h,
@@ -1048,6 +1054,7 @@
 			files = (
 				4F1F92F32CBCD3FA002C1B90 /* AVFAudio.framework in Frameworks */,
 				4FED1AD52C99999800174044 /* CoreLocation.framework in Frameworks */,
+				4F7B71182E2A67E6002A8B09 /* RevealServer.xcframework in Frameworks */,
 				4F32A2D92C95ABC30010F295 /* AVKit.framework in Frameworks */,
 				4FBD1EA82CFB7F0300851F07 /* UniformTypeIdentifiers.framework in Frameworks */,
 				4FA73EB42C99741A00F17348 /* Photos.framework in Frameworks */,

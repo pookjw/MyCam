@@ -7,6 +7,7 @@
 
 #import <CamPresentation/CompositionPlayerViewController.h>
 #import <AVKit/AVKit.h>
+#import <CamPresentation/AVPlayerViewController+Category.h>
 
 @interface CompositionPlayerViewController ()
 @property (retain, nonatomic, readonly, getter=_playerViewController) AVPlayerViewController *playerViewController;
@@ -62,6 +63,7 @@
     
     AVPlayerViewController *playerViewController = [[AVPlayerViewController alloc] init];
     playerViewController.player = self.player;
+    playerViewController.cp_overrideEffectivelyFullScreen = NO;
     
     _playerViewController = playerViewController;
     return playerViewController;

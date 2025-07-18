@@ -8,11 +8,10 @@
 #import <CamPresentation/CompositionService.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
-#include <objc/objc-sync.h>
+#import <CamPresentation/CompositionStorage.h>
 #import <CamPresentation/PHImageManager+Category.h>
 
 @interface CompositionService ()
-@property (class, nonatomic, getter=_archivedComposition, setter=_setArchivedComposition:) AVComposition *archivedComposition;
 @property (copy, nonatomic, getter=queue_composition, setter=_queue_setComposition:) AVComposition *queue_composition;
 @property (retain, nonatomic, getter=_queue_mutableComposition, setter=_queue_setMutableComposition:) AVMutableComposition *queue_mutableComposition;
 @end
@@ -20,43 +19,6 @@
 @implementation CompositionService
 @synthesize queue_composition = _queue_composition;
 @synthesize queue_mutableComposition = _queue_mutableComposition;
-
-+ (AVComposition *)_archivedComposition {
-    NSUserDefaults *userDefaults = NSUserDefaults.standardUserDefaults;
-    
-    assert(objc_sync_enter(userDefaults) == OBJC_SYNC_SUCCESS);
-    
-    NSData * _Nullable data = [userDefaults objectForKey:@"cp_compositionData"];
-    if (data == nil) {
-        assert(objc_sync_exit(userDefaults) == OBJC_SYNC_SUCCESS);
-        return nil;
-    }
-    
-    NSError * _Nullable error = nil;
-    AVComposition *composition = [NSKeyedUnarchiver unarchivedObjectOfClass:[AVComposition class] fromData:data error:&error];
-    
-    assert(objc_sync_exit(userDefaults) == OBJC_SYNC_SUCCESS);
-    assert(composition != nil);
-    
-    return composition;
-}
-
-+ (void)_setArchivedComposition:(AVComposition *)composition {
-    NSUserDefaults *userDefaults = NSUserDefaults.standardUserDefaults;
-    
-    assert(objc_sync_enter(userDefaults) == OBJC_SYNC_SUCCESS);
-    
-    if (composition == nil) {
-        [userDefaults setObject:nil forKey:@"cp_compositionData"];
-    } else {
-        NSError * _Nullable error = nil;
-        NSData * _Nullable data = [NSKeyedArchiver archivedDataWithRootObject:composition requiringSecureCoding:YES error:&error];
-        assert(data != nil);
-        [userDefaults setObject:data forKey:@"cp_compositionData"];
-    }
-    
-    assert(objc_sync_exit(userDefaults) == OBJC_SYNC_SUCCESS);
-}
 
 - (instancetype)init {
     if (self = [super init]) {
@@ -108,19 +70,22 @@
 - (void)queue_loadComposition {
     dispatch_assert_queue(self.queue);
     
-    AVComposition * _Nullable composition = CompositionService.archivedComposition;
+    AVComposition *composition = CompositionStorage.composition;
     if (composition == nil) return;
     
     AVMutableComposition *mutableComposition = [composition mutableCopy];
     self.queue_mutableComposition = mutableComposition;
+    self.queue_composition = mutableComposition;
     [mutableComposition release];
-    
-    self.queue_composition = composition;
 }
 
-- (void)queue_saveComposition {
+- (void)queue_resetComposition {
     dispatch_assert_queue(self.queue);
-    CompositionService.archivedComposition = self.queue_composition;
+    
+    AVMutableComposition *mutableComposition = [[AVMutableComposition alloc] init];
+    self.queue_mutableComposition = mutableComposition;
+    self.queue_composition = mutableComposition;
+    [mutableComposition release];
 }
 
 - (NSProgress *)nonisolated_addVideoSegmentsFromPHAssets:(NSArray<PHAsset *> *)phAssets {    

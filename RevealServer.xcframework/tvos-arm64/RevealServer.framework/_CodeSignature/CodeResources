@@ -6,7 +6,7 @@
 	<dict>
 		<key>Headers/RevealServer-Swift.h</key>
 		<data>
-		KvejJgDjTak5ae7xx+8ARFbT+Mk=
+		gNrU3PwlgLh2/cOTJbVrsrFV2uU=
 		</data>
 		<key>Headers/RevealServer.h</key>
 		<data>
@@ -14,23 +14,23 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		slp9ZDkFZMgpAVhIkhr6G333Emc=
+		HkPXqvSV6kemfJzEBHX5BL85AP0=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.abi.json</key>
 		<data>
-		hUukBs0WiabpdrmhL5drx4hHPrk=
+		fYvhjaDAujzNFjQOkMzZfngGr8w=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.private.swiftinterface</key>
 		<data>
-		9t8SyfVQOdsHlBr1PrOWZhiZsf0=
+		SAL+vtoS51cYVb0pqJwFGc5t5r8=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.swiftdoc</key>
 		<data>
-		OPHaIcoDdng1k2bIdzvxLSVkzRw=
+		HuyA7LnrRMdWeljz3t9ZioA7RyM=
 		</data>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.swiftinterface</key>
 		<data>
-		9t8SyfVQOdsHlBr1PrOWZhiZsf0=
+		SAL+vtoS51cYVb0pqJwFGc5t5r8=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -47,7 +47,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			919q1fjJeKtQfoMQrhr8uXgvObX4sO6euMqgxzwKPUA=
+			OJLTnwCZtfa8a7IVD9sfNhSwiRs/ph0kw7BxehHXccQ=
 			</data>
 		</dict>
 		<key>Headers/RevealServer.h</key>
@@ -61,28 +61,28 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0G13yK7QKn5dT+J7snBqNoBO4csHBiMC4DR9/gO7nOA=
+			b5fS+JrJs/WS2CIoOHSSUeqlVU2ifUv+Zg3OUbOF0VM=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.private.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			b+6Gn/6pl1m+g3ClcFzPZOsAfDthnpxVDSkBITrvCTI=
+			1z9vWkolXp/9qaro7pGbSfRzVAQCeBibuMB4W2A62j4=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.swiftdoc</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			KsRbcko6a8FeVx1p7UaQDPUcjKWeXvwXRcKaG2DwTKE=
+			D6Qqf61ENyaBZcbs9ezOwnqgf0v9IeOgKJrQhW4qh6I=
 			</data>
 		</dict>
 		<key>Modules/RevealServer.swiftmodule/arm64-apple-tvos.swiftinterface</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			b+6Gn/6pl1m+g3ClcFzPZOsAfDthnpxVDSkBITrvCTI=
+			1z9vWkolXp/9qaro7pGbSfRzVAQCeBibuMB4W2A62j4=
 			</data>
 		</dict>
 		<key>Modules/module.modulemap</key>

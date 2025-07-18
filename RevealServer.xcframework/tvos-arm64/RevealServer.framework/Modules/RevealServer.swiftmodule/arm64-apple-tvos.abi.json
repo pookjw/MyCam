@@ -6,6 +6,43 @@
     "children": [
       {
         "kind": "Import",
+        "name": "os",
+        "printedName": "os",
+        "declKind": "Import",
+        "moduleName": "RevealServer",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "Foundation",
+        "printedName": "Foundation",
+        "declKind": "Import",
+        "moduleName": "RevealServer",
+        "declAttributes": [
+          "RawDocComment"
+        ]
+      },
+      {
+        "kind": "Import",
+        "name": "UIKit",
+        "printedName": "UIKit",
+        "declKind": "Import",
+        "moduleName": "RevealServer"
+      },
+      {
+        "kind": "Import",
+        "name": "UIKitHelpers",
+        "printedName": "UIKitHelpers",
+        "declKind": "Import",
+        "moduleName": "RevealServer",
+        "declAttributes": [
+          "AccessControl"
+        ]
+      },
+      {
+        "kind": "Import",
         "name": "CRevealSupport",
         "printedName": "CRevealSupport",
         "declKind": "Import",
@@ -746,33 +783,6 @@
       },
       {
         "kind": "Import",
-        "name": "Foundation",
-        "printedName": "Foundation",
-        "declKind": "Import",
-        "moduleName": "RevealServer",
-        "declAttributes": [
-          "RawDocComment"
-        ]
-      },
-      {
-        "kind": "Import",
-        "name": "UIKit",
-        "printedName": "UIKit",
-        "declKind": "Import",
-        "moduleName": "RevealServer"
-      },
-      {
-        "kind": "Import",
-        "name": "UIKitHelpers",
-        "printedName": "UIKitHelpers",
-        "declKind": "Import",
-        "moduleName": "RevealServer",
-        "declAttributes": [
-          "AccessControl"
-        ]
-      },
-      {
-        "kind": "Import",
         "name": "CRevealSupport",
         "printedName": "CRevealSupport",
         "declKind": "Import",
@@ -780,6 +790,13 @@
         "declAttributes": [
           "RawDocComment"
         ]
+      },
+      {
+        "kind": "Import",
+        "name": "Darwin",
+        "printedName": "Darwin",
+        "declKind": "Import",
+        "moduleName": "RevealServer"
       },
       {
         "kind": "Import",
@@ -807,8 +824,8 @@
       },
       {
         "kind": "Import",
-        "name": "os",
-        "printedName": "os",
+        "name": "RevealSharedUtilities",
+        "printedName": "RevealSharedUtilities",
         "declKind": "Import",
         "moduleName": "RevealServer"
       },
@@ -828,6 +845,13 @@
         "declAttributes": [
           "AccessControl"
         ]
+      },
+      {
+        "kind": "Import",
+        "name": "os",
+        "printedName": "os",
+        "declKind": "Import",
+        "moduleName": "RevealServer"
       },
       {
         "kind": "TypeDecl",
@@ -1173,21 +1197,39 @@
             "mangledName": "$ss28CustomDebugStringConvertibleP"
           }
         ]
-      },
-      {
-        "kind": "Import",
-        "name": "os",
-        "printedName": "os",
-        "declKind": "Import",
-        "moduleName": "RevealServer",
-        "declAttributes": [
-          "RawDocComment"
-        ]
       }
     ],
     "json_format_version": 8
   },
   "ConstValues": [
+    {
+      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/Logger.swift",
+      "kind": "StringLiteral",
+      "offset": 139,
+      "length": 32,
+      "value": "\"com.ittybittyapps.RevealServer\""
+    },
+    {
+      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/Logger.swift",
+      "kind": "StringLiteral",
+      "offset": 183,
+      "length": 9,
+      "value": "\"General\""
+    },
+    {
+      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/ApplicationStateTracker.swift",
+      "kind": "StringLiteral",
+      "offset": 3125,
+      "length": 58,
+      "value": "\"_UIViewServiceHostedWindowWillDisconnectNotificationName\""
+    },
+    {
+      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/ApplicationStateTracker.swift",
+      "kind": "Array",
+      "offset": 3230,
+      "length": 2,
+      "value": "[]"
+    },
     {
       "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/USBServiceAdvertiser.swift",
       "kind": "IntegerLiteral",
@@ -1229,34 +1271,6 @@
       "offset": 3628,
       "length": 2,
       "value": "[]"
-    },
-    {
-      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/ApplicationStateTracker.swift",
-      "kind": "StringLiteral",
-      "offset": 3149,
-      "length": 58,
-      "value": "\"_UIViewServiceHostedWindowWillDisconnectNotificationName\""
-    },
-    {
-      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/ApplicationStateTracker.swift",
-      "kind": "Array",
-      "offset": 3254,
-      "length": 2,
-      "value": "[]"
-    },
-    {
-      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/Logger.swift",
-      "kind": "StringLiteral",
-      "offset": 139,
-      "length": 32,
-      "value": "\"com.ittybittyapps.RevealServer\""
-    },
-    {
-      "filePath": "\/Users\/admin\/actions-runner\/_work\/reveal\/reveal\/Server\/RevealServer\/Sources\/Logger.swift",
-      "kind": "StringLiteral",
-      "offset": 183,
-      "length": 9,
-      "value": "\"General\""
     }
   ]
 }
