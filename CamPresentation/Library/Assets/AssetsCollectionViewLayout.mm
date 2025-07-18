@@ -110,7 +110,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     NSMutableDictionary<NSIndexPath *, NSValue *> *cachedFrameValuesByIndexPath = self.cachedFrameValuesByIndexPath;
     
     auto vector = std::views::iota(firstIndex, lastIndex)
-    | std::views::transform([rect, itemsPerRow, itemSize, cachedFrameValuesByIndexPath](NSInteger index) -> UICollectionViewLayoutAttributes * {
+    | std::views::transform([rect, itemsPerRow, viewPortFirstRow, viewPortLastRow, itemSize, cachedFrameValuesByIndexPath](NSInteger index) -> UICollectionViewLayoutAttributes * {
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:index inSection:0];
         
         CGRect frame;
@@ -127,17 +127,23 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
             cachedFrameValuesByIndexPath[indexPath] = [NSValue valueWithCGRect:frame];
         }
         
-        if (!CGRectIntersectsRect(frame, rect)) return nil;
+        // 첫줄과 마지막줄은 모두 포함해야 Selection이 작동함
+        NSInteger row = index / itemsPerRow;
+        if (row == viewPortFirstRow || row == viewPortLastRow) {
+            if (!CGRectIntersectsRect(frame, rect)) return nil;
+        }
         
         UICollectionViewLayoutAttributes *attributes = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
         attributes.frame = frame;
         
         return attributes;
     })
-    | std::views::filter([](UICollectionViewLayoutAttributes *attributes) { return attributes != nil; })
+    | std::views::filter([](UICollectionViewLayoutAttributes *attributes) { return (attributes != nil); })
     | std::ranges::to<std::vector<UICollectionViewLayoutAttributes *>>();
     
     NSArray<UICollectionViewLayoutAttributes *> *layoutAttributesArray = [[NSArray alloc] initWithObjects:vector.data() count:vector.size()];
+    NSLog(@"%@ %@", NSStringFromCGRect(rect), layoutAttributesArray);
+    
     return [layoutAttributesArray autorelease];
 }
 
@@ -243,8 +249,16 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     return YES;
 }
 
-- (NSUInteger)_layoutAxis {
-    return 2;
+- (BOOL)_allowsPanningAcrossConstrainedAxisToBeginMultiSelectInteractionInSection:(NSInteger)section {
+    return YES;
 }
+
+- (NSUInteger)_layoutAxis {
+    return 4;
+}
+
+//- (NSArray<__kindof UICollectionViewLayoutAttributes *> *)_layoutAttributesForElementsInProjectedRect:(CGRect)rect withProjectionVector:(CGVector)arg2 projectionDistance:(CGFloat)arg3 {
+//    return @[];
+//} 
 
 @end
