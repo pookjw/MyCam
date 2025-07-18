@@ -42,9 +42,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.navigationItem.leftBarButtonItems = @[
-        self.cancelBarButton
-    ];
     self.navigationItem.rightBarButtonItems = @[
         self.editButtonItem
     ];
@@ -75,8 +72,6 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 - (void)editingDidChange {
     BOOL editing = self.editing;
     
-    self.navigationItem.hidesBackButton = editing;
-    
     if (!editing) {
         auto delegate = self.delegate;
         
@@ -97,7 +92,16 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     }
     
     self.collectionView.editing = editing;
-    self.cancelBarButton.hidden = !editing;
+    
+    if (editing) {
+        self.navigationItem.leftBarButtonItems = @[
+            self.cancelBarButton
+        ];
+        self.navigationItem.hidesBackButton = YES;
+    } else {
+        self.navigationItem.leftBarButtonItems = @[];
+        self.navigationItem.hidesBackButton = NO;
+    }
 }
 
 - (UICollectionView *)collectionView {
@@ -152,6 +156,17 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     assetViewController.delegate = self;
     [self.navigationController pushViewController:assetViewController animated:YES];
     [assetViewController release];
+}
+
+- (BOOL)collectionView:(UICollectionView *)collectionView shouldBeginMultipleSelectionInteractionAtIndexPath:(NSIndexPath *)indexPath {
+    return YES;
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didBeginMultipleSelectionInteractionAtIndexPath:(NSIndexPath *)indexPath {
+    
+}
+- (void)collectionViewDidEndMultipleSelectionInteraction:(UICollectionView *)collectionView {
+    
 }
 
 - (void)assetViewController:(AssetViewController *)assetViewController didSelectAsset:(PHAsset *)selectedAsset {

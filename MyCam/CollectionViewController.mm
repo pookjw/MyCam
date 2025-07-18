@@ -154,10 +154,10 @@
 //    [self.navigationController pushViewController:viewController animated:NO];
 //    [viewController release];
     
-//    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
-//    viewController.delegate = self;
-//    [self.navigationController pushViewController:viewController animated:YES];
-//    [viewController release];
+    AssetCollectionsViewController *viewController = [AssetCollectionsViewController new];
+    viewController.delegate = self;
+    [self.navigationController pushViewController:viewController animated:YES];
+    [viewController release];
     
 //    CinematicViewController *viewController = [CinematicViewController new];
 //    [self.navigationController pushViewController:viewController animated:YES];
@@ -183,9 +183,9 @@
 //    [self.navigationController pushViewController:viewController animated:YES];
 //    [viewController release];
     
-    CompositionViewController *viewController = [CompositionViewController new];
-    [self.navigationController pushViewController:viewController animated:YES];
-    [viewController release];
+//    CompositionViewController *viewController = [CompositionViewController new];
+//    [self.navigationController pushViewController:viewController animated:YES];
+//    [viewController release];
 }
 
 - (UIBarButtonItem *)menuBarButtonItem {

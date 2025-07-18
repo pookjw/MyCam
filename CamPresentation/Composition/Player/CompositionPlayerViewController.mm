@@ -63,7 +63,9 @@
     
     AVPlayerViewController *playerViewController = [[AVPlayerViewController alloc] init];
     playerViewController.player = self.player;
+#if TARGET_OS_VISION
     playerViewController.cp_overrideEffectivelyFullScreen = NO;
+#endif
     
     _playerViewController = playerViewController;
     return playerViewController;

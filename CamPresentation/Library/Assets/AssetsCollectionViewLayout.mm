@@ -110,7 +110,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
     NSMutableDictionary<NSIndexPath *, NSValue *> *cachedFrameValuesByIndexPath = self.cachedFrameValuesByIndexPath;
     
     auto vector = std::views::iota(firstIndex, lastIndex)
-    | std::views::transform([itemsPerRow, itemSize, cachedFrameValuesByIndexPath](NSInteger index) -> UICollectionViewLayoutAttributes * {
+    | std::views::transform([rect, itemsPerRow, itemSize, cachedFrameValuesByIndexPath](NSInteger index) -> UICollectionViewLayoutAttributes * {
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:index inSection:0];
         
         CGRect frame;
@@ -127,11 +127,14 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
             cachedFrameValuesByIndexPath[indexPath] = [NSValue valueWithCGRect:frame];
         }
         
+        if (!CGRectIntersectsRect(frame, rect)) return nil;
+        
         UICollectionViewLayoutAttributes *attributes = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
         attributes.frame = frame;
         
         return attributes;
     })
+    | std::views::filter([](UICollectionViewLayoutAttributes *attributes) { return attributes != nil; })
     | std::ranges::to<std::vector<UICollectionViewLayoutAttributes *>>();
     
     NSArray<UICollectionViewLayoutAttributes *> *layoutAttributesArray = [[NSArray alloc] initWithObjects:vector.data() count:vector.size()];
@@ -238,6 +241,10 @@ OBJC_EXPORT id objc_msgSendSuper2(void);
 
 - (BOOL)_preparedForBoundsChanges {
     return YES;
+}
+
+- (NSUInteger)_layoutAxis {
+    return 2;
 }
 
 @end
