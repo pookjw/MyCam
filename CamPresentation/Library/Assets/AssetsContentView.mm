@@ -151,16 +151,16 @@
 - (void)updateOverlayView {
     if (self.selected) {
 //        self.overlayView.hidden = NO;
-        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.75];
-//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceSecondary];
+//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.75];
+        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceSecondary];
     } else if (self.highlighted) {
 //        self.overlayView.hidden = NO;
         
-        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
-//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceQuaternary];
+//        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.5];
+        self.overlayView.backgroundColor = [UIColor.blackColor colorWithProminence:UIColorProminenceQuaternary];
     } else {
 //        self.overlayView.hidden = YES;
-        self.overlayView.backgroundColor = [UIColor.blackColor colorWithAlphaComponent:0.];
+        self.overlayView.backgroundColor = UIColor.clearColor;
     }
 }
 

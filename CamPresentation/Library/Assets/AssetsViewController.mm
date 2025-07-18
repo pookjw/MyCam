@@ -18,16 +18,19 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 @interface AssetsViewController () <UICollectionViewDelegate, AssetViewControllerDelegate>
 @property (retain, nonatomic, readonly) UICollectionView *collectionView;
+@property (retain, nonatomic, readonly) UIBarButtonItem *cancelBarButton;
 @property (retain, nonatomic, readonly) AssetsDataSource *dataSource;
 @end
 
 @implementation AssetsViewController
 @synthesize collectionView = _collectionView;
+@synthesize cancelBarButton = _cancelBarButton;
 @synthesize dataSource = _dataSource;
 
 - (void)dealloc {
     [_collection release];
     [_collectionView release];
+    [_cancelBarButton release];
     [_dataSource release];
     [super dealloc];
 }
@@ -39,9 +42,14 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    self.navigationItem.leftBarButtonItems = @[
+        self.cancelBarButton
+    ];
     self.navigationItem.rightBarButtonItems = @[
         self.editButtonItem
     ];
+    
+    [self editingDidChange];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -54,6 +62,18 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
 
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated {
     [super setEditing:editing animated:animated];
+    [self editingDidChange];
+}
+
+- (void)setCollection:(PHAssetCollection *)collection {
+    if ([_collection isEqual:collection]) return;
+    
+    _collection = [collection retain];
+    [self.dataSource updateCollection:collection completionHandler:nil];
+}
+
+- (void)editingDidChange {
+    BOOL editing = self.editing;
     
     self.navigationItem.hidesBackButton = editing;
     
@@ -77,13 +97,7 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     }
     
     self.collectionView.editing = editing;
-}
-
-- (void)setCollection:(PHAssetCollection *)collection {
-    if ([_collection isEqual:collection]) return;
-    
-    _collection = [collection retain];
-    [self.dataSource updateCollection:collection completionHandler:nil];
+    self.cancelBarButton.hidden = !editing;
 }
 
 - (UICollectionView *)collectionView {
@@ -100,6 +114,15 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     return [collectionView autorelease];
 }
 
+- (UIBarButtonItem *)cancelBarButton {
+    if (auto cancelBarButton = _cancelBarButton) return cancelBarButton;
+    
+    UIBarButtonItem *cancelBarButton = [[UIBarButtonItem alloc] initWithTitle:@"Cacnel" image:[UIImage systemImageNamed:@"xmark"] target:self action:@selector(cancelBarButtonDidTrigger:) menu:nil];
+    
+    _cancelBarButton = cancelBarButton;
+    return cancelBarButton;
+}
+
 - (AssetsDataSource *)dataSource {
     if (auto dataSource = _dataSource) return dataSource;
     
@@ -111,6 +134,11 @@ OBJC_EXPORT id objc_msgSendSuper2(void); /* objc_super superInfo = { self, [self
     
     _dataSource = [dataSource retain];
     return [dataSource autorelease];
+}
+
+- (void)cancelBarButtonDidTrigger:(UIBarButtonItem *)sender {
+    [self.collectionView selectItemAtIndexPath:nil animated:YES scrollPosition:0];
+    self.editing = NO;
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
